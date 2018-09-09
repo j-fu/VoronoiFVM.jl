@@ -22,13 +22,13 @@ struct FVMGraph
     # Dual grid with control volumes
     #  |--|-----|-----|-----|-----|-----|-----|-----|--|
         n=length(X)
-        pts=reshape(X,n,1)
-        eds=zeros(Int32,n-1,2)
+        pts=reshape(X,1,n)
+        eds=zeros(Int32,2,n-1)
         efac=zeros(n-1)
         nfac=zeros(n)
         for i=1:n-1 # loop over edges
-            eds[i,1]=i
-            eds[i,2]=i+1
+            eds[1,i]=i
+            eds[2,i]=i+1
             h=pts[i+1]-pts[i]
             efac[i]=1.0/h
             nfac[i]+=0.5*h

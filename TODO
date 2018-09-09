@@ -1,0 +1,20 @@
+* TODO list  (in emacs org syntax)
+
+
+** Open [0/2]
+  - [ ] Issues [0/9]   
+    - [ ] 2d grid example
+    - [ ] views vs slices for input of uk, ul etc
+    - [ ] Try to follow https://docs.julialang.org/en/latest/manual/style-guide/ 
+    - [ ] timings on 2D operator
+    - [ ] Faster graphics
+    - [ ] Documentation
+    - [ ] Real julia module, paper (SoftwareX)
+  - [ ] Ideas [0/2]   
+    - [ ] interpolatable data types via fieldnames for parameters (as in ddfermi)
+    - [ ]                                                                        
+
+** Done [/]
+    - [ ] change to column major
+    - [ ] two variable example
+
