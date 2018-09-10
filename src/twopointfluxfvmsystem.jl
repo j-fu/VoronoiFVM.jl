@@ -17,11 +17,35 @@ end
 
 
 
-abstract type FVMPhysics end
+abstract type FVMParameters end
+
+mutable struct DefaultParameters <: FVMParameters
+    number_of_species::Int64
+end
+
+function default_source!(this::FVMParameters, f,x)
+    for i=1:this.number_of_species
+        f[i]=0
+    end
+end
+
+function default_reaction!(this::FVMParameters, f,u)
+    for i=1:this.number_of_species
+        f[i]=0
+    end
+end
+
+function default_flux!(this::FVMParameters, f,uk,ul)
+    for i=1:this.number_of_species
+        f[i]=uk[i]-ul[i]
+    end
+end
+
+
 
 struct TwoPointFluxFVMSystem
     geometry::FVMGraph
-    nspec::Int64
+    number_of_species::Int64
     source!::Function
     reaction!::Function
     flux!::Function
@@ -29,22 +53,26 @@ struct TwoPointFluxFVMSystem
     matrix::SparseArrays.SparseMatrixCSC
     residual::Array{Float64,1}
     update::Array{Float64,1}
-    function TwoPointFluxFVMSystem(geometry::FVMGraph,problem::FVMPhysics)
-        nspec=problem.nspec(problem)
-        source!(y,x)=problem.source(problem,y,x)
-        flux!(y,uk,ul)=problem.flux(problem,y,uk,ul)
-        reaction!(y,x)=problem.reaction(problem,y,x)
+    function TwoPointFluxFVMSystem(geometry::FVMGraph; 
+                                   parameters::FVMParameters=DefaultParameters(1),
+                                   source::Function=default_source!,
+                                   reaction::Function=default_reaction!,
+                                   flux::Function=default_flux!)
+        number_of_species=parameters.number_of_species
+        _source!(y,x)=source(parameters,y,x)
+        _flux!(y,uk,ul)=flux(parameters,y,uk,ul)
+        _reaction!(y,x)=reaction(parameters,y,x)
         # Set up solution data
-        matrix=SparseArrays.spzeros(geometry.NumberOfNodes*nspec,geometry.NumberOfNodes*nspec) # Jacobi matrix
-        residual=Array{Float64,1}(undef,geometry.NumberOfNodes*nspec)
-        update=Array{Float64,1}(undef,geometry.NumberOfNodes*nspec)
-        dirichlet_values=Array{Float64,2}(undef,nspec,length(geometry.BPoints))
-        new(geometry,nspec,source!,reaction!,flux!,dirichlet_values,matrix,residual,update)
+        matrix=SparseArrays.spzeros(geometry.NumberOfNodes*number_of_species,geometry.NumberOfNodes*number_of_species) # Jacobi matrix
+        residual=Array{Float64,1}(undef,geometry.NumberOfNodes*number_of_species)
+        update=Array{Float64,1}(undef,geometry.NumberOfNodes*number_of_species)
+        dirichlet_values=Array{Float64,2}(undef,number_of_species,length(geometry.BPoints))
+        new(geometry,number_of_species,_source!,_reaction!,_flux!,dirichlet_values,matrix,residual,update)
     end
 end
 
 function unknowns(fvsystem::TwoPointFluxFVMSystem)
-    return Array{Float64,2}(undef,fvsystem.nspec,fvsystem.geometry.NumberOfNodes)
+    return Array{Float64,2}(undef,fvsystem.number_of_species,fvsystem.geometry.NumberOfNodes)
 end
 
 
@@ -58,15 +86,15 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U)
     dirichlet_penalty=1.0e30
     
     function fluxwrap!(y,u)
-        fvsystem.flux!(y,u[1:nspec],u[nspec+1:2*nspec])
+        fvsystem.flux!(y,u[1:number_of_species],u[number_of_species+1:2*number_of_species])
     end
     
     geom=fvsystem.geometry
     nnodes=geom.NumberOfNodes
-    nspec=fvsystem.nspec
+    number_of_species=fvsystem.number_of_species
     nedges=size(geom.Edges,2)
     M=fvsystem.matrix
-    F=reshape(fvsystem.residual,nspec,nnodes)
+    F=reshape(fvsystem.residual,number_of_species,nnodes)
     #  for K=1...n
     #  f_K = sum_(L neigbor of K) eps (U[K]-U[L])*edgefac[K,L]
     #        + (reaction(U[K])- source(X[K]))*nodefac[K]
@@ -76,8 +104,8 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U)
     M.nzval.=0.0
     F.=0.0
     # Assemble nonlinear term + source using autodifferencing via ForwardDiff
-    result=DiffResults.DiffResult(Vector{Float64}(undef,nspec),Matrix{Float64}(undef,nspec,nspec))
-    Y=Array{Float64}(undef,nspec)
+    result=DiffResults.DiffResult(Vector{Float64}(undef,number_of_species),Matrix{Float64}(undef,number_of_species,number_of_species))
+    Y=Array{Float64}(undef,number_of_species)
     iblock=0
     for inode=1:nnodes
         result=ForwardDiff.jacobian!(result,fvsystem.reaction!,Y,U[:,inode])
@@ -85,42 +113,40 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U)
         fvsystem.source!(Y,geom.Points[:,inode])
         F[:,inode]=geom.NodeFactors[inode]*(res-Y)
         jac=DiffResults.jacobian(result)
-        for i=1:nspec
-            for j=1:nspec
+        for i=1:number_of_species
+            for j=1:number_of_species
                 M[iblock+i,iblock+j]+=geom.NodeFactors[inode]*jac[i,j]
             end
         end
-        iblock+=nspec
+        iblock+=number_of_species
     end
     
-    result=DiffResults.DiffResult(Vector{Float64}(undef,nspec),Matrix{Float64}(undef,nspec,2*nspec))
-    Y=Array{Float64,1}(undef,nspec)
-    UKL=Array{Float64,1}(undef,2*nspec)
+    result=DiffResults.DiffResult(Vector{Float64}(undef,number_of_species),Matrix{Float64}(undef,number_of_species,2*number_of_species))
+    Y=Array{Float64,1}(undef,number_of_species)
+    UKL=Array{Float64,1}(undef,2*number_of_species)
     # Assemble main part
     for iedge=1:nedges
         K=geom.Edges[1,iedge]
         L=geom.Edges[2,iedge]
-        UKL[1:nspec]=U[:,K]
-        UKL[nspec+1:2*nspec]=U[:,L]
+        UKL[1:number_of_species]=U[:,K]
+        UKL[number_of_species+1:2*number_of_species]=U[:,L]
         result=ForwardDiff.jacobian!(result,fluxwrap!,Y,UKL)
         res=DiffResults.value(result)
         jac=DiffResults.jacobian(result)
         F[:,K]+=res*geom.EdgeFactors[iedge]
         F[:,L]-=res*geom.EdgeFactors[iedge]
 
-        kblock=(K-1)*nspec
-        lblock=(L-1)*nspec
-        for ik=1:nspec
-            jk=1
-            jl=nspec+1
-            for j=1:nspec
+        kblock=(K-1)*number_of_species
+        lblock=(L-1)*number_of_species
+        jl=number_of_species+1
+        for jk=1:number_of_species
+            for ik=1:number_of_species
                 M[kblock+ik,kblock+jk]+=jac[ik,jk]*geom.EdgeFactors[iedge]
                 M[kblock+ik,lblock+jk]+=jac[ik,jl]*geom.EdgeFactors[iedge]
                 M[lblock+ik,kblock+jk]-=jac[ik,jk]*geom.EdgeFactors[iedge]
                 M[lblock+ik,lblock+jk]-=jac[ik,jl]*geom.EdgeFactors[iedge]
-                jk+=1
-                jl+=1
             end
+            jl+=1
         end
     end
     
@@ -129,8 +155,8 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U)
     for i=1:nbc
         ibc=geom.BPoints[i]
         F[:,ibc]+=dirichlet_penalty*(U[:,ibc]-fvsystem.dirichlet_values[:,i])
-        iblock=(ibc-1)*nspec
-        for ib=1:nspec
+        iblock=(ibc-1)*number_of_species
+        for ib=1:number_of_species
             M[iblock+ib,iblock+ib]+=dirichlet_penalty
         end
     end
@@ -144,7 +170,7 @@ end
 
 function solve(fvsystem::TwoPointFluxFVMSystem, inival::Array{Float64,2};control=FVMNewtonControl())
     
-    nunknowns=fvsystem.geometry.NumberOfNodes*fvsystem.nspec
+    nunknowns=fvsystem.geometry.NumberOfNodes*fvsystem.number_of_species
     solution=copy(inival)
     solution_r=reshape(solution,nunknowns)
     residual=fvsystem.residual
@@ -178,7 +204,7 @@ function solve(fvsystem::TwoPointFluxFVMSystem, inival::Array{Float64,2};control
             converged=true
             break
         end
-
+        
         oldnorm=norm
     end
     if !converged

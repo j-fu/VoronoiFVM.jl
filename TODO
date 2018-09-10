@@ -3,6 +3,8 @@
 
 ** Open [0/2]
   - [ ] Issues [0/9]   
+    - [ ] Julianic API
+    - [ ] systematic tests
     - [ ] 2d grid example
     - [ ] views vs slices for input of uk, ul etc
     - [ ] Try to follow https://docs.julialang.org/en/latest/manual/style-guide/ 
@@ -10,11 +12,11 @@
     - [ ] Faster graphics
     - [ ] Documentation
     - [ ] Real julia module, paper (SoftwareX)
+    - [X] change to column major
+    - [X] two variable example
   - [ ] Ideas [0/2]   
     - [ ] interpolatable data types via fieldnames for parameters (as in ddfermi)
-    - [ ]                                                                        
+    - [ ] solver strategy: Newton from pdelib + embedding. Have an embedding parameter
+          in API
 
-** Done [/]
-    - [ ] change to column major
-    - [ ] two variable example
 

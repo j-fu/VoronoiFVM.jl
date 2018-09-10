@@ -32,39 +32,35 @@ geom=FVMGraph(collect(0:0.1:1))
 
 
 
-mutable struct MyPhysics <:FVMPhysics
-  eps::Float64 
-  param::Float64
-  nspec::Function
-  reaction::Function
-  flux::Function
-  source::Function
-  MyPhysics()=new()
+mutable struct MyParameters <:FVMParameters
+    number_of_species::Int64
+    eps::Float64 
+    param::Float64
+    function MyParameters()
+        new(1,1,1)
+    end
 end
 
 
-physics=MyPhysics()
-physics.nspec= function(this) return 1 end
+parameters=MyParameters()
 
 
-physics.reaction=function(this::MyPhysics,f,u)
+function reaction!(this::MyParameters,f,u)
     f[1]=u[1]^2+this.param*u[1]
 end
 
-physics.flux=function(this::MyPhysics,f,uk,ul)
+function flux!(this::MyParameters,f,uk,ul)
     f[1]=this.eps*(uk[1]^2-ul[1]^2)
 end 
 
-physics.source=function(this::MyPhysics,f,x)
+function source!(this::MyParameters,f,x)
     f[1]=1.0e-4*x[1]
 end 
 
 
+parameters.param=1.0e-5
 
-
-physics.param=1.0e-5
-
-sys=TwoPointFluxFVMSystem(geom,physics)
+sys=TwoPointFluxFVMSystem(geom,parameters=parameters, flux=flux!, reaction=reaction!)
 sys.dirichlet_values[1,1]=1.0
 sys.dirichlet_values[1,2]=0.0
 
@@ -72,7 +68,7 @@ inival=unknowns(sys)
 inival.=1
 
 for eps in [1.0,0.1,0.01]
-    physics.eps=eps
+    parameters.eps=eps
     U=solve(sys,inival)
     if args["pyplot"]
         plot(geom.Points[1,:],U[1,:])

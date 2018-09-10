@@ -5,7 +5,7 @@ include("twopointfluxfvmsystem.jl")
 
 export FVMGraph
 export TwoPointFluxFVMSystem
-export FVMPhysics
+export FVMParameters
 export unknowns
 export solve
 
