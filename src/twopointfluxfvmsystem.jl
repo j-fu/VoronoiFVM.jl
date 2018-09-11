@@ -149,7 +149,7 @@ end
 """
     Initialize dirichlet boundary valuesfor solution
 """
-function inidirichlet(fvsystem::TwoPointFluxFVMSystem,U)
+function inidirichlet!(fvsystem::TwoPointFluxFVMSystem,U)
     geom=fvsystem.geometry
     nbnodes=length(geom.BoundaryNodes)
     for ibnode=1:nbnodes
@@ -311,7 +311,7 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
     nunknowns=fvsystem.geometry.NumberOfNodes*fvsystem.number_of_species
 
     solution=copy(oldsol)
-    inidirichlet(fvsystem,solution)
+    inidirichlet!(fvsystem,solution)
     solution_r=reshape(solution,nunknowns)
     residual=fvsystem.residual
     update=fvsystem.update
