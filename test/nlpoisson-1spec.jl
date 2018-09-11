@@ -1,40 +1,21 @@
 using Printf
+using TwoPointFluxFVM
+
 if !isinteractive()
-    # Command line argument parser, get it via Pkg.add
-    using TwoPointFluxFVM
-    using ArgParse
-    argdef = ArgParseSettings()
-    add_arg_table(argdef,
-                  "--pyplot", Dict(:help => "call python visualization",
-                                   #                    :default => false,
-                                   :action => :store_true),
-                  "--n", Dict(:help => "problem size",
-                              :arg_type => Int,
-                              :default => 11)
-                  
-                  )
-    
-    args = parse_args(argdef)
-    
-    
-    pyplot=false
-    if args["pyplot"]
-        using PyPlot
-        pyplot=true
-    end
+    using PyPlot
 end
 
 
-mutable struct MyParameters <:FVMParameters
+mutable struct MyParameters1 <:FVMParameters
     number_of_species::Int64
     eps::Float64 
     param::Float64
-    function MyParameters()
+    function MyParameters1()
         new(1,1,1)
     end
 end
 
-function myrun(n;pyplot=false)
+function run_1spec(;n=100,pyplot=false)
     h=1.0/convert(Float64,n)
     geom=FVMGraph(collect(0:h:1))
     
@@ -45,7 +26,7 @@ function myrun(n;pyplot=false)
     #
     
     
-    parameters=MyParameters()
+    parameters=MyParameters1()
     
     
     function reaction!(this::MyParameters,f,u)
@@ -88,17 +69,15 @@ function myrun(n;pyplot=false)
         if pyplot
             PyPlot.clf()
             plot(geom.Nodes[1,:],U[1,:])
+            pause(1.0e-10)
         end
-    end
-    if pyplot
-        pause(1.0e-10)
-        waitforbuttonpress()
     end
 end
 
 
 if !isinteractive()
-    myrun(args.n,pyplot=pyplot)
+    @time run_1spec(n=100,pyplot=true)
+    waitforbuttonpress()
 end
 
 

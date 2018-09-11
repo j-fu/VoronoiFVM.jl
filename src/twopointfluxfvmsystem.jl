@@ -14,7 +14,7 @@ mutable struct FVMNewtonControl
     tolerance::Float64 # Tolerance (in terms of norm of Newton update)
     damp::Float64      # Initial damping parameter
     maxiter::Int32     # Maximum number of iterations
-    verbose::Bool   # verbosity
+    verbose::Bool      # Verbosity
     function FVMNewtonControl()
         new(1.0e-10,1.0,100,true)
     end
@@ -23,8 +23,8 @@ end
 
 """
    Abstract type for user problem data.
-   Must contain field 
-    number_of_species::Int64
+ 
+   Derived types must contain field number_of_species::Int64
 """
 abstract type FVMParameters end
 
@@ -92,24 +92,38 @@ struct TwoPointFluxFVMSystem
     matrix::SparseArrays.SparseMatrixCSC
     residual::Array{Float64,1}
     update::Array{Float64,1}
-    function TwoPointFluxFVMSystem(geometry::FVMGraph; 
-                                   parameters::FVMParameters=DefaultParameters(1),
+    function TwoPointFluxFVMSystem(geometry::FVMGraph; # Geometry
+                                   parameters::FVMParameters=DefaultParameters(1), # user parameters
                                    source::Function=default_source!,
                                    reaction::Function=default_reaction!,
                                    storage::Function=default_storage!,
                                    flux::Function=default_flux!)
+
         number_of_species=parameters.number_of_species
+
+        # Create closures for physics functions
+        # These allow to "glue" user parameters to function objects compatible
+        # with the ForwardDiff module
         _source!(y,x)=source(parameters,y,x)
         _flux!(y,uk,ul)=flux(parameters,y,uk,ul)
         _reaction!(y,x)=reaction(parameters,y,x)
         _storage!(y,x)=storage(parameters,y,x)
 
-        # Set up solution data
-        matrix=SparseArrays.spzeros(geometry.NumberOfNodes*number_of_species,geometry.NumberOfNodes*number_of_species) # Jacobi matrix
-        residual=Array{Float64,1}(undef,geometry.NumberOfNodes*number_of_species)
-        update=Array{Float64,1}(undef,geometry.NumberOfNodes*number_of_species)
+        # Arrays for boundary data
         boundary_values=zeros(number_of_species,geometry.NumberOfBoundaryRegions)
         boundary_factors=zeros(number_of_species,geometry.NumberOfBoundaryRegions)
+
+
+
+        # Empty sparse matrix
+        matrix=SparseArrays.spzeros(geometry.NumberOfNodes*number_of_species,geometry.NumberOfNodes*number_of_species) # Jacobi matrix
+
+        # Iteration data
+        # These are created as 1D arrays because they must fit to sparse matrix
+        residual=Array{Float64,1}(undef,geometry.NumberOfNodes*number_of_species)
+        update=Array{Float64,1}(undef,geometry.NumberOfNodes*number_of_species)
+
+
         new(geometry,
             number_of_species,
             _source!,
@@ -124,11 +138,17 @@ struct TwoPointFluxFVMSystem
     end
 end
 
+"""
+    Create a vector of unknowns for a given system
+"""
 function unknowns(fvsystem::TwoPointFluxFVMSystem)
     return Array{Float64,2}(undef,fvsystem.number_of_species,fvsystem.geometry.NumberOfNodes)
 end
 
 
+"""
+    Initialize dirichlet boundary valuesfor solution
+"""
 function inidirichlet(fvsystem::TwoPointFluxFVMSystem,U)
     geom=fvsystem.geometry
     nbnodes=length(geom.BoundaryNodes)
@@ -142,11 +162,28 @@ function inidirichlet(fvsystem::TwoPointFluxFVMSystem,U)
     end
 end
 
-#
-# Nonlinear operator evaluation + Jacobian assembly
-#
-function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U,UOld,tstep)
-    
+
+"""
+  Nonlinear operator evaluation + Jacobian assembly
+
+  for K=1...n
+     f_K = sum_(L neigbor of K) flux(u[K],U[L])*edgefac[K,L]
+            + (reaction(U[K])- source(X[K]))*nodefac[K]
+            + (storage(U[K])- storage(UOld[K])*nodefac[K]/tstep
+
+    # M is correspondig Jacobi matrix of derivatives. 
+
+
+"""
+function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,
+                           U, # Actual solution iteration
+                           UOld, # Old timestep solution
+                           tstep # time step size. Inf means stationary solution
+                           )
+
+    """
+       Wrap API flux with function compatible to ForwardDiff
+    """
     function fluxwrap!(y,u)
         fvsystem.flux!(y,u[1:number_of_species],u[number_of_species+1:2*number_of_species])
     end
@@ -157,35 +194,51 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U,UOld,tstep)
     nedges=size(geom.Edges,2)
     M=fvsystem.matrix
     F=reshape(fvsystem.residual,number_of_species,nnodes)
-    #  for K=1...n
-    #  f_K = sum_(L neigbor of K) eps (U[K]-U[L])*edgefac[K,L]
-    #        + (reaction(U[K])- source(X[K]))*nodefac[K]
-    # M is correspondig Jacobi matrix of derivatives. 
     
-    # Reset matrix
+    # Reset matrix + rhs
     M.nzval.=0.0
     F.=0.0
-    # Assemble nonlinear term + source using autodifferencing via ForwardDiff
+
+    # Assemble nonlinear term + source + storage using autodifferencing via ForwardDiff
+
+    # struct holding diff results for storage, reaction
     result_r=DiffResults.DiffResult(Vector{Float64}(undef,number_of_species),Matrix{Float64}(undef,number_of_species,number_of_species))
     result_s=DiffResults.DiffResult(Vector{Float64}(undef,number_of_species),Matrix{Float64}(undef,number_of_species,number_of_species))
+
+    # array providing space for function arguments
     Y=Array{Float64}(undef,number_of_species)
+    
+    # array holding source term
     src=Array{Float64}(undef,number_of_species)
+
+    # array holding storage term for old solution
     oldstor=Array{Float64}(undef,number_of_species)
-    iblock=0
-    tstepinv=1.0/tstep
+
+    iblock=0 # block offset
+
+    # Inverse of timestep
+    # According to Julia documentation, 1/Inf=0 which
+    # comes handy to write compact code here.
+    tstepinv=1.0/tstep 
+    
     for inode=1:nnodes
+        # Evaluate & differentiate reaction term
         result_r=ForwardDiff.jacobian!(result_r,fvsystem.reaction!,Y,U[:,inode])
         res_react=DiffResults.value(result_r)
         jac_react=DiffResults.jacobian(result_r)
 
+        # Evaluate source term
         fvsystem.source!(src,geom.Nodes[:,inode])
 
+        # Evaluate & differentiate storage term
         result_s=ForwardDiff.jacobian!(result_s,fvsystem.storage!,Y,U[:,inode])
         res_stor=DiffResults.value(result_s)
         jac_stor=DiffResults.jacobian(result_s)
        
+        # Evaluate storage term for old timestep
         fvsystem.storage!(oldstor,UOld[:,inode])
         
+        # Assembly results and jacobians
         for i=1:number_of_species
             F[i,inode]+=geom.NodeFactors[inode]*(res_react[i]-src[i] + (res_stor[i]-oldstor[i])*tstepinv)
             for j=1:number_of_species
@@ -195,6 +248,7 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U,UOld,tstep)
         iblock+=number_of_species
     end
     
+    # Create result struct for flux evaluation
     result=DiffResults.DiffResult(Vector{Float64}(undef,number_of_species),Matrix{Float64}(undef,number_of_species,2*number_of_species))
     Y=Array{Float64,1}(undef,number_of_species)
     UKL=Array{Float64,1}(undef,2*number_of_species)
@@ -202,14 +256,17 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U,UOld,tstep)
     for iedge=1:nedges
         K=geom.Edges[1,iedge]
         L=geom.Edges[2,iedge]
+        # Set up argument for fluxwrap!
         UKL[1:number_of_species]=U[:,K]
         UKL[number_of_species+1:2*number_of_species]=U[:,L]
         result=ForwardDiff.jacobian!(result,fluxwrap!,Y,UKL)
+
         res=DiffResults.value(result)
         jac=DiffResults.jacobian(result)
+
+        # Assemble flux data
         F[:,K]+=res*geom.EdgeFactors[iedge]
         F[:,L]-=res*geom.EdgeFactors[iedge]
-
         kblock=(K-1)*number_of_species
         lblock=(L-1)*number_of_species
         jl=number_of_species+1
@@ -225,21 +282,30 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,U,UOld,tstep)
     end
     
     # Assemble boundary conditions
+    # Dirichlet conditions are handeld via penalty method, 
+    # for these, solution vectors need to be initialized
+    # appropriately
     nbnodes=length(geom.BoundaryNodes)
     for ibnode=1:nbnodes
         inode=geom.BoundaryNodes[ibnode]
         ibreg=geom.BoundaryRegions[ibnode]
         iblock=(inode-1)*number_of_species
         for ispec=1:number_of_species
-            F[ispec,inode]+=fvsystem.boundary_factors[ispec,ibreg]*(U[ispec,inode]-fvsystem.boundary_values[ispec,ibreg])
-            M[iblock+ispec,iblock+ispec]+=fvsystem.boundary_factors[ispec,ibreg]
+            fac=fvsystem.boundary_factors[ispec,ibreg]
+            if fac!=Dirichlet
+                fac*=geom.BoundaryNodeFactors[ibnode]
+            end
+            F[ispec,inode]+=fac*(U[ispec,inode]-fvsystem.boundary_values[ispec,ibreg])
+            M[iblock+ispec,iblock+ispec]+=fac
         end
     end
 end
 
 
 
-
+"""
+    Actual solver function implementation
+"""
 function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},control::FVMNewtonControl, tstep::Float64)
     
     nunknowns=fvsystem.geometry.NumberOfNodes*fvsystem.number_of_species
@@ -260,7 +326,7 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
         eval_and_assemble(fvsystem,solution,oldsol,tstep)
         
         # Sparse LU factorization
-        # Here, we miss the possibility to re-use the 
+        # Here, we seem miss the possibility to re-use the 
         # previous symbolic information
         # !!! may be there is such a call
         lufact=LinearAlgebra.lu(fvsystem.matrix)
@@ -269,8 +335,7 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
         # !!! is there a version wich does not allocate ?
         update=lufact\residual # DU is the Newton update
 
-        # vector expressions would allocate, we might
-        # miss 
+        # vector expressions would allocate here...
         for i=1:nunknowns
             solution_r[i]-=control.damp*update[i]
         end
@@ -293,8 +358,13 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
     return solution
 end
 
-
-function solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2};control=FVMNewtonControl(),tstep::Float64=Inf)
+"""
+    System solver wrapper allowing to dispatch timing
+"""
+function solve(fvsystem::TwoPointFluxFVMSystem, # Finite volume system
+               oldsol::Array{Float64,2}; # old time step solution resp. initial value
+               control=FVMNewtonControl(), # Newton solver control information
+               tstep::Float64=Inf) # Time step size. Inf means  stationary solution
     if control.verbose
         @time begin
             retval= _solve(fvsystem,oldsol,control,tstep)
@@ -304,4 +374,3 @@ function solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2};control
         return _solve(fvsystem,oldsol,control,tstep)
     end
 end
-

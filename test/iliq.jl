@@ -1,27 +1,8 @@
 using Printf
+using TwoPointFluxFVM
+
 if !isinteractive()
-    # Command line argument parser, get it via Pkg.add
-    using TwoPointFluxFVM
-    using ArgParse
-    argdef = ArgParseSettings()
-    add_arg_table(argdef,
-                  "--pyplot", Dict(:help => "call python visualization",
-                                   #                    :default => false,
-                                   :action => :store_true),
-                  "--n", Dict(:help => "problem size",
-                              :arg_type => Int,
-                              :default => 11)
-                  
-                  )
-    
-    args = parse_args(argdef)
-    
-    
-    pyplot=false
-    if args["pyplot"]
-        using PyPlot
-        pyplot=true
-    end
+    using PyPlot
 end
 
 
@@ -38,10 +19,7 @@ const iphi=1
 const ic=2
 const beps=1.0e-4
 
-function run_iliq(n;pyplot=false)
-    
-    
-    
+function run_iliq(;n=100,pyplot=false)
     function bernoulli(x)
         if x<-beps
             return x/(exp(x)-1)
@@ -72,10 +50,13 @@ function run_iliq(n;pyplot=false)
         f[iphi]=this.eps*(uk[iphi]-ul[iphi])
         muk=log(1-uk[ic])
         mul=log(1-ul[ic])
+        f[ic]=bernoulli(2*(ul[iphi]-uk[iphi])+(muk-mul))*uk[ic]-bernoulli(2*(uk[iphi]-ul[iphi])+(mul-muk))*ul[ic]
+    end 
 
-        #muk=0.0
-        #mul=0.0
-        f[ic]=bernoulli(this.a*(ul[iphi]-uk[iphi])+(muk-mul))*uk[ic]-bernoulli(this.a*(uk[iphi]-ul[iphi])+(mul-muk))*ul[ic]
+
+    function classflux!(this::ILiqParameters,f,uk,ul)
+        f[iphi]=this.eps*(uk[iphi]-ul[iphi])
+        f[ic]=bernoulli(ul[iphi]-uk[iphi])*uk[ic]-bernoulli(uk[iphi]-ul[iphi])*ul[ic]
     end 
 
     function storage!(this::FVMParameters, f,u)
@@ -84,7 +65,7 @@ function run_iliq(n;pyplot=false)
     end
     
     function reaction!(this::FVMParameters, f,u)
-        f[iphi]=0.5-u[ic]
+        f[iphi]=1-2*u[ic]
         f[ic]=0
     end
     
@@ -103,38 +84,36 @@ function run_iliq(n;pyplot=false)
     inival=unknowns(sys)
     for inode=1:size(inival,2)
         inival[iphi,inode]=0
-        inival[ic,inode]=0.5
+        inival[ic,inode]=0.6
     end
-    parameters.eps=1.0e-3
+    parameters.eps=1.0e-2
     parameters.a=5
     control=FVMNewtonControl()
     control.verbose=true
-    tstep=1.0e-2
-    times=collect(0.0:tstep:1.0)
-    for it=2:length(times)
+    t=0.0
+    tend=1.0
+    tstep=1.0e-10
+    while t<tend
+        t=t+tstep
         U=solve(sys,inival,control=control,tstep=tstep)
         for i=1:size(inival,2)
             inival[iphi,i]=U[iphi,i]
             inival[ic,i]=U[ic,i]
         end
-        @printf("time=%g\n",times[it])
+        @printf("time=%g\n",t)
         if pyplot
             PyPlot.clf()
             plot(geom.Nodes[1,:],U[iphi,:])
             plot(geom.Nodes[1,:],U[ic,:])
+            pause(1.0e-10)
         end
-    end
-    if pyplot && !isinteractive()
-        pause(1.0e-10)
-        waitforbuttonpress()
+        tstep*=1.2
     end
 end
+
 
 
 if !isinteractive()
-    run_iliq(args.n,pyplot=pyplot)
+    @time run_iliq(n=100,pyplot=true)
+    waitforbuttonpress()
 end
-
-
-
-
