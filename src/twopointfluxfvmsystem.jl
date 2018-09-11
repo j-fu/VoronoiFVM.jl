@@ -154,9 +154,10 @@ function inidirichlet!(fvsystem::TwoPointFluxFVMSystem,U)
     nbnodes=length(geom.BoundaryNodes)
     for ibnode=1:nbnodes
         ibreg=geom.BoundaryRegions[ibnode]
+        inode=geom.BoundaryNodes[ibnode]
         for ispec=1:fvsystem.number_of_species
             if fvsystem.boundary_factors[ispec,ibreg]==Dirichlet
-                U[ispec,ibnode]=fvsystem.boundary_values[ispec,ibreg]
+                U[ispec,inode]=fvsystem.boundary_values[ispec,ibreg]
             end
         end
     end

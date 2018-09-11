@@ -2,9 +2,10 @@
 
 
 ** Open [0/2]
-  - [-] Issues [4/13]   
+  - [-] Issues [6/15]   
     - [ ] systematic tests
-    - [ ] 2d grid example
+    - [ ] compatibility check for vector arguments
+    - [ ] try/catch vs exit on error -- stays in repl
     - [ ] views vs slices for input of uk, ul etc
     - [ ] Julianic API:
           Try to follow https://docs.julialang.org/en/latest/manual/style-guide/ 
@@ -13,7 +14,8 @@
     - [ ] Faster graphics
     - [ ] Documentation
     - [ ] Real julia module, paper (SoftwareX)
-    - [ ] Workflow from repl
+    - [X] 2d grid example
+    - [X] Workflow from repl
     - [X] time dependent case
     - [X] ionic liquid problem
     - [X] change to column major
