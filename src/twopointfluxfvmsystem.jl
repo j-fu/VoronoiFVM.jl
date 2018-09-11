@@ -1,5 +1,6 @@
 # Packages for Autodiff magic. These need to be installed via Pkg
 using ForwardDiff, DiffResults
+using IterativeSolvers
 
 # These are in the standard distro
 using SparseArrays
@@ -14,9 +15,11 @@ mutable struct FVMNewtonControl
     tolerance::Float64 # Tolerance (in terms of norm of Newton update)
     damp::Float64      # Initial damping parameter
     maxiter::Int32     # Maximum number of iterations
+    max_lureuse::Int32 # Maximum number of reuses of lu factorization
+    lin_tolerance::Float64 # Tolerance of iterative linear solver
     verbose::Bool      # Verbosity
     function FVMNewtonControl()
-        new(1.0e-10,1.0,100,true)
+        new(1.0e-10,1.0,100,0,1.0e-4,true)
     end
 end
 
@@ -227,7 +230,6 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,
         result_r=ForwardDiff.jacobian!(result_r,fvsystem.reaction!,Y,U[:,inode])
         res_react=DiffResults.value(result_r)
         jac_react=DiffResults.jacobian(result_r)
-
         # Evaluate source term
         fvsystem.source!(src,geom.Nodes[:,inode])
 
@@ -235,10 +237,10 @@ function eval_and_assemble(fvsystem::TwoPointFluxFVMSystem,
         result_s=ForwardDiff.jacobian!(result_s,fvsystem.storage!,Y,U[:,inode])
         res_stor=DiffResults.value(result_s)
         jac_stor=DiffResults.jacobian(result_s)
-       
+
         # Evaluate storage term for old timestep
         fvsystem.storage!(oldstor,UOld[:,inode])
-        
+
         # Assembly results and jacobians
         for i=1:number_of_species
             F[i,inode]+=geom.NodeFactors[inode]*(res_react[i]-src[i] + (res_stor[i]-oldstor[i])*tstepinv)
@@ -323,19 +325,29 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
     if control.verbose
         @printf("Start newton iteration: %s:%d\n", basename(@__FILE__),@__LINE__)
     end
+    nlu=0
+    lufact=nothing
     for ii=1:control.maxiter
         eval_and_assemble(fvsystem,solution,oldsol,tstep)
         
         # Sparse LU factorization
         # Here, we seem miss the possibility to re-use the 
         # previous symbolic information
-        # !!! may be there is such a call
-        lufact=LinearAlgebra.lu(fvsystem.matrix)
-        
-        # LU triangular solve gives Newton update
-        # !!! is there a version wich does not allocate ?
-        update=lufact\residual # DU is the Newton update
-
+        # We hower reuse the factorization control.max_lureuse times.
+        if nlu==0
+            lufact=LinearAlgebra.lu(fvsystem.matrix)
+            # LU triangular solve gives Newton update
+            ldiv!(update,lufact,residual)
+            nlu=min(nlu+1,control.max_lureuse)
+        else
+            # When reusing lu factorization, we may try to iterate
+            # Generally, this is advisable.
+            if control.lin_tolerance <1.0
+                bicgstabl!(update,fvsystem.matrix,residual,2,Pl=lufact,tol=control.lin_tolerance)
+            else
+                ldiv!(update,lufact,residual)
+            end
+        end
         # vector expressions would allocate here...
         for i=1:nunknowns
             solution_r[i]-=control.damp*update[i]

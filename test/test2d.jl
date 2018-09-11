@@ -57,15 +57,20 @@ function run_test2d(;n=100,pyplot=false)
 
     control=FVMNewtonControl()
     control.verbose=true
-    tstep=1.0e-2
-    times=collect(0.0:tstep:1.0)
-    for it=2:length(times)
+    control.lin_tolerance=1.0e-5
+    control.max_lureuse=10
+    tstep=0.01
+    time=0.0
+    while time<1.0
+        time=time+tstep
         U=solve(sys,inival,control=control,tstep=tstep)
         for i in eachindex(U)
             inival[i]=U[i]
         end
-        @printf("time=%g\n",times[it])
-        if pyplot
+        @printf("time=%g\n",time)
+
+        tstep*=1.0
+        @time if pyplot
             levels=collect(0:0.01:1)
             PyPlot.clf()
             contourf(X,Y,reshape(U[1,:],length(X),length(Y)), cmap=ColorMap("hot"),levels=levels)
