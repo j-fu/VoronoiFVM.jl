@@ -20,26 +20,6 @@ const ic=2
 const beps=1.0e-4
 
 function run_iliq(;n=100,pyplot=false)
-    function bernoulli(x)
-        if x<-beps
-            return x/(exp(x)-1)
-        elseif x <beps
-            x2  = x*x;
-            x4  = x2*x2;
-            x6  = x4*x2;
-            x8  = x6*x2;
-            x10 = x8*x2;
-            return 1.0 - 0.5*x +1.0/12.0 * x2 
-            - 1.0/720.0 * x4 
-            + 1.0/30240.0 * x6 
-            - 1.0/1209600.0 * x8 
-            + 1.0/47900160.0 * x10; 
-        else
-            return x/(exp(x)-1)
-        end
-    end
-    
-
 
     h=1.0/convert(Float64,n)
     geom=FVMGraph(collect(0:h:1))
@@ -48,15 +28,18 @@ function run_iliq(;n=100,pyplot=false)
     
     function flux!(this::ILiqParameters,f,uk,ul)
         f[iphi]=this.eps*(uk[iphi]-ul[iphi])
-        muk=log(1-uk[ic])
-        mul=log(1-ul[ic])
-        f[ic]=bernoulli(2*(ul[iphi]-uk[iphi])+(muk-mul))*uk[ic]-bernoulli(2*(uk[iphi]-ul[iphi])+(mul-muk))*ul[ic]
+        muk=-log(1-uk[ic])
+        mul=-log(1-ul[ic])
+        bp,bm=fbernoulli_pm(2*(uk[iphi]-ul[iphi])+(muk-mul))
+        f[ic]=bm*uk[ic]-bp*ul[ic]
     end 
 
 
     function classflux!(this::ILiqParameters,f,uk,ul)
         f[iphi]=this.eps*(uk[iphi]-ul[iphi])
-        f[ic]=bernoulli(ul[iphi]-uk[iphi])*uk[ic]-bernoulli(uk[iphi]-ul[iphi])*ul[ic]
+        arg=uk[iphi]-ul[iphi]
+        bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
+        f[ic]=bm*uk[ic]-bp*ul[ic]
     end 
 
     function storage!(this::FVMParameters, f,u)
