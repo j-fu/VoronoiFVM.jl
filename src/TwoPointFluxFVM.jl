@@ -11,6 +11,7 @@ export unknowns
 export fbernoulli
 export fbernoulli_pm
 export solve
+export integrate
 export Dirichlet
 
 end

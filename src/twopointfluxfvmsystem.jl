@@ -86,6 +86,7 @@ const Dirichlet=1.0e30
 struct TwoPointFluxFVMSystem
     geometry::FVMGraph
     number_of_species::Int64
+    parameters::FVMParameters
     source!::Function
     reaction!::Function
     storage!::Function
@@ -129,6 +130,7 @@ struct TwoPointFluxFVMSystem
 
         new(geometry,
             number_of_species,
+            parameters,
             _source!,
             _reaction!,
             _storage!,
@@ -165,6 +167,25 @@ function inidirichlet!(fvsystem::TwoPointFluxFVMSystem,U)
         end
     end
 end
+
+"""
+    Integrate solution vector over domain
+"""
+function integrate(fvsystem::TwoPointFluxFVMSystem,F::Function,U)
+    nnodes=fvsystem.geometry.NumberOfNodes
+    nspec=fvsystem.number_of_species
+    nodefac=fvsystem.geometry.NodeFactors
+    integral=zeros(nspec)
+    res=zeros(nspec)
+    for inode=1:nnodes
+        F(fvsystem.parameters,res,U[:,inode])
+        for ispec=1:nspec
+            integral[ispec]+=nodefac[inode]*res[ispec]
+        end
+    end
+    return integral
+end
+
 
 
 """
@@ -327,6 +348,7 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
     end
     nlu=0
     lufact=nothing
+    damp=control.damp
     for ii=1:control.maxiter
         eval_and_assemble(fvsystem,solution,oldsol,tstep)
         
@@ -350,9 +372,9 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
         end
         # vector expressions would allocate here...
         for i=1:nunknowns
-            solution_r[i]-=control.damp*update[i]
+            solution_r[i]-=damp*update[i]
         end
-
+        damp=min(damp*1.2,1.0)
         norm=LinearAlgebra.norm(update)/nunknowns
         if control.verbose
             @printf("  it=%03d norm=%.5e cont=%.5e\n",ii,norm, norm/oldnorm)
@@ -365,8 +387,7 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
         oldnorm=norm
     end
     if !converged
-        println("error: no convergence")
-        exit(1)
+        error("Error: no convergence")
     end
     return solution
 end
