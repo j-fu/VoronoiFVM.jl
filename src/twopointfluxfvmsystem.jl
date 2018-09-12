@@ -360,7 +360,6 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
             lufact=LinearAlgebra.lu(fvsystem.matrix)
             # LU triangular solve gives Newton update
             ldiv!(update,lufact,residual)
-            nlu=min(nlu+1,control.max_lureuse)
         else
             # When reusing lu factorization, we may try to iterate
             # Generally, this is advisable.
@@ -370,6 +369,8 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
                 ldiv!(update,lufact,residual)
             end
         end
+        nlu=min(nlu+1,control.max_lureuse)
+
         # vector expressions would allocate here...
         for i=1:nunknowns
             solution_r[i]-=damp*update[i]

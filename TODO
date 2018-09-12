@@ -7,6 +7,13 @@
     - [ ] compatibility check for vector arguments
     - [ ] try/catch vs exit on error -- stays in repl
     - [ ] views vs slices for input of uk, ul etc
+    - [ ] improve grid/graph API
+          - transparency, ease of implementation
+          - flexibility (multiregion stuff etc.)
+            Essentially we may to have different cell/edge loops,
+            and calls for assemble_node, assemble_edge, assemble_bedge which
+            come from these different types of loops.
+            Geometry classes might provide iterators which provide the loops.
     - [ ] Julianic API:
           Try to follow https://docs.julialang.org/en/latest/manual/style-guide/ 
           consistent naming style for vectors etc in structs
