@@ -7,22 +7,46 @@ using SparseArrays
 using LinearAlgebra
 using Printf
 
+"""
+    mutable struct FVMNewtonControl
 
-"""
-   struct containing control data for the nonlinar solver
-"""
-mutable struct FVMNewtonControl
+Control parameter for Newton method.
+
+Fields:
+
     tolerance::Float64 # Tolerance (in terms of norm of Newton update)
     damp::Float64      # Initial damping parameter
+    damp_growth::Float64  # Damping parameter growth factor
     maxiter::Int32     # Maximum number of iterations
     max_lureuse::Int32 # Maximum number of reuses of lu factorization
     lin_tolerance::Float64 # Tolerance of iterative linear solver
     verbose::Bool      # Verbosity
-    function FVMNewtonControl()
-        new(1.0e-10,1.0,100,0,1.0e-4,true)
-    end
+"""
+mutable struct FVMNewtonControl
+    tolerance::Float64 # Tolerance (in terms of norm of Newton update)
+    damp::Float64      # Initial damping parameter
+    damp_growth::Float64  # Damping parameter growth factor
+    maxiter::Int32     # Maximum number of iterations
+    max_lureuse::Int32 # Maximum number of reuses of lu factorization
+    lin_tolerance::Float64 # Tolerance of iterative linear solver
+    verbose::Bool      # Verbosity
+    FVMNewtonControl()=FVMNewtonControl(new())
 end
-
+"""
+    FVMNewtonControl()
+    
+Default constructor
+"""
+function FVMNewtonControl(self)
+    self.tolerance=1.0e-10
+    self.damp=1.0
+    self.damp_growth=1.2
+    self.max_lureuse=100
+    self.lin_tolerance=1.0e-4
+    self.verbose=true
+    self.maxiter=100
+    return self
+end
 
 """
    Abstract type for user problem data.
@@ -144,7 +168,9 @@ struct TwoPointFluxFVMSystem
 end
 
 """
-    Create a vector of unknowns for a given system
+    function unknowns(fvsystem::TwoPointFluxFVMSystem)
+
+Create a vector of unknowns for a given system
 """
 function unknowns(fvsystem::TwoPointFluxFVMSystem)
     return Array{Float64,2}(undef,fvsystem.number_of_species,fvsystem.geometry.NumberOfNodes)
@@ -169,7 +195,9 @@ function inidirichlet!(fvsystem::TwoPointFluxFVMSystem,U)
 end
 
 """
-    Integrate solution vector over domain
+    function integrate(fvsystem::TwoPointFluxFVMSystem,F::Function,U)
+
+Integrate solution vector over domain
 """
 function integrate(fvsystem::TwoPointFluxFVMSystem,F::Function,U)
     nnodes=fvsystem.geometry.NumberOfNodes
@@ -375,7 +403,7 @@ function _solve(fvsystem::TwoPointFluxFVMSystem, oldsol::Array{Float64,2},contro
         for i=1:nunknowns
             solution_r[i]-=damp*update[i]
         end
-        damp=min(damp*1.2,1.0)
+        damp=min(damp*control.damp_growth,1.0)
         norm=LinearAlgebra.norm(update)/nunknowns
         if control.verbose
             @printf("  it=%03d norm=%.5e cont=%.5e\n",ii,norm, norm/oldnorm)

@@ -1,9 +1,6 @@
 using Printf
 using TwoPointFluxFVM
-
-if !isinteractive()
-    using PyPlot
-end
+using PyPlot
 
 
 mutable struct Test2DParameters <:FVMParameters

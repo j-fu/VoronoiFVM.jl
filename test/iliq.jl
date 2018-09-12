@@ -1,9 +1,6 @@
 using Printf
 using TwoPointFluxFVM
-
-if !isinteractive()
-    using PyPlot
-end
+using PyPlot
 
 
 mutable struct ILiqParameters <:FVMParameters
@@ -27,6 +24,7 @@ function plot_solution(sys,U)
     PyPlot.legend(loc="upper right")
     PyPlot.pause(1.0e-10)
 end
+
 
 function run_iliq(;n=100,pyplot=false,dlcap=false)
 
