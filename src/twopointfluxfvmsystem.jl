@@ -21,10 +21,6 @@ mutable struct TwoPointFluxFVMSystem
     num_bulk_dof::Int64
     num_bregion_nodes::Array{Int64,1}
     bnode_index::Array{Int64,1}
-    source::Function
-    reaction::Function
-    storage::Function
-    flux::Function
     boundary_values::Array{Float64,2}
     boundary_factors::Array{Float64,2}
     matrix::SparseArrays.SparseMatrixCSC
@@ -41,19 +37,6 @@ function TwoPointFluxFVMSystem(this::TwoPointFluxFVMSystem,
     this.geometry=geometry
     this.parameters=parameters
     
-    # Create closures for physics functions
-    # These allow to "glue" user parameters to function objects compatible
-    # with the ForwardDiff module
-    source!(y,x)=parameters.source(parameters,y,x)
-    flux!(y,uk,ul)=parameters.flux(parameters,y,uk,ul)
-    reaction!(y,x)=parameters.reaction(parameters,y,x)
-    storage!(y,x)=parameters.storage(parameters,y,x)
-    
-    this.source=source!
-    this.reaction=reaction!
-    this.storage=storage!
-    this.flux=flux!
-
     this.num_bregion_nodes=zeros(Int64,geometry.num_bregions)
     this.bnode_index=zeros(Int64,length(geometry.bnode_nodes))
 
@@ -168,11 +151,23 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
        Wrap API flux with function compatible to ForwardDiff
     """
     function fluxwrap!(y,u)
-        this.flux(y,u[1:num_species],u[num_species+1:2*num_species])
+        flux!(y,u[1:num_species],u[num_species+1:2*num_species])
     end
     
     U=bulk_unknowns(this,U0)
     UOld=bulk_unknowns(this,UOld0)
+
+
+    parameters=this.parameters
+    # Create closures for physics functions
+    # These allow to "glue" user parameters to function objects compatible
+    # with the ForwardDiff module
+    source!(y,x)=parameters.source(parameters,y,x)
+    flux!(y,uk,ul)=parameters.flux(parameters,y,uk,ul)
+    reaction!(y,x)=parameters.reaction(parameters,y,x)
+    breaction!(y,x)=parameters.breaction(parameters,y,x)
+    storage!(y,x)=parameters.storage(parameters,y,x)
+    
 
 
     geometry=this.geometry
@@ -190,6 +185,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
 
     # struct holding diff results for storage, reaction
     result_r=DiffResults.DiffResult(Vector{Float64}(undef,num_species),Matrix{Float64}(undef,num_species,num_species))
+    result_b=DiffResults.DiffResult(Vector{Float64}(undef,num_species),Matrix{Float64}(undef,num_species,num_species))
     result_s=DiffResults.DiffResult(Vector{Float64}(undef,num_species),Matrix{Float64}(undef,num_species,num_species))
 
     # array providing space for function arguments
@@ -210,19 +206,19 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
     
     for inode=1:nnodes
         # Evaluate & differentiate reaction term
-        result_r=ForwardDiff.jacobian!(result_r,this.reaction,Y,U[:,inode])
+        result_r=ForwardDiff.jacobian!(result_r,reaction!,Y,U[:,inode])
         res_react=DiffResults.value(result_r)
         jac_react=DiffResults.jacobian(result_r)
         # Evaluate source term
-        this.source(src,geometry.node_coordinates[:,inode])
+        source!(src,geometry.node_coordinates[:,inode])
 
         # Evaluate & differentiate storage term
-        result_s=ForwardDiff.jacobian!(result_s,this.storage,Y,U[:,inode])
+        result_s=ForwardDiff.jacobian!(result_s,storage!,Y,U[:,inode])
         res_stor=DiffResults.value(result_s)
         jac_stor=DiffResults.jacobian(result_s)
 
         # Evaluate storage term for old timestep
-        this.storage(oldstor,UOld[:,inode])
+        storage!(oldstor,UOld[:,inode])
 
         # Assembly results and jacobians
         for i=1:num_species
@@ -283,6 +279,19 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
             end
             F[ispec,inode]+=fac*(U[ispec,inode]-this.boundary_values[ispec,ibreg])
             M[iblock+ispec,iblock+ispec]+=fac
+        end
+        
+        this.parameters.bregion=ibreg
+        result_b=ForwardDiff.jacobian!(result_b,breaction!,Y,U[:,inode])
+        res_breact=DiffResults.value(result_b)
+        jac_breact=DiffResults.jacobian(result_b)
+        
+        # Assembly results and jacobians
+        for i=1:num_species
+            F[i,inode]+=geometry.bnode_factors[ibnode]*(res_breact[i])
+            for j=1:num_species
+                M[iblock+i,iblock+j]+=geometry.bnode_factors[ibnode]*(jac_breact[i,j])
+            end
         end
     end
 end

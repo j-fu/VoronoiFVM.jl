@@ -36,8 +36,10 @@ of type FVMParameters
 @define_field_group AddDefaultFVMParameters begin
     num_species::Int64
     num_bspecies::Array{Int64,1}
+    bregion::Int64
     flux::Function
     reaction::Function
+    breaction::Function
     source::Function
     storage::Function
 end
@@ -94,8 +96,10 @@ end
 function DefaultFVMParameters(this::FVMParameters,nspec::Int)
     this.num_species=nspec
     this.num_bspecies=Array{Int64,1}(undef,0)
+    this.bregion=0
     this.flux=default_flux!
     this.reaction=default_reaction!
+    this.breaction=default_reaction!
     this.source=default_source!
     this.storage=default_storage!
 end

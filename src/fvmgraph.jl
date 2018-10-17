@@ -117,10 +117,10 @@ function FVMGraph(this,X::Array{Float64,1},Y::Array{Float64,1})
                 bnode_nodes[ibnode]=inode
                 fac=0.0
                 if ix>1
-                    fac+=0.5*X[ix]-X[ix-1]
+                    fac+=0.5*(X[ix]-X[ix-1])
                 end
                 if ix<nx
-                    fac+=0.5*X[ix+1]-X[ix]
+                    fac+=0.5*(X[ix+1]-X[ix])
                 end
                 bnodefac[ibnode]=fac
                 if iy==1
@@ -135,10 +135,10 @@ function FVMGraph(this,X::Array{Float64,1},Y::Array{Float64,1})
                 bnode_nodes[ibnode]=inode
                 fac=0.0
                 if iy>1
-                    fac+=0.5*Y[iy]-Y[iy-1]
+                    fac+=0.5*(Y[iy]-Y[iy-1])
                 end
                 if iy<ny
-                    fac+=0.5*Y[iy+1]-Y[iy]
+                    fac+=0.5*(Y[iy+1]-Y[iy])
                 end
                 bnodefac[ibnode]=fac
                 if ix==1
