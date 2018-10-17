@@ -3,29 +3,30 @@
 
 Fields:
 
-    SpaceDim::Int32 # space dimension
-    NumberOfNodes::Int64 # number of nodes
-    NumberOfBoundaryRegions::Int64 # number of boundary regions
-    Nodes::Array{Float64,2} # point coordinates.
-    Edges::Array{Int32,2} # index array pointing into nodes list
-    EdgeFactors::Array{Float64,1} # interface area / edge length
-    NodeFactors::Array{Float64,1} # control volume sizes
-    BoundaryNodes::Array{Int32,1} # indices of dirichlet nodes 
-    BoundaryRegions::Array{Int32,1} # boundary region numbers
+    dim_space::Int32 # space dimension
+    num_nodes::Int64 # number of nodes
+    num_bregions::Int64 # number of boundary regions
+    node_coordinates::Array{Float64,2} # point coordinates
+    edge_nodes::Array{Int64,2} # index array pointing into nodes list
+    edge_factors::Array{Float64,1} # interface area / edge length
+    node_factors::Array{Float64,1} # control volume sizes
+    bnode_nodes::Array{Int64,1} # indices of dirichlet nodes 
+    bnode_regions::Array{Int32,1} # boundary region numbers
+    bnode_factors::Array{Float64,1} # boundary control volume sizes
 
 
 """
 mutable struct FVMGraph
-    SpaceDim::Int32 # space dimension
-    NumberOfNodes::Int64 # number of nodes
-    NumberOfBoundaryRegions::Int64 # number of boundary regions
-    Nodes::Array{Float64,2} # point coordinates.
-    Edges::Array{Int32,2} # index array pointing into nodes list
-    EdgeFactors::Array{Float64,1} # interface area / edge length
-    NodeFactors::Array{Float64,1} # control volume sizes
-    BoundaryNodes::Array{Int32,1} # indices of dirichlet nodes 
-    BoundaryRegions::Array{Int32,1} # boundary region numbers
-    BoundaryNodeFactors::Array{Float64,1} # boundary control volume sizes
+    dim_space::Int32 # space dimension
+    num_nodes::Int64 # number of nodes
+    num_bregions::Int64 # number of boundary regions
+    node_coordinates::Array{Float64,2} # point coordinates
+    edge_nodes::Array{Int64,2} # index array pointing into nodes list
+    edge_factors::Array{Float64,1} # interface area / edge length
+    node_factors::Array{Float64,1} # control volume sizes
+    bnode_nodes::Array{Int64,1} # indices of dirichlet nodes 
+    bnode_regions::Array{Int32,1} # boundary region numbers
+    bnode_factors::Array{Float64,1} # boundary control volume sizes
     
     FVMGraph(X::Array{Float64,1})= FVMGraph(new(),X)
     FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})= FVMGraph(new(),X,Y)
@@ -36,7 +37,7 @@ end
    
 Constructor for 1D finite volume graph
 """
-function FVMGraph(self, X::Array{Float64,1})
+function FVMGraph(this, X::Array{Float64,1})
     #  Primal Grid:
     #  o-----o-----o-----o-----o-----o-----o-----o-----o
     # Dual grid with control volumes
@@ -54,26 +55,26 @@ function FVMGraph(self, X::Array{Float64,1})
         nfac[i]+=0.5*h
         nfac[i+1]+=0.5*h
     end
-    bnodes=zeros(Int32,2)
-    bregions=zeros(Int32,2)
+    bnode_nodes=zeros(Int32,2)
+    bnode_regions=zeros(Int32,2)
     bnodefac=zeros(Float64,2)
-    bnodes[1]=1
-    bnodes[2]=n
-    bregions[1]=1
-    bregions[2]=2
+    bnode_nodes[1]=1
+    bnode_nodes[2]=n
+    bnode_regions[1]=1
+    bnode_regions[2]=2
     bnodefac[1]=1
     bnodefac[2]=1
-    self.SpaceDim=1
-    self.NumberOfNodes=n
-    self.NumberOfBoundaryRegions=2
-    self.Nodes=nodes
-    self.Edges=edges
-    self.EdgeFactors=efac
-    self.NodeFactors=nfac
-    self.BoundaryNodes=bnodes
-    self.BoundaryRegions=bregions
-    self.BoundaryNodeFactors=bnodefac
-    return self
+    this.dim_space=1
+    this.num_nodes=n
+    this.num_bregions=2
+    this.node_coordinates=nodes
+    this.edge_nodes=edges
+    this.edge_factors=efac
+    this.node_factors=nfac
+    this.bnode_nodes=bnode_nodes
+    this.bnode_regions=bnode_regions
+    this.bnode_factors=bnodefac
+    return this
 end
 
 
@@ -84,7 +85,7 @@ end
    
 Constructor for 2D finite volume graph
 """
-function FVMGraph(self,X::Array{Float64,1},Y::Array{Float64,1})
+function FVMGraph(this,X::Array{Float64,1},Y::Array{Float64,1})
     #  Primal Grid:
     #  o-----o-----o-----o-----o-----o-----o-----o-----o
     # Dual grid with control volumes
@@ -97,8 +98,8 @@ function FVMGraph(self,X::Array{Float64,1},Y::Array{Float64,1})
     efac=zeros(size(edges,2))
     nfac=zeros(size(nodes,2))
     edges.=0
-    bnodes=Array{Int32,1}(undef,2*nx+2*ny)
-    bregions=Array{Int32,1}(undef,2*nx+2*ny)
+    bnode_nodes=Array{Int32,1}(undef,2*nx+2*ny)
+    bnode_regions=Array{Int32,1}(undef,2*nx+2*ny)
     bnodefac=Array{Float64,1}(undef,2*nx+2*ny)
     
     
@@ -113,7 +114,7 @@ function FVMGraph(self,X::Array{Float64,1},Y::Array{Float64,1})
             nodes[2,inode]=Y[iy]
             iedge0=iedge
             if iy==1 || iy==ny
-                bnodes[ibnode]=inode
+                bnode_nodes[ibnode]=inode
                 fac=0.0
                 if ix>1
                     fac+=0.5*X[ix]-X[ix-1]
@@ -123,15 +124,15 @@ function FVMGraph(self,X::Array{Float64,1},Y::Array{Float64,1})
                 end
                 bnodefac[ibnode]=fac
                 if iy==1
-                    bregions[ibnode]=1
+                    bnode_regions[ibnode]=1
                 end
                 if iy==ny
-                    bregions[ibnode]=3
+                    bnode_regions[ibnode]=3
                 end
                 ibnode+=1
             end
             if ix==1 || ix==nx
-                bnodes[ibnode]=inode
+                bnode_nodes[ibnode]=inode
                 fac=0.0
                 if iy>1
                     fac+=0.5*Y[iy]-Y[iy-1]
@@ -141,10 +142,10 @@ function FVMGraph(self,X::Array{Float64,1},Y::Array{Float64,1})
                 end
                 bnodefac[ibnode]=fac
                 if ix==1
-                    bregions[ibnode]=4
+                    bnode_regions[ibnode]=4
                 end
                 if ix==nx
-                    bregions[ibnode]=2
+                    bnode_regions[ibnode]=2
                 end
                 ibnode+=1
             end
@@ -189,15 +190,15 @@ function FVMGraph(self,X::Array{Float64,1},Y::Array{Float64,1})
         end
     end
 
-    self.SpaceDim=1
-    self.NumberOfNodes=n
-    self.NumberOfBoundaryRegions=4
-    self.Nodes=nodes
-    self.Edges=edges
-    self.EdgeFactors=efac
-    self.NodeFactors=nfac
-    self.BoundaryNodes=bnodes
-    self.BoundaryRegions=bregions
-    self.BoundaryNodeFactors=bnodefac
-    return self
+    this.dim_space=1
+    this.num_nodes=n
+    this.num_bregions=4
+    this.node_coordinates=nodes
+    this.edge_nodes=edges
+    this.edge_factors=efac
+    this.node_factors=nfac
+    this.bnode_nodes=bnode_nodes
+    this.bnode_regions=bnode_regions
+    this.bnode_factors=bnodefac
+    return this
 end

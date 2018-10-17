@@ -4,12 +4,17 @@ using PyPlot
 
 
 mutable struct Test2DParameters <:FVMParameters
-    number_of_species::Int64
+    @AddDefaultFVMParameters
     eps::Float64 
-    function Test2DParameters()
-        new(1,1)
-    end
+    Test2DParameters()=Test2DParameters(new())
 end
+
+function Test2DParameters(this)
+    DefaultFVMParameters(this,1)
+    eps=1
+    return this
+end
+
 
 function run_test2d(;n=100,pyplot=false)
     
@@ -39,8 +44,12 @@ function run_test2d(;n=100,pyplot=false)
         f[1]=exp(-20*(x1^2+x2^2))
     end 
     
+    parameters.reaction=reaction!
+    parameters.flux=flux!
+    parameters.source=source!
+
     
-    sys=TwoPointFluxFVMSystem(geom,parameters=parameters, flux=flux!, reaction=reaction!,source=source!)
+    sys=TwoPointFluxFVMSystem(geom,parameters)
     sys.boundary_values[1,2]=0.1
     sys.boundary_values[1,4]=0.1
     
@@ -54,7 +63,7 @@ function run_test2d(;n=100,pyplot=false)
 
     control=FVMNewtonControl()
     control.verbose=true
-    control.lin_tolerance=1.0e-5
+    control.tol_linear=1.0e-5
     control.max_lureuse=10
     tstep=0.01
     time=0.0
@@ -65,12 +74,12 @@ function run_test2d(;n=100,pyplot=false)
             inival[i]=U[i]
         end
         @printf("time=%g\n",time)
-
+        
         tstep*=1.0
         @time if pyplot
             levels=collect(0:0.01:1)
             PyPlot.clf()
-            contourf(X,Y,reshape(U[1,:],length(X),length(Y)), cmap=ColorMap("hot"),levels=levels)
+            contourf(X,Y,reshape(U,length(X),length(Y)), cmap=ColorMap("hot"),levels=levels)
             colorbar()
             pause(1.0e-10)
         end
@@ -82,6 +91,7 @@ if !isinteractive()
     @time run_test2d(n=100,pyplot=true)
     waitforbuttonpress()
 end
+
 
 
 

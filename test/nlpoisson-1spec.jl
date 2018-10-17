@@ -7,13 +7,19 @@ end
 
 
 mutable struct MyParameters1 <:FVMParameters
-    number_of_species::Int64
+    @AddDefaultFVMParameters
     eps::Float64 
     param::Float64
-    function MyParameters1()
-        new(1,1,1)
-    end
+    MyParameters1()=MyParameters1(new())
 end
+
+function MyParameters1(this::MyParameters1)
+    DefaultFVMParameters(this,1)
+    eps=1
+    param=1
+    return this
+end
+
 
 function run_1spec(;n=100,pyplot=false)
     h=1.0/convert(Float64,n)
@@ -29,22 +35,25 @@ function run_1spec(;n=100,pyplot=false)
     parameters=MyParameters1()
     
     
-    function reaction!(this::MyParameters,f,u)
+    function reaction!(this::MyParameters1,f,u)
         f[1]=u[1]^2
     end
     
-    function flux!(this::MyParameters,f,uk,ul)
+    function flux!(this::MyParameters1,f,uk,ul)
         f[1]=this.eps*(uk[1]^2-ul[1]^2)
     end 
     
-    function source!(this::MyParameters,f,x)
-        f[1]=1.0e-4*x
+    function source!(this::MyParameters1,f,x)
+        f[1]=1.0e-4*x[1]
     end 
     
     
     parameters.param=1.0e-5
-    
-    sys=TwoPointFluxFVMSystem(geom,parameters=parameters, flux=flux!, reaction=reaction!)
+    parameters.reaction=reaction!
+    parameters.flux=flux!
+    parameters.source=source!
+
+    sys=TwoPointFluxFVMSystem(geom,parameters)
     sys.boundary_values[1,1]=1.0
     sys.boundary_values[1,2]=0.5
     
@@ -68,7 +77,7 @@ function run_1spec(;n=100,pyplot=false)
         @printf("time=%g\n",times[it])
         if pyplot
             PyPlot.clf()
-            plot(geom.Nodes[1,:],U[1,:])
+            plot(geom.node_coordinates[1,:],U)
             pause(1.0e-10)
         end
     end
