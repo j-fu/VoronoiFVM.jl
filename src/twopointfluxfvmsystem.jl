@@ -11,72 +11,90 @@ using Printf
 const Dirichlet=1.0e30
 
 """
+
+mutable struct TwoPointFluxFVMSystem
+
     Main structure holding data for system solution
+
+Public fields:
+    
+    
+    boundary_values::Array{Float64,2} # Array of boundary values
+    boundary_factors::Array{Float64,2} # Array of boundary factors
+    geometry::FVMGraph   # Geometry information: weighted graph created from grid
+    physics::FVMPhysics  # Physical model 
+
+Private fields:
+
+    _num_dof::Int64       # Overall number of degrees of freedom
+    _num_bulk_dof::Int64  # Number of degrees of freedom in the bulk
+    _num_bspecies::Array{Int64,1} # Number of boundary species per boundary region
+    _bdof_offset::Array{Int64,1}  # offset of boundary degrees of freedom per boundary region
+    _matrix::SparseArrays.SparseMatrixCSC # System matrix
+    _residual::Array{Float64,1} # Residual array
+    _update::Array{Float64,1}   # Newton update array
+
+Memory layout for soulution arrays:
+
+ bulk_dof | bregion_dof[1] |bregion_dof[2] |...
+
+
 """
 mutable struct TwoPointFluxFVMSystem
-    geometry::FVMGraph
-    parameters::FVMParameters
-    num_bnodes::Array{Int64,1}
-    num_dof::Int64
-    num_bulk_dof::Int64
-    num_bregion_nodes::Array{Int64,1}
-    num_bspecies::Array{Int64,1}
-    bdof_offset::Array{Int64,1}
-    bnode_index::Array{Int64,1}
-    boundary_values::Array{Float64,2}
-    boundary_factors::Array{Float64,2}
-    matrix::SparseArrays.SparseMatrixCSC
-    residual::Array{Float64,1}
-    update::Array{Float64,1}
-    TwoPointFluxFVMSystem(geometry::FVMGraph,parameters::FVMParameters)=TwoPointFluxFVMSystem(new(),geometry,parameters)
+    boundary_values::Array{Float64,2} # Array of boundary values
+    boundary_factors::Array{Float64,2} # Array of boundary factors
+
+    geometry::FVMGraph   # Geometry information: weighted graph created from grid
+    physics::FVMPhysics  # Physical model 
+    _num_dof::Int64       # Overall number of degrees of freedom
+    _num_bulk_dof::Int64  # Number of degrees of freedom in the bulk
+    _num_bspecies::Array{Int64,1} # Number of boundary species per boundary region
+    _bdof_offset::Array{Int64,1}  # offset of boundary degrees of freedom per boundary region
+    _matrix::SparseArrays.SparseMatrixCSC # System matrix
+    _residual::Array{Float64,1} # Residual array
+    _update::Array{Float64,1}   # Newton update array
+
+    TwoPointFluxFVMSystem(geometry::FVMGraph,physics::FVMPhysics)=TwoPointFluxFVMSystem(new(),geometry,physics)
 end
 
 
 function TwoPointFluxFVMSystem(this::TwoPointFluxFVMSystem,
                                geometry::FVMGraph, # Geometry
-                               parameters::FVMParameters# user parameter
+                               physics::FVMPhysics # user parameter
                                )
     this.geometry=geometry
-    this.parameters=parameters
+    this.physics=physics
     
-    this.num_bregion_nodes=zeros(Int64,geometry.num_bregions)
-    this.bnode_index=zeros(Int64,length(geometry.bnode_nodes))
 
-    for i=1:length(geometry.bnode_nodes)
-        ireg=geometry.bnode_regions[i]
-        this.num_bregion_nodes[ireg]+=1
-        this.bnode_index[i]=this.num_bregion_nodes[ireg]
-    end
-    this.num_bspecies=zeros(Int64,geometry.num_bregions)
+    this._num_bspecies=zeros(Int64,geometry.num_bregions)
 
-    for ibreg=1:min(geometry.num_bregions,length(parameters.num_bspecies))
-        this.num_bspecies[ibreg]=parameters.num_bspecies[ibreg]
+    for ibreg=1:min(geometry.num_bregions,length(physics.num_bspecies))
+        this._num_bspecies[ibreg]=physics.num_bspecies[ibreg]
     end
     
 
 
     # Arrays for boundary data
-    this.boundary_values=zeros(parameters.num_species,geometry.num_bregions)
-    this.boundary_factors=zeros(parameters.num_species,geometry.num_bregions)
+    this.boundary_values=zeros(physics.num_species,geometry.num_bregions)
+    this.boundary_factors=zeros(physics.num_species,geometry.num_bregions)
     
-    this.num_dof=parameters.num_species*geometry.num_nodes
-    this.num_bulk_dof=this.num_dof
+    this._num_dof=physics.num_species*geometry.num_nodes
+    this._num_bulk_dof=this._num_dof
 
-    this.bdof_offset=zeros(Int64,geometry.num_bregions+1)
+    this._bdof_offset=zeros(Int64,geometry.num_bregions+1)
     for ibreg=1:geometry.num_bregions
-        this.bdof_offset[ibreg]=this.num_dof
-        this.num_dof+=this.num_bspecies[ibreg]*this.num_bregion_nodes[ibreg]
+        this._bdof_offset[ibreg]=this._num_dof
+        this._num_dof+=this._num_bspecies[ibreg]*geometry.num_bregion_nodes[ibreg]
     end
-    this.bdof_offset[geometry.num_bregions+1]=this.num_dof
-    print(this.bdof_offset)
+    this._bdof_offset[geometry.num_bregions+1]=this._num_dof
 
     # Empty sparse matrix
-    this.matrix=SparseArrays.spzeros(this.num_dof,this.num_dof) # Jacobi matrix
+    this._matrix=SparseArrays.spzeros(this._num_dof,this._num_dof) # Jacobi matrix
     
     # Iteration data
     # These are created as 1D arrays because they must fit to sparse matrix
-    this.residual=Array{Float64,1}(undef,this.num_dof)
-    this.update=Array{Float64,1}(undef,this.num_dof)
+    this._residual=Array{Float64,1}(undef,this._num_dof)
+    this._update=Array{Float64,1}(undef,this._num_dof)
     return this
 end
 
@@ -87,17 +105,17 @@ end
 Create a vector of unknowns for a given system
 """
 function unknowns(this::TwoPointFluxFVMSystem)
-    return Array{Float64,1}(undef,this.num_dof)
+    return Array{Float64,1}(undef,this._num_dof)
 end
 
 function bulk_unknowns(this::TwoPointFluxFVMSystem,U::Array{Float64,1})
-    V=view(U,1:this.num_bulk_dof)
-    return reshape(V,this.parameters.num_species,this.geometry.num_nodes)
+    V=view(U,1:this._num_bulk_dof)
+    return reshape(V,this.physics.num_species,this.geometry.num_nodes)
 end
 
 function boundary_unknowns(this::TwoPointFluxFVMSystem, U::Array{Float64,1}, ibc::Int)
-    V=view(U,this.bdof_offset[ibc]+1:this.bdof_offset[ibc+1])
-    return reshape(V,this.num_bspecies[ibc],this.bdof_offset[ibc+1]-this.bdof_offset[ibc])
+    V=view(U,this._bdof_offset[ibc]+1:this._bdof_offset[ibc+1])
+    return reshape(V,this._num_bspecies[ibc],this._bdof_offset[ibc+1]-this._bdof_offset[ibc])
 end
 
 
@@ -111,7 +129,7 @@ function inidirichlet!(this::TwoPointFluxFVMSystem,U0)
     for ibnode=1:nbnodes
         ibreg=geometry.bnode_regions[ibnode]
         inode=geometry.bnode_nodes[ibnode]
-        for ispec=1:this.parameters.num_species
+        for ispec=1:this.physics.num_species
             if this.boundary_factors[ispec,ibreg]==Dirichlet
                 U[ispec,inode]=this.boundary_values[ispec,ibreg]
             end
@@ -127,12 +145,12 @@ Integrate solution vector over domain
 function integrate(this::TwoPointFluxFVMSystem,F::Function,U0)
     U=bulk_unknowns(this,U0)
     nnodes=this.geometry.num_nodes
-    nspec=this.parameters.num_species
+    nspec=this.physics.num_species
     nodefac=this.geometry.node_factors
     integral=zeros(nspec)
     res=zeros(nspec)
     for inode=1:nnodes
-        F(this.parameters,res,U[:,inode])
+        F(this.physics,res,U[:,inode])
         for ispec=1:nspec
             integral[ispec]+=nodefac[inode]*res[ispec]
         end
@@ -181,28 +199,28 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
     U=bulk_unknowns(this,U0)
     UOld=bulk_unknowns(this,UOld0)
 
-    parameters=this.parameters
+    physics=this.physics
     # Create closures for physics functions
-    # These allow to "glue" user parameters to function objects compatible
+    # These allow to "glue" user physics to function objects compatible
     # with the ForwardDiff module
-    source!(y,x)=parameters.source(parameters,y,x)
-    flux!(y,uk,ul)=parameters.flux(parameters,y,uk,ul)
-    reaction!(y,x)=parameters.reaction(parameters,y,x)
-    storage!(y,x)=parameters.storage(parameters,y,x)
+    source!(y,x)=physics.source(physics,y,x)
+    flux!(y,uk,ul)=physics.flux(physics,y,uk,ul)
+    reaction!(y,x)=physics.reaction(physics,y,x)
+    storage!(y,x)=physics.storage(physics,y,x)
     
 
 
     geometry=this.geometry
     nnodes=geometry.num_nodes
-    num_species=this.parameters.num_species
+    num_species=this.physics.num_species
     num_bspecies=0
     nedges=size(geometry.edge_nodes,2)
-    M=this.matrix
-    F=bulk_unknowns(this,this.residual)
+    M=this._matrix
+    F=bulk_unknowns(this,this._residual)
     
     # Reset matrix + rhs
     M.nzval.=0.0
-    this.residual.=0.0
+    this._residual.=0.0
 
     # Assemble nonlinear term + source + storage using autodifferencing via ForwardDiff
 
@@ -211,23 +229,23 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
     result_s=DiffResults.DiffResult(Vector{Float64}(undef,num_species),Matrix{Float64}(undef,num_species,num_species))
 
     
-    if this.parameters.breaction != default_breaction! ||  this.parameters.bstorage != default_bstorage! 
-        breaction!(y,by,u,bu)=parameters.breaction(parameters,y,by,u,bu)
-        bstorage!(by,bu)=parameters.bstorage(parameters,by,bu)
+    if this.physics.breaction != default_breaction! ||  this.physics.bstorage != default_bstorage! 
+        breaction!(y,by,u,bu)=physics.breaction(physics,y,by,u,bu)
+        bstorage!(by,bu)=physics.bstorage(physics,by,bu)
 
-        result_br=[DiffResults.DiffResult(Vector{Float64}(undef,num_species+this.num_bspecies[ibc]),
-                                          Matrix{Float64}(undef,num_species+this.num_bspecies[ibc],num_species+this.num_bspecies[ibc]))
+        result_br=[DiffResults.DiffResult(Vector{Float64}(undef,num_species+this._num_bspecies[ibc]),
+                                          Matrix{Float64}(undef,num_species+this._num_bspecies[ibc],num_species+this._num_bspecies[ibc]))
                    for ibc=1:geometry.num_bregions]
         
-        result_bs=[DiffResults.DiffResult(Vector{Float64}(undef,this.num_bspecies[ibc]),
-                                          Matrix{Float64}(undef,this.num_bspecies[ibc],this.num_bspecies[ibc]))
+        result_bs=[DiffResults.DiffResult(Vector{Float64}(undef,this._num_bspecies[ibc]),
+                                          Matrix{Float64}(undef,this._num_bspecies[ibc],this._num_bspecies[ibc]))
                    for ibc=1:geometry.num_bregions]
         
-        BU=[Array{Float64,1}(undef,num_species+this.num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
-        BY=[Array{Float64,1}(undef,num_species+this.num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
+        BU=[Array{Float64,1}(undef,num_species+this._num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
+        BY=[Array{Float64,1}(undef,num_species+this._num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
         
-        BUS=[Array{Float64,1}(undef,this.num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
-        BYS=[Array{Float64,1}(undef,this.num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
+        BUS=[Array{Float64,1}(undef,this._num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
+        BYS=[Array{Float64,1}(undef,this._num_bspecies[ibc]) for ibc=1:geometry.num_bregions]
     end
 
     # array providing space for function arguments
@@ -254,14 +272,14 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
 
     for inode=1:nnodes
         # Evaluate & differentiate reaction term
-        if parameters.reaction!=default_reaction!
+        if physics.reaction!=default_reaction!
             result_r=ForwardDiff.jacobian!(result_r,reaction!,Y,U[:,inode])
             res_react=DiffResults.value(result_r)
             jac_react=DiffResults.jacobian(result_r)
         end
 
         # Evaluate source term
-        if parameters.source!=default_source!
+        if physics.source!=default_source!
             source!(src,geometry.node_coordinates[:,inode])
         end
         
@@ -342,19 +360,19 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
             end
         end
         
-        if this.parameters.breaction != default_breaction! 
+        if this.physics.breaction != default_breaction! 
             ibxnode=0
             ibxblock=0
-            num_bspecies=this.num_bspecies[ibreg]
+            num_bspecies=this._num_bspecies[ibreg]
 
             BU[ibreg][1:num_species]=U[:,inode]
             if num_bspecies>0
-                ibxnode=this.bnode_index[ibnode]
-                ibxblock=this.bdof_offset[ibreg]+(ibxnode-1)*num_bspecies
+                ibxnode=geometry.bnode_index[ibnode]
+                ibxblock=this._bdof_offset[ibreg]+(ibxnode-1)*num_bspecies
                 BU[ibreg][num_species+1:num_species+num_bspecies]=U0[ibxblock+1:ibxblock+num_bspecies]
             end
             
-            this.parameters.bregion=ibreg
+            this.physics.bregion=ibreg
             result_br[ibreg]=ForwardDiff.jacobian!(result_br[ibreg],breawrap!,BY[ibreg],BU[ibreg])
             res_breact=DiffResults.value(result_br[ibreg])
             jac_breact=DiffResults.jacobian(result_br[ibreg])
@@ -369,7 +387,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
             
             if num_bspecies>0
                 for i=1:num_bspecies
-                    this.residual[ibxblock+i]+=res_breact[num_species+i]
+                    this._residual[ibxblock+i]+=res_breact[num_species+i]
                     for j=1:num_bspecies
                         M[ibxblock+i,ibxblock+j]+=jac_breact[num_species+i,num_species+j]
                     end
@@ -381,17 +399,17 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
             end
         end
         
-        if this.parameters.bstorage != default_bstorage! 
+        if this.physics.bstorage != default_bstorage! 
             ibxnode=0
             ibxblock=0
-            num_bspecies=this.num_bspecies[ibreg]
+            num_bspecies=this._num_bspecies[ibreg]
             if num_bspecies>0
-                ibxnode=this.bnode_index[ibnode]
-                ibxblock=this.bdof_offset[ibreg]+(ibxnode-1)*num_bspecies
+                ibxnode=geometry.bnode_index[ibnode]
+                ibxblock=this._bdof_offset[ibreg]+(ibxnode-1)*num_bspecies
                 bu=view(U0,ibxblock+1:ibxblock+num_bspecies)
                 
 
-                this.parameters.bregion=ibreg
+                this.physics.bregion=ibreg
                 result_bs[ibreg]=ForwardDiff.jacobian!(result_bs[ibreg],bstorage!,BYS[ibreg],bu)
                 res_bstor=DiffResults.value(result_bs[ibreg])
                 jac_bstor=DiffResults.jacobian(result_bs[ibreg])
@@ -401,7 +419,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
                 bstorage!(BYS[ibreg],buold)
 
                 for i=1:num_bspecies
-                    this.residual[ibxblock+i]+=(res_bstor[i]-BYS[ibreg][i])*tstepinv
+                    this._residual[ibxblock+i]+=(res_bstor[i]-BYS[ibreg][i])*tstepinv
                     for j=1:num_bspecies
                         M[ibxblock+i,ibxblock+j]+=jac_bstor[i,j]*tstepinv
                     end
@@ -438,25 +456,25 @@ function _solve(this::TwoPointFluxFVMSystem, oldsol::Array{Float64,1},control::F
         # previous symbolic information
         # We however reuse the factorization control.max_lureuse times.
         if nlu==0
-            lufact=LinearAlgebra.lu(this.matrix)
+            lufact=LinearAlgebra.lu(this._matrix)
             # LU triangular solve gives Newton update
-            ldiv!(this.update,lufact,this.residual)
+            ldiv!(this._update,lufact,this._residual)
         else
             # When reusing lu factorization, we may try to iterate
             # Generally, this is advisable.
             if control.tol_linear <1.0
-                bicgstabl!(this.update,this.matrix,this.residual,2,Pl=lufact,tol=control.tol_linear)
+                bicgstabl!(this._update,this._matrix,this._residual,2,Pl=lufact,tol=control.tol_linear)
             else
-                ldiv!(this.update,lufact,this.residual)
+                ldiv!(this._update,lufact,this._residual)
             end
         end
         nlu=min(nlu+1,control.max_lureuse)
         # vector expressions would allocate here...
         for i in eachindex(solution)
-            solution[i]-=damp*this.update[i]
+            solution[i]-=damp*this._update[i]
         end
         damp=min(damp*control.damp_growth,1.0)
-        norm=LinearAlgebra.norm(this.update,Inf)/this.num_dof
+        norm=LinearAlgebra.norm(this._update,Inf)/this._num_dof
         if tolx==0.0
             tolx=norm*control.tol_relative
         end
@@ -477,7 +495,7 @@ function _solve(this::TwoPointFluxFVMSystem, oldsol::Array{Float64,1},control::F
 end
 
 """
-    System solver wrapper allowing to dispatch timing
+   System solver wrapper allowing to dispatch timing
 """
 function solve(this::TwoPointFluxFVMSystem, # Finite volume system
                oldsol::Array{Float64,1}; # old time step solution resp. initial value
@@ -492,3 +510,5 @@ function solve(this::TwoPointFluxFVMSystem, # Finite volume system
         return _solve(this,oldsol,control,tstep)
     end
 end
+
+

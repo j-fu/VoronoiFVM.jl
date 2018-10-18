@@ -1,27 +1,43 @@
 using Printf
 using TwoPointFluxFVM
 
-if !isinteractive()
+if isinteractive()
     using PyPlot
 end
 
-
-mutable struct MyParameters1 <:FVMParameters
-    @AddDefaultFVMParameters
+mutable struct NLPoisson1SpecPhysics <:FVMPhysics
+    @AddDefaultFVMPhysics
     eps::Float64 
     param::Float64
-    MyParameters1()=MyParameters1(new())
+    NLPoisson1SpecPhysics()=NLPoisson1SpecPhysics(new())
 end
 
-function MyParameters1(this::MyParameters1)
-    DefaultFVMParameters(this,1)
-    eps=1
-    param=1
+
+function reaction!(this::NLPoisson1SpecPhysics,f,u)
+    f[1]=u[1]^2
+end
+
+function flux!(this::NLPoisson1SpecPhysics,f,uk,ul)
+    f[1]=this.eps*(uk[1]^2-ul[1]^2)
+end 
+
+function source!(this::NLPoisson1SpecPhysics,f,x)
+    f[1]=1.0e-4*x[1]
+end 
+
+
+function NLPoisson1SpecPhysics(this::NLPoisson1SpecPhysics)
+    DefaultFVMPhysics(this,1)
+    this.eps=1
+    this.param=1
+    this.flux=flux!
+    this.reaction=reaction!
+    this.source=source!
     return this
 end
 
 
-function run_1spec(;n=100,pyplot=false)
+function run_nlpoisson_1spec(;n=10,pyplot=false,verbose=false)
     h=1.0/convert(Float64,n)
     geom=FVMGraph(collect(0:h:1))
     
@@ -32,28 +48,10 @@ function run_1spec(;n=100,pyplot=false)
     #
     
     
-    parameters=MyParameters1()
-    
-    
-    function reaction!(this::MyParameters1,f,u)
-        f[1]=u[1]^2
-    end
-    
-    function flux!(this::MyParameters1,f,uk,ul)
-        f[1]=this.eps*(uk[1]^2-ul[1]^2)
-    end 
-    
-    function source!(this::MyParameters1,f,x)
-        f[1]=1.0e-4*x[1]
-    end 
-    
-    
-    parameters.param=1.0e-5
-    parameters.reaction=reaction!
-    parameters.flux=flux!
-    parameters.source=source!
+    physics=NLPoisson1SpecPhysics()
+    physics.param=1.0e-5
 
-    sys=TwoPointFluxFVMSystem(geom,parameters)
+    sys=TwoPointFluxFVMSystem(geom,physics)
     sys.boundary_values[1,1]=1.0
     sys.boundary_values[1,2]=0.5
     
@@ -63,31 +61,27 @@ function run_1spec(;n=100,pyplot=false)
     inival=unknowns(sys)
     inival.=0.5
 
-    parameters.eps=1.0e-2
+    physics.eps=1.0e-2
 
     control=FVMNewtonControl()
-    control.verbose=false
+    control.verbose=verbose
     tstep=1.0e-2
     times=collect(0.0:tstep:1.0)
+    u5=0
     for it=2:length(times)
         U=solve(sys,inival,control=control,tstep=tstep)
+        u5=U[5]
         for i in eachindex(U)
             inival[i]=U[i]
         end
-        @printf("time=%g\n",times[it])
+        if verbose
+            @printf("time=%g\n",times[it])
+        end
         if pyplot
             PyPlot.clf()
             plot(geom.node_coordinates[1,:],U)
             pause(1.0e-10)
         end
     end
+    return u5
 end
-
-
-if !isinteractive()
-    @time run_1spec(n=100,pyplot=true)
-    waitforbuttonpress()
-end
-
-
-

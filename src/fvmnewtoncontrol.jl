@@ -29,7 +29,7 @@ function FVMNewtonControl(this)
     this.damp_growth=1.2
     this.max_lureuse=0
     this.tol_linear=1.0e-4
-    this.verbose=true
+    this.verbose=false
     this.max_iterations=100
     return this
 end

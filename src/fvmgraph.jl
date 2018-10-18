@@ -13,6 +13,8 @@ Fields:
     bnode_nodes::Array{Int64,1} # indices of dirichlet nodes 
     bnode_regions::Array{Int32,1} # boundary region numbers
     bnode_factors::Array{Float64,1} # boundary control volume sizes
+    num_bregion_nodes::Array{Int64,1} # number of nodes per boundary region
+    bnode_index::Array{Int64,1} # index of boundary node in boundary region 
 
 
 """
@@ -27,6 +29,8 @@ mutable struct FVMGraph
     bnode_nodes::Array{Int64,1} # indices of dirichlet nodes 
     bnode_regions::Array{Int32,1} # boundary region numbers
     bnode_factors::Array{Float64,1} # boundary control volume sizes
+    num_bregion_nodes::Array{Int64,1} # number of nodes per boundary region
+    bnode_index::Array{Int64,1} # index of boundary node in boundary region 
     
     FVMGraph(X::Array{Float64,1})= FVMGraph(new(),X)
     FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})= FVMGraph(new(),X,Y)
@@ -37,7 +41,7 @@ end
    
 Constructor for 1D finite volume graph
 """
-function FVMGraph(this, X::Array{Float64,1})
+function FVMGraph(this::FVMGraph, X::Array{Float64,1})
     #  Primal Grid:
     #  o-----o-----o-----o-----o-----o-----o-----o-----o
     # Dual grid with control volumes
@@ -74,6 +78,8 @@ function FVMGraph(this, X::Array{Float64,1})
     this.bnode_nodes=bnode_nodes
     this.bnode_regions=bnode_regions
     this.bnode_factors=bnodefac
+
+    finalize(this)
     return this
 end
 
@@ -85,7 +91,7 @@ end
    
 Constructor for 2D finite volume graph
 """
-function FVMGraph(this,X::Array{Float64,1},Y::Array{Float64,1})
+function FVMGraph(this::FVMGraph,X::Array{Float64,1},Y::Array{Float64,1})
     #  Primal Grid:
     #  o-----o-----o-----o-----o-----o-----o-----o-----o
     # Dual grid with control volumes
@@ -200,5 +206,22 @@ function FVMGraph(this,X::Array{Float64,1},Y::Array{Float64,1})
     this.bnode_nodes=bnode_nodes
     this.bnode_regions=bnode_regions
     this.bnode_factors=bnodefac
+
+    finalize(this)
     return this
 end
+
+"""
+   Finalize construction of graph
+"""
+function finalize(this::FVMGraph)
+    this.num_bregion_nodes=zeros(Int64,this.num_bregions)
+    this.bnode_index=zeros(Int64,length(this.bnode_nodes))
+    
+    for i=1:length(this.bnode_nodes)
+        ireg=this.bnode_regions[i]
+        this.num_bregion_nodes[ireg]+=1
+        this.bnode_index[i]=this.num_bregion_nodes[ireg]
+    end
+end
+

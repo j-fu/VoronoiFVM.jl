@@ -1,17 +1,19 @@
 using Printf
 using TwoPointFluxFVM
-using PyPlot
-
-
-mutable struct Test2DBreaBSpecParameters <:FVMParameters
-    @AddDefaultFVMParameters
-    k::Float64
-    eps::Float64 
-    Test2DBreaBSpecParameters()=Test2DBreaBSpecParameters(new())
+if isinteractive()
+    using PyPlot
 end
 
 
-function breaction!(this::Test2DBreaBSpecParameters,f,bf,u,bu)
+mutable struct Test2DBreaBSpecPhysics <:FVMPhysics
+    @AddDefaultFVMPhysics
+    k::Float64
+    eps::Float64 
+    Test2DBreaBSpecPhysics()=Test2DBreaBSpecPhysics(new())
+end
+
+
+function breaction!(this::Test2DBreaBSpecPhysics,f,bf,u,bu)
     if  this.bregion==2
         f[1]=this.k*(u[1]-bu[1])
         bf[1]=this.k*(bu[1]-u[1])+ this.k*(bu[1]-u[2])
@@ -22,7 +24,7 @@ function breaction!(this::Test2DBreaBSpecParameters,f,bf,u,bu)
     end
 end
 
-function bstorage!(this::Test2DBreaBSpecParameters,bf,bu)
+function bstorage!(this::Test2DBreaBSpecPhysics,bf,bu)
     if  this.bregion==2
         bf[1]=bu[1]
     else
@@ -31,12 +33,12 @@ function bstorage!(this::Test2DBreaBSpecParameters,bf,bu)
 end
 
 
-function flux!(this::Test2DBreaBSpecParameters,f,uk,ul)
+function flux!(this::Test2DBreaBSpecPhysics,f,uk,ul)
     f[1]=this.eps*(uk[1]-ul[1])
     f[2]=this.eps*(uk[2]-ul[2])
 end 
 
-function source!(this::Test2DBreaBSpecParameters,f,x)
+function source!(this::Test2DBreaBSpecPhysics,f,x)
     x1=x[1]-0.5
     x2=x[2]-0.5
     f[1]=exp(-20*(x1^2+x2^2))
@@ -44,8 +46,8 @@ end
 
 
 
-function Test2DBreaBSpecParameters(this)
-    DefaultFVMParameters(this,2)
+function Test2DBreaBSpecPhysics(this)
+    DefaultFVMPhysics(this,2)
     this.num_bspecies=[ 0, 1, 0, 0]
     this.eps=1
     this.k=1.0
@@ -57,7 +59,7 @@ function Test2DBreaBSpecParameters(this)
 end
 
 
-function run_test2d_brea_bspec(;n=100,pyplot=false)
+function run_test2d_brea_bspec(;n=10,pyplot=false,verbose=true)
     
     
     h=1.0/convert(Float64,n)
@@ -69,13 +71,13 @@ function run_test2d_brea_bspec(;n=100,pyplot=false)
     geom=FVMGraph(X,Y)
 
     
-    parameters=Test2DBreaBSpecParameters()
+    physics=Test2DBreaBSpecPhysics()
     
    
     
 
     
-    sys=TwoPointFluxFVMSystem(geom,parameters)
+    sys=TwoPointFluxFVMSystem(geom,physics)
     # sys.boundary_values[2,2]=0
     # sys.boundary_values[2,4]=0
     
@@ -85,30 +87,33 @@ function run_test2d_brea_bspec(;n=100,pyplot=false)
     inival=unknowns(sys)
     inival.=0.0
     
-    parameters.eps=1.0e-2
+    physics.eps=1.0e-2
     
     control=FVMNewtonControl()
-    control.verbose=true
+    control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5
     control.max_lureuse=0
     tstep=0.01
     time=0.0
     istep=0
-    while time<10
+    u5=0
+    while time<1
         time=time+tstep
         U=solve(sys,inival,control=control,tstep=tstep)
         inival.=U
         # for i in eachindex(U)
         #     inival[i]=U[i]
         # end
-        @printf("time=%g\n",time)
-        
+        if verbose
+            @printf("time=%g\n",time)
+        end
         tstep*=1.0
         istep=istep+1
+        U_bulk=bulk_unknowns(sys,U)
+        U_bound=boundary_unknowns(sys,U,2)
+        u5=U_bound[5]
         if pyplot && istep%10 == 0
-            U_bulk=bulk_unknowns(sys,U)
-            U_bound=boundary_unknowns(sys,U,2)
             @printf("max1=%g max2=%g maxb=%g\n",maximum(U_bulk[1,:]),maximum(U_bulk[2,:]),maximum(U_bound))
             PyPlot.clf()
 
@@ -128,13 +133,9 @@ function run_test2d_brea_bspec(;n=100,pyplot=false)
             pause(1.0e-10)
         end
     end
+    return u5
 end
 
-
-if !isinteractive()
-    @time run_test2d(n=100,pyplot=true)
-    waitforbuttonpress()
-end
 
 
 

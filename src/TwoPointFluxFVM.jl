@@ -2,7 +2,7 @@ module TwoPointFluxFVM
 
 include("fvmgraph.jl")
 include("functions.jl")
-include("fvmparameters.jl")
+include("fvmphysics.jl")
 include("fvmnewtoncontrol.jl")
 include("twopointfluxfvmsystem.jl")
 
@@ -10,8 +10,8 @@ include("twopointfluxfvmsystem.jl")
 
 export FVMGraph
 export TwoPointFluxFVMSystem
-export FVMParameters
-export DefaultFVMParameters
+export FVMPhysics
+export DefaultFVMPhysics
 export FVMNewtonControl
 export unknowns
 export bulk_unknowns
@@ -21,6 +21,6 @@ export fbernoulli_pm
 export solve
 export integrate
 export Dirichlet
-export @AddDefaultFVMParameters
+export @AddDefaultFVMPhysics
 end
 

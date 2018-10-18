@@ -1,18 +1,21 @@
 using Printf
+if isinteractive()
+    using PyPlot
+end
+
 using TwoPointFluxFVM
-using PyPlot
 
 
-mutable struct ILiqParameters <:FVMParameters
-    @AddDefaultFVMParameters
+mutable struct ILiqPhysics <:FVMPhysics
+    @AddDefaultFVMPhysics
     eps::Float64 
     z::Float64
     ic::Int32
     iphi::Int32
-    ILiqParameters()=ILiqParameters(new())
+    ILiqPhysics()=ILiqPhysics(new())
 end
 
-function flux!(this::ILiqParameters,f,uk,ul)
+function flux!(this::ILiqPhysics,f,uk,ul)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.eps*(uk[iphi]-ul[iphi])
@@ -23,7 +26,7 @@ function flux!(this::ILiqParameters,f,uk,ul)
 end 
 
 
-function classflux!(this::ILiqParameters,f,uk,ul)
+function classflux!(this::ILiqPhysics,f,uk,ul)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.eps*(uk[iphi]-ul[iphi])
@@ -32,14 +35,14 @@ function classflux!(this::ILiqParameters,f,uk,ul)
     f[ic]=bm*uk[ic]-bp*ul[ic]
 end 
 
-function storage!(this::FVMParameters, f,u)
+function storage!(this::FVMPhysics, f,u)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=0
     f[ic]=u[ic]
 end
 
-function reaction!(this::FVMParameters, f,u)
+function reaction!(this::FVMPhysics, f,u)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.z*(1-2*u[ic])
@@ -47,8 +50,8 @@ function reaction!(this::FVMParameters, f,u)
 end
 
 
-function ILiqParameters(this)
-    DefaultFVMParameters(this,2)
+function ILiqPhysics(this)
+    DefaultFVMPhysics(this,2)
     this.eps=1.0e-4
     this.z=-1
     this.iphi=1
@@ -63,9 +66,9 @@ end
 
 function plot_solution(sys,U0)
     U=bulk_unknowns(sys,U0)
-
-    iphi=sys.parameters.iphi
-    ic=sys.parameters.ic
+    physics=sys.physics
+    iphi=physics.iphi
+    ic=physics.ic
     geom=sys.geometry
     PyPlot.clf()
     PyPlot.plot(geom.node_coordinates[1,:],U[iphi,:], label="Potential", color="g")
@@ -76,12 +79,12 @@ function plot_solution(sys,U0)
 end
 
 
-function run_iliq(;n=100,pyplot=false,dlcap=false)
+function run_iliq(;n=100,pyplot=false,dlcap=false,verbose=true)
 
     h=1.0/convert(Float64,n)
     geom=FVMGraph(collect(0:h:1))
     
-    parameters=ILiqParameters()
+    parameters=ILiqPhysics()
     ic=parameters.ic
     iphi=parameters.iphi
     
@@ -104,8 +107,9 @@ function run_iliq(;n=100,pyplot=false,dlcap=false)
     end
     parameters.eps=1.0e-3
     control=FVMNewtonControl()
-    control.verbose=true
-    print("time loop")
+    control.verbose=verbose
+
+    u1=0
     if !dlcap
         control.damp_initial=0.5
         t=0.0
@@ -114,17 +118,20 @@ function run_iliq(;n=100,pyplot=false,dlcap=false)
         while t<tend
             t=t+tstep
             U=solve(sys,inival,control=control,tstep=tstep)
+            u1=U[2]
             for i=1:length(inival)
                 inival[i]=U[i]
             end
-            @printf("time=%g\n",t)
+            if verbose
+                @printf("time=%g\n",t)
+            end
             if pyplot
                 plot_solution(sys,U)
             end
             tstep*=1.4
         end
+        return u1
     else
-        print("calculating double layer capacitance")
         delta=1.0e-4
         for inode=1:size(inival_bulk,2)
             inival_bulk[iphi,inode]=0
@@ -139,15 +146,16 @@ function run_iliq(;n=100,pyplot=false,dlcap=false)
         cdlplus=zeros(0)
         vminus=zeros(0)
         cdlminus=zeros(0)
+        cdl=0
         for dir in [1,-1]
             sol=copy(inival)
             phi=0.0
             while phi<phimax
                 sys.boundary_values[iphi,1]=dir*phi
-                sol=solve(sys,sol)
+                sol=solve(sys,sol,control=control)
                 Q=integrate(sys,reaction!,sol)
                 sys.boundary_values[iphi,1]=dir*phi+delta
-                sol=solve(sys,sol)
+                sol=solve(sys,sol,control=control)
                 if pyplot
                     plot_solution(sys,sol)
                 end
@@ -171,12 +179,6 @@ function run_iliq(;n=100,pyplot=false,dlcap=false)
             PyPlot.legend(loc="upper right")
             PyPlot.pause(1.0e-10)
         end
+        return cdl
     end
-end
-
-
-
-if !isinteractive()
-    @time run_iliq(n=100,pyplot=true,dlcap=false)
-    PyPlot.waitforbuttonpress()
 end
