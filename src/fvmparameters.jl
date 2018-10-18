@@ -42,6 +42,7 @@ of type FVMParameters
     breaction::Function
     source::Function
     storage::Function
+    bstorage::Function
 end
 
 
@@ -64,6 +65,28 @@ function default_reaction!(this::FVMParameters, f,u)
         f[i]=0
     end
 end
+
+"""
+    Default boundary reaction term
+"""
+function default_breaction!(this::FVMParameters, f,bf,u,bu)
+    for i=1:this.num_species
+        f[i]=0
+    end
+    for i=1:this.num_bspecies[this.bregion]
+        bf[i]=0
+    end
+end
+
+"""
+    Default boundary reaction term
+"""
+function default_bstorage!(this::FVMParameters,bf,bu)
+    for i=1:this.num_bspecies[this.bregion]
+        bf[i]=bu[i]
+    end
+end
+
 
 """
     Default flux term
@@ -99,8 +122,11 @@ function DefaultFVMParameters(this::FVMParameters,nspec::Int)
     this.bregion=0
     this.flux=default_flux!
     this.reaction=default_reaction!
-    this.breaction=default_reaction!
+    this.breaction=default_breaction!
+    this.bstorage=default_bstorage!
     this.source=default_source!
     this.storage=default_storage!
 end
+
+
 

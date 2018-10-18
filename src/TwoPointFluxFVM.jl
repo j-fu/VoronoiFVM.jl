@@ -15,6 +15,7 @@ export DefaultFVMParameters
 export FVMNewtonControl
 export unknowns
 export bulk_unknowns
+export boundary_unknowns
 export fbernoulli
 export fbernoulli_pm
 export solve
