@@ -4,6 +4,7 @@
 ** Open [0/2]
   - [-] Issues [7/16]
     - [ ] bstorage probably should depend on interior unknowns, too
+    - [ ] Use logging.jl
     - [ ] systematic tests
     - [X] compatibility check for vector arguments
     - [ ] try/catch vs exit on error -- stays in repl
