@@ -14,8 +14,11 @@ So far this is merely a design study to learn and evaluate Julia.  It is however
 
 It requires Julia 1.0.
 
+## Documentation
 
-## Installation
+It currently resides at [WIAS Berlin](https://www.wias-berlin.de/people/fuhrmann/TwoPointFluxFVM/)
+
+## Installation 
 
 So far, the package has not been registered with Julia.
 
