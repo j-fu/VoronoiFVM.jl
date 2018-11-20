@@ -1,3 +1,5 @@
+module IonicLiquid
+
 using Printf
 if isinteractive()
     using PyPlot
@@ -6,16 +8,16 @@ end
 using TwoPointFluxFVM
 
 
-mutable struct ILiqPhysics <:FVMPhysics
+mutable struct Physics <:FVMPhysics
     @AddFVMPhysicsBaseClassFields
     eps::Float64 
     z::Float64
     ic::Int32
     iphi::Int32
-    ILiqPhysics()=ILiqPhysics(new())
+    Physics()=Physics(new())
 end
 
-function flux!(this::ILiqPhysics,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
+function flux!(this::Physics,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.eps*(uk[iphi]-ul[iphi])
@@ -26,7 +28,7 @@ function flux!(this::ILiqPhysics,f::AbstractArray,uk::AbstractArray,ul::Abstract
 end 
 
 
-function classflux!(this::ILiqPhysics,f,uk,ul)
+function classflux!(this::Physics,f,uk,ul)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.eps*(uk[iphi]-ul[iphi])
@@ -50,7 +52,7 @@ function reaction!(this::FVMPhysics, f,u)
 end
 
 
-function ILiqPhysics(this)
+function Physics(this)
     FVMPhysicsBase(this,2)
     this.eps=1.0e-4
     this.z=-1
@@ -79,12 +81,12 @@ function plot_solution(sys,U0)
 end
 
 
-function run_iliq(;n=100,pyplot=false,dlcap=false,verbose=true)
+function main(;n=20,pyplot=false,dlcap=false,verbose=false)
 
     h=1.0/convert(Float64,n)
     geom=FVMGraph(collect(0:h:1))
     
-    parameters=ILiqPhysics()
+    parameters=Physics()
     ic=parameters.ic
     iphi=parameters.iphi
     
@@ -181,4 +183,6 @@ function run_iliq(;n=100,pyplot=false,dlcap=false,verbose=true)
         end
         return cdl
     end
+end
+
 end

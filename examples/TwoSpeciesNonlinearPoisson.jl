@@ -1,3 +1,5 @@
+module TwoSpeciesNonlinearPoisson
+
 using Printf
 using TwoPointFluxFVM
 
@@ -5,33 +7,29 @@ if isinteractive()
     using PyPlot
 end
 
-mutable struct NLPoisson2SpecPhysics <:FVMPhysics
+mutable struct Physics <:FVMPhysics
     @AddFVMPhysicsBaseClassFields
     eps::Array{Float64,1}
-    NLPoisson2SpecPhysics()=NLPoisson2SpecPhysics(new())
+    Physics()=Physics(new())
 end
 
-function reaction!(this::NLPoisson2SpecPhysics,f,u)
+function reaction!(this::Physics,f,u)
     f[1]=u[1]*u[2]
     f[2]=-u[1]*u[2]
 end
 
-function flux!(this::NLPoisson2SpecPhysics,f,uk,ul)   
+function flux!(this::Physics,f,uk,ul)   
     f[1]=this.eps[1]*(uk[1]-ul[1])*(0.01+uk[2]+ul[2])
     f[2]=this.eps[2]*(uk[2]-ul[2])*(0.01+uk[1]+ul[1])
 end 
 
-function source!(this::NLPoisson2SpecPhysics,f,x)
+function source!(this::Physics,f,x)
     f[1]=1.0e-4*(0.01+x[1])
     f[2]=1.0e-4*(0.01+1.0-x[1])
 end 
     
 
-
-
-
-
-function NLPoisson2SpecPhysics(this::NLPoisson2SpecPhysics)
+function Physics(this::Physics)
     FVMPhysicsBase(this,2)
     this.eps=[1,1]
     this.flux=flux!
@@ -40,12 +38,12 @@ function NLPoisson2SpecPhysics(this::NLPoisson2SpecPhysics)
     return this
 end
 
-function run_nlpoisson_2spec(;n=10,pyplot=false,verbose=true)
+function main(;n=10,pyplot=false,verbose=true)
     
     geom=FVMGraph(collect(0:0.01:1))
     
         
-    physics=NLPoisson2SpecPhysics()
+    physics=Physics()
     
     
     sys=TwoPointFluxFVMSystem(geom,physics)
@@ -85,3 +83,4 @@ end
 
 
     
+end

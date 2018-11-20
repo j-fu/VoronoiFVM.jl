@@ -3,7 +3,7 @@
 using Markdown
 Markdown.parse("""
 ```julia
-$(read("../../../examples/nlpoisson-2spec.jl",String))
+$(read("../../../examples/TwoSpeciesNonlinearPoisson.jl",String))
 ```
 """)
 ````

@@ -1,3 +1,5 @@
+module OneSpeciesNonlinearPoisson
+
 using Printf
 using TwoPointFluxFVM
 
@@ -5,51 +7,60 @@ if isinteractive()
     using PyPlot
 end
 
-mutable struct NLPoisson1SpecPhysics <:FVMPhysics
+
+"""
+Structure containing  userdata information
+"""
+mutable struct Physics <:FVMPhysics
     @AddFVMPhysicsBaseClassFields
     eps::Float64 
-    param::Float64
-    NLPoisson1SpecPhysics()=NLPoisson1SpecPhysics(new())
+    Physics()=Physics(new())
 end
 
-
-function reaction!(this::NLPoisson1SpecPhysics,f,u)
+"""
+Reaction term
+"""
+function reaction!(this::Physics,f::AbstractArray,u::AbstractArray)
     f[1]=u[1]^2
 end
 
-function flux!(this::NLPoisson1SpecPhysics,f,uk,ul)
+"""
+Flux term
+"""
+function flux!(this::Physics,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
     f[1]=this.eps*(uk[1]^2-ul[1]^2)
 end 
 
-function source!(this::NLPoisson1SpecPhysics,f,x)
+
+"""
+Source term
+"""
+function source!(this::Physics,f::AbstractArray,x::AbstractArray)
     f[1]=1.0e-4*x[1]
 end 
 
-
-function NLPoisson1SpecPhysics(this::NLPoisson1SpecPhysics)
+"""
+Constructor for userdata structure
+"""
+function Physics(this::Physics)
     FVMPhysicsBase(this,1)
     this.eps=1
-    this.param=1
     this.flux=flux!
     this.reaction=reaction!
     this.source=source!
     return this
 end
 
-
-function run_nlpoisson_1spec(;n=10,pyplot=false,verbose=false)
+"""
+Main function for user interaction from REPL and
+for test. Default parameters need to generate correct
+test value.
+"""
+function main(;n=10,pyplot=false,verbose=false)
     h=1.0/convert(Float64,n)
     geom=FVMGraph(collect(0:h:1))
-    
-    #
-    # Structure containing "physics" information
-    #
-    #  - \nabla \eps  \nabla u + reaction(u) = source(x)
-    #
-    
-    
-    physics=NLPoisson1SpecPhysics()
-    physics.param=1.0e-5
+
+    physics=Physics()
 
     sys=TwoPointFluxFVMSystem(geom,physics)
     sys.boundary_values[1,1]=1.0
@@ -67,10 +78,10 @@ function run_nlpoisson_1spec(;n=10,pyplot=false,verbose=false)
     control.verbose=verbose
     tstep=1.0e-2
     times=collect(0.0:tstep:1.0)
-    u5=0
+    test_result=0
     for it=2:length(times)
         U=solve(sys,inival,control=control,tstep=tstep)
-        u5=U[5]
+        test_result=U[5]
         for i in eachindex(U)
             inival[i]=U[i]
         end
@@ -79,9 +90,13 @@ function run_nlpoisson_1spec(;n=10,pyplot=false,verbose=false)
         end
         if pyplot
             PyPlot.clf()
+            PyPlot.grid()
             plot(geom.node_coordinates[1,:],U)
             pause(1.0e-10)
         end
     end
-    return u5
+    return test_result
 end
+
+end
+

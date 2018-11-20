@@ -11,13 +11,13 @@ makedocs(
         "alldocs.md",
         "allindex.md",
         "Examples" => [
-            "examples/nlpoisson-1spec.md",
-            "examples/nlpoisson-2spec.md",
-            "examples/iliq.md",
-            "examples/test2d-brea-bspec.md",
-            "examples/test2d-brea.md",
-            "examples/test2d.md",
-            "examples/test2d-rea.md"
+            "examples/OneSpeciesNonlinearPoisson.md",
+            "examples/TwoSpeciesNonlinearPoisson.md",
+            "examples/IonicLiquid.md",
+            "examples/NonlinearPoisson2D.md",
+            "examples/NonlinearPoisson2D_Reaction.md",
+            "examples/NonlinearPoisson2D_BoundaryReaction.md",
+            "examples/NonlinearPoisson2D_BoundarySpecies.md",
         ]
     ]
 )

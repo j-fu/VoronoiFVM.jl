@@ -1,3 +1,5 @@
+module NonlinearPoisson2D_BoundaryReaction
+
 using Printf
 using TwoPointFluxFVM
 
@@ -6,15 +8,15 @@ if isinteractive()
 end
 
 
-mutable struct Test2DBreaPhysics <:FVMPhysics
+mutable struct Physics <:FVMPhysics
     @AddFVMPhysicsBaseClassFields
     k::Float64
     eps::Float64 
-    Test2DBreaPhysics()=Test2DBreaPhysics(new())
+    Physics()=Physics(new())
 end
 
 
-function breaction!(this::Test2DBreaPhysics,f,bf,u,bu)
+function breaction!(this::Physics,f,bf,u,bu)
     if  this.bregion==2
         f[1]=this.k*(u[1]-u[2])
         f[2]=this.k*(u[2]-u[1])
@@ -24,12 +26,12 @@ function breaction!(this::Test2DBreaPhysics,f,bf,u,bu)
     end
 end
 
-function flux!(this::Test2DBreaPhysics,f,uk,ul)
+function flux!(this::Physics,f,uk,ul)
     f[1]=this.eps*(uk[1]-ul[1])
     f[2]=this.eps*(uk[2]-ul[2])
 end 
 
-function source!(this::Test2DBreaPhysics,f,x)
+function source!(this::Physics,f,x)
     x1=x[1]-0.5
     x2=x[2]-0.5
     f[1]=exp(-20*(x1^2+x2^2))
@@ -37,7 +39,7 @@ end
 
 
 
-function Test2DBreaPhysics(this)
+function Physics(this)
     FVMPhysicsBase(this,2)
     this.eps=1
     this.k=1.0
@@ -48,30 +50,17 @@ function Test2DBreaPhysics(this)
 end
 
 
-function run_test2d_brea(;n=10,pyplot=false,verbose=true)
-    
-    
+function main(;n=10,pyplot=false,verbose=false)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
     
-
-
     geom=FVMGraph(X,Y)
 
     
-    parameters=Test2DBreaPhysics()
-    
-   
-    
-
+    parameters=Physics()
     
     sys=TwoPointFluxFVMSystem(geom,parameters)
-    # sys.boundary_values[2,2]=0
-    # sys.boundary_values[2,4]=0
-    
-    # sys.boundary_factors[2,2]=Dirichlet
-    # sys.boundary_factors[2,4]=Dirichlet
     
     inival=unknowns(sys)
     inival.=0.0
@@ -120,7 +109,4 @@ function run_test2d_brea(;n=10,pyplot=false,verbose=true)
     end
     return u25
 end
-
-
-
-
+end
