@@ -6,7 +6,7 @@ if isinteractive()
 end
 
 mutable struct NLPoisson1SpecPhysics <:FVMPhysics
-    @AddDefaultFVMPhysics
+    @AddFVMPhysicsBaseClassFields
     eps::Float64 
     param::Float64
     NLPoisson1SpecPhysics()=NLPoisson1SpecPhysics(new())
@@ -27,7 +27,7 @@ end
 
 
 function NLPoisson1SpecPhysics(this::NLPoisson1SpecPhysics)
-    DefaultFVMPhysics(this,1)
+    FVMPhysicsBase(this,1)
     this.eps=1
     this.param=1
     this.flux=flux!

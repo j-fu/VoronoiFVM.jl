@@ -6,7 +6,7 @@ end
 
 
 mutable struct Test2DBreaBSpecPhysics <:FVMPhysics
-    @AddDefaultFVMPhysics
+    @AddFVMPhysicsBaseClassFields
     k::Float64
     eps::Float64 
     Test2DBreaBSpecPhysics()=Test2DBreaBSpecPhysics(new())
@@ -47,7 +47,7 @@ end
 
 
 function Test2DBreaBSpecPhysics(this)
-    DefaultFVMPhysics(this,2)
+    FVMPhysicsBase(this,2)
     this.num_bspecies=[ 0, 1, 0, 0]
     this.eps=1
     this.k=1.0

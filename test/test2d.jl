@@ -6,7 +6,7 @@ end
 
 
 mutable struct Test2DPhysics <:FVMPhysics
-    @AddDefaultFVMPhysics
+    @AddFVMPhysicsBaseClassFields
     eps::Float64 
     Test2DPhysics()=Test2DPhysics(new())
 end
@@ -27,7 +27,7 @@ end
     
 
 function Test2DPhysics(this)
-    DefaultFVMPhysics(this,1)
+    FVMPhysicsBase(this,1)
     this.eps=1
     this.reaction=reaction!
     this.flux=flux!

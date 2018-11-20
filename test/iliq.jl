@@ -7,7 +7,7 @@ using TwoPointFluxFVM
 
 
 mutable struct ILiqPhysics <:FVMPhysics
-    @AddDefaultFVMPhysics
+    @AddFVMPhysicsBaseClassFields
     eps::Float64 
     z::Float64
     ic::Int32
@@ -15,7 +15,7 @@ mutable struct ILiqPhysics <:FVMPhysics
     ILiqPhysics()=ILiqPhysics(new())
 end
 
-function flux!(this::ILiqPhysics,f,uk,ul)
+function flux!(this::ILiqPhysics,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.eps*(uk[iphi]-ul[iphi])
@@ -51,7 +51,7 @@ end
 
 
 function ILiqPhysics(this)
-    DefaultFVMPhysics(this,2)
+    FVMPhysicsBase(this,2)
     this.eps=1.0e-4
     this.z=-1
     this.iphi=1

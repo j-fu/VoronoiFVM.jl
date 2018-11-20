@@ -1,5 +1,13 @@
+##################################################
 """
     mutable struct FVMGraph
+
+Weighted graph representation of the finite volume geometry data
+derived from the Voroni cell construction. 
+
+It contains all necessary data for computations. This structure
+is independent of the original mesh, which can be triangular, rectangular,
+prismatic etc.
 
 Fields:
 
@@ -15,7 +23,6 @@ Fields:
     bnode_factors::Array{Float64,1} # boundary control volume sizes
     num_bregion_nodes::Array{Int64,1} # number of nodes per boundary region
     bnode_index::Array{Int64,1} # index of boundary node in boundary region 
-
 
 """
 mutable struct FVMGraph
@@ -36,16 +43,27 @@ mutable struct FVMGraph
     FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})= FVMGraph(new(),X,Y)
 end
         
+##################################################
 """
-   FVMGraph(X::Array{Float64,1})
+
+````
+FVMGraph(X::Array{Float64,1})
+````
    
-Constructor for 1D finite volume graph
+Construct  1D finite volume graph from an array of node cordinates.
+It creates two boundary regions with index 1 at the left end and
+index 2 at the right end.
+
+Primal grid holding unknowns: marked by `o`, dual
+grid marking control volumes: marked by `|`.
+
+```@raw html
+ o-----o-----o-----o-----o-----o-----o-----o-----o
+ |--|-----|-----|-----|-----|-----|-----|-----|--|
+```
+
 """
 function FVMGraph(this::FVMGraph, X::Array{Float64,1})
-    #  Primal Grid:
-    #  o-----o-----o-----o-----o-----o-----o-----o-----o
-    # Dual grid with control volumes
-    #  |--|-----|-----|-----|-----|-----|-----|-----|--|
     n=length(X)
     nodes=reshape(X,1,n)
     edges=zeros(Int32,2,n-1)
@@ -86,16 +104,24 @@ end
 
         
 
+##################################################
 """
-   FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})
+´´´´
+FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})
+´´´´
    
-Constructor for 2D finite volume graph
+Constructor for 2D finite volume graph on rectangular grid 
+from coordinate arrays. Boundary region numbers count counterclockwise:
+
+| location  |  number |
+| --------- | ------- |
+| south     |       1 |
+| east      |       2 |
+| north     |       3 |
+| west      |       4 |
+
 """
 function FVMGraph(this::FVMGraph,X::Array{Float64,1},Y::Array{Float64,1})
-    #  Primal Grid:
-    #  o-----o-----o-----o-----o-----o-----o-----o-----o
-    # Dual grid with control volumes
-    #  |--|-----|-----|-----|-----|-----|-----|-----|--|
     nx=length(X)
     ny=length(Y)
     n=nx*ny

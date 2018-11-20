@@ -7,7 +7,7 @@ end
 
 
 mutable struct Test2DBreaPhysics <:FVMPhysics
-    @AddDefaultFVMPhysics
+    @AddFVMPhysicsBaseClassFields
     k::Float64
     eps::Float64 
     Test2DBreaPhysics()=Test2DBreaPhysics(new())
@@ -38,7 +38,7 @@ end
 
 
 function Test2DBreaPhysics(this)
-    DefaultFVMPhysics(this,2)
+    FVMPhysicsBase(this,2)
     this.eps=1
     this.k=1.0
     this.breaction=breaction!

@@ -1,13 +1,24 @@
+##############################################################
 """
-Bernoulli function implementation for exponentially
-fitted finite volumes
-
-The name fbernoulli has been chosen to avoid confusion
-with Bernoulli from JuliaStats/Distributions.jl
+Constant for switch between Taylor series and full implementation
 """
 const fbernoulli_eps=1.0e-4
 
-function fbernoulli(x)
+##############################################################
+"""
+````
+function fbernoulli(x::Real)
+````
+
+Bernoulli function implementation for exponentially
+fitted finite volumes.
+
+The name fbernoulli has been chosen to avoid confusion
+with Bernoulli from JuliaStats/Distributions.jl
+
+Returns a real number containing the result.
+"""
+function fbernoulli(x::Real)
     if x<-fbernoulli_eps
         return x/(exp(x)-1)
     elseif x < fbernoulli_eps
@@ -26,11 +37,25 @@ function fbernoulli(x)
     end
 end
 
+##############################################################
 """ 
-    Usually, we need B(x), B(-x) togehter, 
-    and it is cheaper to calculate them together.
+````
+function fbernoulli_pm(x::Real)
+````
+
+Bernoulli function implementation for exponentially
+fitted finite volumes, joint evaluation for positive and negative
+argument
+
+Usually, we need B(x), B(-x) togehter, 
+and it is cheaper to calculate them together.
+
+
+Returns two real numbers containing the result for argument
+`x` and argument `-x`.
+
 """
-function fbernoulli_pm(x)
+function fbernoulli_pm(x::Real)
     if x<-fbernoulli_eps
         expx=exp(x)
         bp=x/(exp(x)-1)

@@ -4,7 +4,7 @@ using PyPlot
 
 
 mutable struct Test2DReaPhysics <:FVMPhysics
-    @AddDefaultFVMPhysics
+    @AddFVMPhysicsBaseClassFields
     k::Float64
     eps::Float64 
     Test2DReaPhysics()=Test2DReaPhysics(new())
@@ -30,7 +30,7 @@ end
 
 
 function Test2DReaPhysics(this)
-    DefaultFVMPhysics(this,2)
+    FVMPhysicsBase(this,2)
     this.eps=1
     this.k=1.0
     this.reaction=reaction!

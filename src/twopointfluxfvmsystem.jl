@@ -8,31 +8,27 @@ using LinearAlgebra
 using Printf
 
 
+#####################################################
+"""
+Constant to be used as boundary condition factor 
+to mark Dirichlet boundary conditons.    
+"""
 const Dirichlet=1.0e30
 
+#####################################################
 """
-
+````
 mutable struct TwoPointFluxFVMSystem
-
-    Main structure holding data for system solution
+````
+Main structure holding data for system solution
 
 Public fields:
-    
     
     boundary_values::Array{Float64,2} # Array of boundary values
     boundary_factors::Array{Float64,2} # Array of boundary factors
     geometry::FVMGraph   # Geometry information: weighted graph created from grid
     physics::FVMPhysics  # Physical model 
 
-Private fields:
-
-    _num_dof::Int64       # Overall number of degrees of freedom
-    _num_bulk_dof::Int64  # Number of degrees of freedom in the bulk
-    _num_bspecies::Array{Int64,1} # Number of boundary species per boundary region
-    _bdof_offset::Array{Int64,1}  # offset of boundary degrees of freedom per boundary region
-    _matrix::SparseArrays.SparseMatrixCSC # System matrix
-    _residual::Array{Float64,1} # Residual array
-    _update::Array{Float64,1}   # Newton update array
 
 Memory layout for soulution arrays:
 
@@ -58,9 +54,23 @@ mutable struct TwoPointFluxFVMSystem
 end
 
 
+#####################################################
+"""
+Constructor for TwoPointFluxFVMSystem
+
+````
 function TwoPointFluxFVMSystem(this::TwoPointFluxFVMSystem,
                                geometry::FVMGraph, # Geometry
-                               physics::FVMPhysics # user parameter
+                               physics::FVMPhysics # user data
+                               )
+````
+
+Construct system from geometry (graph) and user data.
+
+"""
+function TwoPointFluxFVMSystem(this::TwoPointFluxFVMSystem,
+                               geometry::FVMGraph, # Geometry
+                               physics::FVMPhysics # user data
                                )
     this.geometry=geometry
     this.physics=physics
@@ -99,8 +109,11 @@ function TwoPointFluxFVMSystem(this::TwoPointFluxFVMSystem,
 end
 
 
+#####################################################
 """
-    function unknowns(this::TwoPointFluxFVMSystem)
+````
+function unknowns(this::TwoPointFluxFVMSystem)
+````
 
 Create a vector of unknowns for a given system
 """
@@ -108,19 +121,43 @@ function unknowns(this::TwoPointFluxFVMSystem)
     return Array{Float64,1}(undef,this._num_dof)
 end
 
+#####################################################
+"""
+````
+function bulk_unknowns(this::TwoPointFluxFVMSystem,U::Array{Float64,1})
+````
+
+Return a view  which allows to access the bulk unknowns stored
+in a solution vector.
+"""
 function bulk_unknowns(this::TwoPointFluxFVMSystem,U::Array{Float64,1})
     V=view(U,1:this._num_bulk_dof)
     return reshape(V,this.physics.num_species,this.geometry.num_nodes)
 end
 
+
+#####################################################
+"""
+````
+function boundary_unknowns(this::TwoPointFluxFVMSystem, U::Array{Float64,1}, ibc::Int)
+````
+
+Return a view  which allows to access the unknwons in a solution vector
+which correspond to a certain boundary condition.
+"""
 function boundary_unknowns(this::TwoPointFluxFVMSystem, U::Array{Float64,1}, ibc::Int)
     V=view(U,this._bdof_offset[ibc]+1:this._bdof_offset[ibc+1])
     return reshape(V,this._num_bspecies[ibc],this._bdof_offset[ibc+1]-this._bdof_offset[ibc])
 end
 
 
+#####################################################
 """
-    Initialize dirichlet boundary valuesfor solution
+````
+function inidirichlet!(this::TwoPointFluxFVMSystem,U0)
+````
+
+Initialize dirichlet boundary values for solution
 """
 function inidirichlet!(this::TwoPointFluxFVMSystem,U0)
     U=bulk_unknowns(this,U0)
@@ -137,10 +174,14 @@ function inidirichlet!(this::TwoPointFluxFVMSystem,U0)
     end
 end
 
+##########################################################
 """
-    function integrate(this::TwoPointFluxFVMSystem,F::Function,U)
+````
+function integrate(this::TwoPointFluxFVMSystem,F::Function,U)
+````
 
-Integrate solution vector over domain
+Integrate solution vector over domain. Returns an `Array{Int64,1}`
+containing the integral for each species.
 """
 function integrate(this::TwoPointFluxFVMSystem,F::Function,U0)
     U=bulk_unknowns(this,U0)
@@ -160,16 +201,18 @@ end
 
 
 
+#####################################################
 """
-  Nonlinear operator evaluation + Jacobian assembly
+Nonlinear operator evaluation + Jacobian assembly
 
+````
   for K=1...n
      f_K = sum_(L neigbor of K) flux(u[K],U[L])*edgefac[K,L]
             + (reaction(U[K])- source(X[K]))*nodefac[K]
             + (storage(U[K])- storage(UOld[K])*nodefac[K]/tstep
 
     # M is correspondig Jacobi matrix of derivatives. 
-
+````
 
 """
 function eval_and_assemble(this::TwoPointFluxFVMSystem,
@@ -179,7 +222,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
                            )
 
     """
-       Wrap API flux with function compatible to ForwardDiff
+    Wrap API flux with function compatible to ForwardDiff
     """
     function fluxwrap!(y,u)
         uk=view(u,1:num_species)
@@ -187,6 +230,9 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
         flux!(y,uk,ul)
     end
 
+    """
+    Wrap API boundary reaction with function compatible to ForwardDiff
+    """
     function breawrap!(y,u)
         iy=view(y,1:num_species)
         by=view(y,num_species+1:num_species+num_bspecies)
@@ -203,6 +249,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
     # Create closures for physics functions
     # These allow to "glue" user physics to function objects compatible
     # with the ForwardDiff module
+    # cf. http://www.juliadiff.org/ForwardDiff.jl/stable/user/limitations.html 
     source!(y,x)=physics.source(physics,y,x)
     flux!(y,uk,ul)=physics.flux(physics,y,uk,ul)
     reaction!(y,x)=physics.reaction(physics,y,x)
@@ -229,7 +276,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
     result_s=DiffResults.DiffResult(Vector{Float64}(undef,num_species),Matrix{Float64}(undef,num_species,num_species))
 
     
-    if this.physics.breaction != default_breaction! ||  this.physics.bstorage != default_bstorage! 
+    if this.physics.breaction != prototype_breaction! ||  this.physics.bstorage != prototype_bstorage! 
         breaction!(y,by,u,bu)=physics.breaction(physics,y,by,u,bu)
         bstorage!(by,bu)=physics.bstorage(physics,by,bu)
 
@@ -272,14 +319,14 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
 
     for inode=1:nnodes
         # Evaluate & differentiate reaction term
-        if physics.reaction!=default_reaction!
+        if physics.reaction!=prototype_reaction!
             result_r=ForwardDiff.jacobian!(result_r,reaction!,Y,U[:,inode])
             res_react=DiffResults.value(result_r)
             jac_react=DiffResults.jacobian(result_r)
         end
 
         # Evaluate source term
-        if physics.source!=default_source!
+        if physics.source!=prototype_source!
             source!(src,geometry.node_coordinates[:,inode])
         end
         
@@ -360,7 +407,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
             end
         end
         
-        if this.physics.breaction != default_breaction! 
+        if this.physics.breaction != prototype_breaction! 
             ibxnode=0
             ibxblock=0
             num_bspecies=this._num_bspecies[ibreg]
@@ -399,7 +446,7 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
             end
         end
         
-        if this.physics.bstorage != default_bstorage! 
+        if this.physics.bstorage != prototype_bstorage! 
             ibxnode=0
             ibxblock=0
             num_bspecies=this._num_bspecies[ibreg]
@@ -430,9 +477,9 @@ function eval_and_assemble(this::TwoPointFluxFVMSystem,
 end
 
 
-
+################################################################
 """
-    Actual solver function implementation
+Actual solver function implementation
 """
 function _solve(this::TwoPointFluxFVMSystem, oldsol::Array{Float64,1},control::FVMNewtonControl, tstep::Float64)
     solution=copy(oldsol)
@@ -485,7 +532,6 @@ function _solve(this::TwoPointFluxFVMSystem, oldsol::Array{Float64,1},control::F
             converged=true
             break
         end
-        
         oldnorm=norm
     end
     if !converged
@@ -494,13 +540,29 @@ function _solve(this::TwoPointFluxFVMSystem, oldsol::Array{Float64,1},control::F
     return solution
 end
 
+################################################################
 """
-   System solver wrapper allowing to dispatch timing
+Solution method for instance of TwoPointFluxFVMSystem
+
+````
+function solve(
+    this::TwoPointFluxFVMSystem, # Finite volume system
+    oldsol::Array{Float64,1};    # old time step solution resp. initial value
+    control=FVMNewtonControl(),  # Solver control information
+    tstep::Float64=Inf           # Time step size. Inf means  stationary solution
+    )
+````
+Perform solution of stationary system (if `tstep==Inf`) or implicit Euler time
+step system. 
+
 """
-function solve(this::TwoPointFluxFVMSystem, # Finite volume system
-               oldsol::Array{Float64,1}; # old time step solution resp. initial value
-               control=FVMNewtonControl(), # Newton solver control information
-               tstep::Float64=Inf) # Time step size. Inf means  stationary solution
+function solve(
+    this::TwoPointFluxFVMSystem, # Finite volume system
+    oldsol::Array{Float64,1}; # old time step solution resp. initial value
+    control=FVMNewtonControl(), # Newton solver control information
+    tstep::Float64=Inf          # Time step size. Inf means  stationary solution
+    )
+
     if control.verbose
         @time begin
             retval= _solve(this,oldsol,control,tstep)

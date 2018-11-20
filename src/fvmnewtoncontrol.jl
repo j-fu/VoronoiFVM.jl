@@ -1,9 +1,18 @@
+################################################
 """
-    mutable struct FVMNewtonControl
-
-Control parameter for Newton method.
+Control parameter structure for Newton method.
 
 Fields:
+
+    tol_absolute::Float64 # Tolerance (in terms of norm of Newton update)
+    tol_relative::Float64 # Tolerance (relative to the first residual)
+    damp_initial::Float64      # Initial damping parameter
+    damp_growth::Float64  # Damping parameter growth factor
+    max_iterations::Int32     # Maximum number of iterations
+    max_lureuse::Int32 # Maximum number of reuses of lu factorization
+    tol_linear::Float64 # Tolerance of iterative linear solver
+    verbose::Bool      # Verbosity
+
 
 """
 mutable struct FVMNewtonControl
@@ -17,6 +26,8 @@ mutable struct FVMNewtonControl
     verbose::Bool      # Verbosity
     FVMNewtonControl()=FVMNewtonControl(new())
 end
+
+################################################
 """
     FVMNewtonControl()
     

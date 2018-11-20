@@ -11,7 +11,7 @@ include("twopointfluxfvmsystem.jl")
 export FVMGraph
 export TwoPointFluxFVMSystem
 export FVMPhysics
-export DefaultFVMPhysics
+export FVMPhysicsBase
 export FVMNewtonControl
 export unknowns
 export bulk_unknowns
@@ -21,6 +21,6 @@ export fbernoulli_pm
 export solve
 export integrate
 export Dirichlet
-export @AddDefaultFVMPhysics
+export @AddFVMPhysicsBaseClassFields
 end
 

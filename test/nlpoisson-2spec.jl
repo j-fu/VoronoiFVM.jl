@@ -6,7 +6,7 @@ if isinteractive()
 end
 
 mutable struct NLPoisson2SpecPhysics <:FVMPhysics
-    @AddDefaultFVMPhysics
+    @AddFVMPhysicsBaseClassFields
     eps::Array{Float64,1}
     NLPoisson2SpecPhysics()=NLPoisson2SpecPhysics(new())
 end
@@ -32,7 +32,7 @@ end
 
 
 function NLPoisson2SpecPhysics(this::NLPoisson2SpecPhysics)
-    DefaultFVMPhysics(this,2)
+    FVMPhysicsBase(this,2)
     this.eps=[1,1]
     this.flux=flux!
     this.reaction=reaction!
