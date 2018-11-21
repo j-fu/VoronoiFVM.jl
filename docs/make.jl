@@ -17,7 +17,8 @@ makedocs(
             "examples/NonlinearPoisson2D.md",
             "examples/NonlinearPoisson2D_Reaction.md",
             "examples/NonlinearPoisson2D_BoundaryReaction.md",
-            "examples/NonlinearPoisson2D_BoundarySpecies.md",
+            "examples/NonlinearPoisson1D_BoundarySpecies.md",
+            "examples/NonlinearPoisson2D_BoundarySpecies.md"
         ]
     ]
 )

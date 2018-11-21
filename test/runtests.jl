@@ -35,12 +35,17 @@ using Test
     @time begin
         print("NonlinearPoisson2D_BoundaryReaction:")
         include("../examples/NonlinearPoisson2D_BoundaryReaction.jl")
-        @test NonlinearPoisson2D_BoundaryReaction.main(n=10,verbose=false) ≈ 0.008761335823958986
+        @test NonlinearPoisson2D_BoundaryReaction.main() ≈ 0.008761335823958986
+    end
+    @time begin
+        print(" NonlinearPoisson1D_BoundarySpecies:")
+        include("../examples/NonlinearPoisson1D_BoundarySpecies.jl")
+        @test NonlinearPoisson1D_BoundarySpecies.main() ≈ 0.22631106953924143
     end
     @time begin
         print(" NonlinearPoisson2D_BoundarySpecies:")
         include("../examples/NonlinearPoisson2D_BoundarySpecies.jl")
-        @test NonlinearPoisson2D_BoundarySpecies.main(n=10,verbose=false) ≈ 0.0020781361856598
+        @test NonlinearPoisson2D_BoundarySpecies.main() ≈ 0.0020781361856598
     end
         print("                                all:")
 end
