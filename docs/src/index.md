@@ -16,7 +16,7 @@ resides [here](https://www.wias-berlin.de/people/fuhrmann/TwoPointFluxFVM)
 
 ## Main structs (classes)
 
-### [`FVMPhysics`](@ref)
+### [`TwoPointFluxFVM.Physics`](@ref)
 This is an abstract type  from which a user
 data type can be derived which describes the physical
 data of a given problem. These are user defined parameters
@@ -26,8 +26,8 @@ fluxes between control volumes.
 A typical usage pattern is as follows:
 
 ```julia
-mutable struct Physics <:FVMPhysics
-    @AddFVMPhysicsBaseClassFields
+mutable struct Physics <:TwoPointFluxFVM.Physics
+    TwoPointFluxFVM.@AddPhysicsBaseClassFields
     eps::Float64 
     Physics()=Physics(new())
 end
@@ -45,7 +45,7 @@ function source!(this::Physics,f::AbstractArray,x::AbstractArray)
 end 
 
 function Physics(this::Physics)
-    FVMPhysicsBase(this,1)
+    TwoPointFluxFVM.PhysicsBase(this,1)
     this.eps=1
     this.flux=flux!
     this.reaction=reaction!
@@ -54,20 +54,20 @@ function Physics(this::Physics)
 end
 ```
 
-### [`FVMGraph`](@ref)
+### [`TwoPointFluxFVM.Graph`](@ref)
 
 This is a weighted graph which represents edges and nodes
 of a finite volume scheme. There are currently two
 constructors:
 
-[`FVMGraph(X::Array{Float64,1})`](@ref) for one-dimensional
-domains and [`FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})`](@ref)
+[`TwoPointFluxFVM.Graph(X::Array{Float64,1})`](@ref) for one-dimensional
+domains and [`TwoPointFluxFVM.Graph(X::Array{Float64,1},Y::Array{Float64,1})`](@ref)
 for two-dimensional domains.
 
-### [`TwoPointFluxFVMSystem`](@ref)
+### [`TwoPointFluxFVM.System`](@ref)
 
-From instances of  [`FVMGraph`](@ref) and [`FVMPhysics`](@ref),
-a [`TwoPointFluxFVMSystem`](@ref) which contains all the necessary
+From instances of  [`TwoPointFluxFVM.Graph`](@ref) and [`TwoPointFluxFVM.Physics`](@ref),
+a [`TwoPointFluxFVM.System`](@ref) which contains all the necessary
 data for the solution of the nonlinear system described by them.
 
 

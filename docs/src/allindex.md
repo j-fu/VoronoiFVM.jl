@@ -1,4 +1,4 @@
-# Public Interface Index
+# API Index
 
 ```@index
 Pages   = ["alldocs.md"]

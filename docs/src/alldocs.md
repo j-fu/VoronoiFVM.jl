@@ -1,4 +1,4 @@
-# Public Interface Documentation
+# API Documentation
 
 ```@autodocs
 Modules = [TwoPointFluxFVM]

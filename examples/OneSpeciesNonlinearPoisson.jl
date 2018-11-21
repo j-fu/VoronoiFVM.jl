@@ -11,8 +11,8 @@ end
 """
 Structure containing  userdata information
 """
-mutable struct Physics <:FVMPhysics
-    @AddFVMPhysicsBaseClassFields
+mutable struct Physics <:TwoPointFluxFVM.Physics
+    TwoPointFluxFVM.@AddPhysicsBaseClassFields
     eps::Float64 
     Physics()=Physics(new())
 end
@@ -43,7 +43,7 @@ end
 Constructor for userdata structure
 """
 function Physics(this::Physics)
-    FVMPhysicsBase(this,1)
+    TwoPointFluxFVM.PhysicsBase(this,1)
     this.eps=1
     this.flux=flux!
     this.reaction=reaction!
@@ -58,23 +58,23 @@ test value.
 """
 function main(;n=10,pyplot=false,verbose=false)
     h=1.0/convert(Float64,n)
-    geom=FVMGraph(collect(0:h:1))
+    geom=TwoPointFluxFVM.Graph(collect(0:h:1))
 
     physics=Physics()
 
-    sys=TwoPointFluxFVMSystem(geom,physics)
+    sys=TwoPointFluxFVM.System(geom,physics)
     sys.boundary_values[1,1]=1.0
     sys.boundary_values[1,2]=0.5
     
-    sys.boundary_factors[1,1]=Dirichlet
-    sys.boundary_factors[1,2]=Dirichlet
+    sys.boundary_factors[1,1]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[1,2]=TwoPointFluxFVM.Dirichlet
     
     inival=unknowns(sys)
     inival.=0.5
 
     physics.eps=1.0e-2
 
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     tstep=1.0e-2
     times=collect(0.0:tstep:1.0)

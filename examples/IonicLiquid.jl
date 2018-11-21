@@ -8,8 +8,8 @@ end
 using TwoPointFluxFVM
 
 
-mutable struct Physics <:FVMPhysics
-    @AddFVMPhysicsBaseClassFields
+mutable struct Physics <:TwoPointFluxFVM.Physics
+    TwoPointFluxFVM.@AddPhysicsBaseClassFields
     eps::Float64 
     z::Float64
     ic::Int32
@@ -37,14 +37,14 @@ function classflux!(this::Physics,f,uk,ul)
     f[ic]=bm*uk[ic]-bp*ul[ic]
 end 
 
-function storage!(this::FVMPhysics, f,u)
+function storage!(this::Physics, f,u)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=0
     f[ic]=u[ic]
 end
 
-function reaction!(this::FVMPhysics, f,u)
+function reaction!(this::Physics, f,u)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.z*(1-2*u[ic])
@@ -53,7 +53,7 @@ end
 
 
 function Physics(this)
-    FVMPhysicsBase(this,2)
+    TwoPointFluxFVM.PhysicsBase(this,2)
     this.eps=1.0e-4
     this.z=-1
     this.iphi=1
@@ -84,22 +84,22 @@ end
 function main(;n=20,pyplot=false,dlcap=false,verbose=false)
 
     h=1.0/convert(Float64,n)
-    geom=FVMGraph(collect(0:h:1))
+    geom=TwoPointFluxFVM.Graph(collect(0:h:1))
     
     parameters=Physics()
     ic=parameters.ic
     iphi=parameters.iphi
     
-    sys=TwoPointFluxFVMSystem(geom,parameters)
+    sys=TwoPointFluxFVM.System(geom,parameters)
     sys.boundary_values[iphi,1]=5
     sys.boundary_values[iphi,2]=0.0
     
     
-    sys.boundary_factors[iphi,1]=Dirichlet
-    sys.boundary_factors[iphi,2]=Dirichlet
+    sys.boundary_factors[iphi,1]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[iphi,2]=TwoPointFluxFVM.Dirichlet
 
     sys.boundary_values[ic,2]=0.5
-    sys.boundary_factors[ic,2]=Dirichlet
+    sys.boundary_factors[ic,2]=TwoPointFluxFVM.Dirichlet
     
     inival=unknowns(sys)
     inival_bulk=bulk_unknowns(sys,inival)
@@ -108,7 +108,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
         inival_bulk[ic,inode]=0.5
     end
     parameters.eps=1.0e-3
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
 
     u1=0

@@ -1,6 +1,6 @@
 ##################################################
 """
-    mutable struct FVMGraph
+    mutable struct Graph
 
 Weighted graph representation of the finite volume geometry data
 derived from the Voroni cell construction. 
@@ -25,7 +25,7 @@ Fields:
     bnode_index::Array{Int64,1} # index of boundary node in boundary region 
 
 """
-mutable struct FVMGraph
+mutable struct Graph
     dim_space::Int32 # space dimension
     num_nodes::Int64 # number of nodes
     num_bregions::Int64 # number of boundary regions
@@ -39,15 +39,15 @@ mutable struct FVMGraph
     num_bregion_nodes::Array{Int64,1} # number of nodes per boundary region
     bnode_index::Array{Int64,1} # index of boundary node in boundary region 
     
-    FVMGraph(X::Array{Float64,1})= FVMGraph(new(),X)
-    FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})= FVMGraph(new(),X,Y)
+    Graph(X::Array{Float64,1})= Graph(new(),X)
+    Graph(X::Array{Float64,1},Y::Array{Float64,1})= Graph(new(),X,Y)
 end
         
 ##################################################
 """
 
 ````
-FVMGraph(X::Array{Float64,1})
+Graph(X::Array{Float64,1})
 ````
    
 Construct  1D finite volume graph from an array of node cordinates.
@@ -63,7 +63,7 @@ grid marking control volumes: marked by `|`.
 ```
 
 """
-function FVMGraph(this::FVMGraph, X::Array{Float64,1})
+function Graph(this::Graph, X::Array{Float64,1})
     n=length(X)
     nodes=reshape(X,1,n)
     edges=zeros(Int32,2,n-1)
@@ -108,7 +108,7 @@ end
 """
 
 ````
-FVMGraph(X::Array{Float64,1},Y::Array{Float64,1})
+Graph(X::Array{Float64,1},Y::Array{Float64,1})
 ````
    
 Constructor for 2D finite volume graph on rectangular grid 
@@ -122,7 +122,7 @@ from coordinate arrays. Boundary region numbers count counterclockwise:
 | west      |       4 |
 
 """
-function FVMGraph(this::FVMGraph,X::Array{Float64,1},Y::Array{Float64,1})
+function Graph(this::Graph,X::Array{Float64,1},Y::Array{Float64,1})
     nx=length(X)
     ny=length(Y)
     n=nx*ny
@@ -241,7 +241,7 @@ end
 """
    Finalize construction of graph
 """
-function finalize(this::FVMGraph)
+function finalize(this::Graph)
     this.num_bregion_nodes=zeros(Int64,this.num_bregions)
     this.bnode_index=zeros(Int64,length(this.bnode_nodes))
     

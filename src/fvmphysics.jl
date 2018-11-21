@@ -26,7 +26,7 @@ end
 Abstract type for user problem data.
  
 Any derived type must contain the fields which are 
-defined via the macro [`@AddFVMPhysicsBaseClassFields`](@ref).
+defined via the macro [`@AddPhysicsBaseClassFields`](@ref).
 These are
 
     num_species::Int64 # number of species in the interior
@@ -40,15 +40,15 @@ These are
     bstorage::Function # storage term at boundary
 
 """
-abstract type FVMPhysics end
+abstract type Physics end
 
 
 ###########################################################
 """
 Define "Base class" fields to be pasted into all structs
-of type FVMPhysics.
+of type Physics.
 """
-@define_field_group AddFVMPhysicsBaseClassFields begin
+@define_field_group AddPhysicsBaseClassFields begin
     num_species::Int64 # number of species in the interior
     num_bspecies::Array{Int64,1} # number of species in boundary regions
     bregion::Int64 # number of current boundary region
@@ -65,11 +65,11 @@ end
 
 ###########################################################
 """
-    Prototype flux term for [`FVMPhysics`](@ref).
+    Prototype flux term for [`Physics`](@ref).
 
 ````
 function prototype_flux!(
-    this::FVMPhysics,  # physics data
+    this::Physics,  # physics data
     f::AbstractArray,  # result vector
     uk::AbstractArray, # unknowns on "left" end of edge
     ul::AbstractArray) # unknowns on "right" end of edge
@@ -84,7 +84,7 @@ is the value of unknowns at "right" end of an edge.
 
 """
 function prototype_flux!(
-    this::FVMPhysics,  # physics data
+    this::Physics,  # physics data
     f::AbstractArray,  # result vector
     uk::AbstractArray, # unknowns on "left" end of edge
     ul::AbstractArray) # unknowns on "right" end of edge
@@ -98,11 +98,11 @@ end
 
 ###########################################################
 """
-Prototype storage term for [`FVMPhysics`](@ref)
+Prototype storage term for [`Physics`](@ref)
 
 ````
 function prototype_storage!(
-    this::FVMPhysics,  # physics data
+    this::Physics,  # physics data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
@@ -114,7 +114,7 @@ for given vector of nodal unknowns  \$u=(u_1\\dots u_n)\$.
 
 """
 function prototype_storage!(
-    this::FVMPhysics,  # physics data
+    this::Physics,  # physics data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
@@ -126,11 +126,11 @@ end
 
 ###########################################################
 """
-Prototype source term for [`FVMPhysics`](@ref).
+Prototype source term for [`Physics`](@ref).
 
 ````
 function prototype_source!(
-    this::FVMPhysics,   # physics data
+    this::Physics,   # physics data
     f::AbstractArray, # result vector 
     x::AbstractArray  # coordinate vector
     )
@@ -141,7 +141,7 @@ Evaluate source term vector \$f(x)=(f_1(x)\\dots f_n(x))\$ in point \$x=(x_1\\do
 
 """
 function prototype_source!(
-    this::FVMPhysics,   # physics data
+    this::Physics,   # physics data
     f::AbstractArray, # result vector 
     x::AbstractArray  # coordinate vector
     )
@@ -153,11 +153,11 @@ end
 
 ###########################################################
 """
-Prototype reaction term for [`FVMPhysics`](@ref).
+Prototype reaction term for [`Physics`](@ref).
 
 ````
 function prototype_reaction!(
-    this::FVMPhysics,  # physics data
+    this::Physics,  # physics data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
@@ -168,7 +168,7 @@ for given vector of nodal unknowns  \$u=(u_1\\dots u_n)\$.
 
 """
 function prototype_reaction!(
-    this::FVMPhysics,  # physics data
+    this::Physics,  # physics data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
@@ -181,11 +181,11 @@ end
 
 ###########################################################
 """
-    Prototype boundary reaction term for [`FVMPhysics`](@ref).
+    Prototype boundary reaction term for [`Physics`](@ref).
 
 ````
 function prototype_breaction!(
-    this::FVMPhysics,    # physics data
+    this::Physics,    # physics data
     f::AbstractArray,  # result vector for interior species
     bf::AbstractArray, # result vector for boundary species
     u::AbstractArray,  # interior unknowns
@@ -205,7 +205,7 @@ boundary species present in the boundary node.
 
 """
 function prototype_breaction!(
-    this::FVMPhysics,    # physics data
+    this::Physics,    # physics data
     f::AbstractArray,  # result vector for interior species
     bf::AbstractArray, # result vector for boundary species
     u::AbstractArray,  # interior unknowns
@@ -221,11 +221,11 @@ end
 
 ###########################################################
 """
-    Prototype boundary storage term for [`FVMPhysics`](@ref).
+    Prototype boundary storage term for [`Physics`](@ref).
 
 ````
 function prototype_bstorage!(
-    this::FVMPhysics, # physics data
+    this::Physics, # physics data
     bf::AbstractArray, # result vector for boundary species
     bu::AbstractArray  # boundary unknowns 
     )
@@ -244,7 +244,7 @@ boundary species present in the boundary node.
 
 """
 function prototype_bstorage!(
-    this::FVMPhysics, # physics data
+    this::Physics, # physics data
     bf::AbstractArray, # result vector for boundary species
     bu::AbstractArray  # boundary unknowns 
     )
@@ -261,9 +261,9 @@ end
 """
 Base class for physics data
 """
-mutable struct FVMPhysicsBase <: FVMPhysics
-    @AddFVMPhysicsBaseClassFields
-    FVMPhysicsBase(nspec::Int) = FVMPhysicsBase(new(), nspec)
+mutable struct PhysicsBase <: Physics
+    @AddPhysicsBaseClassFields
+    PhysicsBase(nspec::Int) = PhysicsBase(new(), nspec)
 end
 
 ###########################################################
@@ -271,11 +271,11 @@ end
 Base class intialization for physics dats
 
 ````
-function FVMPhysicsBase(this::FVMPhysics,nspec::Int)
+function PhysicsBase(this::Physics,nspec::Int)
 ````
 
 """
-function FVMPhysicsBase(this::FVMPhysics,nspec::Int)
+function PhysicsBase(this::Physics,nspec::Int)
     this.num_species=nspec
     this.num_bspecies=Array{Int64,1}(undef,0)
     this.bregion=0

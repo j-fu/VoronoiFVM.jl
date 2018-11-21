@@ -7,8 +7,8 @@ if isinteractive()
 end
 
 
-mutable struct Physics <:FVMPhysics
-    @AddFVMPhysicsBaseClassFields
+mutable struct Physics <:TwoPointFluxFVM.Physics
+    TwoPointFluxFVM.@AddPhysicsBaseClassFields
     eps::Float64 
     Physics()=Physics(new())
 end
@@ -29,7 +29,7 @@ end
     
 
 function Physics(this)
-    FVMPhysicsBase(this,1)
+    TwoPointFluxFVM.PhysicsBase(this,1)
     this.eps=1
     this.reaction=reaction!
     this.flux=flux!
@@ -45,23 +45,23 @@ function main(;n=10,pyplot=false,verbose=false)
     Y=collect(0.0:h:1.0)
 
 
-    geom=FVMGraph(X,Y)
+    geom=TwoPointFluxFVM.Graph(X,Y)
     
     physics=Physics()
     
-    sys=TwoPointFluxFVMSystem(geom,physics)
+    sys=TwoPointFluxFVM.System(geom,physics)
     sys.boundary_values[1,2]=0.1
     sys.boundary_values[1,4]=0.1
     
-    sys.boundary_factors[1,2]=Dirichlet
-    sys.boundary_factors[1,4]=Dirichlet
+    sys.boundary_factors[1,2]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[1,4]=TwoPointFluxFVM.Dirichlet
     
     inival=unknowns(sys)
     inival.=0.5
 
     physics.eps=1.0e-2
 
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.max_lureuse=10
