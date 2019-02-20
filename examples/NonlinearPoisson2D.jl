@@ -2,6 +2,9 @@ module NonlinearPoisson2D
 
 using Printf
 using TwoPointFluxFVM
+const Node=TwoPointFluxFVM.Node
+const Edge=TwoPointFluxFVM.Edge
+
 if isinteractive()
     using PyPlot
 end
@@ -13,17 +16,17 @@ mutable struct Physics <:TwoPointFluxFVM.Physics
     Physics()=Physics(new())
 end
 
-function reaction!(this::Physics,f,u)
+function reaction!(this::Physics,node::Node,f,u)
     f[1]=u[1]^2
 end
 
-function flux!(this::Physics,f,uk,ul)
+function flux!(this::Physics,edge::Edge,f,uk,ul)
     f[1]=this.eps*(uk[1]^2-ul[1]^2)
 end 
 
-function source!(this::Physics,f,x)
-    x1=x[1]-0.5
-    x2=x[2]-0.5
+function source!(this::Physics,node::Node,f)
+    x1=node.coord[1]-0.5
+    x2=node.coord[2]-0.5
     f[1]=exp(-20*(x1^2+x2^2))
 end 
     

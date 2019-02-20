@@ -2,6 +2,8 @@ module NonlinearPoisson2D_BoundaryReaction
 
 using Printf
 using TwoPointFluxFVM
+const Node=TwoPointFluxFVM.Node
+const Edge=TwoPointFluxFVM.Edge
 
 if isinteractive()
     using PyPlot
@@ -15,7 +17,7 @@ mutable struct Physics <:TwoPointFluxFVM.Physics
 end
 
 
-function breaction!(this::Physics,f,bf,u,bu)
+function breaction!(this::Physics,node::Node,f,bf,u,bu)
     if  this.bregion==2
         f[1]=this.k*(u[1]-u[2])
         f[2]=this.k*(u[2]-u[1])
@@ -25,14 +27,14 @@ function breaction!(this::Physics,f,bf,u,bu)
     end
 end
 
-function flux!(this::Physics,f,uk,ul)
+function flux!(this::Physics,edge::Edge,f,uk,ul)
     f[1]=this.eps*(uk[1]-ul[1])
     f[2]=this.eps*(uk[2]-ul[2])
 end 
 
-function source!(this::Physics,f,x)
-    x1=x[1]-0.5
-    x2=x[2]-0.5
+function source!(this::Physics,node::Node,f)
+    x1=node.coord[1]-0.5
+    x2=node.coord[2]-0.5
     f[1]=exp(-20*(x1^2+x2^2))
 end 
 

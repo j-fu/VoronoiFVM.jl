@@ -2,6 +2,8 @@ module TwoSpeciesNonlinearPoisson
 
 using Printf
 using TwoPointFluxFVM
+const Node=TwoPointFluxFVM.Node
+const Edge=TwoPointFluxFVM.Edge
 
 if isinteractive()
     using PyPlot
@@ -13,19 +15,19 @@ mutable struct Physics <:TwoPointFluxFVM.Physics
     Physics()=Physics(new())
 end
 
-function reaction!(this::Physics,f,u)
+function reaction!(this::Physics,node::Node,f,u)
     f[1]=u[1]*u[2]
     f[2]=-u[1]*u[2]
 end
 
-function flux!(this::Physics,f,uk,ul)   
+function flux!(this::Physics,edge::Edge,f,uk,ul)   
     f[1]=this.eps[1]*(uk[1]-ul[1])*(0.01+uk[2]+ul[2])
     f[2]=this.eps[2]*(uk[2]-ul[2])*(0.01+uk[1]+ul[1])
 end 
 
-function source!(this::Physics,f,x)
-    f[1]=1.0e-4*(0.01+x[1])
-    f[2]=1.0e-4*(0.01+1.0-x[1])
+function source!(this::Physics,node::Node,f)
+    f[1]=1.0e-4*(0.01+node.coord[1])
+    f[2]=1.0e-4*(0.01+1.0-node.coord[1])
 end 
     
 

@@ -3,6 +3,9 @@ module OneSpeciesNonlinearPoisson
 using Printf
 using TwoPointFluxFVM
 
+const Node=TwoPointFluxFVM.Node
+const Edge=TwoPointFluxFVM.Edge
+
 if isinteractive()
     using PyPlot
 end
@@ -20,14 +23,14 @@ end
 """
 Reaction term
 """
-function reaction!(this::Physics,f::AbstractArray,u::AbstractArray)
+function reaction!(this::Physics,node::Node,f::AbstractArray,u::AbstractArray)
     f[1]=u[1]^2
 end
 
 """
 Flux term
 """
-function flux!(this::Physics,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
+function flux!(this::Physics,edge::Edge,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
     f[1]=this.eps*(uk[1]^2-ul[1]^2)
 end 
 
@@ -35,8 +38,8 @@ end
 """
 Source term
 """
-function source!(this::Physics,f::AbstractArray,x::AbstractArray)
-    f[1]=1.0e-4*x[1]
+function source!(this::Physics,node::Node,f::AbstractArray)
+    f[1]=1.0e-4*node.coord[1]
 end 
 
 """

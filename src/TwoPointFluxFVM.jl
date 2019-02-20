@@ -1,10 +1,12 @@
 module TwoPointFluxFVM
 
 include("fvmgraph.jl")
+include("fvmparts.jl")
 include("functions.jl")
 include("fvmphysics.jl")
 include("fvmnewtoncontrol.jl")
 include("twopointfluxfvmsystem.jl")
+include("tools.jl")
 
 
 

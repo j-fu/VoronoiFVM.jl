@@ -30,7 +30,7 @@ Public fields:
     physics::Physics  # Physical model 
 
 
-Memory layout for soulution arrays:
+Memory layout for solution arrays:
 
  bulk_dof | bregion_dof[1] |bregion_dof[2] |...
 
@@ -190,8 +190,11 @@ function integrate(this::System,F::Function,U0)
     nodefac=this.geometry.node_factors
     integral=zeros(nspec)
     res=zeros(nspec)
+    node=Node()
     for inode=1:nnodes
-        F(this.physics,res,U[:,inode])
+        node.index=inode
+        node.coord=view(this.geometry.node_coordinates,:,inode)
+        F(this.physics,node,res,U[:,inode])
         for ispec=1:nspec
             integral[ispec]+=nodefac[inode]*res[ispec]
         end
@@ -246,14 +249,16 @@ function eval_and_assemble(this::System,
     UOld=bulk_unknowns(this,UOld0)
 
     physics=this.physics
+    node=Node()
+    edge=Edge()
     # Create closures for physics functions
     # These allow to "glue" user physics to function objects compatible
     # with the ForwardDiff module
     # cf. http://www.juliadiff.org/ForwardDiff.jl/stable/user/limitations.html 
-    source!(y,x)=physics.source(physics,y,x)
-    flux!(y,uk,ul)=physics.flux(physics,y,uk,ul)
-    reaction!(y,x)=physics.reaction(physics,y,x)
-    storage!(y,x)=physics.storage(physics,y,x)
+    source!(y)=physics.source(physics,node,y)
+    flux!(y,uk,ul)=physics.flux(physics,edge,y,uk,ul)
+    reaction!(y,x)=physics.reaction(physics,node,y,x)
+    storage!(y,x)=physics.storage(physics,node,y,x)
     
 
 
@@ -277,8 +282,8 @@ function eval_and_assemble(this::System,
 
     
     if this.physics.breaction != prototype_breaction! ||  this.physics.bstorage != prototype_bstorage! 
-        breaction!(y,by,u,bu)=physics.breaction(physics,y,by,u,bu)
-        bstorage!(by,bu)=physics.bstorage(physics,by,bu)
+        breaction!(y,by,u,bu)=physics.breaction(physics,node,y,by,u,bu)
+        bstorage!(by,bu)=physics.bstorage(physics,node,by,bu)
 
         result_br=[DiffResults.DiffResult(Vector{Float64}(undef,num_species+this._num_bspecies[ibc]),
                                           Matrix{Float64}(undef,num_species+this._num_bspecies[ibc],num_species+this._num_bspecies[ibc]))
@@ -318,6 +323,8 @@ function eval_and_assemble(this::System,
     jac_stor=zeros(Float64,num_species,num_species)
 
     for inode=1:nnodes
+        node.index=inode
+        node.coord=view(geometry.node_coordinates,:,inode)
         # Evaluate & differentiate reaction term
         if physics.reaction!=prototype_reaction!
             result_r=ForwardDiff.jacobian!(result_r,reaction!,Y,U[:,inode])
@@ -327,7 +334,7 @@ function eval_and_assemble(this::System,
 
         # Evaluate source term
         if physics.source!=prototype_source!
-            source!(src,geometry.node_coordinates[:,inode])
+            source!(src)
         end
         
         # Evaluate & differentiate storage term
@@ -358,6 +365,12 @@ function eval_and_assemble(this::System,
     for iedge=1:nedges
         K=geometry.edge_nodes[1,iedge]
         L=geometry.edge_nodes[2,iedge]
+        edge.index=iedge
+        edge.nodeK=K
+        edge.nodeL=L
+        edge.coordL=view(geometry.node_coordinates,:,L)
+        edge.coordK=view(geometry.node_coordinates,:,K)
+
         # Set up argument for fluxwrap!
         UKL[1:num_species]=U[:,K]
         UKL[num_species+1:2*num_species]=U[:,L]
@@ -390,6 +403,8 @@ function eval_and_assemble(this::System,
     nbnodes=length(geometry.bnode_nodes)
 
     for ibnode=1:nbnodes
+        node.index=ibnode
+        node.coord=view(geometry.node_coordinates,:,ibnode)
 
         # Standard boundary conditions
         #

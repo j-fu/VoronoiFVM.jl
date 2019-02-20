@@ -1,7 +1,10 @@
 using Test
 
 @time begin
-
+    @time begin
+        print("         test-geomspace:")
+        include("test-geomspace.jl")
+    end
     @time begin
         print("         OneSpeciesNonlinearPoisson:")
         include("../examples/OneSpeciesNonlinearPoisson.jl")

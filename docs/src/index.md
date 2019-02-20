@@ -26,24 +26,40 @@ fluxes between control volumes.
 A typical usage pattern is as follows:
 
 ```julia
+"""
+Structure containing  userdata information
+"""
 mutable struct Physics <:TwoPointFluxFVM.Physics
     TwoPointFluxFVM.@AddPhysicsBaseClassFields
     eps::Float64 
     Physics()=Physics(new())
 end
 
-function reaction!(this::Physics,f::AbstractArray,u::AbstractArray)
+"""
+Reaction term
+"""
+function reaction!(this::Physics,node::TwoPointFluxFVM.Node,f::AbstractArray,u::AbstractArray)
     f[1]=u[1]^2
 end
 
-function flux!(this::Physics,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
+"""
+Flux term
+"""
+function flux!(this::Physics,edge::TwoPointFluxFVM.Edge,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
     f[1]=this.eps*(uk[1]^2-ul[1]^2)
 end 
 
-function source!(this::Physics,f::AbstractArray,x::AbstractArray)
-    f[1]=1.0e-4*x[1]
+
+"""
+Source term
+"""
+function source!(this::Physics,node::TwoPointFluxFVM.Node,f::AbstractArray)
+    f[1]=1.0e-4*node.coord[1]
 end 
 
+"""
+Constructor for userdata structure
+"""
 function Physics(this::Physics)
     TwoPointFluxFVM.PhysicsBase(this,1)
     this.eps=1
@@ -52,6 +68,7 @@ function Physics(this::Physics)
     this.source=source!
     return this
 end
+
 ```
 
 ### [`TwoPointFluxFVM.Graph`](@ref)
@@ -59,6 +76,17 @@ end
 This is a weighted graph which represents edges and nodes
 of a finite volume scheme. There are currently two
 constructors:
+
+
+### [`TwoPointFluxFVM.Node`](@ref)
+
+This represents a node  in [`TwoPointFluxFVM.Graph`](@ref).
+
+### [`TwoPointFluxFVM.Edge`](@ref)
+
+This represents an edge  in [`TwoPointFluxFVM.Graph`](@ref).
+
+
 
 [`TwoPointFluxFVM.Graph(X::Array{Float64,1})`](@ref) for one-dimensional
 domains and [`TwoPointFluxFVM.Graph(X::Array{Float64,1},Y::Array{Float64,1})`](@ref)

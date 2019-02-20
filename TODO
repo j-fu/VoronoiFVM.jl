@@ -1,11 +1,15 @@
 * TODO list  (in emacs org syntax)
 
-
 ** Open [0/2]
-  - [-] Issues [7/16]
+  - [-] Issues [9/23]
+    - [ ] Callbacks in iterations
     - [ ] bstorage probably should depend on interior unknowns, too
     - [ ] Use logging.jl
+    - [ ] vmatrix like sparse matrix 
+    - [ ] additional geometry parameter in callbacks
+    - [ ] triangle
     - [ ] systematic tests
+    - [X]  More parameters in flux function: we need h!
     - [X] compatibility check for vector arguments
     - [ ] try/catch vs exit on error -- stays in repl
     - [ ] views vs slices for input of uk, ul etc
@@ -21,7 +25,7 @@
           consistent naming style for vectors etc in structs
     - [ ] timings on 2D operator
     - [ ] Faster graphics
-    - [ ] Documentation
+    - [X] Documentation
     - [ ] Real julia module, paper (SoftwareX)
     - [X] 2d grid example
     - [X] Workflow from repl

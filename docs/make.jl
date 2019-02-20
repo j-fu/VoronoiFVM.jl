@@ -8,6 +8,7 @@ makedocs(
     pages=[
         "Home"=>"index.md",
         "install.md",
+        "changes.md",
         "alldocs.md",
         "allindex.md",
         "Examples" => [

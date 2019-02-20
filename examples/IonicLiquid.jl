@@ -6,6 +6,8 @@ if isinteractive()
 end
 
 using TwoPointFluxFVM
+const Node=TwoPointFluxFVM.Node
+const Edge=TwoPointFluxFVM.Edge
 
 
 mutable struct Physics <:TwoPointFluxFVM.Physics
@@ -17,7 +19,7 @@ mutable struct Physics <:TwoPointFluxFVM.Physics
     Physics()=Physics(new())
 end
 
-function flux!(this::Physics,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
+function flux!(this::Physics,edge::Edge,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.eps*(uk[iphi]-ul[iphi])
@@ -28,7 +30,7 @@ function flux!(this::Physics,f::AbstractArray,uk::AbstractArray,ul::AbstractArra
 end 
 
 
-function classflux!(this::Physics,f,uk,ul)
+function classflux!(this::Physics,edge::Edge,f,uk,ul)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.eps*(uk[iphi]-ul[iphi])
@@ -37,14 +39,14 @@ function classflux!(this::Physics,f,uk,ul)
     f[ic]=bm*uk[ic]-bp*ul[ic]
 end 
 
-function storage!(this::Physics, f,u)
+function storage!(this::Physics,node::Node, f,u)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=0
     f[ic]=u[ic]
 end
 
-function reaction!(this::Physics, f,u)
+function reaction!(this::Physics,node::Node, f,u)
     ic=this.ic
     iphi=this.iphi
     f[iphi]=this.z*(1-2*u[ic])

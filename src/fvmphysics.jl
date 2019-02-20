@@ -69,7 +69,8 @@ end
 
 ````
 function prototype_flux!(
-    this::Physics,  # physics data
+    physics::Physics,  # physics data
+    edge::Edge,        # edge data
     f::AbstractArray,  # result vector
     uk::AbstractArray, # unknowns on "left" end of edge
     ul::AbstractArray) # unknowns on "right" end of edge
@@ -84,7 +85,8 @@ is the value of unknowns at "right" end of an edge.
 
 """
 function prototype_flux!(
-    this::Physics,  # physics data
+    physics::Physics,  # physics data
+    edge::Edge,        # edge data
     f::AbstractArray,  # result vector
     uk::AbstractArray, # unknowns on "left" end of edge
     ul::AbstractArray) # unknowns on "right" end of edge
@@ -102,7 +104,8 @@ Prototype storage term for [`Physics`](@ref)
 
 ````
 function prototype_storage!(
-    this::Physics,  # physics data
+    physics::Physics,  # physics data
+    node::Node,        # node data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
@@ -114,12 +117,13 @@ for given vector of nodal unknowns  \$u=(u_1\\dots u_n)\$.
 
 """
 function prototype_storage!(
-    this::Physics,  # physics data
+    physics::Physics,  # physics data
+    node::Node,        # node data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
 
-    for i=1:this.num_species
+    for i=1:physics.num_species
         f[i]=u[i]
     end
 end
@@ -130,9 +134,9 @@ Prototype source term for [`Physics`](@ref).
 
 ````
 function prototype_source!(
-    this::Physics,   # physics data
+    physics::Physics,   # physics data
+    node::Node,        # node data
     f::AbstractArray, # result vector 
-    x::AbstractArray  # coordinate vector
     )
 ````
 
@@ -141,9 +145,9 @@ Evaluate source term vector \$f(x)=(f_1(x)\\dots f_n(x))\$ in point \$x=(x_1\\do
 
 """
 function prototype_source!(
-    this::Physics,   # physics data
+    physics::Physics,   # physics data
+    node::Node,        # node data
     f::AbstractArray, # result vector 
-    x::AbstractArray  # coordinate vector
     )
 
     for i=1:this.num_species
@@ -157,7 +161,8 @@ Prototype reaction term for [`Physics`](@ref).
 
 ````
 function prototype_reaction!(
-    this::Physics,  # physics data
+    physics::Physics,  # physics data
+    node::Node,        # node data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
@@ -168,12 +173,13 @@ for given vector of nodal unknowns  \$u=(u_1\\dots u_n)\$.
 
 """
 function prototype_reaction!(
-    this::Physics,  # physics data
+    physics::Physics,  # physics data
+    node::Node,        # node data
     f::AbstractArray,# result vector
     u::AbstractArray # vector of unknowns in point
     )
 
-    for i=1:this.num_species
+    for i=1:physics.num_species
         f[i]=0
     end
 end
@@ -185,7 +191,8 @@ end
 
 ````
 function prototype_breaction!(
-    this::Physics,    # physics data
+    physics::Physics,    # physics data
+    node::Node,        # node data
     f::AbstractArray,  # result vector for interior species
     bf::AbstractArray, # result vector for boundary species
     u::AbstractArray,  # interior unknowns
@@ -199,22 +206,23 @@ Evaluate reaction rates at boundary: \$f(u,bu)=(f_1(u,bu)\\dots f_n(u,bu))\$,
 of interior unknowns at the boundary and 
 \$bu=(bu_1\\dots bu_{n_b})\$ is the value of the boundary unknowns.   
 
-When called, `this.bregion` contains the boundary region number,
-and  `this.num_bspecies[this.bregion]` contains the number \$n_b\$ of
+When called, `physics.bregion` contains the boundary region number,
+and  `physics.num_bspecies[physics.bregion]` contains the number \$n_b\$ of
 boundary species present in the boundary node.
 
 """
 function prototype_breaction!(
-    this::Physics,    # physics data
+    physics::Physics,    # physics data
+    node::Node,        # node data
     f::AbstractArray,  # result vector for interior species
     bf::AbstractArray, # result vector for boundary species
     u::AbstractArray,  # interior unknowns
     bu::AbstractArray  # boundary unknowns
     )
-    for i=1:this.num_species
+    for i=1:physics.num_species
         f[i]=0
     end
-    for i=1:this.num_bspecies[this.bregion]
+    for i=1:physics.num_bspecies[physics.bregion]
         bf[i]=0
     end
 end
@@ -225,7 +233,8 @@ end
 
 ````
 function prototype_bstorage!(
-    this::Physics, # physics data
+    physics::Physics, # physics data
+    node::Node,        # node data
     bf::AbstractArray, # result vector for boundary species
     bu::AbstractArray  # boundary unknowns 
     )
@@ -237,19 +246,20 @@ Evaluate storage rates at boundary:
 of interior unknowns at the boundary and 
 \$bu=(bu_1\\dots bu_{n_b})\$ is the value of the boundary unknowns.   
 
-When called, `this.bregion` contains the boundary region number,
-and  `this.num_bspecies[this.bregion]` contains the number \$n_b\$ of
+When called, `physics.bregion` contains the boundary region number,
+and  `physics.num_bspecies[physics.bregion]` contains the number \$n_b\$ of
 boundary species present in the boundary node.
 
 
 """
 function prototype_bstorage!(
-    this::Physics, # physics data
+    physics::Physics, # physics data
+    node::Node,        # node data
     bf::AbstractArray, # result vector for boundary species
     bu::AbstractArray  # boundary unknowns 
     )
 
-    for i=1:this.num_bspecies[this.bregion]
+    for i=1:physics.num_bspecies[physics.bregion]
         bf[i]=bu[i]
     end
 end
@@ -271,7 +281,7 @@ end
 Base class intialization for physics dats
 
 ````
-function PhysicsBase(this::Physics,nspec::Int)
+function PhysicsBase(physics::Physics,nspec::Int)
 ````
 
 """
