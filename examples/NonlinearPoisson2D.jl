@@ -2,42 +2,19 @@ module NonlinearPoisson2D
 
 using Printf
 using TwoPointFluxFVM
-const Node=TwoPointFluxFVM.Node
-const Edge=TwoPointFluxFVM.Edge
 
 if isinteractive()
     using PyPlot
 end
 
 
-mutable struct Physics <:TwoPointFluxFVM.Physics
-    TwoPointFluxFVM.@AddPhysicsBaseClassFields
+mutable struct Physics
+    reaction::Function
+    flux::Function
+    source::Function
+    storage::Function
     eps::Float64 
-    Physics()=Physics(new())
-end
-
-function reaction!(this::Physics,node::Node,f,u)
-    f[1]=u[1]^2
-end
-
-function flux!(this::Physics,edge::Edge,f,uk,ul)
-    f[1]=this.eps*(uk[1]^2-ul[1]^2)
-end 
-
-function source!(this::Physics,node::Node,f)
-    x1=node.coord[1]-0.5
-    x2=node.coord[2]-0.5
-    f[1]=exp(-20*(x1^2+x2^2))
-end 
-    
-
-function Physics(this)
-    TwoPointFluxFVM.PhysicsBase(this,1)
-    this.eps=1
-    this.reaction=reaction!
-    this.flux=flux!
-    this.source=source!
-    return this
+    Physics()=new()
 end
 
 
@@ -48,11 +25,33 @@ function main(;n=10,pyplot=false,verbose=false)
     Y=collect(0.0:h:1.0)
 
 
-    geom=TwoPointFluxFVM.Graph(X,Y)
+    grid=TwoPointFluxFVM.Grid(X,Y)
     
     physics=Physics()
+    physics.eps=1.0e-2
     
-    sys=TwoPointFluxFVM.System(geom,physics)
+    physics.reaction=function(physics,node,f,u)
+        f[1]=u[1]^2
+    end
+    
+    physics.flux=function(physics,edge,f,uk,ul)
+        f[1]=physics.eps*(uk[1]^2-ul[1]^2)
+    end 
+    
+    physics.source=function(physics,node,f)
+        x1=node.coord[1]-0.5
+        x2=node.coord[2]-0.5
+        f[1]=exp(-20*(x1^2+x2^2))
+    end 
+    
+    physics.storage=function(physics,node, f,u)
+        f[1]=u[1]
+    end
+    
+    
+    sys=TwoPointFluxFVM.System(grid,physics,1)
+    add_species(sys,1,[1])
+
     sys.boundary_values[1,2]=0.1
     sys.boundary_values[1,4]=0.1
     
@@ -62,7 +61,6 @@ function main(;n=10,pyplot=false,verbose=false)
     inival=unknowns(sys)
     inival.=0.5
 
-    physics.eps=1.0e-2
 
     control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
@@ -75,9 +73,8 @@ function main(;n=10,pyplot=false,verbose=false)
         time=time+tstep
         U=solve(sys,inival,control=control,tstep=tstep)
         u15=U[15]
-        for i in eachindex(U)
-            inival[i]=U[i]
-        end
+        inival.=U
+
         if verbose
             @printf("time=%g\n",time)
         end
@@ -86,7 +83,7 @@ function main(;n=10,pyplot=false,verbose=false)
         if pyplot
             levels=collect(0:0.01:1)
             PyPlot.clf()
-            contourf(X,Y,reshape(U,length(X),length(Y)), cmap=ColorMap("hot"),levels=levels)
+            contourf(X,Y,reshape(values(U),length(X),length(Y)), cmap=ColorMap("hot"),levels=levels)
             colorbar()
             pause(1.0e-10)
         end

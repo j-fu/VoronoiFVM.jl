@@ -6,77 +6,29 @@ if isinteractive()
 end
 
 using TwoPointFluxFVM
-const Node=TwoPointFluxFVM.Node
-const Edge=TwoPointFluxFVM.Edge
 
-
-mutable struct Physics <:TwoPointFluxFVM.Physics
-    TwoPointFluxFVM.@AddPhysicsBaseClassFields
+mutable struct Physics
+    flux::Function
+    storage::Function
+    reaction::Function
     eps::Float64 
     z::Float64
     ic::Int32
     iphi::Int32
-    Physics()=Physics(new())
-end
-
-function flux!(this::Physics,edge::Edge,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
-    ic=this.ic
-    iphi=this.iphi
-    f[iphi]=this.eps*(uk[iphi]-ul[iphi])
-    muk=-log(1-uk[ic])
-    mul=-log(1-ul[ic])
-    bp,bm=fbernoulli_pm(this.z*2*(uk[iphi]-ul[iphi])+(muk-mul))
-    f[ic]=bm*uk[ic]-bp*ul[ic]
-end 
-
-
-function classflux!(this::Physics,edge::Edge,f,uk,ul)
-    ic=this.ic
-    iphi=this.iphi
-    f[iphi]=this.eps*(uk[iphi]-ul[iphi])
-    arg=uk[iphi]-ul[iphi]
-    bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
-    f[ic]=bm*uk[ic]-bp*ul[ic]
-end 
-
-function storage!(this::Physics,node::Node, f,u)
-    ic=this.ic
-    iphi=this.iphi
-    f[iphi]=0
-    f[ic]=u[ic]
-end
-
-function reaction!(this::Physics,node::Node, f,u)
-    ic=this.ic
-    iphi=this.iphi
-    f[iphi]=this.z*(1-2*u[ic])
-    f[ic]=0
-end
-
-
-function Physics(this)
-    TwoPointFluxFVM.PhysicsBase(this,2)
-    this.eps=1.0e-4
-    this.z=-1
-    this.iphi=1
-    this.ic=2
-    this.flux=flux!
-    this.storage=storage!
-    this.reaction=reaction!
-    return this
+    Physics()=new()
 end
 
 
 
 function plot_solution(sys,U0)
-    U=bulk_unknowns(sys,U0)
     physics=sys.physics
     iphi=physics.iphi
     ic=physics.ic
-    geom=sys.geometry
     PyPlot.clf()
-    PyPlot.plot(geom.node_coordinates[1,:],U[iphi,:], label="Potential", color="g")
-    PyPlot.plot(geom.node_coordinates[1,:],U[ic,:], label="c-", color="b")
+    @views begin
+        PyPlot.plot(sys.grid.nodecoord[1,:],U0[iphi,:], label="Potential", color="g")
+        PyPlot.plot(sys.grid.nodecoord[1,:],U0[ic,:], label="c-", color="b")
+    end
     PyPlot.grid()
     PyPlot.legend(loc="upper right")
     PyPlot.pause(1.0e-10)
@@ -84,18 +36,63 @@ end
 
 
 function main(;n=20,pyplot=false,dlcap=false,verbose=false)
-
+    
     h=1.0/convert(Float64,n)
-    geom=TwoPointFluxFVM.Graph(collect(0:h:1))
+    grid=TwoPointFluxFVM.Grid(collect(0:h:1))
     
-    parameters=Physics()
-    ic=parameters.ic
-    iphi=parameters.iphi
+    physics=Physics()
+    physics.eps=1.0e-4
+    physics.z=-1
+    physics.iphi=1
+    physics.ic=2
+
+    ic=physics.ic
+    iphi=physics.iphi
+
+
+
+    physics.flux=function(physics,edge,f,uk,ul)
+        ic=physics.ic
+        iphi=physics.iphi
+        f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
+        muk=-log(1-uk[ic])
+        mul=-log(1-ul[ic])
+        bp,bm=fbernoulli_pm(physics.z*2*(uk[iphi]-ul[iphi])+(muk-mul))
+        f[ic]=bm*uk[ic]-bp*ul[ic]
+    end 
+
+
+    classflux=function(physics,edge,f,uk,ul)
+        ic=physics.ic
+        iphi=physics.iphi
+        f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
+        arg=uk[iphi]-ul[iphi]
+        bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
+        f[ic]=bm*uk[ic]-bp*ul[ic]
+    end 
     
-    sys=TwoPointFluxFVM.System(geom,parameters)
+    physics.storage=function(physics,node, f,u)
+        ic=physics.ic
+        iphi=physics.iphi
+        f[iphi]=0
+        f[ic]=u[ic]
+    end
+
+    physics.reaction=function(physics,node, f,u)
+        ic=physics.ic
+        iphi=physics.iphi
+        f[iphi]=physics.z*(1-2*u[ic])
+        f[ic]=0
+    end
+    
+    
+    sys=TwoPointFluxFVM.System(grid,physics,2)
+    add_species(sys,1,[1])
+    add_species(sys,2,[1])
+
+    
     sys.boundary_values[iphi,1]=5
     sys.boundary_values[iphi,2]=0.0
-    
     
     sys.boundary_factors[iphi,1]=TwoPointFluxFVM.Dirichlet
     sys.boundary_factors[iphi,2]=TwoPointFluxFVM.Dirichlet
@@ -104,15 +101,15 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
     sys.boundary_factors[ic,2]=TwoPointFluxFVM.Dirichlet
     
     inival=unknowns(sys)
-    inival_bulk=bulk_unknowns(sys,inival)
-    for inode=1:size(inival_bulk,2)
-        inival_bulk[iphi,inode]=0
-        inival_bulk[ic,inode]=0.5
+    @views inival[iphi,:].=2
+    @views inival[ic,:].=0.5
+    if pyplot
+        plot_solution(sys,inival)
     end
-    parameters.eps=1.0e-3
+    
+    physics.eps=1.0e-3
     control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
-
     u1=0
     if !dlcap
         control.damp_initial=0.5
@@ -122,10 +119,8 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
         while t<tend
             t=t+tstep
             U=solve(sys,inival,control=control,tstep=tstep)
+            values(inival).=values(U)
             u1=U[2]
-            for i=1:length(inival)
-                inival[i]=U[i]
-            end
             if verbose
                 @printf("time=%g\n",t)
             end
@@ -137,10 +132,8 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
         return u1
     else
         delta=1.0e-4
-        for inode=1:size(inival_bulk,2)
-            inival_bulk[iphi,inode]=0
-            inival_bulk[ic,inode]=0.5
-        end
+        @views inival[iphi,:].=0
+        @views inival[ic,:].=0.5
         sys.boundary_values[iphi,1]=0
         
         dphi=1.0e-1
@@ -157,13 +150,13 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
             while phi<phimax
                 sys.boundary_values[iphi,1]=dir*phi
                 sol=solve(sys,sol,control=control)
-                Q=integrate(sys,reaction!,sol)
+                Q=integrate(sys,physics.reaction,sol)
                 sys.boundary_values[iphi,1]=dir*phi+delta
                 sol=solve(sys,sol,control=control)
                 if pyplot
                     plot_solution(sys,sol)
                 end
-                Qdelta=integrate(sys,reaction!,sol)
+                Qdelta=integrate(sys,physics.reaction,sol)
                 cdl=(Qdelta[iphi]-Q[iphi])/delta
                 if dir==1
                     push!(vplus,dir*phi)

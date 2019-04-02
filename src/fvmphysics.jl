@@ -29,9 +29,6 @@ Any derived type must contain the fields which are
 defined via the macro [`@AddPhysicsBaseClassFields`](@ref).
 These are
 
-    num_species::Int64 # number of species in the interior
-    num_bspecies::Array{Int64,1} # number of species in boundary regions
-    bregion::Int64 # number of current boundary region
     flux::Function # flux function
     reaction::Function # reaction term in interior
     breaction::Function # reaction term at  boundary
@@ -49,9 +46,6 @@ Define "Base class" fields to be pasted into all structs
 of type Physics.
 """
 @define_field_group AddPhysicsBaseClassFields begin
-    num_species::Int64 # number of species in the interior
-    num_bspecies::Array{Int64,1} # number of species in boundary regions
-    bregion::Int64 # number of current boundary region
     flux::Function # flux function
     reaction::Function # reaction term in interior
     breaction::Function # reaction term at  boundary
@@ -91,7 +85,7 @@ function prototype_flux!(
     uk::AbstractArray, # unknowns on "left" end of edge
     ul::AbstractArray) # unknowns on "right" end of edge
 
-    for i=1:this.num_species
+    for i=1:edge.num_species
         f[i]=uk[i]-ul[i]
     end
 end
@@ -123,7 +117,7 @@ function prototype_storage!(
     u::AbstractArray # vector of unknowns in point
     )
 
-    for i=1:physics.num_species
+    for i=1:node.nspecies
         f[i]=u[i]
     end
 end
@@ -150,7 +144,7 @@ function prototype_source!(
     f::AbstractArray, # result vector 
     )
 
-    for i=1:this.num_species
+    for i=1:node.nspecies
         f[i]=0
     end
 end
@@ -179,7 +173,7 @@ function prototype_reaction!(
     u::AbstractArray # vector of unknowns in point
     )
 
-    for i=1:physics.num_species
+    for i=1:node.nspecies
         f[i]=0
     end
 end
@@ -219,7 +213,7 @@ function prototype_breaction!(
     u::AbstractArray,  # interior unknowns
     bu::AbstractArray  # boundary unknowns
     )
-    for i=1:physics.num_species
+    for i=1:node.nspecies
         f[i]=0
     end
     for i=1:physics.num_bspecies[physics.bregion]
@@ -286,9 +280,6 @@ function PhysicsBase(physics::Physics,nspec::Int)
 
 """
 function PhysicsBase(this::Physics,nspec::Int)
-    this.num_species=nspec
-    this.num_bspecies=Array{Int64,1}(undef,0)
-    this.bregion=0
     this.flux=prototype_flux!
     this.reaction=prototype_reaction!
     this.breaction=prototype_breaction!

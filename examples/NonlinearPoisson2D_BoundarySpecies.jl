@@ -10,58 +10,17 @@ if isinteractive()
 end
 
 
-mutable struct Physics <:TwoPointFluxFVM.Physics
-    TwoPointFluxFVM.@AddPhysicsBaseClassFields
+mutable struct Physics
+    flux::Function
+    source::Function
+    storage::Function
+    bstorage::Function
+    breaction::Function
     k::Float64
     eps::Float64 
-    Physics()=Physics(new())
+    Physics()=new()
 end
 
-
-function breaction!(this::Physics,node::Node,f,bf,u,bu)
-    if  this.bregion==2
-        f[1]=this.k*(u[1]-bu[1])
-        bf[1]=this.k*(bu[1]-u[1])+ this.k*(bu[1]-u[2])
-        f[2]=this.k*(u[2]-bu[1])
-    else
-        f[1]=0        
-        f[2]=0
-    end
-end
-
-function bstorage!(this::Physics,node::Node,bf,bu)
-    if  this.bregion==2
-        bf[1]=bu[1]
-    else
-        bf[1]=0        
-    end
-end
-
-
-function flux!(this::Physics,edge::Edge,f,uk,ul)
-    f[1]=this.eps*(uk[1]-ul[1])
-    f[2]=this.eps*(uk[2]-ul[2])
-end 
-
-function source!(this::Physics,node::Node,f)
-    x1=node.coord[1]-0.5
-    x2=node.coord[2]-0.5
-    f[1]=exp(-20*(x1^2+x2^2))
-end 
-
-
-
-function Physics(this)
-    TwoPointFluxFVM.PhysicsBase(this,2)
-    this.num_bspecies=[ 0, 1, 0, 0]
-    this.eps=1
-    this.k=1.0
-    this.breaction=breaction!
-    this.bstorage=bstorage!
-    this.flux=flux!
-    this.source=source!
-    return this
-end
 
 
 function main(;n=10,pyplot=false,verbose=false)
@@ -73,13 +32,54 @@ function main(;n=10,pyplot=false,verbose=false)
     
 
 
-    geom=TwoPointFluxFVM.Graph(X,Y)
+    grid=TwoPointFluxFVM.Grid(X,Y)
 
     
     physics=Physics()
+    physics.k=1
+    physics.eps=1
+    
+    physics.breaction=function(physics,node,f,u)
+        if  node.region==2
+            f[1]=physics.k*(u[1]-u[3])
+            f[3]=physics.k*(u[3]-u[1])+ physics.k*(u[3]-u[2])
+            f[2]=physics.k*(u[2]-u[3])
+        else
+            f[1]=0        
+            f[2]=0
+        end
+    end
+    
+    physics.bstorage=function(physics,node,f,u)
+        if  node.region==2
+            f[3]=u[3]
+        else
+            f[3]=0        
+        end
+    end
     
     
-    sys=TwoPointFluxFVM.System(geom,physics)
+    physics.flux=function(physics,edge,f,uk,ul)
+        f[1]=physics.eps*(uk[1]-ul[1])
+        f[2]=physics.eps*(uk[2]-ul[2])
+    end 
+    
+    source=function(physics,node,f)
+        x1=node.coord[1]-0.5
+        x2=node.coord[2]-0.5
+        f[1]=exp(-20*(x1^2+x2^2))
+    end 
+    
+    physics.storage=function(physics,node, f,u)
+        f.=u
+    end
+    
+    
+    sys=TwoPointFluxFVM.System(grid,physics,3)
+    add_species(sys,1,[1])
+    add_species(sys,2,[1])
+    add_boundary_species(sys,3,[2])
+    
     
     inival=unknowns(sys)
     inival.=0.0
@@ -107,26 +107,25 @@ function main(;n=10,pyplot=false,verbose=false)
         end
         tstep*=1.0
         istep=istep+1
-        U_bulk=bulk_unknowns(sys,U)
-        U_bound=boundary_unknowns(sys,U,2)
-        u5=U_bound[5]
+#        U_bound=boundary_unknowns(sys,U,2)
+#        u5=U_bound[5]
         if pyplot && istep%10 == 0
-            @printf("max1=%g max2=%g maxb=%g\n",maximum(U_bulk[1,:]),maximum(U_bulk[2,:]),maximum(U_bound))
+ #           @printf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound))
             PyPlot.clf()
 
             subplot(311)
             levels1=collect(0:0.01:1)
-            contourf(X,Y,reshape(U_bulk[1,:],length(X),length(Y)), cmap=ColorMap("hot"))
+            contourf(X,Y,reshape(U[1,:],length(X),length(Y)), cmap=ColorMap("hot"))
             colorbar()
 
             subplot(312)
             levels2=collect(0:0.001:0.1)
-            contourf(X,Y,reshape(U_bulk[2,:],length(X),length(Y)), cmap=ColorMap("hot"))
+            contourf(X,Y,reshape(U[2,:],length(X),length(Y)), cmap=ColorMap("hot"))
             colorbar()
 
             subplot(313)
             levels2=collect(0:0.001:0.1)
-            plot(X,U_bound[1,:])
+ #           plot(X,U_bound[1,:])
             pause(1.0e-10)
         end
     end

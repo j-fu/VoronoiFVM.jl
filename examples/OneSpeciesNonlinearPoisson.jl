@@ -3,69 +3,56 @@ module OneSpeciesNonlinearPoisson
 using Printf
 using TwoPointFluxFVM
 
-const Node=TwoPointFluxFVM.Node
-const Edge=TwoPointFluxFVM.Edge
-
 if isinteractive()
     using PyPlot
 end
 
 
+
 """
-Structure containing  userdata information
+    Structure containing  userdata information
 """
-mutable struct Physics <:TwoPointFluxFVM.Physics
-    TwoPointFluxFVM.@AddPhysicsBaseClassFields
-    eps::Float64 
-    Physics()=Physics(new())
+mutable struct Physics
+    flux::Function
+    source::Function
+    reaction::Function
+    storage::Function
+    eps::Real
+    Physics()=new()
 end
 
-"""
-Reaction term
-"""
-function reaction!(this::Physics,node::Node,f::AbstractArray,u::AbstractArray)
-    f[1]=u[1]^2
-end
-
-"""
-Flux term
-"""
-function flux!(this::Physics,edge::Edge,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
-    f[1]=this.eps*(uk[1]^2-ul[1]^2)
-end 
-
-
-"""
-Source term
-"""
-function source!(this::Physics,node::Node,f::AbstractArray)
-    f[1]=1.0e-4*node.coord[1]
-end 
-
-"""
-Constructor for userdata structure
-"""
-function Physics(this::Physics)
-    TwoPointFluxFVM.PhysicsBase(this,1)
-    this.eps=1
-    this.flux=flux!
-    this.reaction=reaction!
-    this.source=source!
-    return this
-end
 
 """
 Main function for user interaction from REPL and
-for test. Default parameters need to generate correct
+for test. Default physics need to generate correct
 test value.
 """
 function main(;n=10,pyplot=false,verbose=false)
     h=1.0/convert(Float64,n)
-    geom=TwoPointFluxFVM.Graph(collect(0:h:1))
-
+    grid=TwoPointFluxFVM.Grid(collect(0:h:1))
+    
+    
     physics=Physics()
+    physics.eps=1.0e-2
 
-    sys=TwoPointFluxFVM.System(geom,physics)
+    physics.flux=function(physics,edge,f,uk,ul)
+        f[1]=physics.eps*(uk[1]^2-ul[1]^2)
+    end 
+
+    physics.source=function(physics,node,f)
+        f[1]=1.0e-4*node.coord[1]
+    end 
+
+    physics.storage=function(physics,node, f,u)
+        f[1]=u[1]
+    end
+
+    physics.reaction=function(physics,node,f,u)
+        f[1]=u[1]^2
+    end
+    
+    sys=TwoPointFluxFVM.System(grid,physics,1)
+    add_species(sys,1,[1])
     sys.boundary_values[1,1]=1.0
     sys.boundary_values[1,2]=0.5
     
@@ -75,7 +62,6 @@ function main(;n=10,pyplot=false,verbose=false)
     inival=unknowns(sys)
     inival.=0.5
 
-    physics.eps=1.0e-2
 
     control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
@@ -85,16 +71,14 @@ function main(;n=10,pyplot=false,verbose=false)
     for it=2:length(times)
         U=solve(sys,inival,control=control,tstep=tstep)
         test_result=U[5]
-        for i in eachindex(U)
-            inival[i]=U[i]
-        end
+        inival.=U
         if verbose
             @printf("time=%g\n",times[it])
         end
         if pyplot
             PyPlot.clf()
             PyPlot.grid()
-            plot(geom.node_coordinates[1,:],U)
+            plot(grid.nodecoord[1,:],U[1,:])
             pause(1.0e-10)
         end
     end
