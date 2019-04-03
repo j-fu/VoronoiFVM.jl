@@ -30,6 +30,7 @@ export fvmplot
 export dof
 export getdof
 export setdof!
+export value
 
 end
 

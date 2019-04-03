@@ -13,6 +13,7 @@ to mark Dirichlet boundary conditons.
 """
 const Dirichlet=1.0e30
 
+const value=ForwardDiff.value
 
 ##################################################################
 # System
@@ -106,6 +107,9 @@ nspecies(this::System)= this.node_dof.m
 ##################################################################
 # SysArray
 
+"""
+    This class plays well with the abstract array interface
+"""
 struct SysArray{Tv} <: AbstractArray{Tv,2}
     node_dof::SparseMatrixCSC{Tv,Int16}
 end
@@ -126,6 +130,11 @@ function unknowns(sys::System)
     return SysArray{Tv}(sys)
 end
 
+Base.size(a::SysArray)=size(a.node_dof)
+nnodes(a::SysArray)=size(a,2)
+nspecies(a::SysArray)=size(a,1)
+values(a::SysArray)=a.node_dof.nzval
+
 function Base.copy(this::SysArray{Tv}) where Tv
     return SysArray{Tv}(SparseMatrixCSC(this.node_dof.m,
                                         this.node_dof.n,
@@ -136,7 +145,7 @@ function Base.copy(this::SysArray{Tv}) where Tv
                         )
 end
 
-function dof(a::SysArray,i::Integer, j::Integer) where Tv
+@inline function dof(a::SysArray,i::Integer, j::Integer) where Tv
     A=a.node_dof
     coljfirstk = Int(A.colptr[j])
     coljlastk = Int(A.colptr[j+1] - 1)
@@ -147,11 +156,11 @@ function dof(a::SysArray,i::Integer, j::Integer) where Tv
     return 0
 end
 
-function setdof!(a::SysArray,v,i::Integer)
+@inline function setdof!(a::SysArray,v,i::Integer)
     a.node_dof.nzval[i] = v
 end
 
-function getdof(a::SysArray,i::Integer)
+@inline function getdof(a::SysArray,i::Integer)
     return a.node_dof.nzval[i] 
 end
 
@@ -162,44 +171,21 @@ function Base.setindex!(a::SysArray, v, ispec::Integer, inode::Integer)
         return a
     end
     # TODO: what is the right reacton here ?
+    # Ignoring seems to be better, so we can broacast etc.
     # throw(DomainError("undefined degree of freedom"))
 end
 
-
-
-Base.size(a::SysArray)=size(a.node_dof)
-
-nnodes(a::SysArray)=size(a,2)
-nspecies(a::SysArray)=size(a,1)
-values(a::SysArray)=a.node_dof.nzval
 
 function Base.getindex(a::SysArray, ispec::Integer, inode::Integer)
     searchk=dof(a,ispec,inode)
     if searchk>0
         return getdof(a,searchk)
     end
+    #
+    # TODO: what is the right reacton here ?
+    # Actually, NaN plays well with pyplot...
     return NaN
 end
-
-
-function gather!(UK,U::SysArray,K)
-    UK.=0.0
-    Udof=U.node_dof
-    for i=Udof.colptr[K]:Udof.colptr[K+1]-1
-        ispec=Udof.rowval[i]
-        UK[ispec]=Udof.nzval[i]
-    end
-end
-
-function scatter_add!(F::SysArray,FK,K)
-    Fdof=F.node_dof
-    for i=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-        ispec=Fdof.rowval[i]
-        Fdof.nzval[i]+=FK[ispec]
-    end
-end
-
-
 
 ##################################################################
 # SubgridSysArrayView
@@ -261,84 +247,85 @@ function eval_and_assemble(this::System,
     physics=this.physics
     node=Node()
     edge=Edge()
-
+    edge_cutoff=1.0e-12
+    num_species=nspecies(this)
+    
     
     if !isdefined(this,:matrix)
         this.matrix=spzeros(Tv,ndof(this), ndof(this))
     end
 
-    function addnz(matrix,i,j,v)
+    @inline function addnz(matrix,i,j,v,fac)
         if v!=0.0
-            matrix[i,j]+=v
+            matrix[i,j]+=v*fac
         end
     end
     
-    """
-        Wrap API flux with function compatible to ForwardDiff
-        """
-    function fluxwrap(y,u)
-        uk=view(u,1:num_species)
-        ul=view(u,num_species+1:2*num_species)
-        flux(y,uk,ul)
+
+    # Wrap API flux with function compatible to ForwardDiff
+    
+    K1=1
+    KN=num_species
+    L1=num_species+1
+    LN=2*num_species
+    
+    @inline function fluxwrap(y,u)
+        y.=0
+        @views physics.flux(physics,node,y,u[K1:KN],u[L1:LN])
     end
     
-    
-
-    # Create closures for physics functions
-    # These allow to "glue" user physics to function objects compatible
-    # with the ForwardDiff module
-    # cf. http://www.juliadiff.org/ForwardDiff.jl/stable/user/limitations.html 
-    if isdefined(physics,:source)
-        source(y)=physics.source(physics,node,y)
+    @inline function sourcewrap(y)
+        y.=0
+        physics.source(physics,node,y)
     end
 
-    flux(y,uk,ul)=physics.flux(physics,edge,y,uk,ul)
-
-    if isdefined(physics,:reaction)
-        reaction(y,x)=physics.reaction(physics,node,y,x)
+    @inline function reactionwrap(y,u)
+        y.=0
+        physics.reaction(physics,node,y,u)
     end
-    
-    storage(y,x)=physics.storage(physics,node,y,x)
-    
 
-    
+    @inline function storagewrap(y,u)
+        y.=0
+        physics.storage(physics,node,y,u)
+    end
+
+    @inline function breactionwrap(y,u)
+        y.=0
+        physics.breaction(physics,node,y,u)
+    end
+
+    @inline function bstoragewrap(y,u)
+        y.=0
+        physics.bstorage(physics,node,y,u)
+    end
     
     M=this.matrix
     
     # Reset matrix + rhs
     M.nzval.=0.0
     F.=0.0
-    num_species=nspecies(this)
 
-    # Assemble nonlinear term + source + storage using autodifferencing via ForwardDiff
-    
-    # struct holding diff results for storage, reaction, must be region-wise vectors
+    # structs holding diff results for storage, reaction,  flux ...
     result_r=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
     result_s=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
-    
-    # Create result struct for flux evaluation
-    result=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,2*num_species))
+    result_br=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
+    result_bs=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
+    result_flx=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,2*num_species))
+
+    # Arrays holding function results
     Y=Array{Tv,1}(undef,num_species)
+    res_react=zeros(Tv,num_species)
+    jac_react=zeros(Tv,num_species,num_species)
+
+    # Arrays for gathering solution data
     UK=Array{Tv,1}(undef,num_species)
     UKOld=Array{Tv,1}(undef,num_species)
     UKL=Array{Tv,1}(undef,2*num_species)
-    # Assemble main part
-
-    if isdefined(physics, :breaction)
-        breaction(y,u)=physics.breaction(physics,node,y,u)
-    end
-
-    if isdefined(physics, :bstorage)
-        bstorage(y,u)=physics.bstorage(physics,node,y,u)
-    end
-
-    result_br=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
-    result_bs=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
 
     # array holding source term
     src=zeros(Tv,num_species)
 
-    # array holding storage term for old solution
+    # arrays holding storage terms for old solution
     oldstor=zeros(Tv,num_species)
     oldbstor=zeros(Tv,num_species)
 
@@ -347,18 +334,18 @@ function eval_and_assemble(this::System,
     # According to Julia documentation, 1/Inf=0 which
     # comes handy to write compact code here.
     tstepinv=1.0/tstep 
-    
-    res_react=zeros(Tv,num_species)
-    jac_react=zeros(Tv,num_species,num_species)
-    
-    res_stor=zeros(Tv,num_species)
-    jac_stor=zeros(Tv,num_species,num_species)
 
+    
+    # Arrays holding for factor data
     node_factors=zeros(Tv,nnodes_per_cell(grid))
     edge_factors=zeros(Tv,nedges_per_cell(grid))
 
+    # Main cell loop
     for icell=1:ncells(grid)
+        # set up form factors
         cellfactors(grid,icell,node_factors,edge_factors)
+
+        # set up data for callbacks
         node.region=cellregions(grid,icell)
         node.nspecies=num_species
         
@@ -369,26 +356,26 @@ function eval_and_assemble(this::System,
             K=cellnodes(grid,inode,icell)
             node.index=K
             node.coord=nodecoord(grid,K)
-            gather!(UK,U,K)
-            gather!(UKOld,UOld,K)
-            
-            
+            @views begin
+                UK[1:num_species]=U[:,K]
+                UKOld[1:num_species]=UOld[:,K]
+            end
             # Evaluate source term
             if isdefined(physics,:source)
-                source(src)
+                sourcewrap(src)
             end
             
             # Evaluate & differentiate storage term
-            result_s=ForwardDiff.jacobian!(result_s,storage,Y,UK)
+            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK)
             res_stor=DiffResults.value(result_s)
             jac_stor=DiffResults.jacobian(result_s)
             
             # Evaluate storage term for old timestep
-            storage(oldstor,UKOld)
+            storagewrap(oldstor,UKOld)
             
             # Evaluate reaction term if present
             if isdefined(physics, :reaction)
-                result_r=ForwardDiff.jacobian!(result_r,reaction,Y,UK)
+                ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK)
                 res_react=DiffResults.value(result_r)
                 jac_react=DiffResults.jacobian(result_r)
             end
@@ -400,12 +387,15 @@ function eval_and_assemble(this::System,
                 Fdof.nzval[idof]+=node_factors[inode]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv)
                 for jdof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
                     jspec=Fdof.rowval[jdof]
-                    addnz(M,idof,jdof,node_factors[inode]*(jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv))
+                    addnz(M,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,node_factors[inode])
                 end
             end
         end
         
         for iedge=1:nedges_per_cell(grid)
+            if edge_factors[iedge]<edge_cutoff
+                continue
+            end
             K=celledgenodes(grid,1,iedge,icell)
             L=celledgenodes(grid,2,iedge,icell)
             edge.index=iedge
@@ -414,15 +404,16 @@ function eval_and_assemble(this::System,
             edge.coordL=nodecoord(grid,L)
             edge.coordK=nodecoord(grid,K)
             
-            # Set up argument for fluxwrap
+            #Set up argument for fluxwrap
             @views begin
-                gather!(UKL[1:num_species],U,K)
-                gather!(UKL[num_species+1:2*num_species],U,L)
+                UKL[K1:KN]=U[:,K]
+                UKL[L1:LN]=U[:,L]
             end
-            result=ForwardDiff.jacobian!(result,fluxwrap,Y,UKL)
+                
+            ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL)
             
-            res=DiffResults.value(result)
-            jac=DiffResults.jacobian(result)
+            res=DiffResults.value(result_flx)
+            jac=DiffResults.jacobian(result_flx)
 
 
             Fdof=F.node_dof
@@ -432,6 +423,7 @@ function eval_and_assemble(this::System,
                 if idofL==0
                     continue
                 end
+
                 Fdof.nzval[idofK]+=res[ispec]*edge_factors[iedge]
                 Fdof.nzval[idofL]-=res[ispec]*edge_factors[iedge]
 
@@ -442,10 +434,10 @@ function eval_and_assemble(this::System,
                         continue
                     end
                     
-                    addnz(M,idofK,jdofK,+jac[ispec,jspec            ]*edge_factors[iedge])
-                    addnz(M,idofK,jdofL,+jac[ispec,jspec+num_species]*edge_factors[iedge])
-                    addnz(M,idofL,jdofK,-jac[ispec,jspec            ]*edge_factors[iedge])
-                    addnz(M,idofL,jdofL,-jac[ispec,jspec+num_species]*edge_factors[iedge])
+                    addnz(M,idofK,jdofK,+jac[ispec,jspec            ],edge_factors[iedge])
+                    addnz(M,idofK,jdofL,+jac[ispec,jspec+num_species],edge_factors[iedge])
+                    addnz(M,idofL,jdofK,-jac[ispec,jspec            ],edge_factors[iedge])
+                    addnz(M,idofL,jdofL,-jac[ispec,jspec+num_species],edge_factors[iedge])
                     
                 end
             end
@@ -475,25 +467,26 @@ function eval_and_assemble(this::System,
             K=bfacenodes(grid,ibnode,ibface)
             node.index=K
             node.coord=nodecoord(grid,K)
-            gather!(UK,U,K)
-            gather!(UKOld,UOld,K)
+            @views begin
+                UK[1:num_species]=U[:,K]
+                UKOld[1:num_species]=UOld[:,K]
+            end
 
-
-            for ispec=1:nspecies(this)
+            for ispec=1:nspecies(this) # should involve only rspecies
                 fac=this.boundary_factors[ispec,ibreg]
                 val=this.boundary_values[ispec,ibreg]
                 if fac!=Dirichlet
                     fac*=bnode_factors[ibnode]
                 end
-                F[ispec,K]+=fac*(U[ispec,K]-val)
-                if fac!=0.0
-                    idof=dof(F,ispec,K)
-                    addnz(M,idof,idof,fac)
+                idof=dof(F,ispec,K)
+                if idof>0
+                    F[ispec,K]+=fac*(U[ispec,K]-val)
+                    addnz(M,idof,idof,fac,1)
                 end
             end
             
-            if isdefined(physics, :breaction)
-                result_br=ForwardDiff.jacobian!(result_br,breaction,Y,UK)
+            if isdefined(physics, :breaction)# involves bspecies and species
+                ForwardDiff.jacobian!(result_br,breactionwrap,Y,UK)
                 res_breact=DiffResults.value(result_br)
                 jac_breact=DiffResults.jacobian(result_br)
                 Fdof=F.node_dof
@@ -502,27 +495,30 @@ function eval_and_assemble(this::System,
                     Fdof.nzval[idof]+=bnode_factors[ibnode]*res_breact[ispec]
                     for jdof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
                         jspec=Fdof.rowval[jdof]
-                        addnz(M,idof,jdof, node_factors[ibnode]*jac_breact[ispec,jspec])
+                        addnz(M,idof,jdof, jac_breact[ispec,jspec],bnode_factors[ibnode])
                     end
                 end
             end
             
-            if isdefined(physics, :bstorage)
+            if isdefined(physics, :bstorage) # should involve only bspecies
                 # Evaluate & differentiate storage term
-                result_bs=ForwardDiff.jacobian!(result_bs,storage,Y,UK)
+                ForwardDiff.jacobian!(result_bs,bstoragewrap,Y,UK)
                 res_bstor=DiffResults.value(result_bs)
                 jac_bstor=DiffResults.jacobian(result_bs)
-                
+
                 # Evaluate storage term for old timestep
-                storage(oldbstor,UKOld)
+                bstoragewrap(oldbstor,UKOld)
 
                 Fdof=F.node_dof
                 for idof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
                     ispec=Fdof.rowval[idof]
-                    Fdof.nzval[idof]+=node_factors[ibnode]*(res_bstor[ispec]-oldbstor[ispec])*tstepinv
+                    Fdof.nzval[idof]+=bnode_factors[ibnode]*(res_bstor[ispec]-oldbstor[ispec])*tstepinv
                     for jdof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
                         jspec=Fdof.rowval[jdof]
-                        addnz(M,idof,jdof,node_factors[ibnode]*jac_bstor[ispec,jspec]*tstepinv)
+                        if jac_bstor[ispec,jspec]==0.0
+                            continue
+                        end
+                        addnz(M,idof,jdof,jac_bstor[ispec,jspec],bnode_factors[ibnode]*tstepinv)
                     end
                 end
             end

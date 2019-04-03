@@ -8,7 +8,7 @@
   - The wonderful array interface of Julia still provides slicing
     etc in oder to access particular species without need to write
     any bulk_solution stuff or whatever
-
+- value() for debugging in physics functions
 ## V0.2, Feb 20, 2019
 
 - Changed signature of all callback functions:

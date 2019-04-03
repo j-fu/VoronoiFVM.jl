@@ -34,7 +34,7 @@ function main(;n=10,pyplot=false,verbose=false,tend=1)
 
     
     physics=Physics()
-    physics.eps=1
+    physics.eps=21
     physics.k=1
     
 
@@ -62,7 +62,8 @@ function main(;n=10,pyplot=false,verbose=false,tend=1)
         f[1]=exp(-20*x1^2)
     end 
     physics.storage=function(physics,node, f,u)
-        f.=u
+        f[1]=u[1]
+        f[2]=u[2]
     end
     
 

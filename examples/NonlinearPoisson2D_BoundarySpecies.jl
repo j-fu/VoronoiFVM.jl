@@ -2,8 +2,7 @@ module NonlinearPoisson2D_BoundarySpecies
 
 using Printf
 using TwoPointFluxFVM
-const Node=TwoPointFluxFVM.Node
-const Edge=TwoPointFluxFVM.Edge
+
 
 if isinteractive()
     using PyPlot
@@ -44,17 +43,12 @@ function main(;n=10,pyplot=false,verbose=false)
             f[1]=physics.k*(u[1]-u[3])
             f[3]=physics.k*(u[3]-u[1])+ physics.k*(u[3]-u[2])
             f[2]=physics.k*(u[2]-u[3])
-        else
-            f[1]=0        
-            f[2]=0
         end
     end
     
     physics.bstorage=function(physics,node,f,u)
         if  node.region==2
             f[3]=u[3]
-        else
-            f[3]=0        
         end
     end
     
@@ -64,14 +58,15 @@ function main(;n=10,pyplot=false,verbose=false)
         f[2]=physics.eps*(uk[2]-ul[2])
     end 
     
-    source=function(physics,node,f)
+    physics.source=function(physics,node,f)
         x1=node.coord[1]-0.5
         x2=node.coord[2]-0.5
         f[1]=exp(-20*(x1^2+x2^2))
     end 
     
     physics.storage=function(physics,node, f,u)
-        f.=u
+        f[1]=u[1]
+        f[2]=u[2]
     end
     
     
@@ -83,7 +78,7 @@ function main(;n=10,pyplot=false,verbose=false)
     
     inival=unknowns(sys)
     inival.=0.0
-    
+
     physics.eps=1.0e-2
     
     control=TwoPointFluxFVM.NewtonControl()
