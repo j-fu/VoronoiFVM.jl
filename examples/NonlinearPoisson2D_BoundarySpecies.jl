@@ -32,7 +32,7 @@ function main(;n=10,pyplot=false,verbose=false)
 
 
     grid=TwoPointFluxFVM.Grid(X,Y)
-
+    
     
     physics=Physics()
     physics.k=1
@@ -74,8 +74,14 @@ function main(;n=10,pyplot=false,verbose=false)
     add_species(sys,1,[1])
     add_species(sys,2,[1])
     add_boundary_species(sys,3,[2])
+
     
+    function tran32!(a,b)
+        a[1]=b[2]
+    end
     
+    bgrid2=SubGrid(grid,[2],boundary=true,transform=tran32!)
+   
     inival=unknowns(sys)
     inival.=0.0
 
@@ -94,18 +100,15 @@ function main(;n=10,pyplot=false,verbose=false)
         time=time+tstep
         U=solve(sys,inival,control=control,tstep=tstep)
         inival.=U
-        # for i in eachindex(U)
-        #     inival[i]=U[i]
-        # end
         if verbose
             @printf("time=%g\n",time)
         end
         tstep*=1.0
         istep=istep+1
-#        U_bound=boundary_unknowns(sys,U,2)
-#        u5=U_bound[5]
+        U_bound=view(U,bgrid2)
+        u5=U_bound[3,5]
         if pyplot && istep%10 == 0
- #           @printf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound))
+            @printf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound[3,:]))
             PyPlot.clf()
 
             subplot(311)
@@ -120,7 +123,7 @@ function main(;n=10,pyplot=false,verbose=false)
 
             subplot(313)
             levels2=collect(0:0.001:0.1)
- #           plot(X,U_bound[1,:])
+            fvmplot(bgrid2,U_bound[3,:])
             pause(1.0e-10)
         end
     end

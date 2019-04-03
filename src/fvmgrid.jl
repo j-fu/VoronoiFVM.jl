@@ -3,6 +3,9 @@ using SparseArrays
 ##################################################################
 # Grid
 
+abstract type AbstractGrid end
+
+
 mutable struct GridData
     ncellregions::Int32
     nbfaceregions::Int32
@@ -11,7 +14,7 @@ mutable struct GridData
     GridData()=new()
 end
 
-struct Grid{Tc}
+struct Grid{Tc} <: AbstractGrid
     nodecoord::Array{Tc,2} # point coordinates
     cellnodes::Array{Int32,2} 
     cellregions::Array{Int32,1}
@@ -214,11 +217,35 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
         end
         return true
     end
+
+    nx=length(X)
+    ny=length(Y)
     
-    function  check_insert_bface(n1,n2,
-				 x1,xn,
-				 y1,yn)
-        
+    hmin=X[2]-X[1]
+    for i=1:nx-1
+        h=X[i+1]-X[i]
+        if h <hmin
+            hmin=h
+        end
+    end
+    for i=1:ny-1
+        h=Y[i+1]-Y[i]
+        if h <hmin
+            hmin=h
+        end
+    end
+    
+    @assert(hmin>0.0)
+    eps=1.0e-5*hmin
+
+    x1=X[1]+eps
+    xn=X[nx]-eps
+    y1=Y[1]+eps
+    yn=Y[ny]-eps
+    
+    
+    function  check_insert_bface(n1,n2)
+                
         if (geq(x1,nodecoord[1,n1],nodecoord[1,n2]))
             ibface=ibface+1
             bfacenodes[1,ibface]=n1
@@ -249,25 +276,6 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
         end
     end
     
-    nx=length(X)
-    ny=length(Y)
-    
-    hmin=X[2]-X[1]
-    for i=1:nx-1
-        h=X[i+1]-X[i]
-        if h <hmin
-            hmin=h
-        end
-    end
-    for i=1:ny-1
-        h=Y[i+1]-Y[i]
-        if h <hmin
-            hmin=h
-        end
-    end
-    
-    @assert(hmin>0.0)
-    eps=1.0e-5*hmin
     
     nnodes=nx*ny
     ncells=2*(nx-1)*(ny-1)
@@ -315,19 +323,15 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     @assert(icell==ncells)
     
     #lazy way to  create boundary grid
-    x1=X[1]+eps
-    xn=X[nx]-eps
-    y1=Y[1]+eps
-    yn=Y[ny]-eps
-    
+
     ibface=0
     for icell=1:ncells
         n1=cellnodes[1,icell]
 	n2=cellnodes[2,icell]
 	n3=cellnodes[3,icell]
-        check_insert_bface(n1,n2,x1,xn,y1,yn)
-	check_insert_bface(n1,n3,x1,xn,y1,yn)
-	check_insert_bface(n2,n3,x1,xn,y1,yn)
+        check_insert_bface(n1,n2)
+	check_insert_bface(n1,n3)
+	check_insert_bface(n2,n3)
     end
     @assert(ibface==nbfacenodes)
     griddata=GridData()
@@ -335,7 +339,7 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     griddata.nbfaceregions=maximum(bfaceregions)
     griddata.nedges_per_cell=3
     griddata.celledgenodes=[2 1 1 ;
-                    3 3 2]
+                            3 3 2]
     return Grid{Tc}(nodecoord,cellnodes,
                     cellregions,bfacenodes,
                     bfaceregions,griddata,
@@ -366,6 +370,13 @@ end
 
 
 
+spacedim(grid::AbstractGrid)= size(grid.nodecoord,1)
+nnodes(grid::AbstractGrid)= size(grid.nodecoord,2)
+ncells(grid::AbstractGrid)= size(grid.cellnodes,2)
+cellnodes(grid::AbstractGrid,inode,icell)=grid.cellnodes[inode,icell]
+nodecoord(grid::AbstractGrid,inode)=view(grid.nodecoord,:,inode)
+nnodes_per_cell(grid::AbstractGrid)= size(grid.cellnodes,1)
+
 
 cellfactors(grid::Grid,icell,nodefac,edgefac)=grid.cellfactors(grid,icell,nodefac,edgefac)
 
@@ -375,23 +386,11 @@ cellregions(grid::Grid,icell)=grid.cellregions[icell]
 
 bfaceregions(grid::Grid,icell)=grid.bfaceregions[icell]
 
-spacedim(grid::Grid)= size(grid.nodecoord,1)
-
 griddim(grid::Grid)= size(grid.bfacenodes,1)
-
-nnodes(grid::Grid)= size(grid.nodecoord,2)
-
-ncells(grid::Grid)= size(grid.cellnodes,2)
-
-cellnodes(grid::Grid,inode,icell)=grid.cellnodes[inode,icell]
 
 bfacenodes(grid::Grid,inode,icell)=grid.bfacenodes[inode,icell]
 
 celledgenodes(grid::Grid,inode,iedge,icell)=grid.cellnodes[grid.griddata.celledgenodes[inode,iedge],icell]
-
-nodecoord(grid::Grid,inode)=view(grid.nodecoord,:,inode)
-
-nnodes_per_cell(grid::Grid)= size(grid.cellnodes,1)
 
 nedges_per_cell(grid::Grid)= grid.griddata.nedges_per_cell
 
@@ -407,40 +406,87 @@ nbfaceregions(grid::Grid)=grid.griddata.nbfaceregions
 
 ##################################################################
 # SubGrid
-struct SubGrid
+struct SubGrid{Tc} <: AbstractGrid
     parent::Grid
-    speclist::Array{Int8,1}
     cellnodes::Array{Int32,2}
+    nodecoord::Array{Tc,2}
     node_in_parent::Array{Int32,1}
-    SubGrid(parent::Grid, specs::Array{Int8,1})=SubGrid(new(),parent,specs)
 end
 
 
-# Create subgrid as common support of species, either on boundary
-# or on bulkd
-function SubGrid(this::SubGrid,parent::Grid,specs::Array{Int8,1})
-    
-end
-
-
-function copytransform!(a::Array{Float64,1},b::Array{Float64,1})
+function copytransform!(a::AbstractArray,b::AbstractArray)
     for i=1:length(a)
         a[i]=b[i]
     end
 end
 
-#
-# Create coordinates for subgrid
-#
-function coordinates(sg::SubGrid,transform!::Function=copytransform!)
-    localcoord=Array{Float64,2}(griddim(subgrid),nnodes(subgrid))
-    for inode=1:nnodes(subgrid)
-        transform!(localcoord[:,inode],sg.grid.nodecoord[:,sg.node_in_parent[inode]])
+function SubGrid(parent::Grid,subregions::AbstractArray;transform::Function=copytransform!,boundary=false)
+    Tc=eltype(parent.nodecoord)
+    
+    @inline function insubregions(xreg)
+        for i in eachindex(subregions)
+            if subregions[i]==xreg
+                return true
+            end
+        end
+        return false
     end
-    return localcoord
+
+    
+    if boundary
+        xregions=parent.bfaceregions
+        xnodes=parent.bfacenodes
+        sub_gdim=griddim(parent)-1
+    else
+        xregions=parent.cellregions
+        xnodes=parent.cellnodes
+        sub_gdim=griddim(parent)
+    end
+    
+    nodemark=zeros(Int32,nnodes(parent))
+    ncn=size(xnodes,1)
+    
+    nsubcells=0
+    nsubnodes=0
+    for icell in eachindex(xregions)
+        if insubregions(xregions[icell])
+            nsubcells+=1
+            for inode=1:ncn
+                ipnode=xnodes[inode,icell]
+                if nodemark[ipnode]==0
+                    nsubnodes+=1
+                    nodemark[ipnode]=nsubnodes
+                end
+            end
+        end
+    end
+    
+    sub_cellnodes=zeros(Int32,ncn,nsubcells)
+    sub_nip=zeros(Int32,nsubnodes)
+    for inode in eachindex(nodemark)
+        if nodemark[inode]>0
+            sub_nip[nodemark[inode]]=inode
+        end
+    end
+    
+    isubcell=0
+    for icell in eachindex(xregions)
+        if insubregions(xregions[icell])
+            isubcell+=1
+            for inode=1:ncn
+                ipnode=xnodes[inode,icell]
+                sub_cellnodes[inode,isubcell]=nodemark[ipnode]
+            end
+        end
+    end
+
+    localcoord=zeros(Tc,sub_gdim,nsubnodes)
+    @views for inode=1:nsubnodes
+        transform(localcoord[:,inode],parent.nodecoord[:,sub_nip[inode]])
+    end
+    
+    return SubGrid(parent,sub_cellnodes,localcoord,sub_nip)
 end
-    
-    
 
 
 

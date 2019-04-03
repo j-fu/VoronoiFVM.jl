@@ -31,6 +31,7 @@ export dof
 export getdof
 export setdof!
 export value
+export SubGrid
 
 end
 

@@ -190,22 +190,24 @@ end
 ##################################################################
 # SubgridSysArrayView
 struct SubgridSysArrayView{Tv} <: AbstractArray{Tv,2}
-    subgrid::SubGrid
     sysarray::SysArray{Tv}
+    subgrid::SubGrid
 end
 
-# function view(a::SysArray{Tv},sg::SubGrid) where Tv
-#     return SubgridSysArrayView(a,sg)
-# end
+function Base.view(a::SysArray{Tv},sg::SubGrid) where Tv
+    return SubgridSysArrayView{Tv}(a,sg)
+end
 
 function Base.getindex(aview::SubgridSysArrayView,ispec::Integer,inode::Integer)
-    return aview:a[av.subgrid.speclist[ispec],av.node_in_parent[inode]]
+    return aview.sysarray[ispec,aview.subgrid.node_in_parent[inode]]
 end
 
 function Base.setindex!(aview::SubgridSysArrayView,v,ispec::Integer,inode::Integer)
-    aview.a[av.subgrid.speclist[ispec],av.node_in_parent[inode]]=v
+    aview.sysarray[ispec,aview.subgrid.node_in_parent[inode]]=v
+    return aview
 end
 
+Base.size(a::SubgridSysArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_parent,1))
 
 
 
@@ -353,10 +355,10 @@ function eval_and_assemble(this::System,
         edge.nspecies=num_species
         
         for inode=1:nnodes_per_cell(grid)
-            K=cellnodes(grid,inode,icell)
-            node.index=K
-            node.coord=nodecoord(grid,K)
             @views begin
+                K=cellnodes(grid,inode,icell)
+                node.index=K
+                node.coord=nodecoord(grid,K)
                 UK[1:num_species]=U[:,K]
                 UKOld[1:num_species]=UOld[:,K]
             end
@@ -396,16 +398,16 @@ function eval_and_assemble(this::System,
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
-            K=celledgenodes(grid,1,iedge,icell)
-            L=celledgenodes(grid,2,iedge,icell)
-            edge.index=iedge
-            edge.nodeK=K
-            edge.nodeL=L
-            edge.coordL=nodecoord(grid,L)
-            edge.coordK=nodecoord(grid,K)
-            
-            #Set up argument for fluxwrap
             @views begin
+                K=celledgenodes(grid,1,iedge,icell)
+                L=celledgenodes(grid,2,iedge,icell)
+                edge.index=iedge
+                edge.nodeK=K
+                edge.nodeL=L
+                edge.coordL=nodecoord(grid,L)
+                edge.coordK=nodecoord(grid,K)
+                
+                #Set up argument for fluxwrap
                 UKL[K1:KN]=U[:,K]
                 UKL[L1:LN]=U[:,L]
             end
@@ -441,20 +443,6 @@ function eval_and_assemble(this::System,
                     
                 end
             end
-            
-            # Assemble flux data
-            # kblock=(K-1)*num_species
-            # lblock=(L-1)*num_species
-            # jl=num_species+1
-            # for jk=1:num_species
-            #     for ik=1:num_species
-            #         M[kblock+ik,kblock+jk]+=jac[ik,jk]*edge_factors[iedge]
-            #         M[kblock+ik,lblock+jk]+=jac[ik,jl]*edge_factors[iedge]
-            #         M[lblock+ik,kblock+jk]-=jac[ik,jk]*edge_factors[iedge]
-            #         M[lblock+ik,lblock+jk]-=jac[ik,jl]*edge_factors[iedge]
-            #     end
-            #     jl+=1
-            # end
         end
     end
 
@@ -464,10 +452,10 @@ function eval_and_assemble(this::System,
         ibreg=grid.bfaceregions[ibface]
         node.region=ibreg
         for ibnode=1:nnodes_per_bface(grid)
-            K=bfacenodes(grid,ibnode,ibface)
-            node.index=K
-            node.coord=nodecoord(grid,K)
             @views begin
+                K=bfacenodes(grid,ibnode,ibface)
+                node.index=K
+                node.coord=nodecoord(grid,K)
                 UK[1:num_species]=U[:,K]
                 UKOld[1:num_species]=UOld[:,K]
             end
@@ -505,10 +493,10 @@ function eval_and_assemble(this::System,
                 ForwardDiff.jacobian!(result_bs,bstoragewrap,Y,UK)
                 res_bstor=DiffResults.value(result_bs)
                 jac_bstor=DiffResults.jacobian(result_bs)
-
+                
                 # Evaluate storage term for old timestep
                 bstoragewrap(oldbstor,UKOld)
-
+                
                 Fdof=F.node_dof
                 for idof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
                     ispec=Fdof.rowval[idof]
@@ -523,7 +511,7 @@ function eval_and_assemble(this::System,
                 end
             end
         end
-    end
+   end
 
 end
 

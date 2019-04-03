@@ -21,21 +21,35 @@ end
 
 
 function main(;n=30,pyplot=false,verbose=false)
-    h=3/n
-    X=collect(0:h:3)
+    h=3.0/(n-1)
+    X=collect(0:h:3.0)
     grid=TwoPointFluxFVM.Grid(X)
     cellmask!(grid,[0.0],[1.0],1)
-    cellmask!(grid,[1.0],[2.0],2)
-    cellmask!(grid,[2.0],[3.0],3)
+    cellmask!(grid,[1.0],[2.1],2)
+    cellmask!(grid,[1.9],[3.0],3)
     
     if pyplot
         clf()
         fvmplot(grid)
-        pause(1.0e-10)
         show()
         waitforbuttonpress()
+
+        clf()
+        fvmplot(SubGrid(grid,[1]))
+        show()
+        waitforbuttonpress()
+
+        clf()
+        fvmplot(SubGrid(grid,[1,2]))
+        show()
+        waitforbuttonpress()
+
+        clf()
+        fvmplot(SubGrid(grid,[1,3]))
+        show()
+        waitforbuttonpress()
+
     end
-    
     
     physics=Physics()
     physics.eps=[1,1,1]
@@ -106,15 +120,14 @@ function main(;n=30,pyplot=false,verbose=false)
         
         if pyplot && istep%10 == 0
             PyPlot.clf()
-            plot(X,U[1,:],label="spec1")
-            plot(X,U[2,:],label="spec2")
-            plot(X,U[3,:],label="spec3")
+            plot(X,U[1,:],label="spec1", color=(0.5,0,0))
+            plot(X,U[2,:],label="spec2", color=(0.0,0.5,0))
+            plot(X,U[3,:],label="spec3", color=(0.0,0.0,0.5))
             PyPlot.legend(loc="best")
             PyPlot.grid()
             pause(1.0e-10)
         end
     end
-    
 end
 end
 
