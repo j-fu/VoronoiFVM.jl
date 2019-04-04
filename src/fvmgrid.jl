@@ -1,174 +1,131 @@
 using SparseArrays
 
-##################################################################
-# Grid
+##########################################################
+"""
+   abstract type AbstractGrid
 
+Abstract type for grid like datastructures.
+"""
 abstract type AbstractGrid end
 
 
-mutable struct GridData
-    ncellregions::Int32
-    nbfaceregions::Int32
-    nedges_per_cell::Int32
-    celledgenodes::Array{Int32,2}
-    GridData()=new()
-end
+##########################################################
+"""
+    dim_space(grid)
 
+Space dimension of grid
+"""
+dim_space(grid::AbstractGrid)= size(grid.coord,1)
+
+
+##########################################################
+"""
+    num_nodes(grid)
+
+Number of nodes in grid
+"""
+num_nodes(grid::AbstractGrid)= size(grid.coord,2)
+
+
+##########################################################
+"""
+    num_cells(grid)
+
+Number of cells in grid
+"""
+num_cells(grid::AbstractGrid)= size(grid.cellnodes,2)
+
+##########################################################
+"""
+    cellnode(grid,i,icell)
+
+Return index of i-th local node in cell icell
+"""
+cellnode(grid::AbstractGrid,inode,icell)=grid.cellnodes[inode,icell]
+
+##########################################################
+"""
+    nodecoord(grid,inode)
+
+Return view of coordinates of node `inode`.
+"""
+nodecoord(grid::AbstractGrid,inode)=view(grid.coord,:,inode)
+
+##########################################################
+"""
+    num_nodes_per_cell(grid)
+
+Return number of nodes per cell in grid.
+"""
+num_nodes_per_cell(grid::AbstractGrid)= size(grid.cellnodes,1)
+
+##########################################################
+"""
+    eltype(grid)
+
+Return element type of grid coordinates.
+"""
+Base.eltype(grid::AbstractGrid)=Base.eltype(grid.coord)
+
+##########################################################
+"""
+    mutable struct Grid
+
+Structure holding grid data.
+"""
 struct Grid{Tc} <: AbstractGrid
-    nodecoord::Array{Tc,2} # point coordinates
-    cellnodes::Array{Int32,2} 
-    cellregions::Array{Int32,1}
-    bfacenodes::Array{Int32,2} 
+    coord::Array{Tc,2}              # node coordinates
+    cellnodes::Array{Int32,2}       # node indices per cell
+    cellregions::Array{Int32,1}     # bulk region number per cell 
+    bfacenodes::Array{Int32,2}      
     bfaceregions::Array{Int32,1}
-    griddata::GridData
+    num_cellregions::Array{Int32,1}
+    num_bfaceregions::Array{Int32,1}
+    celledgenodes::Array{Int32,2}
     cellfactors::Function
     bfacefactors::Function
 end
 
 
+##########################################################
+"""
+    Grid(X::Array{Tc,1})
 
+Constructor for 1D grid.
+
+Construct 1D grid from an array of node cordinates.
+It creates two boundary regions with index 1 at the left end and
+index 2 at the right end.
+
+Primal grid holding unknowns: marked by `o`, dual
+grid marking control volumes: marked by `|`.
+
+```@raw html
+ o-----o-----o-----o-----o-----o-----o-----o-----o
+ |--|-----|-----|-----|-----|-----|-----|-----|--|
+```
 
 """
-    mutable struct Node
-
-Structure holding local node information.
-Fields:
-
-    index::Int32
-    coord::Array{Float64,1}
-
-"""
-mutable struct Node
-    index::Int32
-    coord::Array{Float64,1}
-    region::Int32
-    nspecies::Int32
-    Node()=new()
-end
-
-
-"""
-    mutable struct Edge
-
-Structure holding local edge information.
-
-Fields:
-
-    index::Int32
-    nodeK::Int32
-    nodeL::Int32
-    coordK::Array{Float64,1}
-    coordL::Array{Float64,1}
-
-
-"""
-mutable struct Edge
-    index::Int32
-    nodeK::Int32
-    nodeL::Int32
-    region::Int32
-    coordK::Array{Float64,1}
-    coordL::Array{Float64,1}
-    nspecies::Int32
-    Edge()=new()
-end
-
-"""
-   function edgelength(edge::Edge)
-   
-Calculate the length of an edge. 
-"""
-function edgelength(edge::Edge)
-    l::Float64
-    l=0.0
-    for i=1:length(edge.coordK)
-        d=edge.coordK[i]-edge.coordL[i]
-        l=l+d*d
-    end
-    return l
-end
-
-
-
-
-function cellfac1d(grid,icell,nodefac,edgefac)
-    K=cellnodes(grid,1,icell)
-    L=cellnodes(grid,2,icell)
-    xK=nodecoord(grid,K)
-    xL=nodecoord(grid,L)
-    d=abs(xL[1]-xK[1])
-    nodefac[1]=d/2
-    nodefac[2]=d/2
-    edgefac[1]=1/d
-end
-
-
-function bfacefac1d(grid,ibface,nodefac)
-    nodefac[1]=1.0
-end
-
-function cellfac2d(grid,icell,npar,epar)
-    i1=cellnodes(grid,1,icell);
-    i2=cellnodes(grid,2,icell)
-    i3=cellnodes(grid,3,icell)
-    p1=nodecoord(grid,i1)
-    p2=nodecoord(grid,i2)
-    p3=nodecoord(grid,i3)
-    
-
-    # Fill matrix of edge vectors
-    V11= p2[1]- p1[1]
-    V21= p2[2]- p1[2]
-    
-    V12= p3[1]- p1[1]
-    V22= p3[2]- p1[2]
-    
-    V13= p3[1]- p2[1]
-    V23= p3[2]- p2[2]
-    
-    
-    
-    # Compute determinant 
-    det=V11*V22 - V12*V21
-    vol=0.5*det
-    
-    ivol = 1.0/vol
-    
-    # squares of edge lengths
-    dd1=V13*V13+V23*V23 # l32
-    dd2=V12*V12+V22*V22 # l31
-    dd3=V11*V11+V21*V21 # l21
-    
-    
-    # contributions to \sigma_kl/h_kl
-    epar[1]= (dd2+dd3-dd1)*0.125*ivol
-    epar[2]= (dd3+dd1-dd2)*0.125*ivol
-    epar[3]= (dd1+dd2-dd3)*0.125*ivol
-    
-    
-    # contributions to \omega_k
-    npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
-    npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
-    npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
-end                              
-
-
-function bfacefac2d(grid,ibface,nodefac)
-    i1=cellnodes(grid,1,ibface)
-    i2=cellnodes(grid,2,ibface)
-    p1=nodecoord(grid,i1)
-    p2=nodecoord(grid,i2)
-    dx=p1[1]-p2[1]
-    dy=p1[2]-p2[2]
-    d=0.5*sqrt(dx*dx+dy*dy)
-    nodefac[1]=d
-    nodefac[2]=d
-end
-
-
-
 function Grid(X::Array{Tc,1}) where Tc
-    nodecoord=reshape(X,1,length(X))
+
+    function cellfac1d!(grid,icell,nodefac,edgefac)
+        K=cellnode(grid,1,icell)
+        L=cellnode(grid,2,icell)
+        xK=nodecoord(grid,K)
+        xL=nodecoord(grid,L)
+        d=abs(xL[1]-xK[1])
+        nodefac[1]=d/2
+        nodefac[2]=d/2
+        edgefac[1]=1/d
+    end
+    
+
+    # 1D bface form factors
+    function bfacefac1d!(grid,ibface,nodefac)
+        nodefac[1]=1.0
+    end
+    
+    coord=reshape(X,1,length(X))
     cellnodes=zeros(Int32,2,length(X)-1)
     cellregions=zeros(Int32,length(X)-1)
     for i=1:length(X)-1 
@@ -182,22 +139,100 @@ function Grid(X::Array{Tc,1}) where Tc
     bfacenodes[1,2]=length(X)
     bfaceregions[1]=1
     bfaceregions[2]=2
-    griddata=GridData()
-    griddata.ncellregions=maximum(cellregions)
-    griddata.nbfaceregions=maximum(bfaceregions)
-    griddata.nedges_per_cell=1
-    griddata.celledgenodes=reshape(Int32[1 2],:,1)
-    return Grid{Tc}(nodecoord,
+    num_cellregions=[maximum(cellregions)]
+    num_bfaceregions=[maximum(bfaceregions)]
+    celledgenodes=reshape(Int32[1 2],:,1)
+    return Grid{Tc}(coord,
                     cellnodes,
                     cellregions,
                     bfacenodes,
                     bfaceregions,
-                    griddata,
-                    cellfac1d,bfacefac1d)
+                    num_cellregions,
+                    num_bfaceregions,
+                    celledgenodes,
+                    cellfac1d!,
+                    bfacefac1d!)
 end
 
 
+##########################################################
+"""
+    Grid(X::Array{Tc,1},X::Array{Tc,1})
+
+Constructor for 2D grid
+from coordinate arrays. 
+Boundary region numbers count counterclockwise:
+
+| location  |  number |
+| --------- | ------- |
+| south     |       1 |
+| east      |       2 |
+| north     |       3 |
+| west      |       4 |
+
+"""
 function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
+
+    # 2D cell form factors
+    function cellfac2d!(grid,icell,npar,epar)
+        i1=cellnode(grid,1,icell);
+        i2=cellnode(grid,2,icell)
+        i3=cellnode(grid,3,icell)
+        p1=nodecoord(grid,i1)
+        p2=nodecoord(grid,i2)
+        p3=nodecoord(grid,i3)
+        
+        
+        # Fill matrix of edge vectors
+        V11= p2[1]- p1[1]
+        V21= p2[2]- p1[2]
+        
+        V12= p3[1]- p1[1]
+        V22= p3[2]- p1[2]
+        
+        V13= p3[1]- p2[1]
+        V23= p3[2]- p2[2]
+        
+        
+        
+        # Compute determinant 
+        det=V11*V22 - V12*V21
+        vol=0.5*det
+        
+        ivol = 1.0/vol
+        
+        # squares of edge lengths
+        dd1=V13*V13+V23*V23 # l32
+        dd2=V12*V12+V22*V22 # l31
+        dd3=V11*V11+V21*V21 # l21
+        
+        
+        # contributions to \sigma_kl/h_kl
+        epar[1]= (dd2+dd3-dd1)*0.125*ivol
+        epar[2]= (dd3+dd1-dd2)*0.125*ivol
+        epar[3]= (dd1+dd2-dd3)*0.125*ivol
+        
+        
+        # contributions to \omega_k
+        npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
+        npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
+        npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
+    end                              
+    
+
+    # 2D bface form factors
+    function bfacefac2d!(grid,ibface,nodefac)
+        i1=bfacenode(grid,1,ibface)
+        i2=bfacenode(grid,2,ibface)
+        p1=nodecoord(grid,i1)
+        p2=nodecoord(grid,i2)
+        dx=p1[1]-p2[1]
+        dy=p1[2]-p2[2]
+        d=0.5*sqrt(dx*dx+dy*dy)
+        nodefac[1]=d
+        nodefac[2]=d
+    end
+    
     function leq(x, x1, x2)
         if (x>x1)
             return false
@@ -246,28 +281,28 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     
     function  check_insert_bface(n1,n2)
                 
-        if (geq(x1,nodecoord[1,n1],nodecoord[1,n2]))
+        if (geq(x1,coord[1,n1],coord[1,n2]))
             ibface=ibface+1
             bfacenodes[1,ibface]=n1
             bfacenodes[2,ibface]=n2
 	    bfaceregions[ibface]=4
             return
         end
-        if (leq(xn,nodecoord[1,n1],nodecoord[1,n2]))
+        if (leq(xn,coord[1,n1],coord[1,n2]))
             ibface=ibface+1
             bfacenodes[1,ibface]=n1
             bfacenodes[2,ibface]=n2
 	    bfaceregions[ibface]=2
             return
         end
-        if (geq(y1,nodecoord[2,n1],nodecoord[2,n2]))
+        if (geq(y1,coord[2,n1],coord[2,n2]))
             ibface=ibface+1
             bfacenodes[1,ibface]=n1
             bfacenodes[2,ibface]=n2
 	    bfaceregions[ibface]=1
             return
         end
-        if (leq(yn,nodecoord[2,n1],nodecoord[2,n2]))
+        if (leq(yn,coord[2,n1],coord[2,n2]))
             ibface=ibface+1
             bfacenodes[1,ibface]=n1
             bfacenodes[2,ibface]=n2
@@ -277,25 +312,25 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     end
     
     
-    nnodes=nx*ny
-    ncells=2*(nx-1)*(ny-1)
-    nbfacenodes=2*(nx-1)+2*(ny-1)
+    num_nodes=nx*ny
+    num_cells=2*(nx-1)*(ny-1)
+    num_bfacenodes=2*(nx-1)+2*(ny-1)
     
-    nodecoord=zeros(Tc,2,nnodes)
-    cellnodes=zeros(Int32,3,ncells)
-    cellregions=zeros(Int32,ncells)
-    bfacenodes=zeros(Int32,2,nbfacenodes)
-    bfaceregions=zeros(Int32,nbfacenodes)
+    coord=zeros(Tc,2,num_nodes)
+    cellnodes=zeros(Int32,3,num_cells)
+    cellregions=zeros(Int32,num_cells)
+    bfacenodes=zeros(Int32,2,num_bfacenodes)
+    bfaceregions=zeros(Int32,num_bfacenodes)
     
     ipoint=0
     for iy=1:ny
         for ix=1:nx
             ipoint=ipoint+1
-            nodecoord[1,ipoint]=X[ix]
-            nodecoord[2,ipoint]=Y[iy]
+            coord[1,ipoint]=X[ix]
+            coord[2,ipoint]=Y[iy]
         end
     end
-    @assert(ipoint==nnodes)
+    @assert(ipoint==num_nodes)
     
     icell=0
     for iy=1:ny-1
@@ -320,12 +355,12 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
             cellregions[icell]=1
         end
     end
-    @assert(icell==ncells)
+    @assert(icell==num_cells)
     
     #lazy way to  create boundary grid
 
     ibface=0
-    for icell=1:ncells
+    for icell=1:num_cells
         n1=cellnodes[1,icell]
 	n2=cellnodes[2,icell]
 	n3=cellnodes[3,icell]
@@ -333,27 +368,47 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
 	check_insert_bface(n1,n3)
 	check_insert_bface(n2,n3)
     end
-    @assert(ibface==nbfacenodes)
-    griddata=GridData()
-    griddata.ncellregions=maximum(cellregions)
-    griddata.nbfaceregions=maximum(bfaceregions)
-    griddata.nedges_per_cell=3
-    griddata.celledgenodes=[2 1 1 ;
-                            3 3 2]
-    return Grid{Tc}(nodecoord,cellnodes,
-                    cellregions,bfacenodes,
-                    bfaceregions,griddata,
-                    cellfac2d,bfacefac2d)
+    @assert(ibface==num_bfacenodes)
+
+    num_cellregions=[maximum(cellregions)]
+    num_bfaceregions=[maximum(bfaceregions)]
+    celledgenodes=[2 1 1 ;
+                   3 3 2]
+    return Grid{Tc}(coord,
+                    cellnodes,
+                    cellregions,
+                    bfacenodes,
+                    bfaceregions,
+                    num_cellregions,
+                    num_bfaceregions,
+                    celledgenodes,
+                    cellfac2d!,
+                    bfacefac2d!)
 end
 
-function cellmask!(grid::Grid, maskmin::AbstractArray,maskmax::AbstractArray,ireg::Integer;eps=1.0e-10)
+
+######################################################
+"""
+    function cellmask!(grid::Grid,          
+                       maskmin::AbstractArray, # lower left corner
+                       maskmax::AbstractArray, # upper right corner
+                       ireg::Integer;          # new region number for elements under mask
+                       eps=1.0e-10)            # tolerance.
+
+Edit region numbers of grid cells via rectangular mask.
+"""
+function cellmask!(grid::Grid,
+                   maskmin::AbstractArray,
+                   maskmax::AbstractArray,
+                   ireg::Integer;
+                   eps=1.0e-10)
     xmaskmin=maskmin.-eps
     xmaskmax=maskmax.-eps
-    for icell=1:ncells(grid)
+    for icell=1:num_cells(grid)
         in_region=true
-        for inode=1:nnodes_per_cell(grid)
-            coord=nodecoord(grid,cellnodes(grid,inode,icell))
-            for idim=1:spacedim(grid)
+        for inode=1:num_nodes_per_cell(grid)
+            coord=nodecoord(grid,cellnode(grid,inode,icell))
+            for idim=1:dim_space(grid)
                 if coord[idim]<maskmin[idim]
                     in_region=false
                 elseif coord[idim]>maskmax[idim]
@@ -365,63 +420,144 @@ function cellmask!(grid::Grid, maskmin::AbstractArray,maskmax::AbstractArray,ire
             grid.cellregions[icell]=ireg
         end
     end
-    grid.griddata.ncellregions=max(grid.griddata.ncellregions,ireg)
+    grid.num_cellregions[1]=max(num_cellregions(grid),ireg)
 end
 
+################################################
+"""
+    cellfactors!(grid::Grid,icell,nodefac,edgefac)
 
+Calculate node volume  and voronoi surface contributions for cell.
+""" 
+cellfactors!(grid::Grid,icell,nodefac,edgefac)=grid.cellfactors(grid,icell,nodefac,edgefac)
 
-spacedim(grid::AbstractGrid)= size(grid.nodecoord,1)
-nnodes(grid::AbstractGrid)= size(grid.nodecoord,2)
-ncells(grid::AbstractGrid)= size(grid.cellnodes,2)
-cellnodes(grid::AbstractGrid,inode,icell)=grid.cellnodes[inode,icell]
-nodecoord(grid::AbstractGrid,inode)=view(grid.nodecoord,:,inode)
-nnodes_per_cell(grid::AbstractGrid)= size(grid.cellnodes,1)
+################################################
+"""
+    bfacefactors!(grid::Grid,icell,nodefac)
 
+Calculate node volume  and voronoi surface contributions for boundary face.
+""" 
+bfacefactors!(grid::Grid,icell,nodefac)=grid.bfacefactors(grid,icell,nodefac)
 
-cellfactors(grid::Grid,icell,nodefac,edgefac)=grid.cellfactors(grid,icell,nodefac,edgefac)
+################################################
+"""
+    reg_cell(grid,icell)
 
-bfacefactors(grid::Grid,icell,nodefac)=grid.bfacefactors(grid,icell,nodefac)
+Bulk region number for cell
+"""
+reg_cell(grid::Grid,icell)=grid.cellregions[icell]
 
-cellregions(grid::Grid,icell)=grid.cellregions[icell]
+################################################
+"""
+    reg_bface(grid, ibface)
 
-bfaceregions(grid::Grid,icell)=grid.bfaceregions[icell]
+Boundary region number for boundary face
+"""
+reg_bface(grid::Grid,icell)=grid.bfaceregions[icell]
 
-griddim(grid::Grid)= size(grid.bfacenodes,1)
+################################################
+"""
+    dim_grid(grid)
 
-bfacenodes(grid::Grid,inode,icell)=grid.bfacenodes[inode,icell]
+Topological dimension of grid
+"""
+dim_grid(grid::Grid)= size(grid.bfacenodes,1)
 
-celledgenodes(grid::Grid,inode,iedge,icell)=grid.cellnodes[grid.griddata.celledgenodes[inode,iedge],icell]
+################################################
+"""
+    bfacenode(grid::Grid,inode,ibface)
 
-nedges_per_cell(grid::Grid)= grid.griddata.nedges_per_cell
+Index of boundary face node.
+"""
+bfacenode(grid::Grid,inode,icell)=grid.bfacenodes[inode,icell]
 
-nnodes_per_bface(grid::Grid)= size(grid.bfacenodes,1)
+################################################
+"""
+    celledgenode(grid::Grid,inode,iedge,icell)
 
-nbfaces(grid::Grid)= size(grid.bfacenodes,2)
+Index of cell edge node.
+"""
+celledgenode(grid::Grid,inode,iedge,icell)=grid.cellnodes[grid.celledgenodes[inode,iedge],icell]
 
-ncellregions(grid::Grid)= grid.griddata.ncellregions
+################################################
+"""
+    num_edges_per_cell(grid::Grid)
+    
+Number of edges per grid cell.
+"""
+num_edges_per_cell(grid::Grid)= size(grid.celledgenodes,2)
 
-nbfaceregions(grid::Grid)=grid.griddata.nbfaceregions
+################################################
+"""
+    num_nodes_per_bface(grid::Grid)
+
+Number of nodes per boundary face
+"""
+num_nodes_per_bface(grid::Grid)= size(grid.bfacenodes,1)
+
+################################################
+"""
+    num_bfaces(grid::Grid)
+
+Number of boundary faces in grid.
+"""
+num_bfaces(grid::Grid)= size(grid.bfacenodes,2)
+
+################################################
+"""
+    num_cellregions(grid::Grid)
+
+Number of cell regions in grid.
+"""
+num_cellregions(grid::Grid)= grid.num_cellregions[1]
+
+################################################
+"""
+    num_bfaceregions(grid::Grid)
+
+Number of boundary face regions in grid.
+"""
+num_bfaceregions(grid::Grid)=grid.num_bfaceregions[1]
 
 
 
 ##################################################################
-# SubGrid
+"""
+    struct SubGrid{Tc} <: AbstractGrid
+    
+Subgrid of parent grid (mainly for visualization purposes). Intended
+to hold support of species which are not defined everywhere.
+"""
 struct SubGrid{Tc} <: AbstractGrid
     parent::Grid
     cellnodes::Array{Int32,2}
-    nodecoord::Array{Tc,2}
+    coord::Array{Tc,2}
     node_in_parent::Array{Int32,1}
 end
 
 
-function copytransform!(a::AbstractArray,b::AbstractArray)
+##################################################################
+# Default transform for subgrid creation
+function _copytransform!(a::AbstractArray,b::AbstractArray)
     for i=1:length(a)
         a[i]=b[i]
     end
 end
 
-function SubGrid(parent::Grid,subregions::AbstractArray;transform::Function=copytransform!,boundary=false)
-    Tc=eltype(parent.nodecoord)
+##################################################################
+"""
+    function SubGrid(parent::Grid, 
+                     subregions::AbstractArray; 
+                     transform::Function=copytransform!,
+                     boundary=false)
+
+Create subgrid of list of regions.
+"""
+function SubGrid(parent::Grid,
+                 subregions::AbstractArray;
+                 transform::Function=_copytransform!,
+                 boundary=false)
+    Tc=Base.eltype(parent)
     
     @inline function insubregions(xreg)
         for i in eachindex(subregions)
@@ -436,14 +572,14 @@ function SubGrid(parent::Grid,subregions::AbstractArray;transform::Function=copy
     if boundary
         xregions=parent.bfaceregions
         xnodes=parent.bfacenodes
-        sub_gdim=griddim(parent)-1
+        sub_gdim=dim_grid(parent)-1
     else
         xregions=parent.cellregions
         xnodes=parent.cellnodes
-        sub_gdim=griddim(parent)
+        sub_gdim=dim_grid(parent)
     end
     
-    nodemark=zeros(Int32,nnodes(parent))
+    nodemark=zeros(Int32,num_nodes(parent))
     ncn=size(xnodes,1)
     
     nsubcells=0
@@ -482,7 +618,7 @@ function SubGrid(parent::Grid,subregions::AbstractArray;transform::Function=copy
 
     localcoord=zeros(Tc,sub_gdim,nsubnodes)
     @views for inode=1:nsubnodes
-        transform(localcoord[:,inode],parent.nodecoord[:,sub_nip[inode]])
+        transform(localcoord[:,inode],parent.coord[:,sub_nip[inode]])
     end
     
     return SubGrid(parent,sub_cellnodes,localcoord,sub_nip)
@@ -490,3 +626,67 @@ end
 
 
 
+
+
+##################################################################
+"""
+    mutable struct Node
+
+Structure holding local node information.
+Fields:
+
+    index::Int32
+    region::Int32
+    coord::Array{Real,1}
+
+"""
+mutable struct Node
+    index::Int32
+    region::Int32
+    coord::Array{Real,1}
+    Node()=new()
+end
+
+
+##################################################################
+"""
+    mutable struct Edge
+
+Structure holding local edge information.
+
+Fields:
+
+    index::Int32
+    region::Int32
+    nodeK::Int32
+    nodeL::Int32
+    coordK::Array{Float64,1}
+    coordL::Array{Float64,1}
+
+
+"""
+mutable struct Edge
+    index::Int32
+    nodeK::Int32
+    nodeL::Int32
+    region::Int32
+    coordK::Array{Float64,1}
+    coordL::Array{Float64,1}
+    Edge()=new()
+end
+
+##################################################################
+"""
+   function edgelength(edge::Edge)
+   
+Calculate the length of an edge. 
+"""
+function edgelength(edge::Edge)
+    l::Float64
+    l=0.0
+    for i=1:length(edge.coordK)
+        d=edge.coordK[i]-edge.coordL[i]
+        l=l+d*d
+    end
+    return l
+end

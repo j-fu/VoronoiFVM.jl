@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>2D Nonlinear Poisson equation · TwoPointFluxFVM.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="../../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>TwoPointFluxFVM.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../../">Home</a></li><li><a class="toctext" href="../../install/">Installation</a></li><li><a class="toctext" href="../../changes/">Changes</a></li><li><a class="toctext" href="../../alldocs/">API Documentation</a></li><li><a class="toctext" href="../../allindex/">API Index</a></li><li><span class="toctext">Examples</span><ul><li><a class="toctext" href="../OneSpeciesNonlinearPoisson/">1D Nonlinear Poisson equation with one species</a></li><li><a class="toctext" href="../TwoSpeciesNonlinearPoisson/">1D Nonlinear Poisson equation with two species</a></li><li><a class="toctext" href="../IonicLiquid/">1D Ionic Liquid</a></li><li class="current"><a class="toctext" href>2D Nonlinear Poisson equation</a><ul class="internal"></ul></li><li><a class="toctext" href="../NonlinearPoisson2D_Reaction/">2D Nonlinear Poisson equation with reaction</a></li><li><a class="toctext" href="../ThreeRegions1D/">Differing species sets in regions, 1D</a></li><li><a class="toctext" href="../NonlinearPoisson2D_BoundaryReaction/">2D Nonlinear Poisson equation with boundary reaction</a></li><li><a class="toctext" href="../NonlinearPoisson1D_BoundarySpecies/">1D two species system with boundary reaction and boundary species</a></li><li><a class="toctext" href="../NonlinearPoisson2D_BoundarySpecies/">2D Nonlinear Poisson equation with boundary reaction and boundary species</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>2D Nonlinear Poisson equation</a></li></ul><a class="edit-page" href="https://github.com//blob/master/docs/src/examples/NonlinearPoisson2D.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>2D Nonlinear Poisson equation</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="D-Nonlinear-Poisson-equation-1" href="#D-Nonlinear-Poisson-equation-1">2D Nonlinear Poisson equation</a></h1><div><pre><code class="language-julia">module NonlinearPoisson2D
+
+using Printf
+using TwoPointFluxFVM
+
+if isinteractive()
+    using PyPlot
+end
+
+
+mutable struct Physics
+    reaction::Function
+    flux::Function
+    source::Function
+    storage::Function
+    eps::Float64 
+    Physics()=new()
+end
+
+
+function main(;n=10,pyplot=false,verbose=false)
+    
+    h=1.0/convert(Float64,n)
+    X=collect(0.0:h:1.0)
+    Y=collect(0.0:h:1.0)
+
+
+    grid=TwoPointFluxFVM.Grid(X,Y)
+    
+    physics=Physics()
+    physics.eps=1.0e-2
+    
+    physics.reaction=function(physics,node,f,u)
+        f[1]=u[1]^2
+    end
+    
+    physics.flux=function(physics,edge,f,uk,ul)
+        f[1]=physics.eps*(uk[1]^2-ul[1]^2)
+    end 
+    
+    physics.source=function(physics,node,f)
+        x1=node.coord[1]-0.5
+        x2=node.coord[2]-0.5
+        f[1]=exp(-20*(x1^2+x2^2))
+    end 
+    
+    physics.storage=function(physics,node, f,u)
+        f[1]=u[1]
+    end
+    
+    
+    sys=TwoPointFluxFVM.System(grid,physics,1)
+    add_species(sys,1,[1])
+
+    sys.boundary_values[1,2]=0.1
+    sys.boundary_values[1,4]=0.1
+    
+    sys.boundary_factors[1,2]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[1,4]=TwoPointFluxFVM.Dirichlet
+    
+    inival=unknowns(sys)
+    inival.=0.5
+
+
+    control=TwoPointFluxFVM.NewtonControl()
+    control.verbose=verbose
+    control.tol_linear=1.0e-5
+    control.max_lureuse=10
+    tstep=0.01
+    time=0.0
+    u15=0
+    while time&lt;1.0
+        time=time+tstep
+        U=solve(sys,inival,control=control,tstep=tstep)
+        u15=U[15]
+        inival.=U
+
+        if verbose
+            @printf(&quot;time=%g\n&quot;,time)
+        end
+
+        tstep*=1.0
+        if pyplot
+            levels=collect(0:0.01:1)
+            PyPlot.clf()
+            contourf(X,Y,reshape(values(U),length(X),length(Y)), cmap=ColorMap(&quot;hot&quot;),levels=levels)
+            colorbar()
+            pause(1.0e-10)
+        end
+    end
+    return u15
+end
+
+end
+</code></pre></div><footer><hr/><a class="previous" href="../IonicLiquid/"><span class="direction">Previous</span><span class="title">1D Ionic Liquid</span></a><a class="next" href="../NonlinearPoisson2D_Reaction/"><span class="direction">Next</span><span class="title">2D Nonlinear Poisson equation with reaction</span></a></footer></article></body></html>

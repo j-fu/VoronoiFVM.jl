@@ -79,8 +79,8 @@ function main(;n=100,pyplot=false,verbose=false)
         inival.=U
         if pyplot
             clf()
-            plot(grid.nodecoord[1,:],U[1,:])
-            plot(grid.nodecoord[1,:],U[2,:])
+            plot(grid.coord[1,:],U[1,:])
+            plot(grid.coord[1,:],U[2,:])
             pause(1.0e-10)
         end
         u5=U[5]

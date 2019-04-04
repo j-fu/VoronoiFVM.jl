@@ -36,6 +36,11 @@ using Test
         @test NonlinearPoisson2D_Reaction.main() ≈ 0.014566189535134827
     end
     @time begin
+        print("                     ThreeRegions1D:")
+        include("../examples/ThreeRegions1D.jl")
+        @test ThreeRegions1D.main() ≈ 0.00039500514567080265
+    end
+    @time begin
         print("NonlinearPoisson2D_BoundaryReaction:")
         include("../examples/NonlinearPoisson2D_BoundaryReaction.jl")
         @test NonlinearPoisson2D_BoundaryReaction.main() ≈ 0.008761335823958986
@@ -50,5 +55,5 @@ using Test
         include("../examples/NonlinearPoisson2D_BoundarySpecies.jl")
         @test NonlinearPoisson2D_BoundarySpecies.main() ≈ 0.0020781361856598
     end
-        print("                                all:")
+    print("                                all:")
 end

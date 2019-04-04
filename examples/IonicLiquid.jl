@@ -26,8 +26,8 @@ function plot_solution(sys,U0)
     ic=physics.ic
     PyPlot.clf()
     @views begin
-        PyPlot.plot(sys.grid.nodecoord[1,:],U0[iphi,:], label="Potential", color="g")
-        PyPlot.plot(sys.grid.nodecoord[1,:],U0[ic,:], label="c-", color="b")
+        PyPlot.plot(sys.grid.coord[1,:],U0[iphi,:], label="Potential", color="g")
+        PyPlot.plot(sys.grid.coord[1,:],U0[ic,:], label="c-", color="b")
     end
     PyPlot.grid()
     PyPlot.legend(loc="upper right")

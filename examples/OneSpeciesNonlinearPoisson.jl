@@ -1,33 +1,49 @@
+# We wrap this example and all later ones
+# into a module structure. This allows to load
+# all of them at once into the REPL without name
+# clashes. We shouldn't forget the corresponding end
+# statement.
 module OneSpeciesNonlinearPoisson
 
+# This gives us he @printf macro (c-like output)
 using Printf
+
+# That's the thing we want to do
 using TwoPointFluxFVM
 
+# Allow plotting
 if isinteractive()
     using PyPlot
 end
 
 
 
-"""
-    Structure containing  userdata information
-"""
+#
+# Structure containing  userdata information
+#
+# We choose a mutable struct which allows to overwrite
+# fields later.
 mutable struct Physics
-    flux::Function
-    source::Function
-    reaction::Function
-    storage::Function
-    eps::Real
-    Physics()=new()
+    flux::Function      # flux function, mandatory
+    source::Function    # source function, optional
+    reaction::Function  # reaction term, optional
+    storage::Function   # storage term, mandatory
+    eps::Real           # Example for "user data" passed to the callback
+
+    Physics()=new() # Provide inner constructor resulting in uninitialized struct
 end
 
 
-"""
-Main function for user interaction from REPL and
-for test. Default physics need to generate correct
-test value.
-"""
+
+# Main function for user interaction from REPL and
+# for testimg. Default physics need to generate correct
+# test value.
+
+
 function main(;n=10,pyplot=false,verbose=false)
+
+
+    
     h=1.0/convert(Float64,n)
     grid=TwoPointFluxFVM.Grid(collect(0:h:1))
     
@@ -78,12 +94,13 @@ function main(;n=10,pyplot=false,verbose=false)
         if pyplot
             PyPlot.clf()
             PyPlot.grid()
-            plot(grid.nodecoord[1,:],U[1,:])
+            plot(grid.coord[1,:],U[1,:])
             pause(1.0e-10)
         end
     end
     return test_result
 end
 
-end
+
+end # Yes, this is *that* end (of the module...)
 

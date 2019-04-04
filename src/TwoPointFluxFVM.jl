@@ -9,8 +9,6 @@ include("twopointfluxfvmsystem.jl")
 
 
 export unknowns
-export bulk_unknowns
-export boundary_unknowns
 export fbernoulli
 export fbernoulli_pm
 export solve
@@ -19,12 +17,11 @@ export integrate
 
 
 
-export nnodes
-export nbfaces
-export ncells
+export num_nodes
+export num_bfaces
+export num_cells
 export add_species
 export add_boundary_species
-export copy
 export cellmask!
 export fvmplot
 export dof

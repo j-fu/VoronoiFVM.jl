@@ -14,38 +14,39 @@ It requires Julia 1.0.
 Documentation created with [Documenter.jl](https://juliadocs.github.io/Documenter.jl/stable/index.html)
 resides [here](https://www.wias-berlin.de/people/fuhrmann/TwoPointFluxFVM)
 
-## Main structs (classes)
-
-### [`TwoPointFluxFVM.Physics`](@ref)
-This is an abstract type  from which a user
-data type can be derived which describes the physical
-data of a given problem. These are user defined parameters
-and nonlinear functions describing storage, reactions and
-fluxes between control volumes.
-
-A typical usage pattern is as follows:
+## Typical usage
 
 ```julia
 """
 Structure containing  userdata information
 """
-mutable struct Physics <:TwoPointFluxFVM.Physics
-    TwoPointFluxFVM.@AddPhysicsBaseClassFields
+mutable struct Physics
+    reaction::Function
+    flux::Function
+    storage::Function
+    source::Function
     eps::Float64 
-    Physics()=Physics(new())
+    Physics()=new()
 end
 
 """
 Reaction term
 """
-function reaction!(this::Physics,node::TwoPointFluxFVM.Node,f::AbstractArray,u::AbstractArray)
+physics.reaction=function(physics,node,f,u)
     f[1]=u[1]^2
+end
+
+"""
+Storage term
+"""
+physics.storage=function(physics,node,f,u)
+    f[1]=u[1]
 end
 
 """
 Flux term
 """
-function flux!(this::Physics,edge::TwoPointFluxFVM.Edge,f::AbstractArray,uk::AbstractArray,ul::AbstractArray)
+physics.flux=function(physics,edge,f,uk,ul)
     f[1]=this.eps*(uk[1]^2-ul[1]^2)
 end 
 
@@ -53,43 +54,29 @@ end
 """
 Source term
 """
-function source!(this::Physics,node::TwoPointFluxFVM.Node,f::AbstractArray)
+physics.source=function(physics,node,f)
     f[1]=1.0e-4*node.coord[1]
 end 
 
-"""
-Constructor for userdata structure
-"""
-function Physics(this::Physics)
-    TwoPointFluxFVM.PhysicsBase(this,1)
-    this.eps=1
-    this.flux=flux!
-    this.reaction=reaction!
-    this.source=source!
-    return this
-end
 
 ```
 
-### [`TwoPointFluxFVM.Graph`](@ref)
+### [`TwoPointFluxFVM.Grid`](@ref)
 
-This is a weighted graph which represents edges and nodes
-of a finite volume scheme. There are currently two
-constructors:
-
+This is a simplex grid structure.
 
 ### [`TwoPointFluxFVM.Node`](@ref)
 
-This represents a node  in [`TwoPointFluxFVM.Graph`](@ref).
+This represents a node  in [`TwoPointFluxFVM.Grid`](@ref).
 
 ### [`TwoPointFluxFVM.Edge`](@ref)
 
-This represents an edge  in [`TwoPointFluxFVM.Graph`](@ref).
+This represents an edge between
+two neigboring control volumes created from [`TwoPointFluxFVM.Grid`](@ref).
 
-
-
-[`TwoPointFluxFVM.Graph(X::Array{Float64,1})`](@ref) for one-dimensional
-domains and [`TwoPointFluxFVM.Graph(X::Array{Float64,1},Y::Array{Float64,1})`](@ref)
+Currently, constructors are
+[`TwoPointFluxFVM.Grid(X::Array{Real,1})`](@ref) for one-dimensional
+domains and [`TwoPointFluxFVM.Grid(X::Array{Float64,1},Y::Array{Float64,1})`](@ref)
 for two-dimensional domains.
 
 ### [`TwoPointFluxFVM.System`](@ref)

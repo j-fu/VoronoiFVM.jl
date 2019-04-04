@@ -6,47 +6,72 @@ using IterativeSolvers
 using SparseArrays
 using LinearAlgebra
 using Printf
-#####################################################
+
+##################################################################
 """
 Constant to be used as boundary condition factor 
 to mark Dirichlet boundary conditons.    
 """
 const Dirichlet=1.0e30
 
+##################################################################
+"""
+    value(x)
+
+Extract value from dual number. Use to debug physics callbacks.
+Re-exported from ForwardDiff.jl
+"""
 const value=ForwardDiff.value
 
 ##################################################################
-# System
+"""
+    mutable struct System{Tv}
+
+Main structure holding data for system solution.
+
+"""
 mutable struct System{Tv}
     grid::Grid
-    physics
+    physics::Any
+    boundary_values::Array{Tv,2} # Array of boundary values  
+    boundary_factors::Array{Tv,2}# Array of boundary factors 
     region_species::SparseMatrixCSC{Int8,Int16}
     bregion_species::SparseMatrixCSC{Int8,Int16}
     node_dof::SparseMatrixCSC{Int8,Int32}
-    boundary_values::Array{Tv,2}
-    boundary_factors::Array{Tv,2}
     matrix::SparseArrays.SparseMatrixCSC{Tv,Int32}
     function System{Tv}() where Tv
         return new{Tv}()
     end
 end
+##################################################################
+"""
+    function  System(grid::Grid, physics::Any, maxspec::Integer)
 
+Constructor for System. `physics` provides some user data, `maxspec`
+is the maximum number of species.
+"""
 function  System(grid::Grid,physics, maxspec::Integer)
-    Tv=eltype(grid.nodecoord)
+    Tv=Base.eltype(grid)
     this=System{Tv}()
     this.grid=grid
     this.physics=physics
-    this.region_species=spzeros(Int8,Int16,maxspec,ncellregions(grid))
-    this.bregion_species=spzeros(Int8,Int16,maxspec,nbfaceregions(grid))
-    this.node_dof=spzeros(Int8,Int32,maxspec,nnodes(grid))
-    this.boundary_values=zeros(Tv,maxspec,nbfaceregions(grid))
-    this.boundary_factors=zeros(Tv,maxspec,nbfaceregions(grid))
+    this.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
+    this.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
+    this.node_dof=spzeros(Int8,Int32,maxspec,num_nodes(grid))
+    this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
+    this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     return this
 end
 
+##################################################################
+"""
+    function is_boundary_species(this::System, ispec::Integer)
+
+Check if species number corresponds to boundary species.
+"""
 function is_boundary_species(this::System, ispec::Integer)
     isbspec=false
-    for ibreg=1:nbfaceregions(this.grid)
+    for ibreg=1:num_bfaceregions(this.grid)
         if this.bregion_species[ispec,ibreg]>0
             isbspec=true
         end
@@ -54,9 +79,15 @@ function is_boundary_species(this::System, ispec::Integer)
     return isbspec
 end
 
+##################################################################
+"""
+    function is_bulk_species(this::System, ispec::Integer)
+
+Check if species number corresponds bulk species.
+"""
 function is_bulk_species(this::System, ispec::Integer)
     isrspec=false
-    for ixreg=1:ncellregions(this.grid)
+    for ixreg=1:num_cellregions(this.grid)
         if this.region_species[ispec,ixreg]>0
             isrspec=true
         end
@@ -64,7 +95,13 @@ function is_bulk_species(this::System, ispec::Integer)
     return isrspec
 end
 
+##################################################################
+"""
+    function add_species(this::System,ispec::Integer, regions::AbstractArray)
 
+Add species to a list of bulk regions. Species numbers for
+bulk and boundary species have to be distinct.
+"""
 function add_species(this::System,ispec::Integer, regions::AbstractArray)
     if is_boundary_species(this,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
@@ -73,7 +110,7 @@ function add_species(this::System,ispec::Integer, regions::AbstractArray)
     for i in eachindex(regions)
         ireg=regions[i]
         this.region_species[ispec,ireg]=ispec
-        for icell=1:ncells(this.grid)
+        for icell=1:num_cells(this.grid)
             if this.grid.cellregions[icell]==ireg
                 for inode=1:size(this.grid.cellnodes,1)
                     this.node_dof[ispec,this.grid.cellnodes[inode,icell]]=ispec
@@ -83,6 +120,14 @@ function add_species(this::System,ispec::Integer, regions::AbstractArray)
     end
 end
 
+##################################################################
+"""
+    function add_boundary_species(this::System, ispec::Integer, regions::AbstractArray)
+
+Add species to a list of boundary regions. Species numbers for
+bulk and boundary species have to be distinct.
+
+"""
 function add_boundary_species(this::System, ispec::Integer, regions::AbstractArray)
     if is_bulk_species(this,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
@@ -90,7 +135,7 @@ function add_boundary_species(this::System, ispec::Integer, regions::AbstractArr
     for i in eachindex(regions)
         ireg=regions[i]
         this.bregion_species[ispec,ireg]=1
-        for ibface=1:nbfaces(this.grid)
+        for ibface=1:num_bfaces(this.grid)
             if this.grid.bfaceregions[ibface]==ireg
                 for inode=1:size(this.grid.bfacenodes,1)
                     this.node_dof[ispec,this.grid.bfacenodes[inode,ibface]]=ispec
@@ -100,41 +145,99 @@ function add_boundary_species(this::System, ispec::Integer, regions::AbstractArr
     end
 end
 
-ndof(this::System)= nnz(this.node_dof)
-nspecies(this::System)= this.node_dof.m
+##################################################################
+"""
+    num_dof(this::System)
+
+Number of degrees of freedom for system.
+"""
+num_dof(this::System)= nnz(this.node_dof)
+
+##################################################################
+"""
+    num_species(this::System)
+
+Number of species in system
+"""
+num_species(this::System)= this.node_dof.m
+
+
+
+
+
+
 
 
 ##################################################################
-# SysArray
-
 """
-    This class plays well with the abstract array interface
+    struct SysArray{Tv} <: AbstractArray{Tv,2}
+        node_dof::SparseMatrixCSC{Tv,Int16}
+    end
+
+Struct holding solution information for system. Solution
+is stored in a sparse matrix structure.
+
+This class plays well with the abstract array interface
 """
 struct SysArray{Tv} <: AbstractArray{Tv,2}
     node_dof::SparseMatrixCSC{Tv,Int16}
 end
 
-function  SysArray{Tv}(sys::System) where Tv
+##################################################################
+"""
+    function unknowns(system)
+
+Create a solution vector for system.
+"""
+function unknowns(sys::System{Tv}) where Tv
     return SysArray{Tv}(SparseMatrixCSC(sys.node_dof.m,
                                         sys.node_dof.n,
                                         sys.node_dof.colptr,
                                         sys.node_dof.rowval,
-                                        Array{Tv}(undef,ndof(sys))
+                                        Array{Tv}(undef,num_dof(sys))
                                         )
                         )
 end
 
-
-function unknowns(sys::System)
-    Tv=eltype(sys.grid.nodecoord)
-    return SysArray{Tv}(sys)
-end
-
+##################################################################
+"""
+    size(a::SysArray)
+    
+Return size of solution array.
+"""
 Base.size(a::SysArray)=size(a.node_dof)
-nnodes(a::SysArray)=size(a,2)
-nspecies(a::SysArray)=size(a,1)
+
+##################################################################
+"""
+    num_nodes(a::SysArray)
+                        
+Number of nodes (size of second dimension) of solution array.
+"""
+num_nodes(a::SysArray)=size(a,2)
+
+##################################################################
+"""
+    num_species(a::SysArray)
+
+Number of species (size of first dimension) of solution array.
+"""
+num_species(a::SysArray)=size(a,1)
+
+##################################################################
+"""
+    values(a::SysArray)=a.node_dof
+
+Array of values in solution array.
+"""
 values(a::SysArray)=a.node_dof.nzval
 
+
+##################################################################
+"""
+    copy(this::SysArray)
+
+Create a copy of solution array
+"""
 function Base.copy(this::SysArray{Tv}) where Tv
     return SysArray{Tv}(SparseMatrixCSC(this.node_dof.m,
                                         this.node_dof.n,
@@ -145,7 +248,13 @@ function Base.copy(this::SysArray{Tv}) where Tv
                         )
 end
 
-@inline function dof(a::SysArray,i::Integer, j::Integer) where Tv
+##################################################################
+"""
+    function dof(a::SysArray,ispec, inode)
+
+Get number of degree of freedom. Return 0 if species is not defined in node.
+"""
+@inline function dof(a::SysArray{Tv},i::Integer, j::Integer) where Tv
     A=a.node_dof
     coljfirstk = Int(A.colptr[j])
     coljlastk = Int(A.colptr[j+1] - 1)
@@ -156,14 +265,32 @@ end
     return 0
 end
 
+##################################################################
+"""
+    function setdof!(a::SysArray,v,i::Integer)
+
+Set value for degree of freedom.
+"""
 @inline function setdof!(a::SysArray,v,i::Integer)
     a.node_dof.nzval[i] = v
 end
 
+##################################################################
+"""
+    function getdof(a::SysArray,i::Integer)
+
+Return  value for degree of freedom.
+"""
 @inline function getdof(a::SysArray,i::Integer)
     return a.node_dof.nzval[i] 
 end
 
+##################################################################
+"""
+     setindex!(a::SysArray, v, ispec, inode)
+
+Accessor for solution array.
+"""
 function Base.setindex!(a::SysArray, v, ispec::Integer, inode::Integer)
     searchk=dof(a,ispec,inode)
     if searchk>0
@@ -175,7 +302,12 @@ function Base.setindex!(a::SysArray, v, ispec::Integer, inode::Integer)
     # throw(DomainError("undefined degree of freedom"))
 end
 
+##################################################################
+"""
+     getindex!(a::SysArray, ispec, inode)
 
+Accessor for solution array.
+"""
 function Base.getindex(a::SysArray, ispec::Integer, inode::Integer)
     searchk=dof(a,ispec,inode)
     if searchk>0
@@ -188,45 +320,73 @@ function Base.getindex(a::SysArray, ispec::Integer, inode::Integer)
 end
 
 ##################################################################
-# SubgridSysArrayView
+"""
+    struct SubgridSysArrayView{Tv} <: AbstractArray{Tv,2}
+
+Struct holding information for solution array view on subgrid
+"""
 struct SubgridSysArrayView{Tv} <: AbstractArray{Tv,2}
     sysarray::SysArray{Tv}
     subgrid::SubGrid
 end
 
+##################################################################
+"""
+    view(a::SysArray{Tv},sg::SubGrid)
+
+Create a view of the solution array on a subgrid.
+"""
 function Base.view(a::SysArray{Tv},sg::SubGrid) where Tv
     return SubgridSysArrayView{Tv}(a,sg)
 end
 
+##############################################################################
+"""
+    getindex(aview::SubgridSysArrayView,ispec::Integer,inode::Integer)
+
+Accessor method for subgrid array view.
+"""
 function Base.getindex(aview::SubgridSysArrayView,ispec::Integer,inode::Integer)
     return aview.sysarray[ispec,aview.subgrid.node_in_parent[inode]]
 end
 
+##############################################################################
+"""
+    setindex!(aview::SubgridSysArrayView,v,ispec::Integer,inode::Integer)
+
+Accessor method for subgrid array view.
+"""
 function Base.setindex!(aview::SubgridSysArrayView,v,ispec::Integer,inode::Integer)
     aview.sysarray[ispec,aview.subgrid.node_in_parent[inode]]=v
     return aview
 end
 
+##################################################################
+"""
+    size(a::SubgridSysArrayView)
+    
+Return size of solution array view.
+"""
 Base.size(a::SubgridSysArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_parent,1))
 
 
 
+
+
+
+
 ##############################################################################
-
 """
-````
-function inidirichlet!(this::System,U0)
-````
+    function inidirichlet!(this::System,U)
 
-  Initialize dirichlet boundary values for solution
+Initialize dirichlet boundary values for solution.
 """
-
 function inidirichlet!(this::System{Tv},U::SysArray{Tv}) where Tv
-    for ibface=1:nbfaces(this.grid)
+    for ibface=1:num_bfaces(this.grid)
         ibreg=this.grid.bfaceregions[ibface]
-        for ispec=1:nspecies(this)
+        for ispec=1:num_species(this)
             if this.boundary_factors[ispec,ibreg]==Dirichlet
-                for inode=1:griddim(this.grid)
+                for inode=1:dim_grid(this.grid)
                     U[ispec,this.grid.bfacenodes[inode,ibface]]=this.boundary_values[ispec,ibreg]
                 end
             end
@@ -235,26 +395,27 @@ function inidirichlet!(this::System{Tv},U::SysArray{Tv}) where Tv
 end
 
 
-
-function eval_and_assemble(this::System,
-                           U, # Actual solution iteration
-                           UOld, # Old timestep solution
-                           F,
-                           tstep # time step size. Inf means stationary solution
+#############################################################################
+# Assemble routine
+function _eval_and_assemble(this::System,
+                            U, # Actual solution iteration
+                            UOld, # Old timestep solution
+                            F,# Right hand side
+                            tstep # time step size. Inf means stationary solution
                            )
 
     grid=this.grid
-    Tv=eltype(grid.nodecoord)
+    Tv=Base.eltype(grid)
 
     physics=this.physics
     node=Node()
     edge=Edge()
     edge_cutoff=1.0e-12
-    num_species=nspecies(this)
+    nspecies=num_species(this)
     
     
     if !isdefined(this,:matrix)
-        this.matrix=spzeros(Tv,ndof(this), ndof(this))
+        this.matrix=spzeros(Tv,num_dof(this), num_dof(this))
     end
 
     @inline function addnz(matrix,i,j,v,fac)
@@ -263,14 +424,12 @@ function eval_and_assemble(this::System,
         end
     end
     
-
-    # Wrap API flux with function compatible to ForwardDiff
     
     K1=1
-    KN=num_species
-    L1=num_species+1
-    LN=2*num_species
-    
+    KN=nspecies
+    L1=nspecies+1
+    LN=2*nspecies
+
     @inline function fluxwrap(y,u)
         y.=0
         @views physics.flux(physics,node,y,u[K1:KN],u[L1:LN])
@@ -308,28 +467,28 @@ function eval_and_assemble(this::System,
     F.=0.0
 
     # structs holding diff results for storage, reaction,  flux ...
-    result_r=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
-    result_br=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
-    result_bs=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,num_species))
-    result_flx=DiffResults.DiffResult(Vector{Tv}(undef,num_species),Matrix{Tv}(undef,num_species,2*num_species))
+    result_r=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
+    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
+    result_br=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
+    result_bs=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
+    result_flx=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,2*nspecies))
 
     # Arrays holding function results
-    Y=Array{Tv,1}(undef,num_species)
-    res_react=zeros(Tv,num_species)
-    jac_react=zeros(Tv,num_species,num_species)
+    Y=Array{Tv,1}(undef,nspecies)
+    res_react=zeros(Tv,nspecies)
+    jac_react=zeros(Tv,nspecies,nspecies)
 
     # Arrays for gathering solution data
-    UK=Array{Tv,1}(undef,num_species)
-    UKOld=Array{Tv,1}(undef,num_species)
-    UKL=Array{Tv,1}(undef,2*num_species)
+    UK=Array{Tv,1}(undef,nspecies)
+    UKOld=Array{Tv,1}(undef,nspecies)
+    UKL=Array{Tv,1}(undef,2*nspecies)
 
     # array holding source term
-    src=zeros(Tv,num_species)
+    src=zeros(Tv,nspecies)
 
     # arrays holding storage terms for old solution
-    oldstor=zeros(Tv,num_species)
-    oldbstor=zeros(Tv,num_species)
+    oldstor=zeros(Tv,nspecies)
+    oldbstor=zeros(Tv,nspecies)
 
 
     # Inverse of timestep
@@ -339,28 +498,26 @@ function eval_and_assemble(this::System,
 
     
     # Arrays holding for factor data
-    node_factors=zeros(Tv,nnodes_per_cell(grid))
-    edge_factors=zeros(Tv,nedges_per_cell(grid))
+    node_factors=zeros(Tv,num_nodes_per_cell(grid))
+    edge_factors=zeros(Tv,num_edges_per_cell(grid))
 
     # Main cell loop
-    for icell=1:ncells(grid)
+    for icell=1:num_cells(grid)
         # set up form factors
-        cellfactors(grid,icell,node_factors,edge_factors)
+        cellfactors!(grid,icell,node_factors,edge_factors)
 
         # set up data for callbacks
-        node.region=cellregions(grid,icell)
-        node.nspecies=num_species
+        node.region=reg_cell(grid,icell)
+        edge.region=reg_cell(grid,icell)
+
         
-        edge.region=cellregions(grid,icell)
-        edge.nspecies=num_species
-        
-        for inode=1:nnodes_per_cell(grid)
+        for inode=1:num_nodes_per_cell(grid)
             @views begin
-                K=cellnodes(grid,inode,icell)
+                K=cellnode(grid,inode,icell)
                 node.index=K
                 node.coord=nodecoord(grid,K)
-                UK[1:num_species]=U[:,K]
-                UKOld[1:num_species]=UOld[:,K]
+                UK[1:nspecies]=U[:,K]
+                UKOld[1:nspecies]=UOld[:,K]
             end
             # Evaluate source term
             if isdefined(physics,:source)
@@ -394,13 +551,13 @@ function eval_and_assemble(this::System,
             end
         end
         
-        for iedge=1:nedges_per_cell(grid)
+        for iedge=1:num_edges_per_cell(grid)
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
             @views begin
-                K=celledgenodes(grid,1,iedge,icell)
-                L=celledgenodes(grid,2,iedge,icell)
+                K=celledgenode(grid,1,iedge,icell)
+                L=celledgenode(grid,2,iedge,icell)
                 edge.index=iedge
                 edge.nodeK=K
                 edge.nodeL=L
@@ -437,30 +594,30 @@ function eval_and_assemble(this::System,
                     end
                     
                     addnz(M,idofK,jdofK,+jac[ispec,jspec            ],edge_factors[iedge])
-                    addnz(M,idofK,jdofL,+jac[ispec,jspec+num_species],edge_factors[iedge])
+                    addnz(M,idofK,jdofL,+jac[ispec,jspec+nspecies],edge_factors[iedge])
                     addnz(M,idofL,jdofK,-jac[ispec,jspec            ],edge_factors[iedge])
-                    addnz(M,idofL,jdofL,-jac[ispec,jspec+num_species],edge_factors[iedge])
+                    addnz(M,idofL,jdofL,-jac[ispec,jspec+nspecies],edge_factors[iedge])
                     
                 end
             end
         end
     end
 
-   bnode_factors=zeros(Tv,nnodes_per_bface(grid))
-   for ibface=1:nbfaces(grid)
-        bfacefactors(grid,ibface,bnode_factors)
+   bnode_factors=zeros(Tv,num_nodes_per_bface(grid))
+   for ibface=1:num_bfaces(grid)
+        bfacefactors!(grid,ibface,bnode_factors)
         ibreg=grid.bfaceregions[ibface]
         node.region=ibreg
-        for ibnode=1:nnodes_per_bface(grid)
+        for ibnode=1:num_nodes_per_bface(grid)
             @views begin
-                K=bfacenodes(grid,ibnode,ibface)
+                K=bfacenode(grid,ibnode,ibface)
                 node.index=K
                 node.coord=nodecoord(grid,K)
-                UK[1:num_species]=U[:,K]
-                UKOld[1:num_species]=UOld[:,K]
+                UK[1:nspecies]=U[:,K]
+                UKOld[1:nspecies]=UOld[:,K]
             end
 
-            for ispec=1:nspecies(this) # should involve only rspecies
+            for ispec=1:nspecies # should involve only rspecies
                 fac=this.boundary_factors[ispec,ibreg]
                 val=this.boundary_values[ispec,ibreg]
                 if fac!=Dirichlet
@@ -518,9 +675,6 @@ end
 
 
 ################################################################
-"""
-Actual solver function implementation
-    """
 function _solve(
     this::System{Tv}, # Finite volume system
     oldsol::SysArray{Tv}, # old time step solution resp. initial value
@@ -544,7 +698,7 @@ function _solve(
     damp=control.damp_initial
     tolx=0.0
     for ii=1:control.max_iterations
-        eval_and_assemble(this,solution,oldsol,residual,tstep)
+        _eval_and_assemble(this,solution,oldsol,residual,tstep)
         
         # Sparse LU factorization
         # Here, we seem miss the possibility to re-use the 
@@ -588,16 +742,16 @@ end
 
 ################################################################
 """
-Solution method for instance of System
+    function solve(
+        this::System,            # Finite volume system
+        oldsol::Array{Tv,1};     # old time step solution resp. initial value
+        control=NewtonControl(), # Solver control information (optional)
+        tstep::Tv=Inf            # Time step size. Inf means  stationary solution. (optional)
+        )
 
-````
-function solve(
-    this::System, # Finite volume system
-    oldsol::Array{Tv,1};    # old time step solution resp. initial value
-    control=NewtonControl(),  # Solver control information
-    tstep::Tv=Inf           # Time step size. Inf means  stationary solution
-    )
-````
+
+Solution method for instance of System.
+
 Perform solution of stationary system (if `tstep==Inf`) or implicit Euler time
 step system. 
 
@@ -630,24 +784,23 @@ containing the integral for each species.
 """
 function integrate(this::System{Tv},F::Function,U::SysArray{Tv}) where Tv
     grid=this.grid
-    num_species=nspecies(this)
-    integral=zeros(Tv, num_species)
-    res=zeros(Tv, num_species)
+    nspecies=num_species(this)
+    integral=zeros(Tv,nspecies)
+    res=zeros(Tv,nspecies)
     node=Node()
-    node_factors=zeros(Tv,nnodes_per_cell(grid))
-    edge_factors=zeros(Tv,nedges_per_cell(grid))
+    node_factors=zeros(Tv,num_nodes_per_cell(grid))
+    edge_factors=zeros(Tv,num_edges_per_cell(grid))
 
-    for icell=1:ncells(grid)
-        cellfactors(grid,icell,node_factors,edge_factors)
-        node.region=cellregions(grid,icell)
-        node.nspecies=num_species # TODO: Change this for local  info
-        
-        for inode=1:nnodes_per_cell(grid)
-            K=cellnodes(grid,inode,icell)
+    for icell=1:num_cells(grid)
+        cellfactors!(grid,icell,node_factors,edge_factors)
+        node.region=reg_cell(grid,icell)
+
+        for inode=1:num_nodes_per_cell(grid)
+            K=cellnode(grid,inode,icell)
             node.index=K
             node.coord=nodecoord(grid,K)
             F(this.physics,node,res,U[:,K])
-            for ispec=1:num_species
+            for ispec=1:nspecies
                 integral[ispec]+=node_factors[inode]*res[ispec]
             end
         end

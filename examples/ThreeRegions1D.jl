@@ -107,7 +107,7 @@ function main(;n=30,pyplot=false,verbose=false)
     time=0.0
     istep=0
     tend=10
-    
+    testval=0
     while time<tend
         time=time+tstep
         U=solve(sys,inival,control=control,tstep=tstep)
@@ -117,7 +117,7 @@ function main(;n=30,pyplot=false,verbose=false)
         end
         tstep*=1.0
         istep=istep+1
-        
+        testval=U[2,15]
         if pyplot && istep%10 == 0
             PyPlot.clf()
             plot(X,U[1,:],label="spec1", color=(0.5,0,0))
@@ -128,6 +128,7 @@ function main(;n=30,pyplot=false,verbose=false)
             pause(1.0e-10)
         end
     end
+    return testval
 end
 end
 

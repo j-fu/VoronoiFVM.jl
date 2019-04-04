@@ -104,7 +104,7 @@ function main(;n=10,pyplot=false,verbose=false)
             contourf(X,Y,reshape(U[1,:],length(X),length(Y)), cmap=ColorMap("hot"), vmin=0.0, vmax=0.6)
             colorbar()
             subplot(212)
-            contourf(X,Y,reshape(U[2,:],length(X),length(Y)), cmap=ColorMap("hot"), vmin=0.0, vmax=0.6)
+            contourf(X,Y,reshape(U[2,:],length(X),length(Y)), cmap=ColorMap("hot"), vmin=0.0, vmax=0.02)
             colorbar()
 
             pause(1.0e-10)
