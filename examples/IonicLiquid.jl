@@ -38,7 +38,7 @@ end
 function main(;n=20,pyplot=false,dlcap=false,verbose=false)
     
     h=1.0/convert(Float64,n)
-    grid=TwoPointFluxFVM.Grid(collect(0:h:1))
+    grid=FVMGrid(collect(0:h:1))
     
     physics=Physics()
     physics.eps=1.0e-4
@@ -86,7 +86,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
     end
     
     
-    sys=TwoPointFluxFVM.System(grid,physics,2)
+    sys=SparseFVMSystem(grid,physics,2)
     add_species(sys,1,[1])
     add_species(sys,2,[1])
 
@@ -108,7 +108,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
     end
     
     physics.eps=1.0e-3
-    control=TwoPointFluxFVM.NewtonControl()
+    control=FVMNewtonControl()
     control.verbose=verbose
     u1=0
     if !dlcap

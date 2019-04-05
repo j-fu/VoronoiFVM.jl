@@ -23,7 +23,7 @@ end
 function main(;n=30,pyplot=false,verbose=false)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
-    grid=TwoPointFluxFVM.Grid(X)
+    grid=FVMGrid(X)
     cellmask!(grid,[0.0],[1.0],1)
     cellmask!(grid,[1.0],[2.1],2)
     cellmask!(grid,[1.9],[3.0],3)
@@ -35,17 +35,17 @@ function main(;n=30,pyplot=false,verbose=false)
         waitforbuttonpress()
 
         clf()
-        fvmplot(SubGrid(grid,[1]))
+        fvmplot(FVMSubGrid(grid,[1]))
         show()
         waitforbuttonpress()
 
         clf()
-        fvmplot(SubGrid(grid,[1,2]))
+        fvmplot(FVMSubGrid(grid,[1,2]))
         show()
         waitforbuttonpress()
 
         clf()
-        fvmplot(SubGrid(grid,[1,3]))
+        fvmplot(FVMSubGrid(grid,[1,3]))
         show()
         waitforbuttonpress()
 
@@ -90,7 +90,7 @@ function main(;n=30,pyplot=false,verbose=false)
         f.=u
     end
     
-    sys=TwoPointFluxFVM.System(grid,physics,3)
+    sys=SparseFVMSystem(grid,physics,3)
     add_species(sys,1,[1])
     add_species(sys,2,[1,2,3])
     add_species(sys,3,[3])
@@ -101,7 +101,7 @@ function main(;n=30,pyplot=false,verbose=false)
     inival=unknowns(sys)
     inival.=0
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=FVMNewtonControl()
     control.verbose=verbose
     tstep=0.01
     time=0.0

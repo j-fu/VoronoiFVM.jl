@@ -21,7 +21,7 @@ end
 
 function main(;n=100,pyplot=false,verbose=false)
     h=1/n
-    grid=TwoPointFluxFVM.Grid(collect(0:h:1))
+    grid=FVMGrid(collect(0:h:1))
     
         
     physics=Physics()
@@ -50,7 +50,7 @@ function main(;n=100,pyplot=false,verbose=false)
     
 
     
-    sys=TwoPointFluxFVM.System(grid,physics,2)
+    sys=SparseFVMSystem(grid,physics,2)
     add_species(sys,1,[1])
     add_species(sys,2,[1])
     
@@ -69,7 +69,7 @@ function main(;n=100,pyplot=false,verbose=false)
     inival=unknowns(sys)
     inival.=0
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=FVMNewtonControl()
     control.verbose=verbose
     control.damp_initial=0.1
     u5=0

@@ -23,15 +23,23 @@ Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
 
+##########################################################
+"""
+   abstract type AbstractFVMSystem
+
+Abstract type for finite volume system structure
+"""
+abstract type AbstractFVMSystem end
+
 ##################################################################
 """
-    mutable struct System{Tv}
+    mutable struct SparseFVMSystem{Tv}
 
 Main structure holding data for system solution.
 
 """
-mutable struct System{Tv}
-    grid::Grid
+mutable struct SparseFVMSystem{Tv} <: AbstractFVMSystem
+    grid::FVMGrid
     physics::Any
     boundary_values::Array{Tv,2} # Array of boundary values  
     boundary_factors::Array{Tv,2}# Array of boundary factors 
@@ -39,20 +47,20 @@ mutable struct System{Tv}
     bregion_species::SparseMatrixCSC{Int8,Int16}
     node_dof::SparseMatrixCSC{Int8,Int32}
     matrix::SparseArrays.SparseMatrixCSC{Tv,Int32}
-    function System{Tv}() where Tv
+    function SparseFVMSystem{Tv}() where Tv
         return new{Tv}()
     end
 end
 ##################################################################
 """
-    function  System(grid::Grid, physics::Any, maxspec::Integer)
+    function  SparseFVMSystem(grid::FVMGrid, physics::Any, maxspec::Integer)
 
-Constructor for System. `physics` provides some user data, `maxspec`
+Constructor for SparseFVMSystem. `physics` provides some user data, `maxspec`
 is the maximum number of species.
 """
-function  System(grid::Grid,physics, maxspec::Integer)
+function  SparseFVMSystem(grid::FVMGrid,physics, maxspec::Integer)
     Tv=Base.eltype(grid)
-    this=System{Tv}()
+    this=SparseFVMSystem{Tv}()
     this.grid=grid
     this.physics=physics
     this.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
@@ -65,11 +73,11 @@ end
 
 ##################################################################
 """
-    function is_boundary_species(this::System, ispec::Integer)
+    function is_boundary_species(this::SparseFVMSystem, ispec::Integer)
 
 Check if species number corresponds to boundary species.
 """
-function is_boundary_species(this::System, ispec::Integer)
+function is_boundary_species(this::AbstractFVMSystem, ispec::Integer)
     isbspec=false
     for ibreg=1:num_bfaceregions(this.grid)
         if this.bregion_species[ispec,ibreg]>0
@@ -81,11 +89,11 @@ end
 
 ##################################################################
 """
-    function is_bulk_species(this::System, ispec::Integer)
+    function is_bulk_species(this::AbstractFVMSystem, ispec::Integer)
 
 Check if species number corresponds bulk species.
 """
-function is_bulk_species(this::System, ispec::Integer)
+function is_bulk_species(this::AbstractFVMSystem, ispec::Integer)
     isrspec=false
     for ixreg=1:num_cellregions(this.grid)
         if this.region_species[ispec,ixreg]>0
@@ -97,12 +105,12 @@ end
 
 ##################################################################
 """
-    function add_species(this::System,ispec::Integer, regions::AbstractArray)
+    function add_species(this::AbstractFVMSystem,ispec::Integer, regions::AbstractArray)
 
 Add species to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
 """
-function add_species(this::System,ispec::Integer, regions::AbstractArray)
+function add_species(this::AbstractFVMSystem,ispec::Integer, regions::AbstractArray)
     if is_boundary_species(this,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
     end
@@ -122,13 +130,13 @@ end
 
 ##################################################################
 """
-    function add_boundary_species(this::System, ispec::Integer, regions::AbstractArray)
+    function add_boundary_species(this::AbstractFVMSystem, ispec::Integer, regions::AbstractArray)
 
 Add species to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
 
 """
-function add_boundary_species(this::System, ispec::Integer, regions::AbstractArray)
+function add_boundary_species(this::AbstractFVMSystem, ispec::Integer, regions::AbstractArray)
     if is_bulk_species(this,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
@@ -147,11 +155,11 @@ end
 
 ##################################################################
 """
-    num_dof(this::System)
+    num_dof(this::AbstractFVMSystem)
 
 Number of degrees of freedom for system.
 """
-num_dof(this::System)= nnz(this.node_dof)
+num_dof(this::AbstractFVMSystem)= nnz(this.node_dof)
 
 ##################################################################
 """
@@ -159,7 +167,7 @@ num_dof(this::System)= nnz(this.node_dof)
 
 Number of species in system
 """
-num_species(this::System)= this.node_dof.m
+num_species(this::AbstractFVMSystem)= this.node_dof.m
 
 
 
@@ -170,7 +178,7 @@ num_species(this::System)= this.node_dof.m
 
 ##################################################################
 """
-    struct SysArray{Tv} <: AbstractArray{Tv,2}
+    struct SparseSysArray{Tv} <: AbstractArray{Tv,2}
         node_dof::SparseMatrixCSC{Tv,Int16}
     end
 
@@ -179,7 +187,7 @@ is stored in a sparse matrix structure.
 
 This class plays well with the abstract array interface
 """
-struct SysArray{Tv} <: AbstractArray{Tv,2}
+struct SparseSysArray{Tv} <: AbstractArray{Tv,2}
     node_dof::SparseMatrixCSC{Tv,Int16}
 end
 
@@ -189,8 +197,8 @@ end
 
 Create a solution vector for system.
 """
-function unknowns(sys::System{Tv}) where Tv
-    return SysArray{Tv}(SparseMatrixCSC(sys.node_dof.m,
+function unknowns(sys::SparseFVMSystem{Tv}) where Tv
+    return SparseSysArray{Tv}(SparseMatrixCSC(sys.node_dof.m,
                                         sys.node_dof.n,
                                         sys.node_dof.colptr,
                                         sys.node_dof.rowval,
@@ -201,45 +209,45 @@ end
 
 ##################################################################
 """
-    size(a::SysArray)
+    size(a::SparseSysArray)
     
 Return size of solution array.
 """
-Base.size(a::SysArray)=size(a.node_dof)
+Base.size(a::SparseSysArray)=size(a.node_dof)
 
 ##################################################################
 """
-    num_nodes(a::SysArray)
+    num_nodes(a)
                         
 Number of nodes (size of second dimension) of solution array.
 """
-num_nodes(a::SysArray)=size(a,2)
+num_nodes(a)=size(a,2)
 
 ##################################################################
 """
-    num_species(a::SysArray)
+    num_species(a)
 
 Number of species (size of first dimension) of solution array.
 """
-num_species(a::SysArray)=size(a,1)
+num_species(a)=size(a,1)
 
 ##################################################################
 """
-    values(a::SysArray)=a.node_dof
+    values(a::SparseSysArray)=a.node_dof
 
 Array of values in solution array.
 """
-values(a::SysArray)=a.node_dof.nzval
+values(a::SparseSysArray)=a.node_dof.nzval
 
 
 ##################################################################
 """
-    copy(this::SysArray)
+    copy(this::SparseSysArray)
 
 Create a copy of solution array
 """
-function Base.copy(this::SysArray{Tv}) where Tv
-    return SysArray{Tv}(SparseMatrixCSC(this.node_dof.m,
+function Base.copy(this::SparseSysArray{Tv}) where Tv
+    return SparseSysArray{Tv}(SparseMatrixCSC(this.node_dof.m,
                                         this.node_dof.n,
                                         this.node_dof.colptr,
                                         this.node_dof.rowval,
@@ -250,11 +258,11 @@ end
 
 ##################################################################
 """
-    function dof(a::SysArray,ispec, inode)
+    function dof(a::SparseSysArray,ispec, inode)
 
 Get number of degree of freedom. Return 0 if species is not defined in node.
 """
-@inline function dof(a::SysArray{Tv},i::Integer, j::Integer) where Tv
+@inline function dof(a::SparseSysArray{Tv},i::Integer, j::Integer) where Tv
     A=a.node_dof
     coljfirstk = Int(A.colptr[j])
     coljlastk = Int(A.colptr[j+1] - 1)
@@ -267,31 +275,31 @@ end
 
 ##################################################################
 """
-    function setdof!(a::SysArray,v,i::Integer)
+    function setdof!(a::SparseSysArray,v,i::Integer)
 
 Set value for degree of freedom.
 """
-@inline function setdof!(a::SysArray,v,i::Integer)
+@inline function setdof!(a::SparseSysArray,v,i::Integer)
     a.node_dof.nzval[i] = v
 end
 
 ##################################################################
 """
-    function getdof(a::SysArray,i::Integer)
+    function getdof(a::SparseSysArray,i::Integer)
 
 Return  value for degree of freedom.
 """
-@inline function getdof(a::SysArray,i::Integer)
+@inline function getdof(a::SparseSysArray,i::Integer)
     return a.node_dof.nzval[i] 
 end
 
 ##################################################################
 """
-     setindex!(a::SysArray, v, ispec, inode)
+     setindex!(a::SparseSysArray, v, ispec, inode)
 
 Accessor for solution array.
 """
-function Base.setindex!(a::SysArray, v, ispec::Integer, inode::Integer)
+function Base.setindex!(a::SparseSysArray, v, ispec::Integer, inode::Integer)
     searchk=dof(a,ispec,inode)
     if searchk>0
         setdof!(a,v,searchk)
@@ -304,11 +312,11 @@ end
 
 ##################################################################
 """
-     getindex!(a::SysArray, ispec, inode)
+     getindex!(a::SparseSysArray, ispec, inode)
 
 Accessor for solution array.
 """
-function Base.getindex(a::SysArray, ispec::Integer, inode::Integer)
+function Base.getindex(a::SparseSysArray, ispec::Integer, inode::Integer)
     searchk=dof(a,ispec,inode)
     if searchk>0
         return getdof(a,searchk)
@@ -321,53 +329,53 @@ end
 
 ##################################################################
 """
-    struct SubgridSysArrayView{Tv} <: AbstractArray{Tv,2}
+    struct SubgridArrayView{Tv} <: AbstractArray{Tv,2}
 
 Struct holding information for solution array view on subgrid
 """
-struct SubgridSysArrayView{Tv} <: AbstractArray{Tv,2}
-    sysarray::SysArray{Tv}
-    subgrid::SubGrid
+struct SubgridArrayView{Tv,Ta} <: AbstractArray{Tv,2}
+    sysarray::Ta
+    subgrid::FVMSubGrid
 end
 
 ##################################################################
 """
-    view(a::SysArray{Tv},sg::SubGrid)
+    view(a::AbstractArray{Tv},sg::FVMSubGrid)
 
 Create a view of the solution array on a subgrid.
 """
-function Base.view(a::SysArray{Tv},sg::SubGrid) where Tv
-    return SubgridSysArrayView{Tv}(a,sg)
+function Base.view(a::AbstractArray{Tv,2},sg::FVMSubGrid) where Tv
+    return SubgridArrayView{Tv,typeof(a)}(a,sg)
 end
 
 ##############################################################################
 """
-    getindex(aview::SubgridSysArrayView,ispec::Integer,inode::Integer)
+    getindex(aview::SubgridArrayView,ispec::Integer,inode::Integer)
 
 Accessor method for subgrid array view.
 """
-function Base.getindex(aview::SubgridSysArrayView,ispec::Integer,inode::Integer)
+function Base.getindex(aview::SubgridArrayView,ispec::Integer,inode::Integer)
     return aview.sysarray[ispec,aview.subgrid.node_in_parent[inode]]
 end
 
 ##############################################################################
 """
-    setindex!(aview::SubgridSysArrayView,v,ispec::Integer,inode::Integer)
+    setindex!(aview::SubgridArrayView,v,ispec::Integer,inode::Integer)
 
 Accessor method for subgrid array view.
 """
-function Base.setindex!(aview::SubgridSysArrayView,v,ispec::Integer,inode::Integer)
+function Base.setindex!(aview::SubgridArrayView,v,ispec::Integer,inode::Integer)
     aview.sysarray[ispec,aview.subgrid.node_in_parent[inode]]=v
     return aview
 end
 
 ##################################################################
 """
-    size(a::SubgridSysArrayView)
+    size(a::SubgridArrayView)
     
 Return size of solution array view.
 """
-Base.size(a::SubgridSysArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_parent,1))
+Base.size(a::SubgridArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_parent,1))
 
 
 
@@ -377,11 +385,11 @@ Base.size(a::SubgridSysArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_par
 
 ##############################################################################
 """
-    function inidirichlet!(this::System,U)
+    function inidirichlet!(this::AbstractFVMSystem,U)
 
 Initialize dirichlet boundary values for solution.
 """
-function inidirichlet!(this::System{Tv},U::SysArray{Tv}) where Tv
+function inidirichlet!(this::AbstractFVMSystem,U) where Tv
     for ibface=1:num_bfaces(this.grid)
         ibreg=this.grid.bfaceregions[ibface]
         for ispec=1:num_species(this)
@@ -397,7 +405,7 @@ end
 
 #############################################################################
 # Assemble routine
-function _eval_and_assemble(this::System,
+@inbounds function _eval_and_assemble(this::SparseFVMSystem,
                             U, # Actual solution iteration
                             UOld, # Old timestep solution
                             F,# Right hand side
@@ -442,7 +450,9 @@ function _eval_and_assemble(this::System,
 
     @inline function reactionwrap(y,u)
         y.=0
+        ## for ii in ..  uu[node.speclist[ii]]=u[ii]
         physics.reaction(physics,node,y,u)
+        ## for ii in .. y[ii]=y[node.speclist[ii]]
     end
 
     @inline function storagewrap(y,u)
@@ -510,12 +520,18 @@ function _eval_and_assemble(this::System,
         node.region=reg_cell(grid,icell)
         edge.region=reg_cell(grid,icell)
 
-        
         for inode=1:num_nodes_per_cell(grid)
             @views begin
                 K=cellnode(grid,inode,icell)
                 node.index=K
                 node.coord=nodecoord(grid,K)
+                # xx gather:
+                # ii=0
+                # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
+                #    ispec=Fdof.rowval[idof]
+                #    ii=ii+1
+                #    node.speclist[ii]=ispec
+                #    UK[ii]=U[ispec,K]
                 UK[1:nspecies]=U[:,K]
                 UKOld[1:nspecies]=UOld[:,K]
             end
@@ -676,9 +692,9 @@ end
 
 ################################################################
 function _solve(
-    this::System{Tv}, # Finite volume system
-    oldsol::SysArray{Tv}, # old time step solution resp. initial value
-    control::NewtonControl,
+    this::AbstractFVMSystem, # Finite volume system
+    oldsol::AbstractArray{Tv}, # old time step solution resp. initial value
+    control::FVMNewtonControl,
     tstep::Tv
 ) where Tv
     
@@ -744,8 +760,8 @@ end
 """
     function solve(
         this::System,            # Finite volume system
-        oldsol::Array{Tv,1};     # old time step solution resp. initial value
-        control=NewtonControl(), # Solver control information (optional)
+        oldsol::AbstractArray;     # old time step solution resp. initial value
+        control=FVMNewtonControl(), # Solver control information (optional)
         tstep::Tv=Inf            # Time step size. Inf means  stationary solution. (optional)
         )
 
@@ -757,9 +773,9 @@ step system.
 
 """
 function solve(
-    this::System{Tv}, # Finite volume system
-    oldsol::SysArray{Tv}; # old time step solution resp. initial value
-    control=NewtonControl(), # Newton solver control information
+    this::AbstractFVMSystem, # Finite volume system
+    oldsol::AbstractArray; # old time step solution resp. initial value
+    control=FVMNewtonControl(), # Newton solver control information
     tstep::Tv=Inf          # Time step size. Inf means  stationary solution
 ) where Tv
     if control.verbose
@@ -776,14 +792,15 @@ end
 
 """
 ````
-function integrate(this::System,F::Function,U)
+function integrate(this::AbstractFVMSystem,F::Function,U)
 ````
 
 Integrate solution vector over domain. Returns an `Array{Int64,1}`
 containing the integral for each species.
 """
-function integrate(this::System{Tv},F::Function,U::SysArray{Tv}) where Tv
+function integrate(this::AbstractFVMSystem,F::Function,U::AbstractArray)
     grid=this.grid
+    Tv=Base.eltype(grid)
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
     res=zeros(Tv,nspecies)

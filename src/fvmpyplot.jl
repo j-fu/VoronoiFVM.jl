@@ -2,7 +2,7 @@ import PyPlot
 import Colors
 
 
-function fvmplot(grid::Grid)
+function fvmplot(grid::FVMGrid)
     rgb_sequence(c) = (Colors.red(c), Colors.green(c), Colors.blue(c))
     ccols=Colors.distinguishable_colors(num_cellregions(grid),lchoices=50:50,cchoices=50:50)
     bcols=Colors.distinguishable_colors(num_bfaceregions(grid),lchoices=50:50,cchoices=50:50)
@@ -33,7 +33,7 @@ function fvmplot(grid::Grid)
 end
 
 
-function fvmplot(subgrid::SubGrid)
+function fvmplot(subgrid::FVMSubGrid)
     if dim_space(subgrid.parent)==1
         xmin=minimum(subgrid.coord)
         xmax=maximum(subgrid.coord)
@@ -55,7 +55,7 @@ end
 
 
 
-function fvmplot(grid::AbstractGrid, U::AbstractArray; color=(0,0,0),label="")
+function fvmplot(grid::AbstractFVMGrid, U::AbstractArray; color=(0,0,0),label="")
     if dim_space(grid)==1
         for icell=1:num_cells(grid)
             i1=grid.cellnodes[1,icell]

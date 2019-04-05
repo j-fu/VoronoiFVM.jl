@@ -25,7 +25,7 @@ function main(;n=10,pyplot=false,verbose=false)
     Y=collect(0.0:h:1.0)
 
 
-    grid=TwoPointFluxFVM.Grid(X,Y)
+    grid=FVMGrid(X,Y)
     
     physics=Physics()
     physics.eps=1.0e-2
@@ -49,7 +49,7 @@ function main(;n=10,pyplot=false,verbose=false)
     end
     
     
-    sys=TwoPointFluxFVM.System(grid,physics,1)
+    sys=SparseFVMSystem(grid,physics,1)
     add_species(sys,1,[1])
 
     sys.boundary_values[1,2]=0.1
@@ -62,7 +62,7 @@ function main(;n=10,pyplot=false,verbose=false)
     inival.=0.5
 
 
-    control=TwoPointFluxFVM.NewtonControl()
+    control=FVMNewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.max_lureuse=10

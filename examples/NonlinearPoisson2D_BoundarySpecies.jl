@@ -31,7 +31,7 @@ function main(;n=10,pyplot=false,verbose=false)
     
 
 
-    grid=TwoPointFluxFVM.Grid(X,Y)
+    grid=FVMGrid(X,Y)
     
     
     physics=Physics()
@@ -70,7 +70,7 @@ function main(;n=10,pyplot=false,verbose=false)
     end
     
     
-    sys=TwoPointFluxFVM.System(grid,physics,3)
+    sys=SparseFVMSystem(grid,physics,3)
     add_species(sys,1,[1])
     add_species(sys,2,[1])
     add_boundary_species(sys,3,[2])
@@ -80,14 +80,14 @@ function main(;n=10,pyplot=false,verbose=false)
         a[1]=b[2]
     end
     
-    bgrid2=SubGrid(grid,[2],boundary=true,transform=tran32!)
+    bgrid2=FVMSubGrid(grid,[2],boundary=true,transform=tran32!)
    
     inival=unknowns(sys)
     inival.=0.0
 
     physics.eps=1.0e-2
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=FVMNewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5
