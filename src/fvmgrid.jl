@@ -2,11 +2,11 @@ using SparseArrays
 
 ##########################################################
 """
-   abstract type AbstractFVMGrid
+   abstract type AbstractGrid
 
 Abstract type for grid like datastructures.
 """
-abstract type AbstractFVMGrid end
+abstract type AbstractGrid end
 
 
 ##########################################################
@@ -15,7 +15,7 @@ abstract type AbstractFVMGrid end
 
 Space dimension of grid
 """
-dim_space(grid::AbstractFVMGrid)= size(grid.coord,1)
+dim_space(grid::AbstractGrid)= size(grid.coord,1)
 
 
 ##########################################################
@@ -24,7 +24,7 @@ dim_space(grid::AbstractFVMGrid)= size(grid.coord,1)
 
 Number of nodes in grid
 """
-num_nodes(grid::AbstractFVMGrid)= size(grid.coord,2)
+num_nodes(grid::AbstractGrid)= size(grid.coord,2)
 
 
 ##########################################################
@@ -33,7 +33,7 @@ num_nodes(grid::AbstractFVMGrid)= size(grid.coord,2)
 
 Number of cells in grid
 """
-num_cells(grid::AbstractFVMGrid)= size(grid.cellnodes,2)
+num_cells(grid::AbstractGrid)= size(grid.cellnodes,2)
 
 ##########################################################
 """
@@ -41,7 +41,7 @@ num_cells(grid::AbstractFVMGrid)= size(grid.cellnodes,2)
 
 Return index of i-th local node in cell icell
 """
-cellnode(grid::AbstractFVMGrid,inode,icell)=grid.cellnodes[inode,icell]
+cellnode(grid::AbstractGrid,inode,icell)=grid.cellnodes[inode,icell]
 
 ##########################################################
 """
@@ -49,7 +49,7 @@ cellnode(grid::AbstractFVMGrid,inode,icell)=grid.cellnodes[inode,icell]
 
 Return view of coordinates of node `inode`.
 """
-nodecoord(grid::AbstractFVMGrid,inode)=view(grid.coord,:,inode)
+nodecoord(grid::AbstractGrid,inode)=view(grid.coord,:,inode)
 
 ##########################################################
 """
@@ -57,7 +57,7 @@ nodecoord(grid::AbstractFVMGrid,inode)=view(grid.coord,:,inode)
 
 Return number of nodes per cell in grid.
 """
-num_nodes_per_cell(grid::AbstractFVMGrid)= size(grid.cellnodes,1)
+num_nodes_per_cell(grid::AbstractGrid)= size(grid.cellnodes,1)
 
 ##########################################################
 """
@@ -65,15 +65,15 @@ num_nodes_per_cell(grid::AbstractFVMGrid)= size(grid.cellnodes,1)
 
 Return element type of grid coordinates.
 """
-Base.eltype(grid::AbstractFVMGrid)=Base.eltype(grid.coord)
+Base.eltype(grid::AbstractGrid)=Base.eltype(grid.coord)
 
 ##########################################################
 """
-    mutable struct FVMGrid
+    mutable struct Grid
 
 Structure holding grid data.
 """
-struct FVMGrid{Tc} <: AbstractFVMGrid
+struct Grid{Tc} <: AbstractGrid
     coord::Array{Tc,2}              # node coordinates
     cellnodes::Array{Int32,2}       # node indices per cell
     cellregions::Array{Int32,1}     # bulk region number per cell 
@@ -89,7 +89,7 @@ end
 
 ##########################################################
 """
-    FVMGrid(X::Array{Tc,1})
+    Grid(X::Array{Tc,1})
 
 Constructor for 1D grid.
 
@@ -106,7 +106,7 @@ grid marking control volumes: marked by `|`.
 ```
 
 """
-function FVMGrid(X::Array{Tc,1}) where Tc
+function Grid(X::Array{Tc,1}) where Tc
 
     function cellfac1d!(grid,icell,nodefac,edgefac)
         K=cellnode(grid,1,icell)
@@ -142,7 +142,7 @@ function FVMGrid(X::Array{Tc,1}) where Tc
     num_cellregions=[maximum(cellregions)]
     num_bfaceregions=[maximum(bfaceregions)]
     celledgenodes=reshape(Int32[1 2],:,1)
-    return FVMGrid{Tc}(coord,
+    return Grid{Tc}(coord,
                     cellnodes,
                     cellregions,
                     bfacenodes,
@@ -157,7 +157,7 @@ end
 
 ##########################################################
 """
-    FVMGrid(X::Array{Tc,1},X::Array{Tc,1})
+    Grid(X::Array{Tc,1},X::Array{Tc,1})
 
 Constructor for 2D grid
 from coordinate arrays. 
@@ -171,7 +171,7 @@ Boundary region numbers count counterclockwise:
 | west      |       4 |
 
 """
-function  FVMGrid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
+function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
 
     # 2D cell form factors
     function cellfac2d!(grid,icell,npar,epar)
@@ -374,7 +374,7 @@ function  FVMGrid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     num_bfaceregions=[maximum(bfaceregions)]
     celledgenodes=[2 1 1 ;
                    3 3 2]
-    return FVMGrid{Tc}(coord,
+    return Grid{Tc}(coord,
                     cellnodes,
                     cellregions,
                     bfacenodes,
@@ -389,7 +389,7 @@ end
 
 ######################################################
 """
-    function cellmask!(grid::FVMGrid,          
+    function cellmask!(grid::Grid,          
                        maskmin::AbstractArray, # lower left corner
                        maskmax::AbstractArray, # upper right corner
                        ireg::Integer;          # new region number for elements under mask
@@ -397,7 +397,7 @@ end
 
 Edit region numbers of grid cells via rectangular mask.
 """
-function cellmask!(grid::FVMGrid,
+function cellmask!(grid::Grid,
                    maskmin::AbstractArray,
                    maskmax::AbstractArray,
                    ireg::Integer;
@@ -425,19 +425,19 @@ end
 
 ################################################
 """
-    cellfactors!(grid::FVMGrid,icell,nodefac,edgefac)
+    cellfactors!(grid::Grid,icell,nodefac,edgefac)
 
 Calculate node volume  and voronoi surface contributions for cell.
 """ 
-cellfactors!(grid::FVMGrid,icell,nodefac,edgefac)=grid.cellfactors(grid,icell,nodefac,edgefac)
+cellfactors!(grid::Grid,icell,nodefac,edgefac)=grid.cellfactors(grid,icell,nodefac,edgefac)
 
 ################################################
 """
-    bfacefactors!(grid::FVMGrid,icell,nodefac)
+    bfacefactors!(grid::Grid,icell,nodefac)
 
 Calculate node volume  and voronoi surface contributions for boundary face.
 """ 
-bfacefactors!(grid::FVMGrid,icell,nodefac)=grid.bfacefactors(grid,icell,nodefac)
+bfacefactors!(grid::Grid,icell,nodefac)=grid.bfacefactors(grid,icell,nodefac)
 
 ################################################
 """
@@ -445,7 +445,7 @@ bfacefactors!(grid::FVMGrid,icell,nodefac)=grid.bfacefactors(grid,icell,nodefac)
 
 Bulk region number for cell
 """
-reg_cell(grid::FVMGrid,icell)=grid.cellregions[icell]
+reg_cell(grid::Grid,icell)=grid.cellregions[icell]
 
 ################################################
 """
@@ -453,7 +453,7 @@ reg_cell(grid::FVMGrid,icell)=grid.cellregions[icell]
 
 Boundary region number for boundary face
 """
-reg_bface(grid::FVMGrid,icell)=grid.bfaceregions[icell]
+reg_bface(grid::Grid,icell)=grid.bfaceregions[icell]
 
 ################################################
 """
@@ -461,75 +461,75 @@ reg_bface(grid::FVMGrid,icell)=grid.bfaceregions[icell]
 
 Topological dimension of grid
 """
-dim_grid(grid::FVMGrid)= size(grid.bfacenodes,1)
+dim_grid(grid::Grid)= size(grid.bfacenodes,1)
 
 ################################################
 """
-    bfacenode(grid::FVMGrid,inode,ibface)
+    bfacenode(grid::Grid,inode,ibface)
 
 Index of boundary face node.
 """
-bfacenode(grid::FVMGrid,inode,icell)=grid.bfacenodes[inode,icell]
+bfacenode(grid::Grid,inode,icell)=grid.bfacenodes[inode,icell]
 
 ################################################
 """
-    celledgenode(grid::FVMGrid,inode,iedge,icell)
+    celledgenode(grid::Grid,inode,iedge,icell)
 
 Index of cell edge node.
 """
-celledgenode(grid::FVMGrid,inode,iedge,icell)=grid.cellnodes[grid.celledgenodes[inode,iedge],icell]
+celledgenode(grid::Grid,inode,iedge,icell)=grid.cellnodes[grid.celledgenodes[inode,iedge],icell]
 
 ################################################
 """
-    num_edges_per_cell(grid::FVMGrid)
+    num_edges_per_cell(grid::Grid)
     
 Number of edges per grid cell.
 """
-num_edges_per_cell(grid::FVMGrid)= size(grid.celledgenodes,2)
+num_edges_per_cell(grid::Grid)= size(grid.celledgenodes,2)
 
 ################################################
 """
-    num_nodes_per_bface(grid::FVMGrid)
+    num_nodes_per_bface(grid::Grid)
 
 Number of nodes per boundary face
 """
-num_nodes_per_bface(grid::FVMGrid)= size(grid.bfacenodes,1)
+num_nodes_per_bface(grid::Grid)= size(grid.bfacenodes,1)
 
 ################################################
 """
-    num_bfaces(grid::FVMGrid)
+    num_bfaces(grid::Grid)
 
 Number of boundary faces in grid.
 """
-num_bfaces(grid::FVMGrid)= size(grid.bfacenodes,2)
+num_bfaces(grid::Grid)= size(grid.bfacenodes,2)
 
 ################################################
 """
-    num_cellregions(grid::FVMGrid)
+    num_cellregions(grid::Grid)
 
 Number of cell regions in grid.
 """
-num_cellregions(grid::FVMGrid)= grid.num_cellregions[1]
+num_cellregions(grid::Grid)= grid.num_cellregions[1]
 
 ################################################
 """
-    num_bfaceregions(grid::FVMGrid)
+    num_bfaceregions(grid::Grid)
 
 Number of boundary face regions in grid.
 """
-num_bfaceregions(grid::FVMGrid)=grid.num_bfaceregions[1]
+num_bfaceregions(grid::Grid)=grid.num_bfaceregions[1]
 
 
 
 ##################################################################
 """
-    struct FVMSubGrid{Tc} <: AbstractFVMGrid
+    struct SubGrid{Tc} <: AbstractGrid
     
 Subgrid of parent grid (mainly for visualization purposes). Intended
 to hold support of species which are not defined everywhere.
 """
-struct FVMSubGrid{Tc} <: AbstractFVMGrid
-    parent::FVMGrid
+struct SubGrid{Tc} <: AbstractGrid
+    parent::Grid
     cellnodes::Array{Int32,2}
     coord::Array{Tc,2}
     node_in_parent::Array{Int32,1}
@@ -546,14 +546,14 @@ end
 
 ##################################################################
 """
-    function FVMSubGrid(parent::FVMGrid, 
+    function subgrid(parent::Grid, 
                      subregions::AbstractArray; 
                      transform::Function=copytransform!,
                      boundary=false)
 
 Create subgrid of list of regions.
 """
-function FVMSubGrid(parent::FVMGrid,
+function subgrid(parent::Grid,
                  subregions::AbstractArray;
                  transform::Function=_copytransform!,
                  boundary=false)
@@ -621,7 +621,7 @@ function FVMSubGrid(parent::FVMGrid,
         transform(localcoord[:,inode],parent.coord[:,sub_nip[inode]])
     end
     
-    return FVMSubGrid(parent,sub_cellnodes,localcoord,sub_nip)
+    return SubGrid(parent,sub_cellnodes,localcoord,sub_nip)
 end
 
 

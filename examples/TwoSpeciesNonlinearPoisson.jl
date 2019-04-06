@@ -19,9 +19,9 @@ mutable struct Physics
 end
 
 
-function main(;n=100,pyplot=false,verbose=false)
+function main(;n=100,pyplot=false,verbose=false,dense=false)
     h=1/n
-    grid=FVMGrid(collect(0:h:1))
+    grid=TwoPointFluxFVM.Grid(collect(0:h:1))
     
         
     physics=Physics()
@@ -49,8 +49,12 @@ function main(;n=100,pyplot=false,verbose=false)
     end
     
 
+    if dense
+        sys=TwoPointFluxFVM.DenseSystem(grid,physics,2)
+    else
+        sys=TwoPointFluxFVM.SparseSystem(grid,physics,2)
+    end
     
-    sys=SparseFVMSystem(grid,physics,2)
     add_species(sys,1,[1])
     add_species(sys,2,[1])
     
@@ -69,7 +73,7 @@ function main(;n=100,pyplot=false,verbose=false)
     inival=unknowns(sys)
     inival.=0
     
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     control.damp_initial=0.1
     u5=0

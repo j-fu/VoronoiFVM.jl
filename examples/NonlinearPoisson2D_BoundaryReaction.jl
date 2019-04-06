@@ -25,12 +25,12 @@ end
 
 
 
-function main(;n=10,pyplot=false,verbose=false)
+function main(;n=10,pyplot=false,verbose=false, dense=false)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
     
-    geom=FVMGrid(X,Y)
+    grid=TwoPointFluxFVM.Grid(X,Y)
 
     
     physics=Physics()
@@ -63,8 +63,11 @@ function main(;n=10,pyplot=false,verbose=false)
         f[2]=u[2]
     end
 
-    
-    sys=SparseFVMSystem(geom,physics,2)
+    if dense
+        sys=TwoPointFluxFVM.DenseSystem(grid,physics,2)
+    else
+        sys=TwoPointFluxFVM.SparseSystem(grid,physics,2)
+    end
     add_species(sys,1,[1])
     add_species(sys,2,[1])
 
@@ -73,7 +76,7 @@ function main(;n=10,pyplot=false,verbose=false)
     inival.=0.0
     
     
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.max_lureuse=0

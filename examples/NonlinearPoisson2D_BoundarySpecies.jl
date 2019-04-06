@@ -22,7 +22,7 @@ end
 
 
 
-function main(;n=10,pyplot=false,verbose=false)
+function main(;n=10,pyplot=false,verbose=false,dense=false)
     
     
     h=1.0/convert(Float64,n)
@@ -31,7 +31,7 @@ function main(;n=10,pyplot=false,verbose=false)
     
 
 
-    grid=FVMGrid(X,Y)
+    grid=TwoPointFluxFVM.Grid(X,Y)
     
     
     physics=Physics()
@@ -69,8 +69,11 @@ function main(;n=10,pyplot=false,verbose=false)
         f[2]=u[2]
     end
     
-    
-    sys=SparseFVMSystem(grid,physics,3)
+    if dense
+        sys=TwoPointFluxFVM.SparseSystem(grid,physics,3)
+    else
+        sys=TwoPointFluxFVM.SparseSystem(grid,physics,3)
+    end
     add_species(sys,1,[1])
     add_species(sys,2,[1])
     add_boundary_species(sys,3,[2])
@@ -80,14 +83,14 @@ function main(;n=10,pyplot=false,verbose=false)
         a[1]=b[2]
     end
     
-    bgrid2=FVMSubGrid(grid,[2],boundary=true,transform=tran32!)
+    bgrid2=subgrid(grid,[2],boundary=true,transform=tran32!)
    
     inival=unknowns(sys)
     inival.=0.0
 
     physics.eps=1.0e-2
     
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5
@@ -123,7 +126,7 @@ function main(;n=10,pyplot=false,verbose=false)
 
             subplot(313)
             levels2=collect(0:0.001:0.1)
-            fvmplot(bgrid2,U_bound[3,:])
+            fvmplot(bgrid2,U[3,:])
             pause(1.0e-10)
         end
     end

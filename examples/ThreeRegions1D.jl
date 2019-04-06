@@ -20,32 +20,21 @@ mutable struct Physics
 end
 
 
-function main(;n=30,pyplot=false,verbose=false)
+function main(;n=30,pyplot=false,verbose=false,dense=false)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
-    grid=FVMGrid(X)
+    grid=TwoPointFluxFVM.Grid(X)
     cellmask!(grid,[0.0],[1.0],1)
     cellmask!(grid,[1.0],[2.1],2)
     cellmask!(grid,[1.9],[3.0],3)
+
+    subgrid1=subgrid(grid,[1])   
+    subgrid2=subgrid(grid,[1,2,3])
+    subgrid3=subgrid(grid,[3])
     
     if pyplot
         clf()
         fvmplot(grid)
-        show()
-        waitforbuttonpress()
-
-        clf()
-        fvmplot(FVMSubGrid(grid,[1]))
-        show()
-        waitforbuttonpress()
-
-        clf()
-        fvmplot(FVMSubGrid(grid,[1,2]))
-        show()
-        waitforbuttonpress()
-
-        clf()
-        fvmplot(FVMSubGrid(grid,[1,3]))
         show()
         waitforbuttonpress()
 
@@ -89,8 +78,13 @@ function main(;n=30,pyplot=false,verbose=false)
     physics.storage=function(physics,node, f,u)
         f.=u
     end
-    
-    sys=SparseFVMSystem(grid,physics,3)
+
+    if dense
+        sys=TwoPointFluxFVM.DenseSystem(grid,physics,3)
+    else
+        sys=TwoPointFluxFVM.SparseSystem(grid,physics,3)
+    end
+
     add_species(sys,1,[1])
     add_species(sys,2,[1,2,3])
     add_species(sys,3,[3])
@@ -101,7 +95,7 @@ function main(;n=30,pyplot=false,verbose=false)
     inival=unknowns(sys)
     inival.=0
     
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     tstep=0.01
     time=0.0
@@ -120,9 +114,9 @@ function main(;n=30,pyplot=false,verbose=false)
         testval=U[2,15]
         if pyplot && istep%10 == 0
             PyPlot.clf()
-            plot(X,U[1,:],label="spec1", color=(0.5,0,0))
-            plot(X,U[2,:],label="spec2", color=(0.0,0.5,0))
-            plot(X,U[3,:],label="spec3", color=(0.0,0.0,0.5))
+            fvmplot(subgrid1, U[1,:],label="spec1", color=(0.5,0,0))
+            fvmplot(subgrid2, U[2,:],label="spec2", color=(0.0,0.5,0))
+            fvmplot(subgrid3, U[3,:],label="spec3", color=(0.0,0.0,0.5))
             PyPlot.legend(loc="best")
             PyPlot.grid()
             pause(1.0e-10)

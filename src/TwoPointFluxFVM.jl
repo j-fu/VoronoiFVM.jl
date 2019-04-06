@@ -28,11 +28,8 @@ export dof
 export getdof
 export setdof!
 export value
-export FVMSubGrid
-export FVMGrid
-export FVMNewtonControl
-export SparseFVMSystem
 export solve
+export subgrid
 
 end
 

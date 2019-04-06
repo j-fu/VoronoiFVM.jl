@@ -77,7 +77,7 @@ function main(;n=10,pyplot=true,verbose=false)
     # dump(grid1)
 
     
-    sys=SparseFVMSystem(grid2,Physics(),2)
+    sys=TwoPointFluxFVM.SparseSystem(grid2,Physics(),2)
     TwoPointFluxFVM.add_species(sys,1,1)
     TwoPointFluxFVM.add_boundary_species(sys,2,3)
     # TwoPointFluxFVM.add_boundary_species(sys,3,2)

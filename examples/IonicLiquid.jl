@@ -35,10 +35,10 @@ function plot_solution(sys,U0)
 end
 
 
-function main(;n=20,pyplot=false,dlcap=false,verbose=false)
+function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     
     h=1.0/convert(Float64,n)
-    grid=FVMGrid(collect(0:h:1))
+    grid=TwoPointFluxFVM.Grid(collect(0:h:1))
     
     physics=Physics()
     physics.eps=1.0e-4
@@ -84,9 +84,13 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
         f[iphi]=physics.z*(1-2*u[ic])
         f[ic]=0
     end
-    
-    
-    sys=SparseFVMSystem(grid,physics,2)
+
+    if dense
+        sys=TwoPointFluxFVM.DenseSystem(grid,physics,2)
+    else
+        sys=TwoPointFluxFVM.SparseSystem(grid,physics,2)
+    end
+
     add_species(sys,1,[1])
     add_species(sys,2,[1])
 
@@ -108,7 +112,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false)
     end
     
     physics.eps=1.0e-3
-    control=FVMNewtonControl()
+    control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     u1=0
     if !dlcap

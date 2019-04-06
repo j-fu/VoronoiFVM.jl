@@ -15,7 +15,7 @@ Fields:
 
 
 """
-mutable struct FVMNewtonControl
+mutable struct NewtonControl
     tol_absolute::Float64 # Tolerance (in terms of norm of Newton update)
     tol_relative::Float64 # Tolerance (relative to the first residual)
     damp_initial::Float64      # Initial damping parameter
@@ -24,16 +24,16 @@ mutable struct FVMNewtonControl
     max_lureuse::Int32 # Maximum number of reuses of lu factorization
     tol_linear::Float64 # Tolerance of iterative linear solver
     verbose::Bool      # Verbosity
-    FVMNewtonControl()=FVMNewtonControl(new())
+    NewtonControl()=NewtonControl(new())
 end
 
 ################################################
 """
-    FVMNewtonControl()
+    NewtonControl()
     
 Default constructor
 """
-function FVMNewtonControl(this)
+function NewtonControl(this)
     this.tol_absolute=1.0e-10
     this.tol_relative=1.0e-10
     this.damp_initial=1.0
