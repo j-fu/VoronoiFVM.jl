@@ -894,18 +894,20 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 UKOld[1:nspecies]=UOld[:,K]
             end         
             for ispec=1:nspecies # should involve only rspecies
-                fac=this.boundary_factors[ispec,ibreg]
-                val=this.boundary_values[ispec,ibreg]
-                if fac!=Dirichlet
-                    fac*=bnode_factors[ibnode]
-                end
                 idof=dof(F,ispec,K)
                 if idof>0
-                    F[ispec,K]+=fac*(U[ispec,K]-val)
-                    addnz(M,idof,idof,fac,1)
+                    fac=this.boundary_factors[ispec,ibreg]
+                    val=this.boundary_values[ispec,ibreg]
+                    if fac==Dirichlet
+                        F[ispec,K]+=fac*(U[ispec,K]-val)
+                        addnz(M,idof,idof,fac,1)
+                    else
+                        F[ispec,K]+=bnode_factors[ibnode]*(fac*U[ispec,K]-val)
+                        addnz(M,idof,idof,fac,bnode_factors[ibnode])
+                    end
                 end
             end
-                
+
             if isdefined(physics, :breaction)# involves bspecies and species
                 ForwardDiff.jacobian!(result_br,breactionwrap,Y,UK)
                 res_breact=DiffResults.value(result_br)

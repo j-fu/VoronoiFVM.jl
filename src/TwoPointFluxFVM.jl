@@ -6,6 +6,7 @@ include("fvmnewtoncontrol.jl")
 include("tools.jl")
 include("fvmpyplot.jl")
 include("twopointfluxfvmsystem.jl")
+include("testfunctions.jl")
 
 
 export unknowns
@@ -30,6 +31,8 @@ export setdof!
 export value
 export solve
 export subgrid
+export testfunction
+
 
 end
 
