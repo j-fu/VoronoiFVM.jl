@@ -10,7 +10,7 @@ if isinteractive()
 end
 
 
-mutable struct Physics
+mutable struct Physics  <: TwoPointFluxFVM.Physics
     flux::Function
     source::Function
     storage::Function

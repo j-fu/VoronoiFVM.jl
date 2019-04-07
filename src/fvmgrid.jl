@@ -637,14 +637,14 @@ Fields:
 
     index::Int32
     region::Int32
-    coord::Array{Real,1}
+    coord::Array{Tv,1}
 
 """
-mutable struct Node
+mutable struct Node{Tv}
     index::Int32
     region::Int32
-    coord::Array{Real,1}
-    Node()=new()
+    coord::Array{Tv,1}
+    Node{Tv}() where Tv  =new()
 end
 
 
@@ -660,19 +660,19 @@ Fields:
     region::Int32
     nodeK::Int32
     nodeL::Int32
-    coordK::Array{Float64,1}
-    coordL::Array{Float64,1}
+    coordK::Array{Tv,1}
+    coordL::Array{Tv,1}
 
 
 """
-mutable struct Edge
+mutable struct Edge{Tv}
     index::Int32
     nodeK::Int32
     nodeL::Int32
     region::Int32
-    coordK::Array{Float64,1}
-    coordL::Array{Float64,1}
-    Edge()=new()
+    coordK::Array{Tv,1}
+    coordL::Array{Tv,1}
+    Edge{Tv}() where Tv =new()
 end
 
 ##################################################################
@@ -681,8 +681,8 @@ end
    
 Calculate the length of an edge. 
 """
-function edgelength(edge::Edge)
-    l::Float64
+function edgelength(edge::Edge{Tv}) where Tv
+    l::Tv
     l=0.0
     for i=1:length(edge.coordK)
         d=edge.coordK[i]-edge.coordL[i]

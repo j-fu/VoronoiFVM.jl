@@ -7,7 +7,7 @@ end
 
 using TwoPointFluxFVM
 
-mutable struct Physics
+mutable struct Physics <: TwoPointFluxFVM.Physics
     flux::Function
     storage::Function
     reaction::Function

@@ -23,7 +23,7 @@ end
 #
 # We choose a mutable struct which allows to overwrite
 # fields later.
-mutable struct Physics
+mutable struct Physics  <: TwoPointFluxFVM.Physics
     flux::Function      # flux function, mandatory
     source::Function    # source function, optional
     reaction::Function  # reaction term, optional

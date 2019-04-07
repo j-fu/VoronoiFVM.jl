@@ -7,7 +7,7 @@ if isinteractive()
     using PyPlot
 end
 
-mutable struct Physics
+mutable struct Physics <: TwoPointFluxFVM.Physics
     reaction::Function
     flux::Function
     source::Function
@@ -36,7 +36,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
         f[2]=physics.k*(u[2]-u[1])
     end
     
-    physics.flux=function(physics,edgeedge,f,uk,ul)
+    physics.flux=function(physics,edge,f,uk,ul)
         f[1]=physics.eps*(uk[1]-ul[1])
         f[2]=physics.eps*(uk[2]-ul[2])
     end 

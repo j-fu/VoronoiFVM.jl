@@ -9,7 +9,7 @@ end
 
 
 
-mutable struct Physics
+mutable struct Physics <: TwoPointFluxFVM.Physics
     flux::Function
     source::Function
     reaction::Function

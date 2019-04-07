@@ -7,7 +7,7 @@ using PyPlot
 const Node=TwoPointFluxFVM.Node
 const Edge=TwoPointFluxFVM.Edge
 
-mutable struct Physics
+mutable struct Physics  <: TwoPointFluxFVM.Physics
     k::Float64
     eps::Float64 
     Physics()=new()
