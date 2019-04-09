@@ -1,18 +1,17 @@
 # Changes
 
-## V0.3, approaching
-- Fork -> VoronoiFVM
+## V0.3, April 9 2019
+- Renamed to  VoronoiFVM
 - Complete rewrite of assembly allowing sparse or dense matrix 
-to store degree of freedom information
-  - Solution is a nnodes x nspecies sparse or dense matrix
-  - The wonderful array interface of Julia still provides slicing
-    etc in oder to access  species without need to write
-    any bulk_solution stuff or whatever when using the sparse variant
+  to store degree of freedom information
+    - Solution is a nnodes x nspecies sparse or dense matrix
+    - The wonderful array interface of Julia still provides slicing
+      etc in oder to access  species without need to write
+      any bulk_solution stuff or whatever when using the sparse variant
 - Re-export value() for debugging in physics functions
-- Test function handling
+- Test function handling for flux calculation
 - First working steps to impedance handling
 - Abolished Graph in favor of  Grid, Graph was premature optimization...
-- More or less zoning in on Voronoi...
 
 ## V0.2, Feb 20, 2019
 

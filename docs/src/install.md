@@ -1,7 +1,37 @@
 # Installation 
 
-So far, the package has not been registered with Julia.
+So far, the package has not been registered with the Julia central, however Julia provides
+the possibility to install packages from any accessible git repo.
 
+## Canonical Julia method
+
+Go into package manager  (`]` key) and add the package via the repo name:
+
+````
+     pkg> add https://github.com/j-fu/VoronoiFVM.jl
+````
+
+or 
+
+````
+     pkg> add https://repos.wias-berlin.de/users/fuhrmann/projects/julia-packages/VoronoiFVM.jl
+````
+
+This also will consistently pull in any necessary package dependencies.
+
+You can run the test suite
+
+````
+     pkg> test VoronoiFVM
+````
+
+If you don't like this anymore (or want to switch between remote repos), you can remove it:
+
+````
+     pkg> remove VoronoiFVM
+````
+
+## Old method (which still works)
 Steps:
 
    1. Create a directory for Julia packages which have not been registered, let us denote this
@@ -23,4 +53,4 @@ Steps:
      push!(LOAD_PATH, "PKG_DIR")
 ````
 
-Now, `import VoronoiFVM` should work in Julia scripts.
+Now, `using VoronoiFVM` should work in Julia scripts.
