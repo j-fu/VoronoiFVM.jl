@@ -87,12 +87,12 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     control=TwoPointFluxFVM.NewtonControl()
     control.verbose=verbose
     control.damp_initial=0.1
-    u5=0
+    I1=0
     for eps in [1.0,0.1,0.01]
         physics.eps=[eps,eps]
         U=solve(sys,inival,control=control)
-        println(integrate(sys,tf1,U))
-        println(integrate(sys,tf2,U))
+        I1=integrate(sys,tf1,U)
+        
         inival.=U
         if pyplot
             clf()
@@ -102,9 +102,7 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
         end
         u5=U[5]
     end
-    return u5
+    return I1[1]
 end
-
-
     
 end

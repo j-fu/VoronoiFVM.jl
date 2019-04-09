@@ -170,12 +170,12 @@ end
 
 ##################################################################
 """
-    function add_species(this::AbstractSystem,ispec::Integer, regions::AbstractArray)
+    function add_species(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
 
 Add species to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
 """
-function add_species(this::AbstractSystem,ispec::Integer, regions::AbstractArray)
+function add_species(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
     if is_boundary_species(this,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
     end
@@ -195,13 +195,13 @@ end
 
 ##################################################################
 """
-    function add_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractArray)
+    function add_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
 
 Add species to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
 
 """
-function add_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractArray)
+function add_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
     if is_bulk_species(this,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
@@ -263,7 +263,7 @@ num_species(this::AbstractSystem{Tv}) where Tv = this.num_species
 
 ##################################################################
 """
-    struct SparseSolutionArray{Tv} <: AbstractArray{Tv,2}
+    struct SparseSolutionArray{Tv} <: AbstractMatrix{Tv}
         node_dof::SparseMatrixCSC{Tv,Int16}
     end
 
@@ -272,7 +272,7 @@ is stored in a sparse matrix structure.
 
 This class plays well with the abstract array interface.
 """
-struct SparseSolutionArray{Tv} <: AbstractArray{Tv,2}
+struct SparseSolutionArray{Tv} <: AbstractMatrix{Tv}
     node_dof::SparseMatrixCSC{Tv,Int16}
 end
 
@@ -442,22 +442,22 @@ end
 
 ##################################################################
 """
-    struct SubgridArrayView{Tv} <: AbstractArray{Tv,2}
+    struct SubgridArrayView{Tv} <: AbstractMatrix{Tv}
 
 Struct holding information for solution array view on subgrid
 """
-struct SubgridArrayView{Tv,Ta} <: AbstractArray{Tv,2}
+struct SubgridArrayView{Tv,Ta} <: AbstractMatrix{Tv}
     sysarray::Ta
     subgrid::SubGrid
 end
 
 ##################################################################
 """
-    view(a::AbstractArray{Tv},sg::SubGrid)
+    view(a::AbstractMatrix{Tv},sg::SubGrid)
 
 Create a view of the solution array on a subgrid.
 """
-Base.view(a::AbstractArray{Tv,2},sg::SubGrid) where Tv = SubgridArrayView{Tv,typeof(a)}(a,sg)
+Base.view(a::AbstractMatrix{Tv},sg::SubGrid) where Tv = SubgridArrayView{Tv,typeof(a)}(a,sg)
 
 
 ##############################################################################
@@ -487,6 +487,9 @@ Return size of solution array view.
 """
 Base.size(a::SubgridArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_parent,1))
 
+
+
+isdof(this::AbstractSystem,ispec,inode)= this.node_dof[ispec,inode]==ispec ? true : false
 
 
 
@@ -523,7 +526,7 @@ function _inactspecloop(this::DenseSystem,U,Uold,F)
     end
     for inode=1:size(this.node_dof,2)
         for ispec=1:size(this.node_dof,1)
-            if this.node_dof[ispec,inode]!=ispec
+            if !isdof(this,ispec,inode)
                 F[ispec,inode]+= U[ispec,inode]-Uold[ispec,inode];
                 idof=dof(F,ispec,inode)
                 this.matrix[idof,idof]+=1.0
@@ -538,7 +541,7 @@ function _inactspecinit(this::DenseSystem,U)
     end
     for inode=1:size(this.node_dof,2)
         for ispec=1:size(this.node_dof,1)
-            if this.node_dof[ispec,inode]!=ispec
+            if !isdof(this,ispec,inode)
                 U[ispec,inode]=0
             end
         end
@@ -553,33 +556,47 @@ function _inactspecinit(this::SparseSystem,U)
 end
 
 
+firstnodedof(U::SparseSolutionArray{Tv},K) where Tv =U.node_dof.colptr[K]
+lastnodedof(U::SparseSolutionArray{Tv},K) where Tv=U.node_dof.colptr[K+1]-1
+spec(U::SparseSolutionArray{Tv},idof,K) where Tv=U.node_dof.rowval[idof]
+add(U::SparseSolutionArray{Tv},idof,val) where Tv=U.node_dof.nzval[idof]+=val
+
+firstnodedof(U::Matrix{Tv},K) where Tv = (K-1)*size(U,1)+1
+lastnodedof(U::Matrix{Tv},K) where Tv = K*size(U,1)
+spec(U::Matrix{Tv},idof,K) where Tv =   idof-(K-1)*size(U,1)
+add(U::Matrix{Tv},idof,val) where Tv=vec(U)[idof]+=val
+
+
+
+
+@inline function addnz(matrix,i,j,v::Tv,fac) where Tv
+    if v!=zero(Tv)
+        matrix[i,j]+=v*fac
+    end
+end
+
 
 
 function _eval_and_assemble(this::AbstractSystem{Tv},
-                            U, # Actual solution iteration
-                            UOld, # Old timestep solution
-                            F,# Right hand side
-                            tstep # time step size. Inf means stationary solution
+                            U::AbstractMatrix{Tv}, # Actual solution iteration
+                            UOld::AbstractMatrix{Tv}, # Old timestep solution
+                            F::AbstractMatrix{Tv},# Right hand side
+                            tstep::Tv # time step size. Inf means stationary solution
                            ) where Tv
 
     grid=this.grid
 
     physics::Physics=this.physics
     node::Node=Node{Tv}()
+    bnode::BNode=BNode{Tv}()
     edge::Edge=Edge{Tv}()
     edge_cutoff=1.0e-12
     nspecies::Int32=num_species(this)
     
-    
     if !isdefined(this,:matrix)
         _create_matrix(this)
     end
-
-    @inline function addnz(matrix,i,j,v,fac)
-        if v!=0.0
-            matrix[i,j]+=v*fac
-        end
-    end
+    matrix=this.matrix
     
     
     K1::Int32=1
@@ -587,42 +604,40 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     L1::Int32=nspecies+1
     LN::Int32=2*nspecies
 
-    @inline function fluxwrap(y::AbstractArray, u::AbstractArray)
+    @inline function fluxwrap(y::AbstractVector, u::AbstractVector)
         y.=0
         @views physics.flux(physics,edge,y,u[K1:KN],u[L1:LN])
     end
     
-    @inline function sourcewrap(y::AbstractArray)
+    @inline function sourcewrap(y::AbstractVector)
         y.=0
         physics.source(physics,node,y)
     end
 
-    @inline function reactionwrap(y::AbstractArray, u::AbstractArray)
+    @inline function reactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
         ## for ii in ..  uu[node.speclist[ii]]=u[ii]
         physics.reaction(physics,node,y,u)
         ## for ii in .. y[ii]=y[node.speclist[ii]]
     end
 
-    @inline function storagewrap(y::AbstractArray, u::AbstractArray)
+    @inline function storagewrap(y::AbstractVector, u::AbstractVector)
         y.=0
         physics.storage(physics,node,y,u)
     end
 
-    @inline function breactionwrap(y::AbstractArray, u::AbstractArray)
+    @inline function breactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.breaction(physics,node,y,u)
+        physics.breaction(physics,bnode,y,u)
     end
 
-    @inline function bstoragewrap(y::AbstractArray, u::AbstractArray)
+    @inline function bstoragewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.bstorage(physics,node,y,u)
+        physics.bstorage(physics,bnode,y,u)
     end
     
-    M=this.matrix
-    
     # Reset matrix + rhs
-    M.nzval.=0.0
+    matrix.nzval.=0.0
     F.=0.0
 
     # structs holding diff results for storage, reaction,  flux ...
@@ -632,10 +647,8 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     result_bs=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
     result_flx=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,2*nspecies))
 
-    # Arrays holding function results
+    # Array holding function results
     Y=Array{Tv,1}(undef,nspecies)
-    res_react=zeros(Tv,nspecies)
-    jac_react=zeros(Tv,nspecies,nspecies)
 
     # Arrays for gathering solution data
     UK=Array{Tv,1}(undef,nspecies)
@@ -647,6 +660,8 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
 
     # arrays holding storage terms for old solution
     oldstor=zeros(Tv,nspecies)
+    res_react=zeros(Tv,nspecies)
+    jac_react=zeros(Tv,nspecies,nspecies)
     oldbstor=zeros(Tv,nspecies)
 
 
@@ -661,164 +676,18 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     bnode_factors=zeros(Tv,num_nodes_per_bface(grid))
 
-    @inline function assemble_node_result(this::SparseSystem{Tv},F::AbstractArray{Tv},
-                                          K::Integer, fac::Tv,
-                                          res_stor::Vector{Tv}, jac_stor::Matrix{Tv},
-                                          res_react::Vector{Tv}, jac_react::Matrix{Tv}) where Tv
-        M=this.matrix
-        Fdof=F.node_dof
-        for idof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-            ispec=Fdof.rowval[idof]
-            Fdof.nzval[idof]+=fac*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv)
-            for jdof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-                jspec=Fdof.rowval[jdof]
-                addnz(M,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,fac)
-            end
-        end
-    end
-    
-    @inline function assemble_node_result(this::DenseSystem{Tv},F::Matrix{Tv},
-                                          K::Integer, fac::Tv,
-                                          res_stor::Vector{Tv}, jac_stor::Matrix{Tv},
-                                          res_react::Vector{Tv}, jac_react::Matrix{Tv}) where Tv
-        M=this.matrix
-        iblock=(K-1)*this.num_species
-        for i=1:this.num_species
-            F[i,K]+=fac*(res_react[i]-src[i] + (res_stor[i]-oldstor[i])*tstepinv)
-            for j=1:this.num_species
-                addnz(M,iblock+i,iblock+j,jac_react[i,j]+ jac_stor[i,j]*tstepinv,fac)
-            end
-        end
-    end
-    
-    
-    @inline  function assemble_flux_result(this::SparseSystem{Tv},F::AbstractArray{Tv},
-                                           K::Integer,L::Integer, fac::Tv,
-                                           res::Vector{Tv},jac::Matrix{Tv}) where Tv
-        M=this.matrix
-        Fdof=F.node_dof
-        for idofK=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-            ispec=Fdof.rowval[idofK]
-            idofL=dof(F,ispec,L)
-            if idofL==0
-                continue
-            end
-            
-            Fdof.nzval[idofK]+=res[ispec]*fac
-            Fdof.nzval[idofL]-=res[ispec]*fac
-            
-            for jdofK=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-                jspec=Fdof.rowval[jdofK]
-                jdofL=dof(F,jspec,L)
-                if jdofL==0
-                    continue
-                end
-                
-                addnz(M,idofK,jdofK,+jac[ispec,jspec            ],fac)
-                addnz(M,idofK,jdofL,+jac[ispec,jspec+this.num_species],fac)
-                addnz(M,idofL,jdofK,-jac[ispec,jspec            ],fac)
-                addnz(M,idofL,jdofL,-jac[ispec,jspec+this.num_species],fac)
-                
-            end
-        end
-    end
-
-    @inline function assemble_flux_result(this::DenseSystem{Tv},F::Matrix{Tv},
-                                         K::Integer,L::Integer, fac::Tv,
-                                          res::Vector{Tv},jac::Matrix{Tv}) where Tv
-        M=this.matrix
-        F[:,K].+=res*fac
-        F[:,L].-=res*fac
-        kblock=(K-1)*this.num_species
-        lblock=(L-1)*this.num_species
-        jl=this.num_species+1
-        for jk=1:this.num_species
-            for ik=1:this.num_species
-                addnz( M,kblock+ik,kblock+jk,+jac[ik,jk],fac)
-                addnz( M,kblock+ik,lblock+jk,+jac[ik,jl],fac)
-                addnz( M,lblock+ik,kblock+jk,-jac[ik,jk],fac)
-                addnz( M,lblock+ik,lblock+jk,-jac[ik,jl],fac)
-            end
-            jl+=1
-        end
-    end
-
-
-    @inline function assemble_breact_result(this::SparseSystem{Tv},F::AbstractArray{Tv},
-                                            K::Integer, fac::Tv,
-                                            res_breact::Vector{Tv}, jac_breact::Matrix{Tv}) where Tv
-        
-        M=this.matrix
-        Fdof=F.node_dof
-        for idof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-            ispec=Fdof.rowval[idof]
-            Fdof.nzval[idof]+=fac*res_breact[ispec]
-            for jdof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-                jspec=Fdof.rowval[jdof]
-                addnz(M,idof,jdof, jac_breact[ispec,jspec],fac)
-            end
-        end
-    end
-
-    @inline function assemble_breact_result(this::DenseSystem{Tv},F::Matrix{Tv},
-                                            K::Integer, fac::Tv,
-                                            res_breact::Vector{Tv}, jac_breact::Matrix{Tv}) where Tv
-        M=this.matrix
-        iblock=(K-1)*this.num_species
-        for i=1:this.num_species
-            F[i,K]+=fac*res_breact[i]
-            for j=1:this.num_species
-                addnz(M,iblock+i,iblock+j,jac_breact[i,j],fac)
-            end
-        end
-    end
-
-    @inline function assemble_bstor_result(this::SparseSystem{Tv}, F::AbstractArray{Tv},
-                                           K::Integer, fac::Tv,
-                                           res_bstor::Vector{Tv}, jac_bstor::Matrix{Tv}) where Tv
-        M=this.matrix
-        Fdof=F.node_dof
-        for idof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-            ispec=Fdof.rowval[idof]
-            Fdof.nzval[idof]+=fac*(res_bstor[ispec]-oldbstor[ispec])*tstepinv
-            for jdof=Fdof.colptr[K]:Fdof.colptr[K+1]-1
-                jspec=Fdof.rowval[jdof]
-                if jac_bstor[ispec,jspec]==0.0
-                    continue
-                end
-                addnz(M,idof,jdof,jac_bstor[ispec,jspec],fac*tstepinv)
-            end
-        end
-    end
-    
-    @inline function assemble_bstor_result(this::DenseSystem{Tv}, F::Matrix{Tv}, K::Integer, fac::Tv,
-                                           res_bstor::Vector{Tv}, jac_bstor::Matrix{Tv}) where Tv
-        M=this.matrix
-        iblock=(K-1)*this.num_species
-        for i=1:this.num_species
-            F[i,K]+=fac*(res_bstor[i]-oldbstor[i])*tstepinv
-            for j=1:this.num_species
-                addnz(M,iblock+i,iblock+j,jac_bstor[i,j],fac*tstepinv)
-            end
-        end
-    end
-
-
-
     # Main cell loop
     for icell=1:num_cells(grid)
         # set up form factors
         cellfactors!(grid,icell,node_factors,edge_factors)
-
+        
         # set up data for callbacks
         node.region=reg_cell(grid,icell)
         edge.region=reg_cell(grid,icell)
 
         for inode=1:num_nodes_per_cell(grid)
+            fill!(node,grid, inode,icell)
             @views begin
-                K=cellnode(grid,inode,icell)
-                node.index=K
-                node.coord=nodecoord(grid,K)
                 # xx gather:
                 # ii=0
                 # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
@@ -826,8 +695,8 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 #    ii=ii+1
                 #    node.speclist[ii]=ispec
                 #    UK[ii]=U[ispec,K]
-                UK[1:nspecies]=U[:,K]
-                UKOld[1:nspecies]=UOld[:,K]
+                UK[1:nspecies]=U[:,node.index]
+                UKOld[1:nspecies]=UOld[:,node.index]
                 # Evaluate source term
             end
 
@@ -849,61 +718,87 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 res_react=DiffResults.value(result_r)
                 jac_react=DiffResults.jacobian(result_r)
             end
-            
-            assemble_node_result(this,F, K, node_factors[inode], res_stor, jac_stor, res_react, jac_react)
-            
+            K=node.index
+            for idof=firstnodedof(F,K):lastnodedof(F,K)
+                ispec=spec(F,idof,K)
+                add(F,idof,node_factors[inode]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
+                for jdof=firstnodedof(F,K):lastnodedof(F,K)
+                    jspec=spec(F,jdof,K)
+                    addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,node_factors[inode])
+                end
+            end
         end
         
         for iedge=1:num_edges_per_cell(grid)
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
+
             @views begin
-                K=celledgenode(grid,1,iedge,icell)
-                L=celledgenode(grid,2,iedge,icell)
-                edge.index=iedge
-                edge.nodeK=K
-                edge.nodeL=L
-                edge.coordL=nodecoord(grid,L)
-                edge.coordK=nodecoord(grid,K)
-                
+                fill!(edge,grid,iedge,icell)
+
                 #Set up argument for fluxwrap
-                UKL[K1:KN]=U[:,K]
-                UKL[L1:LN]=U[:,L]
+                UKL[K1:KN]=U[:,edge.nodeK]
+                UKL[L1:LN]=U[:,edge.nodeL]
                 
             end
             ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL)
                 
             res=DiffResults.value(result_flx)
             jac=DiffResults.jacobian(result_flx)
+
+            K=edge.nodeK
+            L=edge.nodeL
+            fac=edge_factors[iedge]
+            for idofK=firstnodedof(F,K):lastnodedof(F,K)
+                ispec=spec(F,idofK,K)
+                idofL=dof(F,ispec,L)
+                if idofL==0
+                    continue
+                end
+                add(F,idofK,fac*res[ispec])
+                add(F,idofL,-fac*res[ispec])
+                
+                for jdofK=firstnodedof(F,K):lastnodedof(F,K)
+                    jspec=spec(F,jdofK,K)
+                    jdofL=dof(F,jspec,L)
+                    if jdofL==0
+                        continue
+                    end
+                    
+                    addnz(matrix,idofK,jdofK,+jac[ispec,jspec            ],fac)
+                    addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
+                    addnz(matrix,idofL,jdofK,-jac[ispec,jspec            ],fac)
+                    addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
+                    
+                end
+            end
             
-            assemble_flux_result(this,F, K,L,edge_factors[iedge], res,jac)
         end
     end
 
     for ibface=1:num_bfaces(grid)
         bfacefactors!(grid,ibface,bnode_factors)
         ibreg=grid.bfaceregions[ibface]
-        node.region=ibreg
+        bnode.region=ibreg
         for ibnode=1:num_nodes_per_bface(grid)
             @views begin
-                K=bfacenode(grid,ibnode,ibface)
-                node.index=K
-                node.coord=nodecoord(grid,K)
-                UK[1:nspecies]=U[:,K]
-                UKOld[1:nspecies]=UOld[:,K]
+                fill!(bnode,grid,ibnode,ibface)
+
+                UK[1:nspecies]=U[:,bnode.index]
+                UKOld[1:nspecies]=UOld[:,bnode.index]
             end         
             for ispec=1:nspecies # should involve only rspecies
-                idof=dof(F,ispec,K)
+                idof=dof(F,ispec,bnode.index)
                 if idof>0
                     fac=this.boundary_factors[ispec,ibreg]
                     val=this.boundary_values[ispec,ibreg]
                     if fac==Dirichlet
-                        F[ispec,K]+=fac*(U[ispec,K]-val)
-                        addnz(M,idof,idof,fac,1)
+                        F[ispec,bnode.index]+=fac*(U[ispec,bnode.index]-val)
+                        addnz(matrix,idof,idof,fac,1)
                     else
-                        F[ispec,K]+=bnode_factors[ibnode]*(fac*U[ispec,K]-val)
-                        addnz(M,idof,idof,fac,bnode_factors[ibnode])
+                        F[ispec,bnode.index]+=bnode_factors[ibnode]*(fac*U[ispec,bnode.index]-val)
+                        addnz(matrix,idof,idof,fac,bnode_factors[ibnode])
                     end
                 end
             end
@@ -912,8 +807,17 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 ForwardDiff.jacobian!(result_br,breactionwrap,Y,UK)
                 res_breact=DiffResults.value(result_br)
                 jac_breact=DiffResults.jacobian(result_br)
-                
-                assemble_breact_result(this,F, K, bnode_factors[ibnode],res_breact, jac_breact)
+                K=bnode.index
+                fac=bnode_factors[ibnode]
+                for idof=firstnodedof(F,K):lastnodedof(F,K)
+                    ispec=spec(F,idof,K)
+                    add(F,idof,fac*res_breact[ispec])
+                    for jdof=firstnodedof(F,K):lastnodedof(F,K)
+                        jspec=spec(F,jdof,K)
+                        addnz(matrix,idof,jdof,jac_breact[ispec,jspec],fac)
+                    end
+                end
+
             end
             
             if isdefined(physics, :bstorage) # should involve only bspecies
@@ -925,8 +829,14 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 # Evaluate storage term for old timestep
                 bstoragewrap(oldbstor,UKOld)
                 
-                assemble_bstor_result(this,F, K,bnode_factors[ibnode],res_bstor, jac_bstor)
-                
+                for idof=firstnodedof(F,K):lastnodedof(F,K)
+                    ispec=spec(F,idof,K)
+                    add(F,idof,fac*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
+                    for jdof=firstnodedof(F,K):lastnodedof(F,K)
+                        jspec=spec(F,jdof,K)
+                        addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],fac*tstepinv)
+                    end
+                end
             end
             
         end
@@ -939,7 +849,7 @@ end
 ################################################################
 function _solve(
     this::AbstractSystem{Tv}, # Finite volume system
-    oldsol::AbstractArray{Tv}, # old time step solution resp. initial value
+    oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
     control::NewtonControl,
     tstep::Tv
 ) where Tv
@@ -1006,7 +916,7 @@ end
 """
     function solve(
         this::System,            # Finite volume system
-        oldsol::AbstractArray;     # old time step solution resp. initial value
+        oldsol::AbstractMatrix;     # old time step solution resp. initial value
         control=NewtonControl(), # Solver control information (optional)
         tstep::Tv=Inf            # Time step size. Inf means  stationary solution. (optional)
         )
@@ -1020,7 +930,7 @@ step system.
 """
 function solve(
     this::AbstractSystem{Tv}, # Finite volume system
-    oldsol::AbstractArray; # old time step solution resp. initial value
+    oldsol::AbstractMatrix{Tv}; # old time step solution resp. initial value
     control=NewtonControl(), # Newton solver control information
     tstep::Tv=Inf          # Time step size. Inf means  stationary solution
 ) where Tv
@@ -1041,10 +951,10 @@ end
 function integrate(this::AbstractSystem,F::Function,U)
 ````
 
-Integrate solution vector over domain. Returns an `Array{Int64,1}`
+Integrate solution vector over domain. Returns an `Array{Tv,1}`
 containing the integral for each species.
 """
-function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractArray) where Tv
+function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv}) where Tv
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
@@ -1055,15 +965,11 @@ function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractArray) where 
 
     for icell=1:num_cells(grid)
         cellfactors!(grid,icell,node_factors,edge_factors)
-        node.region=reg_cell(grid,icell)
-
         for inode=1:num_nodes_per_cell(grid)
-            K=cellnode(grid,inode,icell)
-            node.index=K
-            node.coord=nodecoord(grid,K)
-            F(this.physics,node,res,U[:,K])
+            fill!(node,grid,inode,icell)
+            F(this.physics,node,res,U[:,node.index])
             for ispec=1:nspecies
-                if this.node_dof[ispec,K]==ispec
+                if this.node_dof[ispec,node.index]==ispec
                     integral[ispec]+=node_factors[inode]*res[ispec]
                 end
             end

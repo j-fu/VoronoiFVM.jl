@@ -7,12 +7,12 @@ include("tools.jl")
 include("fvmpyplot.jl")
 include("twopointfluxfvmsystem.jl")
 include("testfunctions.jl")
+include("fvmimpedance.jl")
 
 
 export unknowns
 export fbernoulli
 export fbernoulli_pm
-export solve
 export integrate
 
 

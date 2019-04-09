@@ -625,6 +625,40 @@ function subgrid(parent::Grid,
 end
 
 
+##################################################################
+"""
+    mutable struct BNode
+
+Structure holding local boundary  node information.
+Fields:
+
+    index::Int32
+    region::Int32
+    coord::Array{Tv,1}
+
+"""
+mutable struct BNode{Tv}
+    index::Int32
+    region::Int32
+    coord::Array{Tv,1}
+    BNode{Tv}() where Tv  =new()
+end
+
+################################################################
+"""
+    function fill!(node::BNode,grid,ibnode,ibface)
+
+Fill boundary node with corresponding data.
+"""
+
+function fill!(node::BNode,grid,ibnode,ibface)
+    K=grid.bfacenodes[ibnode,ibface]
+    node.region=grid.bfaceregions[ibface]
+    node.index=K
+    @views node.coord=nodecoord(grid,K)
+end
+
+
 
 
 
@@ -646,6 +680,23 @@ mutable struct Node{Tv}
     coord::Array{Tv,1}
     Node{Tv}() where Tv  =new()
 end
+
+
+
+
+################################################################
+"""
+    function fill!(node::Node,grid,ibnode,ibface)
+
+Fill node with corresponding data.
+"""
+function fill!(node::Node,grid,inode,icell)
+    K=cellnode(grid,inode,icell)
+    node.region=grid.cellregions[icell]
+    node.index=K
+    @views node.coord=nodecoord(grid,K)
+end
+
 
 
 ##################################################################
@@ -689,4 +740,22 @@ function edgelength(edge::Edge{Tv}) where Tv
         l=l+d*d
     end
     return l
+end
+
+
+################################################################
+"""
+    function fill!(edge::Edge,grid,ibnode,ibface)
+
+Fill edge with corresponding data.
+"""
+function fill!(edge::Edge,grid,iedge,icell)
+    K=celledgenode(grid,1,iedge,icell)
+    L=celledgenode(grid,2,iedge,icell)
+    edge.region=grid.cellregions[icell]
+    edge.index=iedge
+    edge.nodeK=K
+    edge.nodeL=L
+    @views edge.coordL=nodecoord(grid,L)
+    @views edge.coordK=nodecoord(grid,K)
 end

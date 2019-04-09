@@ -49,6 +49,14 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     ic=physics.ic
     iphi=physics.iphi
 
+    classflux=function(physics,edge,f,uk,ul)
+        ic=physics.ic
+        iphi=physics.iphi
+        f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
+        arg=uk[iphi]-ul[iphi]
+        bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
+        f[ic]=bm*uk[ic]-bp*ul[ic]
+    end 
 
 
     physics.flux=function(physics,edge,f,uk,ul)
@@ -62,15 +70,6 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     end 
 
 
-    classflux=function(physics,edge,f,uk,ul)
-        ic=physics.ic
-        iphi=physics.iphi
-        f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
-        arg=uk[iphi]-ul[iphi]
-        bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
-        f[ic]=bm*uk[ic]-bp*ul[ic]
-    end 
-    
     physics.storage=function(physics,node, f,u)
         ic=physics.ic
         iphi=physics.iphi

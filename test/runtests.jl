@@ -1,10 +1,7 @@
+
 using Test
 
 @time begin
-    @time begin
-        print("         test-geomspace:")
-        include("test-geomspace.jl")
-    end
     @time begin
         print("         OneSpeciesNonlinearPoisson:")
         include("../examples/OneSpeciesNonlinearPoisson.jl")
@@ -64,6 +61,22 @@ using Test
         include("../examples/NonlinearPoisson2D_BoundarySpecies.jl")
         @test NonlinearPoisson2D_BoundarySpecies.main() ≈ 0.0020781361856598
         @test NonlinearPoisson2D_BoundarySpecies.main(dense=true) ≈ 0.0020781361856598
+    end
+    @time begin
+        print("            TwoSpeciesTestFunctions:")
+        include("../examples/TwoSpeciesTestFunctions.jl")
+        @test TwoSpeciesTestFunctions.main() ≈ 0.01
+        @test TwoSpeciesTestFunctions.main(dense=true) ≈ 0.01
+    end
+    @time begin
+        print("                      ImpedanceTest:")
+        include("../examples/ImpedanceTest.jl")
+        @test ImpedanceTest.main() ≈ 0.26139875997135326
+        @test ImpedanceTest.main(dense=true) ≈ 0.26139875997135326
+    end
+    @time begin
+        print("         test-geomspace:")
+        include("test-geomspace.jl")
     end
     print("                                all:")
 end

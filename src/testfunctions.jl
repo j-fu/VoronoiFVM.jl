@@ -86,21 +86,22 @@ end
 
 Calculate test function integral.
 """
-function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tv}) where Tv
+
+function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where Tv
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
     res=zeros(Tv,nspecies)
+    stor=zeros(Tv,nspecies)
+    storold=zeros(Tv,nspecies)
+    tstepinv=1.0/tstep
     node=Node{Tv}()
     edge=Edge{Tv}()
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
-    K1::Int32=1
-    KN::Int32=nspecies
-    L1::Int32=nspecies+1
-    LN::Int32=2*nspecies
-
+    
+    
     for icell=1:num_cells(grid)
         cellfactors!(grid,icell,node_factors,edge_factors)
         edge.region=reg_cell(grid,icell)
@@ -108,38 +109,33 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tv})
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
-            @views begin
-                K=celledgenode(grid,1,iedge,icell)
-                L=celledgenode(grid,2,iedge,icell)
-                edge.index=iedge
-                edge.nodeK=K
-                edge.nodeL=L
-                edge.coordL=nodecoord(grid,L)
-                edge.coordK=nodecoord(grid,K)
-                
-                #Set up argument for fluxwrap
-                this.physics.flux(this.physics,edge,res,U[:,K], U[:,L])
-                for ispec=1:nspecies
-                    if this.node_dof[ispec,K]==ispec && this.node_dof[ispec,L]==ispec
-                        integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[K]-tf[L])
-                    end
+            fill!(edge,grid,iedge,icell)
+            @views this.physics.flux(this.physics,edge,res,U[:,edge.nodeK], U[:,edge.nodeL])
+            for ispec=1:nspecies
+                if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
+                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
                 end
-                
             end
         end
         
         for inode=1:num_nodes_per_cell(grid)
-            K=cellnode(grid,inode,icell)
-            node.index=K
-            node.coord=nodecoord(grid,K)
-            this.physics.reaction(this.physics,node,res,U[:,K])
+            fill!(node,grid,inode,icell)
+            @views begin
+                this.physics.reaction(this.physics,node,res,U[:,node.index])
+                this.physics.storage(this.physics,node,stor,U[:,node.index])
+                this.physics.storage(this.physics,node,storold,Uold[:,node.index])
+            end
             for ispec=1:nspecies
-                if this.node_dof[ispec,K]==ispec
-                    integral[ispec]+=node_factors[inode]*res[ispec]*tf[K]
+                if this.node_dof[ispec,node.index]==ispec
+                    integral[ispec]+=node_factors[inode]*(res[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
                 end
             end
         end
     end
     return integral
 end
+
+integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}) where Tv=integrate(this,tf,U,U,Inf)
+
+
 
