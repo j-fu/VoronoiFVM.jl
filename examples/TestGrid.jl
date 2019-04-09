@@ -1,13 +1,13 @@
 module TestGrid
 
 using Printf
-using TwoPointFluxFVM
+using VoronoiFVM
 using PyPlot
 
-const Node=TwoPointFluxFVM.Node
-const Edge=TwoPointFluxFVM.Edge
+const Node=VoronoiFVM.Node
+const Edge=VoronoiFVM.Edge
 
-mutable struct Physics  <: TwoPointFluxFVM.Physics
+mutable struct Physics  <: VoronoiFVM.Physics
     k::Float64
     eps::Float64 
     Physics()=new()
@@ -47,7 +47,7 @@ end
 
 
 function Physics(this)
-    TwoPointFluxFVM.PhysicsBase(this,2)
+    VoronoiFVM.PhysicsBase(this,2)
     this.num_bspecies=[ 0, 1, 0, 0]
     this.eps=1
     this.k=1.0
@@ -65,8 +65,8 @@ function main(;n=10,pyplot=true,verbose=false)
     h=1.0/convert(Float64,n-1)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
-    grid1=TwoPointFluxFVM.Grid(X)
-    grid2=TwoPointFluxFVM.Grid(X,Y)
+    grid1=VoronoiFVM.Grid(X)
+    grid2=VoronoiFVM.Grid(X,Y)
 
     # print(summary(grid1))
     # println("")
@@ -77,12 +77,12 @@ function main(;n=10,pyplot=true,verbose=false)
     # dump(grid1)
 
     
-    sys=TwoPointFluxFVM.SparseSystem(grid2,Physics(),2)
-    TwoPointFluxFVM.add_species(sys,1,1)
-    TwoPointFluxFVM.add_boundary_species(sys,2,3)
-    # TwoPointFluxFVM.add_boundary_species(sys,3,2)
+    sys=VoronoiFVM.SparseSystem(grid2,Physics(),2)
+    VoronoiFVM.add_species(sys,1,1)
+    VoronoiFVM.add_boundary_species(sys,2,3)
+    # VoronoiFVM.add_boundary_species(sys,3,2)
 
-#    TwoPointFluxFVM.add_species(sys,2,1)
+#    VoronoiFVM.add_species(sys,2,1)
 
 
     println(length(sys.node_species.nzval))
@@ -101,7 +101,7 @@ function main(;n=10,pyplot=true,verbose=false)
 
     b=similar(a)
     println(typeof(b))
-    bv=TwoPointFluxFVM
+    bv=VoronoiFVM
     
     println(a)
     println(a[1,:])

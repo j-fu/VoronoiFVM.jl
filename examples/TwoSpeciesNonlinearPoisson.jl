@@ -1,7 +1,7 @@
 module TwoSpeciesNonlinearPoisson
 
 using Printf
-using TwoPointFluxFVM
+using VoronoiFVM
 
 
 
@@ -9,7 +9,7 @@ if isinteractive()
     using PyPlot
 end
 
-mutable struct Physics   <: TwoPointFluxFVM.Physics
+mutable struct Physics   <: VoronoiFVM.Physics
     flux::Function
     source::Function
     reaction::Function
@@ -21,7 +21,7 @@ end
 
 function main(;n=100,pyplot=false,verbose=false,dense=false)
     h=1/n
-    grid=TwoPointFluxFVM.Grid(collect(0:h:1))
+    grid=VoronoiFVM.Grid(collect(0:h:1))
     
         
     physics=Physics()
@@ -50,9 +50,9 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     
 
     if dense
-        sys=TwoPointFluxFVM.DenseSystem(grid,physics,2)
+        sys=VoronoiFVM.DenseSystem(grid,physics,2)
     else
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,2)
+        sys=VoronoiFVM.SparseSystem(grid,physics,2)
     end
     
     add_species(sys,1,[1])
@@ -61,19 +61,19 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     sys.boundary_values[1,1]=1.0
     sys.boundary_values[1,2]=0.0
     
-    sys.boundary_factors[1,1]=TwoPointFluxFVM.Dirichlet
-    sys.boundary_factors[1,2]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
+    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
     
     sys.boundary_values[2,1]=1.0
     sys.boundary_values[2,2]=0.0
     
-    sys.boundary_factors[2,1]=TwoPointFluxFVM.Dirichlet
-    sys.boundary_factors[2,2]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[2,1]=VoronoiFVM.Dirichlet
+    sys.boundary_factors[2,2]=VoronoiFVM.Dirichlet
     
     inival=unknowns(sys)
     inival.=0
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.damp_initial=0.1
     u5=0

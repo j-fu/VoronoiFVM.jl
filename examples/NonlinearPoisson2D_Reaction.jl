@@ -1,13 +1,13 @@
 module NonlinearPoisson2D_Reaction
 
 using Printf
-using TwoPointFluxFVM
+using VoronoiFVM
 
 if isinteractive()
     using PyPlot
 end
 
-mutable struct Physics <: TwoPointFluxFVM.Physics
+mutable struct Physics <: VoronoiFVM.Physics
     reaction::Function
     flux::Function
     source::Function
@@ -24,7 +24,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
 
-    grid=TwoPointFluxFVM.Grid(X,Y)
+    grid=VoronoiFVM.Grid(X,Y)
     
     
     physics=Physics()
@@ -53,9 +53,9 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     end
 
     if dense
-        sys=TwoPointFluxFVM.DenseSystem(grid,physics,2)
+        sys=VoronoiFVM.DenseSystem(grid,physics,2)
     else
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,2)
+        sys=VoronoiFVM.SparseSystem(grid,physics,2)
     end
 
     add_species(sys,1,[1])
@@ -65,7 +65,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     inival.=0.0
     
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.max_lureuse=0

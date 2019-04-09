@@ -1,7 +1,7 @@
 module NonlinearPoisson2D_BoundarySpecies
 
 using Printf
-using TwoPointFluxFVM
+using VoronoiFVM
 
 
 if isinteractive()
@@ -9,7 +9,7 @@ if isinteractive()
 end
 
 
-mutable struct Physics <: TwoPointFluxFVM.Physics
+mutable struct Physics <: VoronoiFVM.Physics
     flux::Function
     source::Function
     storage::Function
@@ -31,7 +31,7 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
     
 
 
-    grid=TwoPointFluxFVM.Grid(X,Y)
+    grid=VoronoiFVM.Grid(X,Y)
     
     
     physics=Physics()
@@ -70,9 +70,9 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
     end
     
     if dense
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,3)
+        sys=VoronoiFVM.SparseSystem(grid,physics,3)
     else
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,3)
+        sys=VoronoiFVM.SparseSystem(grid,physics,3)
     end
     add_species(sys,1,[1])
     add_species(sys,2,[1])
@@ -90,7 +90,7 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
 
     physics.eps=1.0e-2
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5

@@ -2,7 +2,7 @@
 
 ```@index
 Pages   = ["alldocs.md"]
-Modules = [TwoPointFluxFVM]
+Modules = [VoronoiFVM]
 Order=[:type, :function, :macro, :constant]
 ```
 

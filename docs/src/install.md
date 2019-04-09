@@ -11,11 +11,11 @@ Steps:
 
       Either from WIAS rhodecode server
 ````
-     git clone  https://repos.wias-berlin.de/users/fuhrmann/projects/julia-packages/TwoPointFluxFVM
+     git clone  https://repos.wias-berlin.de/users/fuhrmann/projects/julia-packages/VoronoiFVM
 ````
      Or from github:
 ````
-     git clone  https://github.com/j-fu/TwoPointFluxFVM.jl TwoPointFluxFVM
+     git clone  https://github.com/j-fu/VoronoiFVM.jl VoronoiFVM
 ````
    
    3. Add the following line to  the file `.julia/config/startup.jl` in your  home directory (create this file it does not exist). PKG_DIR must be the full path name of the directory.
@@ -23,4 +23,4 @@ Steps:
      push!(LOAD_PATH, "PKG_DIR")
 ````
 
-Now, `import TwoPointFluxFVM` should work in Julia scripts.
+Now, `import VoronoiFVM` should work in Julia scripts.

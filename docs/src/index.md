@@ -1,4 +1,4 @@
-TwoPointFluxFVM
+VoronoiFVM
 ===============
 Solver for coupled nonlinear partial differential equations
 based on the two point flux finite volume method on admissible grids.
@@ -12,7 +12,7 @@ It is however aimed to be feasible at least for small projects.
 It requires Julia 1.0.
 
 Documentation created with [Documenter.jl](https://juliadocs.github.io/Documenter.jl/stable/index.html)
-resides [here](https://www.wias-berlin.de/people/fuhrmann/TwoPointFluxFVM)
+resides [here](https://www.wias-berlin.de/people/fuhrmann/VoronoiFVM)
 
 ## Typical usage
 
@@ -61,28 +61,28 @@ end
 
 ```
 
-### [`TwoPointFluxFVM.Grid`](@ref)
+### [`VoronoiFVM.Grid`](@ref)
 
 This is a simplex grid structure.
 
-### [`TwoPointFluxFVM.Node`](@ref)
+### [`VoronoiFVM.Node`](@ref)
 
-This represents a node  in [`TwoPointFluxFVM.Grid`](@ref).
+This represents a node  in [`VoronoiFVM.Grid`](@ref).
 
-### [`TwoPointFluxFVM.Edge`](@ref)
+### [`VoronoiFVM.Edge`](@ref)
 
 This represents an edge between
-two neigboring control volumes created from [`TwoPointFluxFVM.Grid`](@ref).
+two neigboring control volumes created from [`VoronoiFVM.Grid`](@ref).
 
 Currently, constructors are
-[`TwoPointFluxFVM.Grid(X::Array{Real,1})`](@ref) for one-dimensional
-domains and [`TwoPointFluxFVM.Grid(X::Array{Float64,1},Y::Array{Float64,1})`](@ref)
+[`VoronoiFVM.Grid(X::Array{Real,1})`](@ref) for one-dimensional
+domains and [`VoronoiFVM.Grid(X::Array{Float64,1},Y::Array{Float64,1})`](@ref)
 for two-dimensional domains.
 
-### [`TwoPointFluxFVM.System`](@ref)
+### [`VoronoiFVM.System`](@ref)
 
-From instances of  [`TwoPointFluxFVM.Graph`](@ref) and [`TwoPointFluxFVM.Physics`](@ref),
-a [`TwoPointFluxFVM.System`](@ref) which contains all the necessary
+From instances of  [`VoronoiFVM.Graph`](@ref) and [`VoronoiFVM.Physics`](@ref),
+a [`VoronoiFVM.System`](@ref) which contains all the necessary
 data for the solution of the nonlinear system described by them.
 
 

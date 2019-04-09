@@ -1,8 +1,8 @@
 push!(LOAD_PATH,"../src/")
-using Documenter, TwoPointFluxFVM
+using Documenter, VoronoiFVM
 makedocs(
-    sitename="TwoPointFluxFVM.jl",
-    modules = [TwoPointFluxFVM],
+    sitename="VoronoiFVM.jl",
+    modules = [VoronoiFVM],
     clean = true,
     authors = "J. Fuhrmann",
     pages=[

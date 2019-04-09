@@ -1,7 +1,7 @@
 module ThreeRegions1D
 
 using Printf
-using TwoPointFluxFVM
+using VoronoiFVM
 
 if isinteractive()
     using PyPlot
@@ -9,7 +9,7 @@ end
 
 
 
-mutable struct Physics <: TwoPointFluxFVM.Physics
+mutable struct Physics <: VoronoiFVM.Physics
     flux::Function
     source::Function
     reaction::Function
@@ -23,7 +23,7 @@ end
 function main(;n=30,pyplot=false,verbose=false,dense=false)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
-    grid=TwoPointFluxFVM.Grid(X)
+    grid=VoronoiFVM.Grid(X)
     cellmask!(grid,[0.0],[1.0],1)
     cellmask!(grid,[1.0],[2.1],2)
     cellmask!(grid,[1.9],[3.0],3)
@@ -80,22 +80,22 @@ function main(;n=30,pyplot=false,verbose=false,dense=false)
     end
 
     if dense
-        sys=TwoPointFluxFVM.DenseSystem(grid,physics,3)
+        sys=VoronoiFVM.DenseSystem(grid,physics,3)
     else
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,3)
+        sys=VoronoiFVM.SparseSystem(grid,physics,3)
     end
 
     add_species(sys,1,[1])
     add_species(sys,2,[1,2,3])
     add_species(sys,3,[3])
 
-    sys.boundary_factors[3,2]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[3,2]=VoronoiFVM.Dirichlet
     sys.boundary_values[3,2]=0
     
     inival=unknowns(sys)
     inival.=0
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     tstep=0.01
     time=0.0

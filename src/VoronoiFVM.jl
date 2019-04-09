@@ -1,13 +1,13 @@
-module TwoPointFluxFVM
+module VoronoiFVM
 
-include("fvmgrid.jl")
-include("functions.jl")
-include("fvmnewtoncontrol.jl")
-include("tools.jl")
-include("fvmpyplot.jl")
-include("twopointfluxfvmsystem.jl")
-include("testfunctions.jl")
-include("fvmimpedance.jl")
+include("vfvm_grid.jl")
+include("vfvm_functions.jl")
+include("vfvm_newtoncontrol.jl")
+include("vfvm_tools.jl")
+include("vfvm_pyplot.jl")
+include("vfvm_system.jl")
+include("vfvm_testfunctions.jl")
+include("vfvm_impedance.jl")
 
 
 export unknowns

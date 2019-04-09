@@ -1,14 +1,14 @@
 module NonlinearPoisson2D
 
 using Printf
-using TwoPointFluxFVM
+using VoronoiFVM
 
 if isinteractive()
     using PyPlot
 end
 
 
-mutable struct Physics <: TwoPointFluxFVM.Physics
+mutable struct Physics <: VoronoiFVM.Physics
     reaction::Function
     flux::Function
     source::Function
@@ -25,7 +25,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     Y=collect(0.0:h:1.0)
 
 
-    grid=TwoPointFluxFVM.Grid(X,Y)
+    grid=VoronoiFVM.Grid(X,Y)
     
     physics=Physics()
     physics.eps=1.0e-2
@@ -49,23 +49,23 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     end
     
     if dense
-        sys=TwoPointFluxFVM.DenseSystem(grid,physics,1)
+        sys=VoronoiFVM.DenseSystem(grid,physics,1)
     else
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,1)
+        sys=VoronoiFVM.SparseSystem(grid,physics,1)
     end        
     add_species(sys,1,[1])
 
     sys.boundary_values[1,2]=0.1
     sys.boundary_values[1,4]=0.1
     
-    sys.boundary_factors[1,2]=TwoPointFluxFVM.Dirichlet
-    sys.boundary_factors[1,4]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
+    sys.boundary_factors[1,4]=VoronoiFVM.Dirichlet
     
     inival=unknowns(sys)
     inival.=0.5
 
 
-    control=TwoPointFluxFVM.NewtonControl()
+    control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.max_lureuse=10

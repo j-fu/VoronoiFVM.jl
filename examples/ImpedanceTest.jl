@@ -4,7 +4,7 @@ module ImpedanceTest
 using Printf
 
 # That's the thing we want to do
-using TwoPointFluxFVM
+using VoronoiFVM
 
 # Allow plotting
 if isinteractive()
@@ -18,7 +18,7 @@ end
 #
 # We choose a mutable struct which allows to overwrite
 # fields later.
-mutable struct Physics  <: TwoPointFluxFVM.Physics
+mutable struct Physics  <: VoronoiFVM.Physics
     flux::Function      # flux function, mandatory
     reaction::Function  # reaction term, optional
     storage::Function   # storage term, mandatory
@@ -40,7 +40,7 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
 
     
     h=1.0/convert(Float64,n-1)
-    grid=TwoPointFluxFVM.Grid(collect(0:h:L))
+    grid=VoronoiFVM.Grid(collect(0:h:L))
     
     
     physics=Physics()
@@ -63,13 +63,13 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
     end
 
     if dense
-        sys=TwoPointFluxFVM.DenseSystem(grid,physics,1)
+        sys=VoronoiFVM.DenseSystem(grid,physics,1)
     else
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,1)
+        sys=VoronoiFVM.SparseSystem(grid,physics,1)
     end
     add_species(sys,1,[1])
 
-    factory=TwoPointFluxFVM.TestFunctionFactory(sys)
+    factory=VoronoiFVM.TestFunctionFactory(sys)
     tf0=testfunction(factory,[2],[1])
     tfL=testfunction(factory,[1],[2])
 
@@ -78,8 +78,8 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
     sys.boundary_values[1,1]=1.0
     sys.boundary_values[1,2]=0
     
-    sys.boundary_factors[1,1]=TwoPointFluxFVM.Dirichlet
-    sys.boundary_factors[1,2]=TwoPointFluxFVM.Dirichlet
+    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
+    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
     
     inival=unknowns(sys)
     inival.=0.0
@@ -91,7 +91,7 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
 
     ω=ω0
     
-    isys=TwoPointFluxFVM.ImpedanceSystem(sys,U,1,1)
+    isys=VoronoiFVM.ImpedanceSystem(sys,U,1,1)
 
     allomega=zeros(0)
     allI0=zeros(Complex{Float64},0)

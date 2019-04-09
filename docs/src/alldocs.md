@@ -1,7 +1,7 @@
 # API Documentation
 
 ```@autodocs
-Modules = [TwoPointFluxFVM]
+Modules = [VoronoiFVM]
 Order=[:type, :function, :macro, :constant]
 ```
 

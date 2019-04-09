@@ -1,6 +1,6 @@
 LICENSE
 
-TwoPointFluxFVM.jl is an open-source toolkit licensed under the BSD license.
+VoronoiFVM.jl is an open-source toolkit licensed under the BSD license.
 
 Copyright (c) 2018 Jürgen Fuhrmann
 

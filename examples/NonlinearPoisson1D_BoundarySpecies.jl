@@ -1,16 +1,16 @@
 module NonlinearPoisson1D_BoundarySpecies
 
 using Printf
-using TwoPointFluxFVM
-const Node=TwoPointFluxFVM.Node
-const Edge=TwoPointFluxFVM.Edge
+using VoronoiFVM
+const Node=VoronoiFVM.Node
+const Edge=VoronoiFVM.Edge
 
 if isinteractive()
     using PyPlot
 end
 
 
-mutable struct Physics  <: TwoPointFluxFVM.Physics
+mutable struct Physics  <: VoronoiFVM.Physics
     flux::Function
     source::Function
     storage::Function
@@ -30,7 +30,7 @@ function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
     X=collect(0.0:h:1.0)
     N=length(X)
     
-    grid=TwoPointFluxFVM.Grid(X)
+    grid=VoronoiFVM.Grid(X)
 
     
     physics=Physics()
@@ -67,9 +67,9 @@ function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
     end
     
     if dense
-        sys=TwoPointFluxFVM.DenseSystem(grid,physics,3)
+        sys=VoronoiFVM.DenseSystem(grid,physics,3)
     else
-        sys=TwoPointFluxFVM.SparseSystem(grid,physics,3)
+        sys=VoronoiFVM.SparseSystem(grid,physics,3)
     end
     
     add_species(sys,1,[1])
@@ -81,7 +81,7 @@ function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
     
     physics.eps=1.0e-2
     
-    control=TwoPointFluxFVM.NewtonControl()
+    control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5
