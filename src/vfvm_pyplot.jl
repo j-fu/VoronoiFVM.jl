@@ -1,11 +1,16 @@
 import PyPlot
-import Colors
 
+function frgb(i,max)
+    x=Float64(i-1)/Float64(max)
+    if (x<0.5)
+        return (1.0-2.0*x,2.0*x,0)
+    else
+        return (0.0,2.0-2.0*x,2.0*x-1.0)
+    end
+end
 
 function fvmplot(grid::Grid)
-    rgb_sequence(c) = (Colors.red(c), Colors.green(c), Colors.blue(c))
-    ccols=Colors.distinguishable_colors(num_cellregions(grid),lchoices=50:50,cchoices=50:50)
-    bcols=Colors.distinguishable_colors(num_bfaceregions(grid),lchoices=50:50,cchoices=50:50)
+    
     
     if dim_space(grid)==1
         xmin=minimum(grid.coord)
@@ -13,7 +18,7 @@ function fvmplot(grid::Grid)
         h=(xmax-xmin)/20.0
 
         for icell=1:num_cells(grid)
-            rgb=rgb_sequence(ccols[grid.cellregions[icell]])
+            rgb=frgb(grid.cellregions[icell],num_cellregions(grid))
             coord1=nodecoord(grid,cellnode(grid,1,icell))
             coord2=nodecoord(grid,cellnode(grid,2,icell))
             x1=coord1[1]
@@ -24,7 +29,7 @@ function fvmplot(grid::Grid)
         end
         
         for ibface=1:num_bfaces(grid)
-            rgb=rgb_sequence(bcols[grid.bfaceregions[ibface]])
+            rgb=frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
             coord1=nodecoord(grid,bfacenode(grid,1,ibface))
             x1=coord1[1]
             PyPlot.plot([x1,x1],[-2*h,2*h],linewidth=3.0,color=rgb)
