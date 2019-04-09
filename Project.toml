@@ -1,0 +1,10 @@
+name = "VoronoiFVM"
+uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
+authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
+version = "0.3.0"
+
+[deps]
+DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+IterativeSolvers = "42fd0dbc-a981-5370-80f2-aaf504508153"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
