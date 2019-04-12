@@ -53,7 +53,10 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
 
     # Flux function which describes the flux
     # between neigboring control volumes
-    physics.flux=function(physics,edge,f,uk,ul)
+    physics.flux=function(physics,edge,f,u)
+        nspecies=1
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.eps*(uk[1]^2-ul[1]^2)
     end 
 
@@ -94,6 +97,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
 
     # Create a solution array
     inival=unknowns(sys)
+    U=unknowns(sys)
 
     # Broadcast the initial value
     inival.=0.5
@@ -109,7 +113,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     for it=2:length(times)
         # Solve for new timestep with old timestep
         # solution in inival
-        U=solve(sys,inival,control=control,tstep=tstep)
+        solve(sys,inival,U, control=control,tstep=tstep)
         test_result=U[5]
 
         # Update inival

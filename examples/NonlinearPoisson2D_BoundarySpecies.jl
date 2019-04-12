@@ -53,7 +53,10 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
     end
     
     
-    physics.flux=function(physics,edge,f,uk,ul)
+    physics.flux=function(physics,edge,f,u)
+        nspecies=3
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.eps*(uk[1]-ul[1])
         f[2]=physics.eps*(uk[2]-ul[2])
     end 
@@ -87,6 +90,7 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
    
     inival=unknowns(sys)
     inival.=0.0
+    U=unknowns(sys)
 
     physics.eps=1.0e-2
     
@@ -101,7 +105,7 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
     u5=0
     while time<1
         time=time+tstep
-        U=solve(sys,inival,control=control,tstep=tstep)
+        solve(sys,inival,U,control=control,tstep=tstep)
         inival.=U
         if verbose
             @printf("time=%g\n",time)

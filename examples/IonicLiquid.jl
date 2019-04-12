@@ -49,7 +49,10 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     ic=physics.ic
     iphi=physics.iphi
 
-    classflux=function(physics,edge,f,uk,ul)
+    classflux=function(physics,edge,f,u)
+        nspecies=2
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         ic=physics.ic
         iphi=physics.iphi
         f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
@@ -59,7 +62,10 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     end 
 
 
-    physics.flux=function(physics,edge,f,uk,ul)
+    physics.flux=function(physics,edge,f,u)
+        nspecies=2
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         ic=physics.ic
         iphi=physics.iphi
         f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
@@ -106,6 +112,9 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     inival=unknowns(sys)
     @views inival[iphi,:].=2
     @views inival[ic,:].=0.5
+    U=unknowns(sys)
+
+
     if pyplot
         plot_solution(sys,inival)
     end
@@ -121,8 +130,8 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
         tstep=1.0e-4
         while t<tend
             t=t+tstep
-            U=solve(sys,inival,control=control,tstep=tstep)
-            values(inival).=values(U)
+            solve(sys,inival,U,control=control,tstep=tstep)
+            inival.=U
             u1=U[2]
             if verbose
                 @printf("time=%g\n",t)
@@ -148,18 +157,19 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
         cdlminus=zeros(0)
         cdl=0
         for dir in [1,-1]
-            sol=copy(inival)
             phi=0.0
             while phi<phimax
                 sys.boundary_values[iphi,1]=dir*phi
-                sol=solve(sys,sol,control=control)
-                Q=integrate(sys,physics.reaction,sol)
+                solve(sys,inival,U,control=control)
+                inival.=U
+                Q=integrate(sys,physics.reaction,U)
                 sys.boundary_values[iphi,1]=dir*phi+delta
-                sol=solve(sys,sol,control=control)
+                solve(sys,inival,U,control=control)
+                inival.=U
                 if pyplot
-                    plot_solution(sys,sol)
+                    plot_solution(sys,U)
                 end
-                Qdelta=integrate(sys,physics.reaction,sol)
+                Qdelta=integrate(sys,physics.reaction,U)
                 cdl=(Qdelta[iphi]-Q[iphi])/delta
                 if dir==1
                     push!(vplus,dir*phi)

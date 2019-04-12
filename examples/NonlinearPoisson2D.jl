@@ -34,7 +34,10 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
         f[1]=u[1]^2
     end
     
-    physics.flux=function(physics,edge,f,uk,ul)
+    physics.flux=function(physics,edge,f,u)
+        nspecies=1
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.eps*(uk[1]^2-ul[1]^2)
     end 
     
@@ -62,6 +65,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     sys.boundary_factors[1,4]=VoronoiFVM.Dirichlet
     
     inival=unknowns(sys)
+    U=unknowns(sys)
     inival.=0.5
 
 
@@ -74,7 +78,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     u15=0
     while time<1.0
         time=time+tstep
-        U=solve(sys,inival,control=control,tstep=tstep)
+        solve(sys,inival,U,control=control,tstep=tstep)
         u15=U[15]
         inival.=U
 

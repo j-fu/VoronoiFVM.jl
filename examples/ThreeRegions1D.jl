@@ -57,7 +57,10 @@ function main(;n=30,pyplot=false,verbose=false,dense=false)
         end
     end
     
-    physics.flux=function(physics,edge,f,uk,ul)   
+    physics.flux=function(physics,edge,f,u)   
+        nspecies=3
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         if edge.region==1
             f[1]=physics.eps[1]*(uk[1]-ul[1])
             f[2]=physics.eps[2]*(uk[2]-ul[2])
@@ -93,6 +96,7 @@ function main(;n=30,pyplot=false,verbose=false,dense=false)
     sys.boundary_values[3,2]=0
     
     inival=unknowns(sys)
+    U=unknowns(sys)
     inival.=0
     
     control=VoronoiFVM.NewtonControl()
@@ -104,7 +108,7 @@ function main(;n=30,pyplot=false,verbose=false,dense=false)
     testval=0
     while time<tend
         time=time+tstep
-        U=solve(sys,inival,control=control,tstep=tstep)
+        solve(sys,inival,U,control=control,tstep=tstep)
         inival.=U
         if verbose
             @printf("time=%g\n",time)

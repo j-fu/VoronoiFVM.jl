@@ -7,14 +7,15 @@ if isinteractive()
     using PyPlot
 end
 
-mutable struct Physics <: VoronoiFVM.Physics
-    reaction::Function
-    flux::Function
-    source::Function
-    storage::Function
+
+
+mutable struct Physics{FR<: Function, FF<:Function, FS<:Function, FSRC<:Function} <: VoronoiFVM.Physics
+    reaction::FR
+    flux::FF
+    storage::FS
+    source::FSRC
     eps::Float64
     k::Float64
-    Physics()=new()
 end
 
 
@@ -27,31 +28,37 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     grid=VoronoiFVM.Grid(X,Y)
     
     
-    physics=Physics()
-    physics.eps=1.0e-2
-    physics.k=1.0
-    
-    physics.reaction=function(physics,node,f,u)
+
+    xreaction=function(physics,node,f,u)
         f[1]=physics.k*(u[1]-u[2])
         f[2]=physics.k*(u[2]-u[1])
     end
-    
-    physics.flux=function(physics,edge,f,uk,ul)
+
+    xflux=function(physics,edge,f,u)
+        nspecies=2
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.eps*(uk[1]-ul[1])
         f[2]=physics.eps*(uk[2]-ul[2])
     end 
     
-    physics.source=function(physics,node,f)
+    xsource=function(physics,node,f)
         x1=node.coord[1]-0.5
         x2=node.coord[2]-0.5
         f[1]=exp(-20*(x1^2+x2^2))
     end
     
-    physics.storage=function(physics,node, f,u)
+    xstorage=function(physics,node, f,u)
         f[1]=u[1]
         f[2]=u[2]
     end
 
+    physics=Physics(xreaction,xflux,xstorage,xsource,0.0,0.0)
+    physics.eps=1.0e-2
+    physics.k=1.0
+
+
+    
     if dense
         sys=VoronoiFVM.DenseSystem(grid,physics,2)
     else
@@ -62,6 +69,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     add_species(sys,2,[1])
     
     inival=unknowns(sys)
+    U=unknowns(sys)
     inival.=0.0
     
     
@@ -75,7 +83,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     u15=0
     while time<1
         time=time+tstep
-        U=solve(sys,inival,control=control,tstep=tstep)
+        solve(sys,inival,U,control=control,tstep=tstep)
         inival.=U
         if verbose
             @printf("time=%g\n",time)

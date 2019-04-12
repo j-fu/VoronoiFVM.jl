@@ -33,7 +33,10 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
         f[2]=10*(u[2]-u[1])
     end
 
-    physics.flux=function(physics,edge,f,uk,ul)   
+    physics.flux=function(physics,edge,f,u)   
+        nspecies=2
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.eps[1]*(uk[1]-ul[1])
         f[2]=physics.eps[2]*(uk[2]-ul[2])
     end 
@@ -80,6 +83,7 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
         waitforbuttonpress()
     end
     
+    U=unknowns(sys)
     inival=unknowns(sys)
     inival[2,:].=0.1
     inival[1,:].=0.1
@@ -90,7 +94,7 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     I1=0
     for eps in [1.0,0.1,0.01]
         physics.eps=[eps,eps]
-        U=solve(sys,inival,control=control)
+        solve(sys,inival,U,control=control)
         I1=integrate(sys,tf1,U)
         
         inival.=U

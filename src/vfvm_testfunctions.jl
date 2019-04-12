@@ -29,8 +29,8 @@ Constructor for TestFunctionFactory,
 """
 function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
     physics=TestFunctionPhysics()
-    physics.flux=function(physics,edge,f,uk,ul)
-        f[1]=uk[1]-ul[1]
+    physics.flux=function(physics,edge,f,u)
+        f[1]=u[1]-u[2]
     end
     physics.storage=function(physics,node,f,u)
         f[1]=u[1]
@@ -48,7 +48,7 @@ end
 """
     function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
 
-Create testfunction which as Dirichlet zero boundary conditions  for boundary
+Create testfunction which has Dirichlet zero boundary conditions  for boundary
 regions in bc0 and Dirichlet one boundary conditions  for boundary
 regions in bc1.
 """
@@ -95,12 +95,13 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
     stor=zeros(Tv,nspecies)
     storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
-    node=Node{Tv}()
-    edge=Edge{Tv}()
+    node=Node{Tv}(grid)
+    edge=Edge{Tv}(grid)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
-    
+    UKL=Array{Tv,1}(undef,2*nspecies)
+
     
     for icell=1:num_cells(grid)
         cellfactors!(grid,icell,node_factors,edge_factors)
@@ -110,7 +111,12 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
                 continue
             end
             fill!(edge,grid,iedge,icell)
-            @views this.physics.flux(this.physics,edge,res,U[:,edge.nodeK], U[:,edge.nodeL])
+
+            for ispec=1:nspecies
+                UKL[ispec]=U[ispec,edge.nodeK]
+                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+            end
+            @views this.physics.flux(this.physics,edge,res,UKL)
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
                     integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])

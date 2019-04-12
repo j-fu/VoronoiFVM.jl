@@ -48,7 +48,10 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
     physics.D=1
     physics.C=2
 
-    physics.flux=function(physics,edge,f,uk,ul)
+    physics.flux=function(physics,edge,f,u)
+        nspecies=1
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.D*(uk[1]-ul[1])
     end 
 
@@ -82,9 +85,10 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
     sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
     
     inival=unknowns(sys)
+    U=unknowns(sys)
     inival.=0.0
     
-    U=solve(sys,inival)
+    solve(sys,inival,U)
 
     ω0=0.5
     ω1=1.0e4
@@ -100,6 +104,7 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
     allIxL=zeros(Complex{Float64},0)
 
     testval=0.0
+    UZ=unknowns(isys)
     while ω<ω1
         
         iω=1im*ω
@@ -111,7 +116,7 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
         IxL=2.0*physics.D*z/(eminus-eplus);
         
         
-        UZ=solve(isys,ω)
+        solve(isys,UZ,ω)
 
         if pyplot
             PyPlot.clf()

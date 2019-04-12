@@ -35,6 +35,9 @@ end
 
 
 function flux!(this::Physics,edge::Edge,f,uk,ul)
+        nspecies=2
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
     f[1]=this.eps*(uk[1]-ul[1])
     f[2]=this.eps*(uk[2]-ul[2])
 end 

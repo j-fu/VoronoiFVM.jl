@@ -47,7 +47,10 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
         end
     end
     
-    physics.flux=function(physics,edge,f,uk,ul)
+    physics.flux=function(physics,edge,f,u)
+        nspecies=2
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.eps*(uk[1]-ul[1])
         f[2]=physics.eps*(uk[2]-ul[2])
     end 
@@ -73,6 +76,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
 
     
     inival=unknowns(sys)
+    U=unknowns(sys)
     inival.=0.0
     
     
@@ -86,7 +90,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     u25=0
     while time<1
         time=time+tstep
-        U=solve(sys,inival,control=control,tstep=tstep)
+        solve(sys,inival,U,control=control,tstep=tstep)
         inival.=U
         # for i in eachindex(U)
         #     inival[i]=U[i]

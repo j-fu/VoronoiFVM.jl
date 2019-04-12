@@ -33,7 +33,10 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
         f[2]=-u[1]*u[2]
     end
 
-    physics.flux=function(physics,edge,f,uk,ul)   
+    physics.flux=function(physics,edge,f,u)   
+        nspecies=2
+        uk=VoronoiFVM.UK(u,nspecies)
+        ul=VoronoiFVM.UL(u,nspecies)
         f[1]=physics.eps[1]*(uk[1]-ul[1])*(0.01+uk[2]+ul[2])
         f[2]=physics.eps[2]*(uk[2]-ul[2])*(0.01+uk[1]+ul[1])
     end 
@@ -71,6 +74,7 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     sys.boundary_factors[2,2]=VoronoiFVM.Dirichlet
     
     inival=unknowns(sys)
+    U=unknowns(sys)
     inival.=0
     
     control=VoronoiFVM.NewtonControl()
@@ -79,7 +83,7 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     u5=0
     for eps in [1.0,0.1,0.01]
         physics.eps=[eps,eps]
-        U=solve(sys,inival,control=control)
+        solve(sys,inival,U,control=control)
         inival.=U
         if pyplot
             clf()

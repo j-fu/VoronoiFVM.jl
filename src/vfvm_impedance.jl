@@ -28,6 +28,11 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
     this.ispec=xispec
     this.ibc=xibc
     this.U0=U0
+
+    matrix=this.matrix
+    storderiv=this.storderiv
+
+
     
     F=complex(unknowns(sys))
     this.F=F
@@ -35,8 +40,8 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
     grid=sys.grid
     
     physics::Physics=sys.physics
-    node::Node=Node{Tv}()
-    bnode::BNode=BNode{Tv}()
+    node::Node=Node{Tv}(grid)
+    bnode::BNode=BNode{Tv}(grid)
     nspecies::Int32=num_species(sys)
     
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
@@ -85,7 +90,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
                 ispec=spec(F,idof,K)
                 for jdof=firstnodedof(F,K):lastnodedof(F,K)
                     jspec=spec(F,jdof,K)
-                    addnz(this.storderiv,idof,jdof,jac_stor[ispec,jspec],node_factors[inode])
+                    addnz(storderiv,idof,jdof,jac_stor[ispec,jspec],node_factors[inode])
                 end
             end
 
@@ -133,7 +138,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
                     ispec=spec(F,idof,K)
                     for jdof=firstnodedof(F,K):lastnodedof(F,K)
                         jspec=spec(F,jdof,K)
-                        addnz(this.storderiv,idof,jdof,jac_bstor[ispec,jspec],bnode_factors[ibnode])
+                        addnz(storderiv,idof,jdof,jac_bstor[ispec,jspec],bnode_factors[ibnode])
                     end
                 end
             end
@@ -145,25 +150,33 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
     return this
 end
 
-# correct!
-function solve(this::ImpedanceSystem{Tv}, ω) where Tv
+unknowns(this::ImpedanceSystem{Tv}) where Tv=copy(this.F)
+                                                     
+function solve(this::ImpedanceSystem{Tv},UZ::AbstractMatrix{Complex{Tv}}, ω) where Tv
     iω=ω*1im
+
+    # hoist field accesses for immutable struct
+    # cf. https://github.com/JuliaLang/julia/issues/15668
+
+    matrix=this.matrix
+    storderiv=this.storderiv
+    sysmatrix=this.sys.matrix
+    grid=this.sys.grid
+    
     nspecies::Int32=num_species(this.sys)
-    for i=1:length(this.matrix.nzval)
-        this.matrix.nzval[i]=complex(this.sys.matrix.nzval[i])
+    for i=1:length(matrix.nzval)
+        matrix.nzval[i]=complex(sysmatrix.nzval[i])
     end
     U0=this.U0
-    for inode=1:num_nodes(this.sys.grid)
+    for inode=1:num_nodes(grid)
         for idof=firstnodedof(U0,inode):lastnodedof(U0,inode)
             for jdof=firstnodedof(U0,inode):lastnodedof(U0,inode)
-                addnz(this.matrix,idof,jdof,this.storderiv[idof,jdof],iω)
+                addnz(matrix,idof,jdof,storderiv[idof,jdof],iω)
             end
         end
     end
-    U=copy(this.F)
-    lufact=LinearAlgebra.lu(this.matrix)
-    ldiv!(values(U),lufact,values(this.F))
-    return U
+    lufact=LinearAlgebra.lu(matrix)
+    ldiv!(values(UZ),lufact,values(this.F))
 end
 
 
@@ -175,8 +188,8 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
     integral=zeros(Complex{Tv},nspecies)
     res=zeros(Tv,nspecies)
     stor=zeros(Tv,nspecies)
-    node=Node{Tv}()
-    edge=Edge{Tv}()
+    node=Node{Tv}(grid)
+    edge=Edge{Tv}(grid)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -186,7 +199,7 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
 
     @inline function fluxwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        @views physics.flux(physics,edge,y,u[K1:KN],u[L1:LN])
+        @views physics.flux(physics,edge,y,u)
     end
 
     @inline function reactionwrap(y::AbstractVector, u::AbstractVector)
@@ -199,10 +212,6 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
         physics.storage(physics,node,y,u)
     end
 
-    K1::Int32=1
-    KN::Int32=nspecies
-    L1::Int32=nspecies+1
-    LN::Int32=2*nspecies
 
     # istoragew+= S'*uz*nodefac*tfc
     # ireactionw+= R'*uz*nodefac*tfc
@@ -252,8 +261,10 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
                 continue
             end
             fill!(edge,grid,iedge,icell)
-            @views UKL[K1:KN]=U0[:,edge.nodeK]
-            @views UKL[L1:LN]=U0[:,edge.nodeL]
+            for ispec=1:nspecies
+                UKL[ispec]=U0[ispec,edge.nodeK]
+                UKL[ispec+nspecies]=U0[ispec,edge.nodeL]
+            end
 
             ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL)
             jac=DiffResults.jacobian(result_flx)

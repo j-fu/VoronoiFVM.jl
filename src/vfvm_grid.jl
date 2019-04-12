@@ -69,7 +69,7 @@ Base.eltype(grid::AbstractGrid)=Base.eltype(grid.coord)
 
 ##########################################################
 """
-    mutable struct Grid
+    struct Grid
 
 Structure holding grid data.
 """
@@ -82,8 +82,6 @@ struct Grid{Tc} <: AbstractGrid
     num_cellregions::Array{Int32,1}
     num_bfaceregions::Array{Int32,1}
     celledgenodes::Array{Int32,2}
-    cellfactors::Function
-    bfacefactors::Function
 end
 
 
@@ -106,25 +104,9 @@ grid marking control volumes: marked by `|`.
 ```
 
 """
+
 function Grid(X::Array{Tc,1}) where Tc
 
-    function cellfac1d!(grid,icell,nodefac,edgefac)
-        K=cellnode(grid,1,icell)
-        L=cellnode(grid,2,icell)
-        xK=nodecoord(grid,K)
-        xL=nodecoord(grid,L)
-        d=abs(xL[1]-xK[1])
-        nodefac[1]=d/2
-        nodefac[2]=d/2
-        edgefac[1]=1/d
-    end
-    
-
-    # 1D bface form factors
-    function bfacefac1d!(grid,ibface,nodefac)
-        nodefac[1]=1.0
-    end
-    
     coord=reshape(X,1,length(X))
     cellnodes=zeros(Int32,2,length(X)-1)
     cellregions=zeros(Int32,length(X)-1)
@@ -149,9 +131,7 @@ function Grid(X::Array{Tc,1}) where Tc
                     bfaceregions,
                     num_cellregions,
                     num_bfaceregions,
-                    celledgenodes,
-                    cellfac1d!,
-                    bfacefac1d!)
+                    celledgenodes)
 end
 
 
@@ -171,67 +151,10 @@ Boundary region numbers count counterclockwise:
 | west      |       4 |
 
 """
+
+
 function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
 
-    # 2D cell form factors
-    function cellfac2d!(grid,icell,npar,epar)
-        i1=cellnode(grid,1,icell);
-        i2=cellnode(grid,2,icell)
-        i3=cellnode(grid,3,icell)
-        p1=nodecoord(grid,i1)
-        p2=nodecoord(grid,i2)
-        p3=nodecoord(grid,i3)
-        
-        
-        # Fill matrix of edge vectors
-        V11= p2[1]- p1[1]
-        V21= p2[2]- p1[2]
-        
-        V12= p3[1]- p1[1]
-        V22= p3[2]- p1[2]
-        
-        V13= p3[1]- p2[1]
-        V23= p3[2]- p2[2]
-        
-        
-        
-        # Compute determinant 
-        det=V11*V22 - V12*V21
-        vol=0.5*det
-        
-        ivol = 1.0/vol
-        
-        # squares of edge lengths
-        dd1=V13*V13+V23*V23 # l32
-        dd2=V12*V12+V22*V22 # l31
-        dd3=V11*V11+V21*V21 # l21
-        
-        
-        # contributions to \sigma_kl/h_kl
-        epar[1]= (dd2+dd3-dd1)*0.125*ivol
-        epar[2]= (dd3+dd1-dd2)*0.125*ivol
-        epar[3]= (dd1+dd2-dd3)*0.125*ivol
-        
-        
-        # contributions to \omega_k
-        npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
-        npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
-        npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
-    end                              
-    
-
-    # 2D bface form factors
-    function bfacefac2d!(grid,ibface,nodefac)
-        i1=bfacenode(grid,1,ibface)
-        i2=bfacenode(grid,2,ibface)
-        p1=nodecoord(grid,i1)
-        p2=nodecoord(grid,i2)
-        dx=p1[1]-p2[1]
-        dy=p1[2]-p2[2]
-        d=0.5*sqrt(dx*dx+dy*dy)
-        nodefac[1]=d
-        nodefac[2]=d
-    end
     
     function leq(x, x1, x2)
         if (x>x1)
@@ -354,7 +277,7 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
             cellnodes[3,icell]=p00
             cellregions[icell]=1
         end
-    end
+   end
     @assert(icell==num_cells)
     
     #lazy way to  create boundary grid
@@ -381,10 +304,10 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
                     bfaceregions,
                     num_cellregions,
                     num_bfaceregions,
-                    celledgenodes,
-                    cellfac2d!,
-                    bfacefac2d!)
+                    celledgenodes)
 end
+
+
 
 
 ######################################################
@@ -392,7 +315,7 @@ end
     function cellmask!(grid::Grid,          
                        maskmin::AbstractArray, # lower left corner
                        maskmax::AbstractArray, # upper right corner
-                       ireg::Integer;          # new region number for elements under mask
+                       ireg::Int;          # new region number for elements under mask
                        eps=1.0e-10)            # tolerance.
 
 Edit region numbers of grid cells via rectangular mask.
@@ -400,7 +323,7 @@ Edit region numbers of grid cells via rectangular mask.
 function cellmask!(grid::Grid,
                    maskmin::AbstractArray,
                    maskmax::AbstractArray,
-                   ireg::Integer;
+                   ireg::Int;
                    eps=1.0e-10)
     xmaskmin=maskmin.-eps
     xmaskmax=maskmax.-eps
@@ -423,13 +346,99 @@ function cellmask!(grid::Grid,
     grid.num_cellregions[1]=max(num_cellregions(grid),ireg)
 end
 
+
+
+# 2D cell form factors
+function cellfac2d!(grid::Grid{Tv},icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
+    i1=cellnode(grid,1,icell)
+    i2=cellnode(grid,2,icell)
+    i3=cellnode(grid,3,icell)
+    
+    coord=grid.coord
+    
+    # Fill matrix of edge vectors
+    V11= grid.coord[1,i2]- grid.coord[1,i1]
+    V21= grid.coord[2,i2]- grid.coord[2,i1]
+    
+    V12= grid.coord[1,i3]- grid.coord[1,i1]
+    V22= grid.coord[2,i3]- grid.coord[2,i1]
+    
+    V13= grid.coord[1,i3]- grid.coord[1,i2]
+    V23= grid.coord[2,i3]- grid.coord[2,i2]
+    
+    
+    
+    # Compute determinant 
+    det=V11*V22 - V12*V21
+    vol=0.5*det
+    
+    ivol = 1.0/vol
+    
+    # squares of edge lengths
+    dd1=V13*V13+V23*V23 # l32
+    dd2=V12*V12+V22*V22 # l31
+    dd3=V11*V11+V21*V21 # l21
+    
+    
+    # contributions to \sigma_kl/h_kl
+    epar[1]= (dd2+dd3-dd1)*0.125*ivol
+    epar[2]= (dd3+dd1-dd2)*0.125*ivol
+    epar[3]= (dd1+dd2-dd3)*0.125*ivol
+    
+    
+    # contributions to \omega_k
+    npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
+    npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
+    npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
+end                              
+
+
+# 2D bface form factors
+function bfacefac2d!(grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
+    i1=bfacenode(grid,1,ibface)
+    i2=bfacenode(grid,2,ibface)
+    p1=nodecoord(grid,i1)
+    p2=nodecoord(grid,i2)
+    dx=p1[1]-p2[1]
+    dy=p1[2]-p2[2]
+    d=0.5*sqrt(dx*dx+dy*dy)
+    nodefac[1]=d
+    nodefac[2]=d
+end
+
+function cellfac1d!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+    K=cellnode(grid,1,icell)
+    L=cellnode(grid,2,icell)
+    xK=nodecoord(grid,K)
+    xL=nodecoord(grid,L)
+    d=abs(xL[1]-xK[1])
+    nodefac[1]=d/2
+    nodefac[2]=d/2
+    edgefac[1]=1/d
+end
+
+
+# 1D bface form factors
+function bfacefac1d!(grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
+    nodefac[1]=1.0
+end
+
+
+
+
 ################################################
 """
     cellfactors!(grid::Grid,icell,nodefac,edgefac)
 
 Calculate node volume  and voronoi surface contributions for cell.
 """ 
-cellfactors!(grid::Grid,icell,nodefac,edgefac)=grid.cellfactors(grid,icell,nodefac,edgefac)
+function cellfactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+    if dim_space(grid)==1
+        cellfac1d!(grid,icell,nodefac,edgefac)
+    elseif dim_space(grid)==2
+        cellfac2d!(grid,icell,nodefac,edgefac)
+    end
+end
 
 ################################################
 """
@@ -437,7 +446,13 @@ cellfactors!(grid::Grid,icell,nodefac,edgefac)=grid.cellfactors(grid,icell,nodef
 
 Calculate node volume  and voronoi surface contributions for boundary face.
 """ 
-bfacefactors!(grid::Grid,icell,nodefac)=grid.bfacefactors(grid,icell,nodefac)
+function bfacefactors!(grid::Grid,icell::Int,nodefac::Vector{Tv}) where Tv
+    if dim_space(grid)==1
+        bfacefac1d!(grid,icell,nodefac)
+    elseif dim_space(grid)==2
+        bfacefac2d!(grid,icell,nodefac)
+    end
+end
 
 ################################################
 """
@@ -641,7 +656,7 @@ mutable struct BNode{Tv}
     index::Int32
     region::Int32
     coord::Array{Tv,1}
-    BNode{Tv}() where Tv  =new()
+    BNode{Tv}(grid::Grid{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(grid)))
 end
 
 ################################################################
@@ -651,11 +666,13 @@ end
 Fill boundary node with corresponding data.
 """
 
-function fill!(node::BNode,grid,ibnode,ibface)
+function fill!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
     K=grid.bfacenodes[ibnode,ibface]
     node.region=grid.bfaceregions[ibface]
     node.index=K
-    @views node.coord=nodecoord(grid,K)
+    for i=1:length(node.coord)
+        node.coord[i]=grid.coord[i,K]
+    end
 end
 
 
@@ -678,7 +695,7 @@ mutable struct Node{Tv}
     index::Int32
     region::Int32
     coord::Array{Tv,1}
-    Node{Tv}() where Tv  =new()
+    Node{Tv}(grid::Grid{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(grid)))
 end
 
 
@@ -690,12 +707,16 @@ end
 
 Fill node with corresponding data.
 """
-function fill!(node::Node,grid,inode,icell)
-    K=cellnode(grid,inode,icell)
-    node.region=grid.cellregions[icell]
-    node.index=K
-    @views node.coord=nodecoord(grid,K)
+function fill!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
+        K=cellnode(grid,inode,icell)
+        node.region=grid.cellregions[icell]
+        node.index=K
+        for i=1:length(node.coord)
+            node.coord[i]=grid.coord[i,K]
+        end
 end
+
+
 
 
 
@@ -723,7 +744,7 @@ mutable struct Edge{Tv}
     region::Int32
     coordK::Array{Tv,1}
     coordL::Array{Tv,1}
-    Edge{Tv}() where Tv =new()
+    Edge{Tv}(grid::Grid{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(grid)),zeros(Tv,dim_space(grid)))
 end
 
 ##################################################################
@@ -749,13 +770,21 @@ end
 
 Fill edge with corresponding data.
 """
-function fill!(edge::Edge,grid,iedge,icell)
+function fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
     K=celledgenode(grid,1,iedge,icell)
     L=celledgenode(grid,2,iedge,icell)
     edge.region=grid.cellregions[icell]
     edge.index=iedge
     edge.nodeK=K
     edge.nodeL=L
-    @views edge.coordL=nodecoord(grid,L)
-    @views edge.coordK=nodecoord(grid,K)
+    for i=1:length(edge.coordK)
+        edge.coordK[i]=grid.coord[i,K]
+        edge.coordL[i]=grid.coord[i,L]
+    end
 end
+
+@inline UK(u::AbstractArray)=@views u
+@inline UL(u::AbstractArray)=@views u[div(length(u),2)+1:length(u)]
+
+@inline UK(u::AbstractArray, nspec)=@views u[1:nspec]
+@inline UL(u::AbstractArray, nspec)=@views u[nspec+1:2*nspec]
