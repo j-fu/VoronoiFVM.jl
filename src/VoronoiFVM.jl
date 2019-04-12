@@ -5,6 +5,7 @@ using IterativeSolvers
 
 # These are in the standard distro
 using SparseArrays
+using ElasticArrays
 using LinearAlgebra
 using Printf
 
@@ -29,13 +30,14 @@ export integrate
 
 
 
-
+export glue
 export num_nodes
 export num_bfaces
 export num_cells
 export enable_species!
 export enable_boundary_species!
 export cellmask!
+export bfacemask!
 export fvmplot
 export dof
 export getdof

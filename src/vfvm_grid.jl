@@ -1,4 +1,3 @@
-using SparseArrays
 
 
 
@@ -70,7 +69,7 @@ struct Grid{Tc} <: AbstractGrid
     coord::Array{Tc,2}              # node coordinates
     cellnodes::Array{Int32,2}       # node indices per cell
     cellregions::Array{Int32,1}     # bulk region number per cell 
-    bfacenodes::Array{Int32,2}      
+    bfacenodes::ElasticArray{Int32,2,1}      
     bfaceregions::Array{Int32,1}
     num_cellregions::Array{Int32,1}
     num_bfaceregions::Array{Int32,1}
@@ -108,7 +107,7 @@ function Grid(X::Array{Tc,1}) where Tc
         cellnodes[2,i]=i+1
         cellregions[i]=1
     end
-    bfacenodes=zeros(Int32,1,2)
+    bfacenodes=ElasticArray{Int32}(undef,1,2)
     bfaceregions=zeros(Int32,2)
     bfacenodes[1,1]=1
     bfacenodes[1,2]=length(X)
@@ -235,7 +234,8 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     coord=zeros(Tc,2,num_nodes)
     cellnodes=zeros(Int32,3,num_cells)
     cellregions=zeros(Int32,num_cells)
-    bfacenodes=zeros(Int32,2,num_bfacenodes)
+    bfacenodes=ElasticArray{Int32}(undef,2,num_bfacenodes)
+    resize!(bfacenodes,2,num_bfacenodes)
     bfaceregions=zeros(Int32,num_bfacenodes)
     
     ipoint=0
@@ -290,6 +290,7 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     num_bfaceregions=[maximum(bfaceregions)]
     celledgenodes=[2 1 1 ;
                    3 3 2]
+
     return Grid{Tc}(coord,
                     cellnodes,
                     cellregions,
@@ -319,7 +320,7 @@ function cellmask!(grid::Grid,
                    ireg::Int;
                    eps=1.0e-10)
     xmaskmin=maskmin.-eps
-    xmaskmax=maskmax.-eps
+    xmaskmax=maskmax.+eps
     for icell=1:num_cells(grid)
         in_region=true
         for inode=1:num_nodes_per_cell(grid)
@@ -338,6 +339,45 @@ function cellmask!(grid::Grid,
     end
     grid.num_cellregions[1]=max(num_cellregions(grid),ireg)
 end
+
+
+function bfacemask!(grid::Grid,
+                   maskmin::AbstractArray,
+                   maskmax::AbstractArray,
+                   ireg::Int;
+                   eps=1.0e-10)
+
+    
+    @assert(dim_space(grid)==1)
+    xmaskmin=maskmin.-eps
+    xmaskmax=maskmax.+eps
+    
+    function isbface(ix)
+        for ibface=1:num_bfaces(grid)
+            if grid.bfacenodes[1,ibface]==ix
+                return ibface
+            end
+            return 0
+        end
+    end
+    
+    for inode=1:num_nodes(grid)
+        x=grid.coord[1,inode]
+        if x>xmaskmin[1] && x<xmaskmax[1]
+            ibface=isbface(inode)
+            if ibface>0
+                grid.bfaceregions[ibface]=ireg
+            else
+                ibface=length(grid.bfaceregions)+1
+                push!(grid.bfaceregions,ireg)
+                append!(grid.bfacenodes,[inode])
+            end
+        end
+    end
+    grid.num_bfaceregions[1]=max(num_bfaceregions(grid),ireg)
+end
+
+
 
 
 
@@ -785,3 +825,9 @@ end
 
 @inline viewK(nspec::Int64,u::AbstractArray)=@views u[1:nspec]
 @inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]
+
+
+
+####################################################################################
+
+

@@ -16,7 +16,8 @@ Caveat: the algorithm behind this is  well tested but unproven.
 
 Returns an Array containing the points of the subdivision.
 """
-function geomspace(a::Real, b::Real, ha::Real, hb::Real, tol=1.0e-10)
+
+function geomspace(a::Tv, b::Tv, ha::Tv, hb::Tv, tol=1.0e-10) where Tv
     
     function _geomspace0(l,h0, hl, tol=1.0e-10)
         
@@ -107,7 +108,7 @@ function geomspace(a::Real, b::Real, ha::Real, hb::Real, tol=1.0e-10)
         end
         #  printf("%d %g %g %g\n",n,q,lmismatch(q,n),hmismatch(q,n))
         
-        X = Array{Float64,1}(undef,n+1)
+        X = Array{Tv,1}(undef,n+1)
         X[1]=0
         h=h0
         for i=1:n
@@ -137,6 +138,31 @@ function geomspace(a::Real, b::Real, ha::Real, hb::Real, tol=1.0e-10)
     @assert (X[end]-X[end-1])<=hb+tol
     
     return X
+end
+
+function glue(a::Vector{Tv}, b::Vector{Tv}; tol=1.0e-10) where Tv
+    #assert(is_monotone(a));
+    #assert(is_monotone(b));
+    na=length(a)
+    nb=length(b)
+    
+    d=b[1]-a[na-1]
+    @assert(d>0)
+    d=b[1]-a[na]
+    @assert(d>-tol)
+    @assert(d<tol)
+
+    c=Vector{Tv}(undef,na+nb-1)
+    ic=0
+    for ia=1:na
+        ic+=1
+        c[ic]=a[ia]
+    end
+    for ib=2:nb
+        ic+=1
+        c[ic]=b[ib]
+    end
+    return c
 end
 
 
