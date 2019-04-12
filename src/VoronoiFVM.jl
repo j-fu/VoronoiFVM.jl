@@ -1,38 +1,23 @@
 module VoronoiFVM
+# Packages for Autodiff magic
+using ForwardDiff, DiffResults
+using IterativeSolvers
 
-##########################################################
-"""
-   abstract type AbstractGrid
-
-Abstract type for grid like datastructures.
-"""
-abstract type AbstractGrid end
-
-##########################################################
-"""
-   abstract type Physics
-    
-Abstract type for user data record
-"""
-abstract type AbstractPhysics end
+# These are in the standard distro
+using SparseArrays
+using LinearAlgebra
+using Printf
 
 
-
-##########################################################
-"""
-       abstract type AbstractSystem
-    
-Abstract type for finite volume system structure
-"""
-abstract type AbstractSystem{Tv<:Number} end
-
-
+include("vfvm_abstract.jl")
+include("vfvm_physics.jl")
 include("vfvm_grid.jl")
 include("vfvm_functions.jl")
 include("vfvm_newtoncontrol.jl")
 include("vfvm_tools.jl")
 include("vfvm_pyplot.jl")
 include("vfvm_system.jl")
+include("vfvm_solver.jl")
 include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
 

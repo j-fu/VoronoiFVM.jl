@@ -139,3 +139,13 @@ function geomspace(a::Real, b::Real, ha::Real, hb::Real, tol=1.0e-10)
     return X
 end
 
+
+##################################################################
+"""
+    value(x)
+
+Extract value from dual number. Use to debug physics callbacks.
+Re-exported from ForwardDiff.jl
+"""
+const value=ForwardDiff.value
+
