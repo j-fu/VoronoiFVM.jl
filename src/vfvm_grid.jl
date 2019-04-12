@@ -1,19 +1,12 @@
 using SparseArrays
 
-##########################################################
-"""
-   abstract type AbstractGrid
-
-Abstract type for grid like datastructures.
-"""
-abstract type AbstractGrid end
 
 
 ##########################################################
 """
     dim_space(grid)
 
-Space dimension of grid
+Space dimension of gridysics.jl
 """
 dim_space(grid::AbstractGrid)= size(grid.coord,1)
 
@@ -656,7 +649,8 @@ mutable struct BNode{Tv}
     index::Int32
     region::Int32
     coord::Array{Tv,1}
-    BNode{Tv}(grid::Grid{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(grid)))
+    nspec::Int64
+    BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
 end
 
 ################################################################
@@ -695,7 +689,8 @@ mutable struct Node{Tv}
     index::Int32
     region::Int32
     coord::Array{Tv,1}
-    Node{Tv}(grid::Grid{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(grid)))
+    nspec::Int64
+    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
 end
 
 
@@ -744,9 +739,11 @@ mutable struct Edge{Tv}
     region::Int32
     coordK::Array{Tv,1}
     coordL::Array{Tv,1}
-    Edge{Tv}(grid::Grid{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(grid)),zeros(Tv,dim_space(grid)))
+    nspec::Int64
+    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys))
 end
 
+num_species(edge::Edge{Tv}) where Tv=edge.nspec
 ##################################################################
 """
    function edgelength(edge::Edge)
@@ -783,8 +780,8 @@ function fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
     end
 end
 
-@inline UK(u::AbstractArray)=@views u
-@inline UL(u::AbstractArray)=@views u[div(length(u),2)+1:length(u)]
+@inline viewK(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[1:edge.nspec]
+@inline viewL(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[edge.nspec+1:2*edge.nspec]
 
-@inline UK(u::AbstractArray, nspec)=@views u[1:nspec]
-@inline UL(u::AbstractArray, nspec)=@views u[nspec+1:2*nspec]
+@inline viewK(nspec::Int64,u::AbstractArray)=@views u[1:nspec]
+@inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]

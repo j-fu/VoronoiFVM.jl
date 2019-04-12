@@ -9,16 +9,6 @@ end
 
 
 
-mutable struct Physics <: VoronoiFVM.Physics
-    flux::Function
-    source::Function
-    reaction::Function
-    storage::Function
-    eps::Array{Float64,1}
-    k::Array{Float64,1}
-    Physics()=new()
-end
-
 
 function main(;n=30,pyplot=false,verbose=false,dense=false)
     h=3.0/(n-1)
@@ -40,57 +30,57 @@ function main(;n=30,pyplot=false,verbose=false,dense=false)
 
     end
     
-    physics=Physics()
-    physics.eps=[1,1,1]
-    physics.k=[1,1,1]
+    eps=[1,1,1]
+    k=[1,1,1]
 
-    
-    physics.reaction=function(physics,node,f,u)
+    physics=VoronoiFVM.Physics(
+    num_species=3,
+    reaction=function(f,u,node,data)
         if node.region==1
-            f[1]=physics.k[1]*u[1]
-            f[2]=-physics.k[1]*u[1]
+            f[1]=k[1]*u[1]
+            f[2]=-k[1]*u[1]
         elseif node.region==3
-            f[2]=physics.k[3]*u[2]
-            f[3]=-physics.k[3]*u[2]
+            f[2]=k[3]*u[2]
+            f[3]=-k[3]*u[2]
         else
             f[1]=0
         end
-    end
+    end,
     
-    physics.flux=function(physics,edge,f,u)   
-        nspecies=3
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
+    flux=function(f,u,edge,data)   
+        uk=viewK(edge,u)
+        ul=viewL(edge,u)
         if edge.region==1
-            f[1]=physics.eps[1]*(uk[1]-ul[1])
-            f[2]=physics.eps[2]*(uk[2]-ul[2])
+            f[1]=eps[1]*(uk[1]-ul[1])
+            f[2]=eps[2]*(uk[2]-ul[2])
         elseif edge.region==2
-            f[2]=physics.eps[2]*(uk[2]-ul[2])
+            f[2]=eps[2]*(uk[2]-ul[2])
         elseif edge.region==3
-            f[2]=physics.eps[2]*(uk[2]-ul[2])
-            f[3]=physics.eps[3]*(uk[3]-ul[3])
+            f[2]=eps[2]*(uk[2]-ul[2])
+            f[3]=eps[3]*(uk[3]-ul[3])
         end
-    end 
+    end,
     
-    physics.source=function(physics,node,f)
+    source=function(f,node,data)
         if node.region==1
             f[1]=1.0e-4*(3.0-node.coord[1])
         end
-    end
+    end,
     
-    physics.storage=function(physics,node, f,u)
+    storage=function(f,u,node,data)
         f.=u
     end
+    )
 
     if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics,3)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
-        sys=VoronoiFVM.SparseSystem(grid,physics,3)
+        sys=VoronoiFVM.SparseSystem(grid,physics)
     end
 
-    add_species(sys,1,[1])
-    add_species(sys,2,[1,2,3])
-    add_species(sys,3,[3])
+    enable_species!(sys,1,[1])
+    enable_species!(sys,2,[1,2,3])
+    enable_species!(sys,3,[3])
 
     sys.boundary_factors[3,2]=VoronoiFVM.Dirichlet
     sys.boundary_values[3,2]=0
@@ -108,7 +98,7 @@ function main(;n=30,pyplot=false,verbose=false,dense=false)
     testval=0
     while time<tend
         time=time+tstep
-        solve(sys,inival,U,control=control,tstep=tstep)
+        solve!(U,inival,sys,control=control,tstep=tstep)
         inival.=U
         if verbose
             @printf("time=%g\n",time)

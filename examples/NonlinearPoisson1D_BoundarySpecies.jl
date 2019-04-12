@@ -10,19 +10,6 @@ if isinteractive()
 end
 
 
-mutable struct Physics  <: VoronoiFVM.Physics
-    flux::Function
-    source::Function
-    storage::Function
-    bstorage::Function
-    breaction::Function
-    
-    k::Float64
-    eps::Float64 
-    Physics()=new()
-end
-
-
 
 function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
     
@@ -33,57 +20,58 @@ function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
     grid=VoronoiFVM.Grid(X)
 
     
-    physics=Physics()
-    physics.eps=21
-    physics.k=1
+    eps=21
+    k=1
     
-
-    physics.breaction=function(physics,node,f,u)
+    physics=VoronoiFVM.Physics(
+        num_species=3,
+        breaction=function(f,u,node,data)
         if  node.region==2
-            f[1]=physics.k*(u[1]-u[3])
-            f[2]=physics.k*(u[2]-u[3])
-            f[3]=physics.k*(u[3]-u[1])+ physics.k*(u[3]-u[2])
+        f[1]=k*(u[1]-u[3])
+        f[2]=k*(u[2]-u[3])
+        f[3]=k*(u[3]-u[1])+ k*(u[3]-u[2])
         end
-    end
-    
-    physics.bstorage=function(physics,node,f,u)
+        end,
+        
+        bstorage=function(f,u,node,data)
         if  node.region==2
-            f[3]=u[3]
+        f[3]=u[3]
         end
-    end
-    
-    physics.flux=function(physics,edge,f,u)
-        nspecies=3
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
-        f[1]=physics.eps*(uk[1]-ul[1])
-        f[2]=physics.eps*(uk[2]-ul[2])
-    end 
-    
-    physics.source=function(physics,node,f)
+        end,
+        
+        flux=function(f,u,edge,data)
+        uk=viewK(edge,u)
+        ul=viewL(edge,u)
+        f[1]=eps*(uk[1]-ul[1])
+        f[2]=eps*(uk[2]-ul[2])
+        end ,
+        
+        source=function(f,node,data)
         x1=node.coord[1]-0.5
         f[1]=exp(-20*x1^2)
-    end 
-    physics.storage=function(physics,node, f,u)
+        end,
+        
+        storage=function(f,u,node,data)
         f[1]=u[1]
         f[2]=u[2]
-    end
+        end
+    )
     
     if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics,3)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
-        sys=VoronoiFVM.SparseSystem(grid,physics,3)
+        sys=VoronoiFVM.SparseSystem(grid,physics)
     end
     
-    add_species(sys,1,[1])
-    add_species(sys,2,[1])
-    add_boundary_species(sys,3,[2])
+    enable_species!(sys,1,[1])
+    enable_species!(sys,2,[1])
+    enable_boundary_species!(sys,3,[2])
 
     inival=unknowns(sys)
     inival.=0.0
     U=unknowns(sys)
     
-    physics.eps=1.0e-2
+    eps=1.0e-2
     
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
@@ -98,7 +86,7 @@ function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
     u5=0
     while time<tend
         time=time+tstep
-        solve(sys,inival,U, control=control,tstep=tstep)
+        solve!(U,inival,sys, control=control,tstep=tstep)
         inival.=U
         if verbose
             @printf("time=%g\n",time)

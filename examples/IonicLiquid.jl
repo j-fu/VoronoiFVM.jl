@@ -7,23 +7,20 @@ end
 
 using VoronoiFVM
 
-mutable struct Physics <: VoronoiFVM.Physics
-    flux::Function
-    storage::Function
-    reaction::Function
+mutable struct Data <: VoronoiFVM.Data
     eps::Float64 
     z::Float64
     ic::Int32
     iphi::Int32
-    Physics()=new()
+    Data()=new()
 end
 
 
 
 function plot_solution(sys,U0)
-    physics=sys.physics
-    iphi=physics.iphi
-    ic=physics.ic
+    ildata=data(sys)
+    iphi=ildata.iphi
+    ic=ildata.ic
     PyPlot.clf()
     @views begin
         PyPlot.plot(sys.grid.coord[1,:],U0[iphi,:], label="Potential", color="g")
@@ -34,70 +31,74 @@ function plot_solution(sys,U0)
     PyPlot.pause(1.0e-10)
 end
 
+function classflux!(f,u,edge,data)
+    uk=viewK(edge,u)
+    ul=viewL(edge,u)
+    ic=data.ic
+    iphi=data.iphi
+    f[iphi]=data.eps*(uk[iphi]-ul[iphi])
+    arg=uk[iphi]-ul[iphi]
+    bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
+    f[ic]=bm*uk[ic]-bp*ul[ic]
+end 
+
+
+function storage!(f,u,node,data)
+    ic=data.ic
+    iphi=data.iphi
+    f[iphi]=0
+    f[ic]=u[ic]
+end
+
+function reaction!(f,u,node,data)
+    ic=data.ic
+    iphi=data.iphi
+    f[iphi]=data.z*(1-2*u[ic])
+    f[ic]=0
+end
+
+function sedanflux!(f,u,edge,data)
+    uk=viewK(edge,u)
+    ul=viewL(edge,u)
+    ic=data.ic
+    iphi=data.iphi
+    f[iphi]=data.eps*(uk[iphi]-ul[iphi])
+    muk=-log(1-uk[ic])
+    mul=-log(1-ul[ic])
+    bp,bm=fbernoulli_pm(data.z*2*(uk[iphi]-ul[iphi])+(muk-mul))
+    f[ic]=bm*uk[ic]-bp*ul[ic]
+end 
+
 
 function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
+
+    data=Data()
+    data.eps=1.0e-4
+    data.z=-1
+    data.iphi=1
+    data.ic=2
+
+    ic=data.ic
+    iphi=data.iphi
+
     
-    physics=Physics()
-    physics.eps=1.0e-4
-    physics.z=-1
-    physics.iphi=1
-    physics.ic=2
-
-    ic=physics.ic
-    iphi=physics.iphi
-
-    classflux=function(physics,edge,f,u)
-        nspecies=2
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
-        ic=physics.ic
-        iphi=physics.iphi
-        f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
-        arg=uk[iphi]-ul[iphi]
-        bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
-        f[ic]=bm*uk[ic]-bp*ul[ic]
-    end 
-
-
-    physics.flux=function(physics,edge,f,u)
-        nspecies=2
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
-        ic=physics.ic
-        iphi=physics.iphi
-        f[iphi]=physics.eps*(uk[iphi]-ul[iphi])
-        muk=-log(1-uk[ic])
-        mul=-log(1-ul[ic])
-        bp,bm=fbernoulli_pm(physics.z*2*(uk[iphi]-ul[iphi])+(muk-mul))
-        f[ic]=bm*uk[ic]-bp*ul[ic]
-    end 
-
-
-    physics.storage=function(physics,node, f,u)
-        ic=physics.ic
-        iphi=physics.iphi
-        f[iphi]=0
-        f[ic]=u[ic]
-    end
-
-    physics.reaction=function(physics,node, f,u)
-        ic=physics.ic
-        iphi=physics.iphi
-        f[iphi]=physics.z*(1-2*u[ic])
-        f[ic]=0
-    end
-
+    physics=VoronoiFVM.Physics(data=data,
+                               num_species=2,
+                               flux=sedanflux!,
+                               reaction=reaction!,
+                               storage=storage!
+                               )
     if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics,2)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
-        sys=VoronoiFVM.SparseSystem(grid,physics,2)
+        sys=VoronoiFVM.SparseSystem(grid,physics)
     end
 
-    add_species(sys,1,[1])
-    add_species(sys,2,[1])
+    enable_species!(sys,1,[1])
+    enable_species!(sys,2,[1])
 
     
     sys.boundary_values[iphi,1]=5
@@ -119,7 +120,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
         plot_solution(sys,inival)
     end
     
-    physics.eps=1.0e-3
+    data.eps=1.0e-3
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     u1=0
@@ -130,7 +131,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
         tstep=1.0e-4
         while t<tend
             t=t+tstep
-            solve(sys,inival,U,control=control,tstep=tstep)
+            solve!(U,inival,sys,control=control,tstep=tstep)
             inival.=U
             u1=U[2]
             if verbose
@@ -160,11 +161,11 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
             phi=0.0
             while phi<phimax
                 sys.boundary_values[iphi,1]=dir*phi
-                solve(sys,inival,U,control=control)
+                solve!(U,inival,sys,control=control)
                 inival.=U
                 Q=integrate(sys,physics.reaction,U)
                 sys.boundary_values[iphi,1]=dir*phi+delta
-                solve(sys,inival,U,control=control)
+                solve!(U,inival,sys,control=control)
                 inival.=U
                 if pyplot
                     plot_solution(sys,U)

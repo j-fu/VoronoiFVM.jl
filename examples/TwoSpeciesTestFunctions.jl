@@ -9,53 +9,42 @@ if isinteractive()
     using PyPlot
 end
 
-mutable struct Physics   <: VoronoiFVM.Physics
-    flux::Function
-    source::Function
-    reaction::Function
-    storage::Function
-    eps::Array{Float64,1}
-    Physics()=new()
-end
-
-
 function main(;n=100,pyplot=false,verbose=false,dense=false)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
         
-    physics=Physics()
-    physics.eps=[1,1.0e-1]
+    eps=[1,1.0e-1]
 
-
-    physics.reaction=function(physics,node,f,u)
+    physics=VoronoiFVM.Physics(
+         num_species=2,
+    reaction=function(f,u,node,data)
         f[1]=10*(u[1]-u[2])
         f[2]=10*(u[2]-u[1])
-    end
+    end,
 
-    physics.flux=function(physics,edge,f,u)   
-        nspecies=2
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
-        f[1]=physics.eps[1]*(uk[1]-ul[1])
-        f[2]=physics.eps[2]*(uk[2]-ul[2])
-    end 
+    flux=function(f,u,edge,data)   
+        uk=viewK(edge,u)
+        ul=viewL(edge,u)
+        f[1]=eps[1]*(uk[1]-ul[1])
+        f[2]=eps[2]*(uk[2]-ul[2])
+    end,
     
     
-    physics.storage=function(physics,node, f,u)
+    storage=function(f,u,node,data)
         f[1]=u[1]
         f[2]=u[2]
     end
-    
+    )
 
     if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics,2)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
-        sys=VoronoiFVM.SparseSystem(grid,physics,2)
+        sys=VoronoiFVM.SparseSystem(grid,physics)
     end
     
-    add_species(sys,1,[1])
-    add_species(sys,2,[1])
+    enable_species!(sys,1,[1])
+    enable_species!(sys,2,[1])
     
     sys.boundary_values[1,1]=0.01
     sys.boundary_values[1,2]=0.0
@@ -92,9 +81,9 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     control.verbose=verbose
     control.damp_initial=0.1
     I1=0
-    for eps in [1.0,0.1,0.01]
-        physics.eps=[eps,eps]
-        solve(sys,inival,U,control=control)
+    for xeps in [1.0,0.1,0.01]
+        eps=[xeps,xeps]
+        solve!(U,inival,sys,control=control)
         I1=integrate(sys,tf1,U)
         
         inival.=U

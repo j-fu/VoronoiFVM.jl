@@ -11,34 +11,24 @@ mutable struct TestFunctionFactory{Tv}
     tfsystem::DenseSystem{Tv}
 end
 
-#
-# Physics data for testfunction system
-#
-mutable struct TestFunctionPhysics <: Physics
-    storage
-    flux
-    reaction
-    TestFunctionPhysics()=new()
-end
 
 ################################################
 """
     function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
 
-Constructor for TestFunctionFactory,
+Constructor for TestFunctionFactory.
 """
 function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
-    physics=TestFunctionPhysics()
-    physics.flux=function(physics,edge,f,u)
+    physics=Physics( 
+        flux=function(f,u,edge,data)
         f[1]=u[1]-u[2]
-    end
-    physics.storage=function(physics,node,f,u)
+        end,
+        storage=function(f,u,node,data)
         f[1]=u[1]
-    end
-    physics.reaction=function(physics,node,f,u)
-    end
-    tfsystem=DenseSystem(system.grid,physics,1)
-    add_species(tfsystem,1,[i for i=1:num_cellregions(system.grid)])
+        end
+    )
+    tfsystem=DenseSystem(system.grid,physics)
+    enable_species!(tfsystem,1,[i for i=1:num_cellregions(system.grid)])
     return TestFunctionFactory{Tv}(system,tfsystem)
 end
 
@@ -95,8 +85,8 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
     stor=zeros(Tv,nspecies)
     storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
-    node=Node{Tv}(grid)
-    edge=Edge{Tv}(grid)
+    node=Node{Tv}(this)
+    edge=Edge{Tv}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -116,7 +106,7 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
                 UKL[ispec]=U[ispec,edge.nodeK]
                 UKL[ispec+nspecies]=U[ispec,edge.nodeL]
             end
-            @views this.physics.flux(this.physics,edge,res,UKL)
+            @views this.physics.flux(res,UKL,edge, this.physics.data)
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
                     integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
@@ -127,9 +117,9 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
         for inode=1:num_nodes_per_cell(grid)
             fill!(node,grid,inode,icell)
             @views begin
-                this.physics.reaction(this.physics,node,res,U[:,node.index])
-                this.physics.storage(this.physics,node,stor,U[:,node.index])
-                this.physics.storage(this.physics,node,storold,Uold[:,node.index])
+                this.physics.reaction(res,U[:,node.index],node,this.physics.data)
+                this.physics.storage(stor,U[:,node.index],node,this.physics.data)
+                this.physics.storage(storold,Uold[:,node.index],node,this.physics.data)
             end
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec

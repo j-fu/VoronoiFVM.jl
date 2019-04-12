@@ -23,22 +23,58 @@ Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
 
-##########################################################
-"""
-   abstract type Physics
+
+
+
+abstract type Data end
+
+mutable struct NoData <: Data
+    NoData()=new() 
+end
+const nodata=NoData()
+
+function nofunc(f,u,node, data)
+end
+
+struct Physics{Flux<:Function,
+               Reaction<:Function,
+               Storage<:Function,
+               Source<:Function,
+               BReaction<:Function,
+               BStorage<:Function,
+               D<:Data} <: AbstractPhysics
+    flux::Flux
+    storage::Storage
+    reaction::Reaction
+    source::Source
+    breaction::BReaction
+    bstorage::BStorage
+    data::D
+    num_species::Int8
+end
+
+function Physics(;num_species=1,
+                 data=nodata,
+                 flux::Function=nofunc,
+                 reaction::Function=nofunc,
+                 storage::Function=nofunc,
+                 source::Function=nofunc,
+                 breaction::Function=nofunc,
+                 bstorage::Function=nofunc
+                 )
     
-Abstract type for user data record
-"""
-abstract type Physics end
+    return Physics(flux,
+                   storage,
+                   reaction,
+                   source,
+                   breaction,
+                   bstorage,
+                   data,
+                   Int8(num_species)
+                   )
+end
 
 
-##########################################################
-"""
-   abstract type AbstractSystem
-
-Abstract type for finite volume system structure
-"""
-abstract type AbstractSystem{Tv<:Number} end
 
 ##################################################################
 """
@@ -81,7 +117,6 @@ mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
     node_dof::SparseMatrixCSC{Int8,Int32}
     matrix::SparseMatrixCSC{Tv,Int32}
     species_homogeneous::Bool
-    num_species::Int8
     update::SparseSolutionArray{Tv}
     residual::SparseSolutionArray{Tv}
     SparseSystem{Tv}() where Tv = new()
@@ -93,12 +128,12 @@ end
 Constructor for SparseSystem. `physics` provides some user data, `maxspec`
 is the maximum number of species.
 """
-function  SparseSystem(grid::Grid,physics::Physics, maxspec::Integer)
+function  SparseSystem(grid::Grid,physics::Physics)
     Tv=Base.eltype(grid)
     this=SparseSystem{Tv}()
+    maxspec=physics.num_species
     this.grid=grid
     this.physics=physics
-    this.num_species=maxspec
     this.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
     this.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
     this.node_dof=spzeros(Int8,Int32,maxspec,num_nodes(grid))
@@ -136,7 +171,6 @@ mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
     node_dof::Array{Int8,2}
     matrix::SparseMatrixCSC{Tv,Int32}
     species_homogeneous::Bool
-    num_species::Int8
     update::Matrix{Tv}
     residual::Matrix{Tv}
     DenseSystem{Tv}() where Tv = new()
@@ -148,9 +182,10 @@ end
 Constructor for DenseSystem. `physics` provides some user data, `maxspec`
 is the maximum number of species.
 """
-function  DenseSystem(grid::Grid,physics::Physics, maxspec::Integer)
+function  DenseSystem(grid::Grid,physics::Physics)
     Tv=Base.eltype(grid)
     this=DenseSystem{Tv}()
+    maxspec=physics.num_species
     this.grid=grid
     this.physics=physics
     this.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
@@ -159,7 +194,6 @@ function  DenseSystem(grid::Grid,physics::Physics, maxspec::Integer)
     this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.species_homogeneous=false
-    this.num_species=maxspec
     return this
 end
 
@@ -202,7 +236,10 @@ end
 Add species to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
 """
-function add_species(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
+function enable_species!(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
+    if ispec>num_species(this)
+        throw(DomainError(ispec,"Number of species exceeded"))
+    end
     if is_boundary_species(this,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
     end
@@ -228,7 +265,10 @@ Add species to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
 
 """
-function add_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
+function enable_boundary_species!(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
+    if ispec>num_species(this)
+        throw(DomainError(ispec,"Number of species exceeded"))
+    end
     if is_bulk_species(this,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
@@ -282,9 +322,10 @@ num_dof(this::DenseSystem)= length(this.node_dof)
 
 Number of species in system
 """
-num_species(this::AbstractSystem{Tv}) where Tv = this.num_species
+num_species(this::AbstractSystem{Tv}) where Tv = this.physics.num_species
 
 
+data(this::AbstractSystem{Tv}) where Tv = this.physics.data
 
 
 
@@ -604,49 +645,49 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     grid=this.grid
 
     physics::Physics=this.physics
-    node::Node{Tv}=Node{Tv}(grid)
-    bnode::BNode{Tv}=BNode{Tv}(grid)
-    edge::Edge{Tv}=Edge{Tv}(grid)
+    node::Node{Tv}=Node{Tv}(this)
+    bnode::BNode{Tv}=BNode{Tv}(this)
+    edge::Edge{Tv}=Edge{Tv}(this)
     edge_cutoff=1.0e-12
     nspecies::Int32=num_species(this)
     
     matrix=this.matrix
-    issource=isdefined(physics,:source)
-    isreaction=isdefined(physics,:reaction)
-    isbreaction=isdefined(physics,:breaction)
-    isbstorage=isdefined(physics,:bstorage)
+    issource=(physics.source!=nofunc)
+    isreaction=(physics.reaction!=nofunc)
+    isbreaction=(physics.breaction!=nofunc)
+    isbstorage=(physics.bstorage!=nofunc)
 
     
     function fluxwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.flux(physics,edge,y,u)
+        physics.flux(y,u,edge,physics.data)
     end
 
     function sourcewrap(y::AbstractVector)
         y.=0
-        physics.source(physics,node,y)
+        physics.source(y,node,physics.data)
     end
 
     function reactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
         ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-        physics.reaction(physics,node,y,u)
+        physics.reaction(y,u,node,physics.data)
         ## for ii in .. y[ii]=y[node.speclist[ii]]
     end
 
     function storagewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.storage(physics,node,y,u)
+        physics.storage(y,u,node,physics.data)
     end
 
     @inline function breactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.breaction(physics,bnode,y,u)
+        physics.breaction(y,u,bnode,physics.data)
     end
 
     @inline function bstoragewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.bstorage(physics,bnode,y,u)
+        physics.bstorage(y,u,bnode,physics.data)
     end
     
     # Reset matrix + rhs
@@ -656,8 +697,6 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     # structs holding diff results for storage, reaction,  flux ...
     result_r=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
     result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_br=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_bs=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
     result_flx=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,2*nspecies))
 
     # Array holding function results
@@ -754,14 +793,12 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 continue
             end
 
-            @views begin
-                fill!(edge,grid,iedge,icell)
+            fill!(edge,grid,iedge,icell)
 
-                #Set up argument for fluxwrap
-                for ispec=1:nspecies
-                    UKL[ispec]=U[ispec,edge.nodeK]
-                    UKL[ispec+nspecies]=U[ispec,edge.nodeL]
-                end
+            #Set up argument for fluxwrap
+            for ispec=1:nspecies
+                UKL[ispec]=U[ispec,edge.nodeK]
+                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
             end
 
             ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL)
@@ -802,13 +839,11 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
         ibreg=grid.bfaceregions[ibface]
 
         for ibnode=1:num_nodes_per_bface(grid)
-            @views begin
-                fill!(bnode,grid,ibnode,ibface)
-                for ispec=1:nspecies
-                    UK[ispec]=U[ispec,bnode.index]
-                    UKOld[ispec]=UOld[ispec,bnode.index]
-                end
-            end         
+            fill!(bnode,grid,ibnode,ibface)
+            for ispec=1:nspecies
+                UK[ispec]=U[ispec,bnode.index]
+                UKOld[ispec]=UOld[ispec,bnode.index]
+            end
             for ispec=1:nspecies # should involve only rspecies
                 idof=dof(F,ispec,bnode.index)
                 if idof>0
@@ -825,9 +860,9 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             end
 
             if isbreaction# involves bspecies and species
-                ForwardDiff.jacobian!(result_br,breactionwrap,Y,UK)
-                res_breact=DiffResults.value(result_br)
-                jac_breact=DiffResults.jacobian(result_br)
+                ForwardDiff.jacobian!(result_r,breactionwrap,Y,UK)
+                res_breact=DiffResults.value(result_r)
+                jac_breact=DiffResults.jacobian(result_r)
                 K=bnode.index
                 fac=bnode_factors[ibnode]
                 for idof=firstnodedof(F,K):lastnodedof(F,K)
@@ -843,9 +878,9 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             
             if isbstorage # should involve only bspecies
                 # Evaluate & differentiate storage term
-                ForwardDiff.jacobian!(result_bs,bstoragewrap,Y,UK)
-                res_bstor=DiffResults.value(result_bs)
-                jac_bstor=DiffResults.jacobian(result_bs)
+                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK)
+                res_bstor=DiffResults.value(result_s)
+                jac_bstor=DiffResults.jacobian(result_s)
                 
                 # Evaluate storage term for old timestep
                 bstoragewrap(oldbstor,UKOld)
@@ -868,10 +903,10 @@ end
 
 
 ################################################################
-function _solve(
-    this::AbstractSystem{Tv}, # Finite volume system
-    oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
+function _solve!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
+    oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
+    this::AbstractSystem{Tv}, # Finite volume system
     control::NewtonControl,
     tstep::Tv
 ) where Tv
@@ -942,13 +977,13 @@ end
 
 ################################################################
 """
-    function solve(
-        this::System,            # Finite volume system
-        oldsol::AbstractMatrix;     # old time step solution resp. initial value
-        solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
-        control=NewtonControl(), # Solver control information (optional)
-        tstep::Tv=Inf            # Time step size. Inf means  stationary solution. (optional)
-        )
+    function solve!(
+        this::AbstractSystem{Tv},     # Finite volume system
+        inival::AbstractMatrix{Tv},   # Initial value 
+        solution::AbstractMatrix{Tv}; # Solution
+        control=NewtonControl(),      # Newton solver control information
+        tstep::Tv=Inf                 # Time step size. Inf means  stationary solution
+    ) where Tv
 
 
 Solution method for instance of System.
@@ -957,38 +992,38 @@ Perform solution of stationary system (if `tstep==Inf`) or implicit Euler time
 step system. 
 
 """
-function solve(
-    this::AbstractSystem{Tv}, # Finite volume system
-    oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    solution::AbstractMatrix{Tv}; # old time step solution resp. initial value
-    control=NewtonControl(), # Newton solver control information
-    tstep::Tv=Inf          # Time step size. Inf means  stationary solution
+
+function solve!(
+    solution::AbstractMatrix{Tv}, # Solution
+    inival::AbstractMatrix{Tv},   # Initial value 
+    this::AbstractSystem{Tv};     # Finite volume system
+    control=NewtonControl(),      # Newton solver control information
+    tstep::Tv=Inf                 # Time step size. Inf means  stationary solution
 ) where Tv
     if control.verbose
         @time begin
-            _solve(this,oldsol,solution,control,tstep)
+            _solve!(solution,inival,this,control,tstep)
         end
     else
-        _solve(this,oldsol,solution,control,tstep)
+        _solve!(solution,inival,this,control,tstep)
     end
 end
 
 
 
+################################################################
 """
-````
-function integrate(this::AbstractSystem,F::Function,U)
-````
+    function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv}) where Tv
 
-Integrate solution vector over domain. Returns an `Array{Tv,1}`
-containing the integral for each species.
+Integrate solution vector over domain. 
+The results contains the integral for each species separately
 """
-function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv}) where Tv
+function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv})::Array{Tv,1} where Tv
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
     res=zeros(Tv,nspecies)
-    node=Node{Tv}(grid)
+    node=Node{Tv}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
 
@@ -996,7 +1031,7 @@ function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv}) w
         cellfactors!(grid,icell,node_factors,edge_factors)
         for inode=1:num_nodes_per_cell(grid)
             fill!(node,grid,inode,icell)
-            F(this.physics,node,res,U[:,node.index])
+            F(res,U[:,node.index],node,this.physics.data)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
                     integral[ispec]+=node_factors[inode]*res[ispec]

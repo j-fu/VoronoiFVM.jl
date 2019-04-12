@@ -18,14 +18,11 @@ end
 #
 # We choose a mutable struct which allows to overwrite
 # fields later.
-mutable struct Physics  <: VoronoiFVM.Physics
-    flux::Function      # flux function, mandatory
-    reaction::Function  # reaction term, optional
-    storage::Function   # storage term, mandatory
+mutable struct Data  <: VoronoiFVM.Data
     D::Real           # Example for "user data" passed to the callback
     C::Real
     R::Real
-    Physics()=new() # Provide inner constructor resulting in uninitialized struct
+    Data()=new() # Provide inner constructor resulting in uninitialized struct
 end
 
 
@@ -42,35 +39,33 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
     h=1.0/convert(Float64,n-1)
     grid=VoronoiFVM.Grid(collect(0:h:L))
     
-    
-    physics=Physics()
-    physics.R=1
-    physics.D=1
-    physics.C=2
+    data=Data()
+    data.R=1
+    data.D=1
+    data.C=2
 
-    physics.flux=function(physics,edge,f,u)
-        nspecies=1
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
-        f[1]=physics.D*(uk[1]-ul[1])
-    end 
+    physics=VoronoiFVM.Physics(
+        data=data,
+        
+    flux=function(f,u,edge,data)
+        f[1]=data.D*(u[1]-u[2])
+    end,
 
 
-    physics.storage=function(physics,node, f,u)
-        f[1]=physics.C*u[1]
-    end
+    storage=function(f,u,node,data)
+        f[1]=data.C*u[1]
+    end,
 
-    physics.reaction=function(physics,node,f,u)
-        f[1]=physics.R*u[1]
-
-    end
+    reaction=function(f,u,node,data)
+        f[1]=data.R*u[1]
+    end)
 
     if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics,1)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
-        sys=VoronoiFVM.SparseSystem(grid,physics,1)
+        sys=VoronoiFVM.SparseSystem(grid,physics)
     end
-    add_species(sys,1,[1])
+    enable_species!(sys,1,[1])
 
     factory=VoronoiFVM.TestFunctionFactory(sys)
     tf0=testfunction(factory,[2],[1])
@@ -88,14 +83,16 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
     U=unknowns(sys)
     inival.=0.0
     
-    solve(sys,inival,U)
+    solve!(U,inival,sys)
 
     ω0=0.5
     ω1=1.0e4
 
     ω=ω0
-    
-    isys=VoronoiFVM.ImpedanceSystem(sys,U,1,1)
+
+    excited_spec=1
+    excited_bc=1
+    isys=VoronoiFVM.ImpedanceSystem(sys,U,excited_spec, excited_bc)
 
     allomega=zeros(0)
     allI0=zeros(Complex{Float64},0)
@@ -109,14 +106,14 @@ function main(;n=11,pyplot=false,verbose=false, dense=false)
         
         iω=1im*ω
         
-        z=sqrt(iω*physics.C/physics.D+physics.R/physics.D);
+        z=sqrt(iω*data.C/data.D+data.R/data.D);
         eplus=exp(z*L);
         eminus=exp(-z*L);
-        Ix0=-physics.D*z*(eminus+eplus)/(eminus-eplus); 
-        IxL=2.0*physics.D*z/(eminus-eplus);
+        Ix0=-data.D*z*(eminus+eplus)/(eminus-eplus); 
+        IxL=2.0*data.D*z/(eminus-eplus);
         
         
-        solve(isys,UZ,ω)
+        solve!(UZ,isys,ω)
 
         if pyplot
             PyPlot.clf()

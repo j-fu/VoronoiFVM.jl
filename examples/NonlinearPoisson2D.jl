@@ -8,15 +8,6 @@ if isinteractive()
 end
 
 
-mutable struct Physics <: VoronoiFVM.Physics
-    reaction::Function
-    flux::Function
-    source::Function
-    storage::Function
-    eps::Float64 
-    Physics()=new()
-end
-
 
 function main(;n=10,pyplot=false,verbose=false, dense=false)
     
@@ -27,36 +18,34 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
 
     grid=VoronoiFVM.Grid(X,Y)
     
-    physics=Physics()
-    physics.eps=1.0e-2
+    eps=1.0e-2
     
-    physics.reaction=function(physics,node,f,u)
+    physics=VoronoiFVM.Physics(
+        num_species=1,
+        reaction=function(f,u,node,data)
         f[1]=u[1]^2
-    end
-    
-    physics.flux=function(physics,edge,f,u)
-        nspecies=1
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
-        f[1]=physics.eps*(uk[1]^2-ul[1]^2)
-    end 
-    
-    physics.source=function(physics,node,f)
+        end,
+        
+        flux=function(f,u,edge,data)
+        f[1]=eps*(u[1]^2-u[2]^2)
+        end,
+        
+        source=function(f,node,data)
         x1=node.coord[1]-0.5
         x2=node.coord[2]-0.5
-        f[1]=exp(-20*(x1^2+x2^2))
-    end 
-    
-    physics.storage=function(physics,node, f,u)
+        f[1]=exp(-20.0*(x1^2+x2^2))
+        end,
+        
+        storage=function(f,u,node,data)
         f[1]=u[1]
-    end
+        end)
     
     if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics,1)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
-        sys=VoronoiFVM.SparseSystem(grid,physics,1)
+        sys=VoronoiFVM.SparseSystem(grid,physics)
     end        
-    add_species(sys,1,[1])
+    enable_species!(sys,1,[1])
 
     sys.boundary_values[1,2]=0.1
     sys.boundary_values[1,4]=0.1
@@ -78,7 +67,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     u15=0
     while time<1.0
         time=time+tstep
-        solve(sys,inival,U,control=control,tstep=tstep)
+        solve!(U,inival,sys,control=control,tstep=tstep)
         u15=U[15]
         inival.=U
 

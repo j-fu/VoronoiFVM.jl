@@ -18,22 +18,6 @@ end
 
 
 
-#
-# Structure containing  userdata information
-#
-# We choose a mutable struct which allows to overwrite
-# fields later.
-mutable struct Physics  <: VoronoiFVM.Physics
-    flux::Function      # flux function, mandatory
-    source::Function    # source function, optional
-    reaction::Function  # reaction term, optional
-    storage::Function   # storage term, mandatory
-    eps::Real           # Example for "user data" passed to the callback
-
-    Physics()=new() # Provide inner constructor resulting in uninitialized struct
-end
-
-
 
 # Main function for user interaction from REPL and
 # for testimg. Default physics need to generate correct
@@ -46,48 +30,46 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     # Create a one dimensional discretization project
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
+
+    eps=1.0e-2
     
     # Create a physics structure
-    physics=Physics()
-    physics.eps=1.0e-2
+    physics=VoronoiFVM.Physics(
 
     # Flux function which describes the flux
     # between neigboring control volumes
-    physics.flux=function(physics,edge,f,u)
-        nspecies=1
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
-        f[1]=physics.eps*(uk[1]^2-ul[1]^2)
-    end 
+    flux=function(f,u,edge,data)
+        f[1]=eps*(u[1]^2-u[2]^2)
+    end,
 
 
     # Source term
-    physics.source=function(physics,node,f)
+    source=function(f,node,data)
         f[1]=1.0e-4*node.coord[1]
-    end 
+    end,
 
     # Storage term (under the time derivative)
-    physics.storage=function(physics,node, f,u)
+    storage=function(f,u,node,data)
         f[1]=u[1]
-    end
+    end,
 
     # Reation term
-    physics.reaction=function(physics,node,f,u)
+    reaction=function(f,u,node,data)
         f[1]=u[1]^2
     end
-
+    )
 
     # Create a finite volume system - either
     # in the dense or  the sparse version.
     # Need to provide the overall number of species here
     if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics,1)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
-        sys=VoronoiFVM.SparseSystem(grid,physics,1)
+        sys=VoronoiFVM.SparseSystem(grid,physics)
     end
 
     # Add species 1 to region 1
-    add_species(sys,1,[1])
+    enable_species!(sys,1,[1])
 
     # Set boundary conditions
     sys.boundary_values[1,1]=1.0
@@ -113,7 +95,7 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     for it=2:length(times)
         # Solve for new timestep with old timestep
         # solution in inival
-        solve(sys,inival,U, control=control,tstep=tstep)
+        solve!(U,inival,sys, control=control,tstep=tstep)
         test_result=U[5]
 
         # Update inival

@@ -40,8 +40,8 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
     grid=sys.grid
     
     physics::Physics=sys.physics
-    node::Node=Node{Tv}(grid)
-    bnode::BNode=BNode{Tv}(grid)
+    node::Node=Node{Tv}(sys)
+    bnode::BNode=BNode{Tv}(sys)
     nspecies::Int32=num_species(sys)
     
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
@@ -50,12 +50,12 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
     
     @inline function storagewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.storage(physics,node,y,u)
+        physics.storage(y,u,node,physics.data)
     end
     
     @inline function bstoragewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.bstorage(physics,bnode,y,u)
+        physics.bstorage(y,u,bnode,physics.data)
     end
     
     F.=0.0
@@ -152,7 +152,7 @@ end
 
 unknowns(this::ImpedanceSystem{Tv}) where Tv=copy(this.F)
                                                      
-function solve(this::ImpedanceSystem{Tv},UZ::AbstractMatrix{Complex{Tv}}, ω) where Tv
+function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) where Tv
     iω=ω*1im
 
     # hoist field accesses for immutable struct
@@ -188,8 +188,8 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
     integral=zeros(Complex{Tv},nspecies)
     res=zeros(Tv,nspecies)
     stor=zeros(Tv,nspecies)
-    node=Node{Tv}(grid)
-    edge=Edge{Tv}(grid)
+    node=Node{Tv}(sys)
+    edge=Edge{Tv}(sys)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -199,17 +199,17 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
 
     @inline function fluxwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        @views physics.flux(physics,edge,y,u)
+        @views physics.flux(y,u,edge,physics.data)
     end
 
     @inline function reactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.reaction(physics,node,y,u)
+        physics.reaction(y,u,node,physics.data)
     end
 
     @inline function storagewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.storage(physics,node,y,u)
+        physics.storage(y,u,node,physics.data)
     end
 
 

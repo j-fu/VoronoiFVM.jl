@@ -36,8 +36,8 @@ end
 
 function flux!(this::Physics,edge::Edge,f,uk,ul)
         nspecies=2
-        uk=VoronoiFVM.UK(u,nspecies)
-        ul=VoronoiFVM.UL(u,nspecies)
+        uk=viewK(u,nspecies)
+        ul=viewL(u,nspecies)
     f[1]=this.eps*(uk[1]-ul[1])
     f[2]=this.eps*(uk[2]-ul[2])
 end 
@@ -81,11 +81,11 @@ function main(;n=10,pyplot=true,verbose=false)
 
     
     sys=VoronoiFVM.SparseSystem(grid2,Physics(),2)
-    VoronoiFVM.add_species(sys,1,1)
+    VoronoiFVM.enable_species!(sys,1,1)
     VoronoiFVM.add_boundary_species(sys,2,3)
     # VoronoiFVM.add_boundary_species(sys,3,2)
 
-#    VoronoiFVM.add_species(sys,2,1)
+#    VoronoiFVM.enable_species!(sys,2,1)
 
 
     println(length(sys.node_species.nzval))
