@@ -75,7 +75,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
         node.region=reg_cell(grid,icell)
         
         for inode=1:num_nodes_per_cell(grid)
-            fill!(node,grid, inode,icell)
+            _fill!(node,grid, inode,icell)
             @views begin
                 UK[1:nspecies]=U0[:,node.index]
             end
@@ -86,11 +86,11 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
 
 
             K=node.index
-            for idof=firstnodedof(F,K):lastnodedof(F,K)
-                ispec=spec(F,idof,K)
-                for jdof=firstnodedof(F,K):lastnodedof(F,K)
-                    jspec=spec(F,jdof,K)
-                    addnz(storderiv,idof,jdof,jac_stor[ispec,jspec],node_factors[inode])
+            for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+                ispec=_spec(F,idof,K)
+                for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                    jspec=_spec(F,jdof,K)
+                    _addnz(storderiv,idof,jdof,jac_stor[ispec,jspec],node_factors[inode])
                 end
             end
 
@@ -104,7 +104,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
         bnode.region=ibreg
         for ibnode=1:num_nodes_per_bface(grid)
             @views begin
-                fill!(bnode,grid,ibnode,ibface)
+                _fill!(bnode,grid,ibnode,ibface)
                 
                 UK[1:nspecies]=U0[:,bnode.index]
             end
@@ -134,11 +134,11 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
 
 
                 K=bnode.index
-                for idof=firstnodedof(F,K):lastnodedof(F,K)
-                    ispec=spec(F,idof,K)
-                    for jdof=firstnodedof(F,K):lastnodedof(F,K)
-                        jspec=spec(F,jdof,K)
-                        addnz(storderiv,idof,jdof,jac_bstor[ispec,jspec],bnode_factors[ibnode])
+                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+                    ispec=_spec(F,idof,K)
+                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                        jspec=_spec(F,jdof,K)
+                        _addnz(storderiv,idof,jdof,jac_bstor[ispec,jspec],bnode_factors[ibnode])
                     end
                 end
             end
@@ -169,9 +169,9 @@ function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) w
     end
     U0=this.U0
     for inode=1:num_nodes(grid)
-        for idof=firstnodedof(U0,inode):lastnodedof(U0,inode)
-            for jdof=firstnodedof(U0,inode):lastnodedof(U0,inode)
-                addnz(matrix,idof,jdof,storderiv[idof,jdof],iω)
+        for idof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
+            for jdof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
+                _addnz(matrix,idof,jdof,storderiv[idof,jdof],iω)
             end
         end
     end
@@ -234,7 +234,7 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
     for icell=1:num_cells(grid)
         cellfactors!(grid,icell,node_factors,edge_factors)
         for inode=1:num_nodes_per_cell(grid)
-            fill!(node,grid,inode,icell)
+            _fill!(node,grid,inode,icell)
             @views  UK[1:nspecies]=U0[:,node.index]
 
             ForwardDiff.jacobian!(result_s,storagewrap,Y,UK)
@@ -244,10 +244,10 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
                 jac_react=DiffResults.jacobian(result_r)
             end
             K=node.index
-            for idof=firstnodedof(U0,K):lastnodedof(U0,K)
-                ispec=spec(U0,idof,K)
-                for jdof=firstnodedof(U0,K):lastnodedof(U0,K)
-                    jspec=spec(U0,jdof,K)
+            for idof=_firstnodedof(U0,K):_lastnodedof(U0,K)
+                ispec=_spec(U0,idof,K)
+                for jdof=_firstnodedof(U0,K):_lastnodedof(U0,K)
+                    jspec=_spec(U0,jdof,K)
                     
                     integral[ispec]+=(node_factors[inode]*tf[K]
                                       *(jac_stor[ispec,jspec]*iω+jac_react[ispec,jspec])*UZ[jspec,K])
@@ -260,7 +260,7 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
-            fill!(edge,grid,iedge,icell)
+            _fill!(edge,grid,iedge,icell)
             for ispec=1:nspecies
                 UKL[ispec]=U0[ispec,edge.nodeK]
                 UKL[ispec+nspecies]=U0[ispec,edge.nodeL]
@@ -272,14 +272,14 @@ function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::A
             K=edge.nodeK
             L=edge.nodeL
             fac=edge_factors[iedge]*(tf[K]-tf[L])
-            for idofK=firstnodedof(U0,K):lastnodedof(U0,K)
-                ispec=spec(U0,idofK,K)
+            for idofK=_firstnodedof(U0,K):_lastnodedof(U0,K)
+                ispec=_spec(U0,idofK,K)
                 idofL=dof(U0,ispec,L)
                 if idofL==0
                     continue
                 end
-                for jdofK=firstnodedof(U0,K):lastnodedof(U0,K)
-                    jspec=spec(U0,jdofK,K)
+                for jdofK=_firstnodedof(U0,K):_lastnodedof(U0,K)
+                    jspec=_spec(U0,jdofK,K)
                     jdofL=dof(U0,jspec,L)
                     if jdofL==0
                         continue

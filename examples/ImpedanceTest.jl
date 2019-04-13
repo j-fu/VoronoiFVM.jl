@@ -18,7 +18,7 @@ end
 #
 # We choose a mutable struct which allows to overwrite
 # fields later.
-mutable struct Data  <: VoronoiFVM.Data
+mutable struct Data  <: VoronoiFVM.AbstractData
     D::Real           # Example for "user data" passed to the callback
     C::Real
     R::Real

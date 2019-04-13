@@ -1,6 +1,6 @@
 
 
-@inline function addnz(matrix,i,j,v::Tv,fac) where Tv
+@inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if v!=zero(Tv)
         matrix[i,j]+=v*fac
     end
@@ -124,7 +124,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
         edge.region=reg_cell(grid,icell)
 
         for inode=1:num_nodes_per_cell(grid)
-            fill!(node,grid, inode,icell)
+            _fill!(node,grid, inode,icell)
             for ispec=1:nspecies
                 # xx gather:
                 # ii=0
@@ -163,12 +163,12 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             
             K=node.index
 
-            for idof=firstnodedof(F,K):lastnodedof(F,K)
-                ispec=spec(F,idof,K)
-                add(F,idof,node_factors[inode]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
-                for jdof=firstnodedof(F,K):lastnodedof(F,K)
-                    jspec=spec(F,jdof,K)
-                    addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,node_factors[inode])
+            for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+                ispec=_spec(F,idof,K)
+                _add(F,idof,node_factors[inode]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
+                for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                    jspec=_spec(F,jdof,K)
+                    _addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,node_factors[inode])
                 end
             end
         end
@@ -178,7 +178,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 continue
             end
 
-            fill!(edge,grid,iedge,icell)
+            _fill!(edge,grid,iedge,icell)
 
             #Set up argument for fluxwrap
             for ispec=1:nspecies
@@ -193,26 +193,26 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             K=edge.nodeK
             L=edge.nodeL
             fac=edge_factors[iedge]
-            for idofK=firstnodedof(F,K):lastnodedof(F,K)
-                ispec=spec(F,idofK,K)
+            for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
+                ispec=_spec(F,idofK,K)
                 idofL=dof(F,ispec,L)
                 if idofL==0
                     continue
                 end
-                add(F,idofK,fac*res[ispec])
-                add(F,idofL,-fac*res[ispec])
+                _add(F,idofK,fac*res[ispec])
+                _add(F,idofL,-fac*res[ispec])
                 
-                for jdofK=firstnodedof(F,K):lastnodedof(F,K)
-                    jspec=spec(F,jdofK,K)
+                for jdofK=_firstnodedof(F,K):_lastnodedof(F,K)
+                    jspec=_spec(F,jdofK,K)
                     jdofL=dof(F,jspec,L)
                     if jdofL==0
                         continue
                     end
                     
-                    addnz(matrix,idofK,jdofK,+jac[ispec,jspec            ],fac)
-                    addnz(matrix,idofL,jdofK,-jac[ispec,jspec            ],fac)
-                    addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
-                    addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
+                    _addnz(matrix,idofK,jdofK,+jac[ispec,jspec            ],fac)
+                    _addnz(matrix,idofL,jdofK,-jac[ispec,jspec            ],fac)
+                    _addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
+                    _addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
                     
                 end
             end
@@ -224,7 +224,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
         ibreg=grid.bfaceregions[ibface]
 
         for ibnode=1:num_nodes_per_bface(grid)
-            fill!(bnode,grid,ibnode,ibface)
+            _fill!(bnode,grid,ibnode,ibface)
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,bnode.index]
                 UKOld[ispec]=UOld[ispec,bnode.index]
@@ -236,10 +236,10 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                     val=this.boundary_values[ispec,ibreg]
                     if fac==Dirichlet
                         F[ispec,bnode.index]+=fac*(U[ispec,bnode.index]-val)
-                        addnz(matrix,idof,idof,fac,1)
+                        _addnz(matrix,idof,idof,fac,1)
                     else
                         F[ispec,bnode.index]+=bnode_factors[ibnode]*(fac*U[ispec,bnode.index]-val)
-                        addnz(matrix,idof,idof,fac,bnode_factors[ibnode])
+                        _addnz(matrix,idof,idof,fac,bnode_factors[ibnode])
                     end
                 end
             end
@@ -250,12 +250,12 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 jac_breact=DiffResults.jacobian(result_r)
                 K=bnode.index
                 fac=bnode_factors[ibnode]
-                for idof=firstnodedof(F,K):lastnodedof(F,K)
-                    ispec=spec(F,idof,K)
-                    add(F,idof,fac*res_breact[ispec])
-                    for jdof=firstnodedof(F,K):lastnodedof(F,K)
-                        jspec=spec(F,jdof,K)
-                        addnz(matrix,idof,jdof,jac_breact[ispec,jspec],fac)
+                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+                    ispec=_spec(F,idof,K)
+                    _add(F,idof,fac*res_breact[ispec])
+                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                        jspec=_spec(F,jdof,K)
+                        _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],fac)
                     end
                 end
 
@@ -270,12 +270,12 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 # Evaluate storage term for old timestep
                 bstoragewrap(oldbstor,UKOld)
                 
-                for idof=firstnodedof(F,K):lastnodedof(F,K)
-                    ispec=spec(F,idof,K)
-                    add(F,idof,fac*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
-                    for jdof=firstnodedof(F,K):lastnodedof(F,K)
-                        jspec=spec(F,jdof,K)
-                        addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],fac*tstepinv)
+                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+                    ispec=_spec(F,idof,K)
+                    _add(F,idof,fac*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
+                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                        jspec=_spec(F,jdof,K)
+                        _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],fac*tstepinv)
                     end
                 end
             end
@@ -305,7 +305,7 @@ function _solve!(
     solution.=oldsol
     residual=this.residual
     update=this.update
-    inidirichlet!(this,solution)
+    _inidirichlet!(this,solution)
 
     # Newton iteration (quick and dirty...)
     oldnorm=1.0
@@ -366,13 +366,12 @@ end
 ################################################################
 """
     function solve!(
-        this::AbstractSystem{Tv},     # Finite volume system
-        inival::AbstractMatrix{Tv},   # Initial value 
-        solution::AbstractMatrix{Tv}; # Solution
-        control=NewtonControl(),      # Newton solver control information
-        tstep::Tv=Inf                 # Time step size. Inf means  stationary solution
+    solution::AbstractMatrix{Tv}, # Solution
+    inival::AbstractMatrix{Tv},   # Initial value 
+    this::AbstractSystem{Tv};     # Finite volume system
+    control=NewtonControl(),      # Newton solver control information
+    tstep::Tv=Inf                 # Time step size. Inf means  stationary solution
     ) where Tv
-
 
 Solution method for instance of System.
 
@@ -380,7 +379,6 @@ Perform solution of stationary system (if `tstep==Inf`) or implicit Euler time
 step system. 
 
 """
-
 function solve!(
     solution::AbstractMatrix{Tv}, # Solution
     inival::AbstractMatrix{Tv},   # Initial value 
@@ -404,7 +402,7 @@ end
     function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv}) where Tv
 
 Integrate solution vector over domain. 
-The results contains the integral for each species separately
+The result contains the integral for each species separately
 """
 function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv})::Array{Tv,1} where Tv
     grid=this.grid
@@ -418,7 +416,7 @@ function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv})::
     for icell=1:num_cells(grid)
         cellfactors!(grid,icell,node_factors,edge_factors)
         for inode=1:num_nodes_per_cell(grid)
-            fill!(node,grid,inode,icell)
+            _fill!(node,grid,inode,icell)
             F(res,U[:,node.index],node,this.physics.data)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec

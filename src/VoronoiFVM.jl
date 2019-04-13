@@ -9,8 +9,6 @@ using ElasticArrays
 using LinearAlgebra
 using Printf
 
-
-include("vfvm_abstract.jl")
 include("vfvm_physics.jl")
 include("vfvm_grid.jl")
 include("vfvm_functions.jl")

@@ -67,7 +67,7 @@ function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
                        factory.tfsystem.physics.bstorage,
                        factory.tfsystem.physics.source)
 
-    inidirichlet!(factory.tfsystem,u)
+    _inidirichlet!(factory.tfsystem,u)
     lufact=LinearAlgebra.lu(factory.tfsystem.matrix)
     ldiv!(vec(u),lufact,vec(f))
     return vec(u)
@@ -80,7 +80,6 @@ end
 
 Calculate test function integral.
 """
-
 function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where Tv
     grid=this.grid
     nspecies=num_species(this)
@@ -104,7 +103,7 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
-            fill!(edge,grid,iedge,icell)
+            _fill!(edge,grid,iedge,icell)
 
             for ispec=1:nspecies
                 UKL[ispec]=U[ispec,edge.nodeK]
@@ -119,7 +118,7 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
         end
         
         for inode=1:num_nodes_per_cell(grid)
-            fill!(node,grid,inode,icell)
+            _fill!(node,grid,inode,icell)
             @views begin
                 this.physics.reaction(res,U[:,node.index],node,this.physics.data)
                 this.physics.storage(stor,U[:,node.index],node,this.physics.data)
@@ -135,6 +134,12 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
     return integral
 end
 
+############################################################################
+"""
+    integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv})
+
+Calculate test function integral.
+"""
 integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}) where Tv=integrate(this,tf,U,U,Inf)
 
 

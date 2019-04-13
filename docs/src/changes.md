@@ -1,4 +1,10 @@
 # Changes
+## V0.4, approaching
+
+- more julianic API
+- fixed allocation issues in assembly (not all though)
+- assured that users get allocation stuff right (typed functions in physics structure)
+
 
 ## V0.3, April 9 2019
 - Renamed to  VoronoiFVM

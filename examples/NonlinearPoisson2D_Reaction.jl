@@ -10,7 +10,7 @@ end
 
 
 
-mutable struct MyData <: VoronoiFVM.Data
+mutable struct MyData <: VoronoiFVM.AbstractData
     eps::Float64
     k::Float64
     MyData()=new() 

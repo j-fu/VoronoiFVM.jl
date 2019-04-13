@@ -1,3 +1,11 @@
+##########################################################
+"""
+       abstract type AbstractSystem
+    
+Abstract type for finite volume system structure
+"""
+abstract type AbstractSystem{Tv<:Number} end
+
 
 ##################################################################
 """
@@ -163,7 +171,7 @@ end
 
 ##################################################################
 """
-    function add_species(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
+    function enable_species(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
 
 Add species to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
@@ -191,7 +199,7 @@ end
 
 ##################################################################
 """
-    function add_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
+    function enable_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
 
 Add species to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
@@ -234,6 +242,14 @@ end
 
 ##################################################################
 """
+    isdof(this::AbstractSystem,ispec,inode)
+    
+Check if degree of freedom is defined.
+"""
+isdof(this::AbstractSystem,ispec,inode)= this.node_dof[ispec,inode]==ispec ? true : false
+
+##################################################################
+"""
     num_dof(this::SparseSystem)
 
 Number of degrees of freedom for system.
@@ -250,13 +266,20 @@ num_dof(this::DenseSystem)= length(this.node_dof)
 
 ##################################################################
 """
-    num_species(this::SparseSystem)
+    num_species(this::AbstractSystem)
 
 Number of species in system
 """
 num_species(this::AbstractSystem{Tv}) where Tv = this.physics.num_species
 
 
+
+##################################################################
+"""
+    num_species(this::AbstractSystem)
+
+Retrieve user data record.
+"""
 data(this::AbstractSystem{Tv}) where Tv = this.physics.data
 
 
@@ -475,20 +498,17 @@ Base.size(a::SubgridArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_parent
 
 
 
-isdof(this::AbstractSystem,ispec,inode)= this.node_dof[ispec,inode]==ispec ? true : false
 
 
 
 
 
 
-##############################################################################
-"""
-    function inidirichlet!(this::AbstractSystem,U)
 
-Initialize dirichlet boundary values for solution.
-"""
-function inidirichlet!(this::AbstractSystem,U) where Tv
+#
+# Initialize Dirichlet BC
+#
+function _inidirichlet!(this::AbstractSystem,U) where Tv
     for ibface=1:num_bfaces(this.grid)
         ibreg=this.grid.bfaceregions[ibface]
         for ispec=1:num_species(this)
@@ -502,10 +522,9 @@ function inidirichlet!(this::AbstractSystem,U) where Tv
     _inactspecinit(this,U)
 end
 
-
-#############################################################################
-# Assemble routine
-
+#
+# Assemble dummy equations for inactive species
+#
 function _inactspecloop(this::DenseSystem,U,Uold,F)
     if this.species_homogeneous
         return
@@ -521,6 +540,9 @@ function _inactspecloop(this::DenseSystem,U,Uold,F)
     end
 end
 
+#
+# Initialize values in inactive dof for dense system
+#
 function _inactspecinit(this::DenseSystem,U)
     if this.species_homogeneous
         return
@@ -535,22 +557,171 @@ function _inactspecinit(this::DenseSystem,U)
 end
 
 
+#
+# Dummy routine for sparse system
+#
 function _inactspecloop(this::SparseSystem,U,Uold,F)
 end
 
+#
+# Dummy routine for sparse system
+#
 function _inactspecinit(this::SparseSystem,U)
 end
 
 
-firstnodedof(U::SparseSolutionArray{Tv},K) where Tv =U.node_dof.colptr[K]
-lastnodedof(U::SparseSolutionArray{Tv},K) where Tv=U.node_dof.colptr[K+1]-1
-spec(U::SparseSolutionArray{Tv},idof,K) where Tv=U.node_dof.rowval[idof]
-add(U::SparseSolutionArray{Tv},idof,val) where Tv=U.node_dof.nzval[idof]+=val
+#
+# Accessors for node-dof based loops
+#
+_firstnodedof(U::SparseSolutionArray{Tv},K) where Tv =U.node_dof.colptr[K]
+_lastnodedof(U::SparseSolutionArray{Tv},K) where Tv=U.node_dof.colptr[K+1]-1
+_spec(U::SparseSolutionArray{Tv},idof,K) where Tv=U.node_dof.rowval[idof]
+_add(U::SparseSolutionArray{Tv},idof,val) where Tv=U.node_dof.nzval[idof]+=val
 
-firstnodedof(U::Matrix{Tv},K) where Tv = (K-1)*size(U,1)+1
-lastnodedof(U::Matrix{Tv},K) where Tv = K*size(U,1)
-spec(U::Matrix{Tv},idof,K) where Tv =   idof-(K-1)*size(U,1)
-add(U::Matrix{Tv},idof,val) where Tv=U[CartesianIndices(U)[idof]]+=val
+_firstnodedof(U::Matrix{Tv},K) where Tv = (K-1)*size(U,1)+1
+_lastnodedof(U::Matrix{Tv},K) where Tv = K*size(U,1)
+_spec(U::Matrix{Tv},idof,K) where Tv =   idof-(K-1)*size(U,1)
+_add(U::Matrix{Tv},idof,val) where Tv=U[CartesianIndices(U)[idof]]+=val
 
+
+
+##################################################################
+"""
+    mutable struct BNode
+
+Structure holding local boundary  node information.
+Fields:
+
+    index::Int32
+    region::Int32
+    coord::Array{Tv,1}
+    nspec::Int64
+"""
+mutable struct BNode{Tv}
+    index::Int32
+    region::Int32
+    coord::Array{Tv,1}
+    nspec::Int64
+    BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
+end
+
+function _fill!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
+    K=grid.bfacenodes[ibnode,ibface]
+    node.region=grid.bfaceregions[ibface]
+    node.index=K
+    for i=1:length(node.coord)
+        node.coord[i]=grid.coord[i,K]
+    end
+end
+
+
+
+
+
+##################################################################
+"""
+    mutable struct Node
+
+Structure holding local node information.
+Fields:
+
+    index::Int32
+    region::Int32
+    coord::Array{Tv,1}
+    nspec::Int64
+"""
+mutable struct Node{Tv}
+    index::Int32
+    region::Int32
+    coord::Array{Tv,1}
+    nspec::Int64
+    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
+end
+
+function _fill!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
+        K=cellnode(grid,inode,icell)
+        node.region=grid.cellregions[icell]
+        node.index=K
+        for i=1:length(node.coord)
+            node.coord[i]=grid.coord[i,K]
+        end
+end
+
+##################################################################
+"""
+    mutable struct Edge
+
+Structure holding local edge information.
+
+Fields:
+
+    index::Int32
+    nodeK::Int32
+    nodeL::Int32
+    region::Int32
+    coordK::Array{Tv,1}
+    coordL::Array{Tv,1}
+    nspec::Int64
+"""
+mutable struct Edge{Tv}
+    index::Int32
+    nodeK::Int32
+    nodeL::Int32
+    region::Int32
+    coordK::Array{Tv,1}
+    coordL::Array{Tv,1}
+    nspec::Int64
+    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys))
+end
+
+
+function _fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
+    K=celledgenode(grid,1,iedge,icell)
+    L=celledgenode(grid,2,iedge,icell)
+    edge.region=grid.cellregions[icell]
+    edge.index=iedge
+    edge.nodeK=K
+    edge.nodeL=L
+    for i=1:length(edge.coordK)
+        edge.coordK[i]=grid.coord[i,K]
+        edge.coordL[i]=grid.coord[i,L]
+    end
+end
+
+
+##################################################################
+"""
+    num_species(edge::Edge{Tv}) where Tv=edge.nspec
+
+Return number of species for edge
+"""
+num_species(edge::Edge{Tv}) where Tv=edge.nspec
+
+##################################################################
+"""
+   function edgelength(edge::Edge)
+   
+Calculate the length of an edge. 
+"""
+function edgelength(edge::Edge{Tv}) where Tv
+    l::Tv
+    l=0.0
+    for i=1:length(edge.coordK)
+        d=edge.coordK[i]-edge.coordL[i]
+        l=l+d*d
+    end
+    return l
+end
+
+
+@inline viewK(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[1:edge.nspec]
+@inline viewL(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[edge.nspec+1:2*edge.nspec]
+
+@inline viewK(nspec::Int64,u::AbstractArray)=@views u[1:nspec]
+@inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]
+
+
+
+####################################################################################
 
 

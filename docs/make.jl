@@ -5,12 +5,17 @@ makedocs(
     modules = [VoronoiFVM],
     clean = true,
     authors = "J. Fuhrmann",
+    version = "0.4.0",
     pages=[
         "Home"=>"index.md",
         "install.md",
         "changes.md",
-        "alldocs.md",
-        "allindex.md",
+        "API Documentation" => [
+            "grid.md",
+            "physics.md",
+            "system.md",
+            "allindex.md",
+        ],
         "Examples" => [
             "examples/OneSpeciesNonlinearPoisson.md",
             "examples/TwoSpeciesNonlinearPoisson.md",

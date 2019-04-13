@@ -7,7 +7,7 @@ end
 
 using VoronoiFVM
 
-mutable struct Data <: VoronoiFVM.Data
+mutable struct Data <: VoronoiFVM.AbstractData
     eps::Float64 
     z::Float64
     ic::Int32

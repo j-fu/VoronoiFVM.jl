@@ -1,8 +1,21 @@
-# API Index
+# Index
 
+## Types and Constructors
 ```@index
-Pages   = ["alldocs.md"]
 Modules = [VoronoiFVM]
-Order=[:type, :function, :macro, :constant]
+Order=[:type]
 ```
 
+## Constants
+
+```@index
+Modules = [VoronoiFVM]
+Order=[:constant]
+```
+
+## Methods
+
+```@index
+Modules = [VoronoiFVM]
+Order=[:function]
+```
