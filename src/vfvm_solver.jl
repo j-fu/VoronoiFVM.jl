@@ -10,8 +10,11 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                             U::AbstractMatrix{Tv}, # Actual solution iteration
                             UOld::AbstractMatrix{Tv}, # Old timestep solution
                             F::AbstractMatrix{Tv},# Right hand side
-                            tstep::Tv # time step size. Inf means stationary solution
-                           ) where Tv
+                            tstep::Tv, # time step size. Inf means stationary solution
+                            xstorage::FSTOR, # ensure type stability
+                            xbstorage::FBSTOR, # ensure type stability
+                            xsource::FSRC,  # ensure type stability
+                           ) where {Tv,FSRC,FSTOR, FBSTOR}
 
     if !isdefined(this,:matrix) # needed here for test function system 
         _create_matrix(this)
@@ -20,6 +23,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     grid=this.grid
 
     physics::Physics=this.physics
+    data=physics.data
     node::Node{Tv}=Node{Tv}(this)
     bnode::BNode{Tv}=BNode{Tv}(this)
     edge::Edge{Tv}=Edge{Tv}(this)
@@ -35,34 +39,35 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     
     function fluxwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.flux(y,u,edge,physics.data)
+        physics.flux(y,u,edge,data)
     end
 
-    function sourcewrap(y::AbstractVector)
-        y.=0
-        physics.source(y,node,physics.data)
-    end
 
     function reactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
         ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-        physics.reaction(y,u,node,physics.data)
+        physics.reaction(y,u,node,data)
         ## for ii in .. y[ii]=y[node.speclist[ii]]
     end
 
     function storagewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.storage(y,u,node,physics.data)
+        xstorage(y,u,node,data)
+    end
+
+    function sourcewrap(y)
+        y.=0
+        xsource(y,node,data)
     end
 
     @inline function breactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.breaction(y,u,bnode,physics.data)
+        physics.breaction(y,u,bnode,data)
     end
 
     @inline function bstoragewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.bstorage(y,u,bnode,physics.data)
+        xbstorage(y,u,bnode,data)
     end
     
     # Reset matrix + rhs
@@ -73,7 +78,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     result_r=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
     result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
     result_flx=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,2*nspecies))
-
+    
     # Array holding function results
     Y=Array{Tv,1}(undef,nspecies)
 
@@ -91,6 +96,12 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     jac_react=zeros(Tv,nspecies,nspecies)
     oldbstor=zeros(Tv,nspecies)
 
+    cfg_r=ForwardDiff.JacobianConfig(reactionwrap, Y, UK)
+    cfg_s=ForwardDiff.JacobianConfig(storagewrap, Y, UK)
+    cfg_br=ForwardDiff.JacobianConfig(breactionwrap, Y, UK)
+    cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
+    cfg_flx=ForwardDiff.JacobianConfig(fluxwrap, Y, UKL)
+
     
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
@@ -104,7 +115,6 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     bnode_factors=zeros(Tv,num_nodes_per_bface(grid))
 
     # Main cell loop
-    
     for icell=1:num_cells(grid)
         # set up form factors
         cellfactors!(grid,icell,node_factors,edge_factors)
@@ -137,12 +147,12 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
 
             if isreaction
                 # Evaluate reaction term if present
-                ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK)
+                ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
                 res_react=DiffResults.value(result_r)
                 jac_react=DiffResults.jacobian(result_r)
             end
             # Evaluate & differentiate storage term
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK)
+            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
             res_stor=DiffResults.value(result_s)
             jac_stor=DiffResults.jacobian(result_s)
 
@@ -176,7 +186,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                 UKL[ispec+nspecies]=U[ispec,edge.nodeL]
             end
 
-            ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL)
+            ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
             res=DiffResults.value(result_flx)
             jac=DiffResults.jacobian(result_flx)
 
@@ -235,7 +245,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             end
 
             if isbreaction# involves bspecies and species
-                ForwardDiff.jacobian!(result_r,breactionwrap,Y,UK)
+                ForwardDiff.jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
                 res_breact=DiffResults.value(result_r)
                 jac_breact=DiffResults.jacobian(result_r)
                 K=bnode.index
@@ -253,7 +263,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             
             if isbstorage # should involve only bspecies
                 # Evaluate & differentiate storage term
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK)
+                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
                 res_bstor=DiffResults.value(result_s)
                 jac_bstor=DiffResults.jacobian(result_s)
                 
@@ -309,7 +319,10 @@ function _solve!(
     tolx=0.0
 
     for ii=1:control.max_iterations
-        _eval_and_assemble(this,solution,oldsol,residual,tstep)
+        _eval_and_assemble(this,solution,oldsol,residual,tstep,
+                           this.physics.storage,
+                           this.physics.bstorage,
+                           this.physics.source)
         
         # Sparse LU factorization
         # Here, we seem miss the possibility to re-use the 

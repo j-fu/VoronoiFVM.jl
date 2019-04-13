@@ -62,7 +62,11 @@ function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
         factory.tfsystem.boundary_values[1,bc0[i]]=0
     end
 
-    _eval_and_assemble(factory.tfsystem,u,u,f,Inf)
+    _eval_and_assemble(factory.tfsystem,u,u,f,Inf,
+                       factory.tfsystem.physics.storage,
+                       factory.tfsystem.physics.bstorage,
+                       factory.tfsystem.physics.source)
+
     inidirichlet!(factory.tfsystem,u)
     lufact=LinearAlgebra.lu(factory.tfsystem.matrix)
     ldiv!(vec(u),lufact,vec(f))

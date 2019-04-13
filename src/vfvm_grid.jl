@@ -430,10 +430,8 @@ end
 function bfacefac2d!(grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
     i1=bfacenode(grid,1,ibface)
     i2=bfacenode(grid,2,ibface)
-    p1=nodecoord(grid,i1)
-    p2=nodecoord(grid,i2)
-    dx=p1[1]-p2[1]
-    dy=p1[2]-p2[2]
+    dx=grid.coord[1,i1]-grid.coord[1,i2]
+    dy=grid.coord[2,i1]-grid.coord[2,i2]
     d=0.5*sqrt(dx*dx+dy*dy)
     nodefac[1]=d
     nodefac[2]=d
@@ -479,7 +477,7 @@ end
 
 Calculate node volume  and voronoi surface contributions for boundary face.
 """ 
-function bfacefactors!(grid::Grid,icell::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv}) where Tv
     if dim_space(grid)==1
         bfacefac1d!(grid,icell,nodefac)
     elseif dim_space(grid)==2
