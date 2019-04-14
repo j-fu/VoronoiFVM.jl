@@ -1,2 +1,8 @@
 .project.jl
 *~
+#*
+QUARRY
+Makefile
+build
+TestGrid.jl
+potkink.jl
