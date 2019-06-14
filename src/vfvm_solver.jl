@@ -1,11 +1,11 @@
-
-
+# Add value to matrix if it is nonzero
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if v!=zero(Tv)
         matrix[i,j]+=v*fac
     end
 end
 
+# Main assembly loop
 function _eval_and_assemble(this::AbstractSystem{Tv},
                             U::AbstractMatrix{Tv}, # Actual solution iteration
                             UOld::AbstractMatrix{Tv}, # Old timestep solution
@@ -365,13 +365,7 @@ end
 
 ################################################################
 """
-    function solve!(
-    solution::AbstractMatrix{Tv}, # Solution
-    inival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv};     # Finite volume system
-    control=NewtonControl(),      # Newton solver control information
-    tstep::Tv=Inf                 # Time step size. Inf means  stationary solution
-    ) where Tv
+$(TYPEDSIGNATURES)
 
 Solution method for instance of System.
 
@@ -399,7 +393,7 @@ end
 
 ################################################################
 """
-    function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv}) where Tv
+$(TYPEDSIGNATURES)
 
 Integrate solution vector over domain. 
 The result contains the integral for each species separately

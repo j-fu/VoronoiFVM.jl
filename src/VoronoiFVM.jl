@@ -2,6 +2,7 @@ module VoronoiFVM
 # Packages for Autodiff magic
 using ForwardDiff, DiffResults
 using IterativeSolvers
+using DocStringExtensions
 
 # These are in the standard distro
 using SparseArrays

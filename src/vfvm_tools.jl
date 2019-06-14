@@ -1,8 +1,6 @@
 ##############################################################
 """
-````
-function geomspace(a::Real, b::Real, ha::Real, hb::Real, tol=1.0e-10)
-````
+$(SIGNATURES)
 
 (Try to) create a subdivision of interval (a,b) stored in the 
 returned array X such that 
@@ -16,7 +14,6 @@ Caveat: the algorithm behind this is  well tested but unproven.
 
 Returns an Array containing the points of the subdivision.
 """
-
 function geomspace(a::Tv, b::Tv, ha::Tv, hb::Tv, tol=1.0e-10) where Tv
     
     function _geomspace0(l,h0, hl, tol=1.0e-10)
@@ -168,7 +165,7 @@ end
 
 ##################################################################
 """
-    value(x)
+$(SIGNATURES)
 
 Extract value from dual number. Use to debug physics callbacks.
 Re-exported from ForwardDiff.jl

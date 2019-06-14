@@ -1,17 +1,21 @@
 ##############################################################
 """
+$(SIGNATURES)
+
+
 Constant for switch between Taylor series and full implementation
 """
 const fbernoulli_eps=1.0e-4
 
 ##############################################################
 """
-````
-function fbernoulli(x::Real)
-````
+$(TYPEDSIGNATURES)
 
 Bernoulli function implementation for exponentially
-fitted finite volumes.
+fitted finite volumes.using DocStringExtensionsusing DocStringExtusing DocStringExtensions
+ensions
+
+
 
 The name fbernoulli has been chosen to avoid confusion
 with Bernoulli from JuliaStats/Distributions.jl
@@ -39,9 +43,7 @@ end
 
 ##############################################################
 """ 
-````
-function fbernoulli_pm(x::Real)
-````
+$(TYPEDSIGNATURES)
 
 Bernoulli function implementation for exponentially
 fitted finite volumes, joint evaluation for positive and negative

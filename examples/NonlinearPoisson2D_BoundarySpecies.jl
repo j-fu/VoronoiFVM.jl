@@ -62,7 +62,7 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
     )
     
     if dense
-        sys=VoronoiFVM.SparseSystem(grid,physics)
+        sys=VoronoiFVM.DenseSystem(grid,physics)
     else
         sys=VoronoiFVM.SparseSystem(grid,physics)
     end

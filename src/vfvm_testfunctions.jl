@@ -1,22 +1,32 @@
 ################################################
 """
-    mutable struct TestFunctionFactory{Tv}
+$(TYPEDEF)
 
 Data structure containing DenseSystem used to calculate
 test functions for boundary flux calculations.
 
+
+$(FIELDS)
 """
 mutable struct TestFunctionFactory{Tv}
+
+    """
+    Original system
+    """
     system::AbstractSystem{Tv}
+
+    """
+    Test function system
+    """
     tfsystem::DenseSystem{Tv}
 end
 
 
 ################################################
 """
-    function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
+$(SIGNATURES)
 
-Constructor for TestFunctionFactory.
+Constructor for TestFunctionFactory from System
 """
 function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
     physics=Physics( 
@@ -36,7 +46,7 @@ end
 
 ############################################################################
 """
-    function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
+$(SIGNATURES)
 
 Create testfunction which has Dirichlet zero boundary conditions  for boundary
 regions in bc0 and Dirichlet one boundary conditions  for boundary
@@ -76,7 +86,7 @@ end
 
 ############################################################################
 """
-    function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tv}) where Tv
+$(SIGNATURES)
 
 Calculate test function integral.
 """
@@ -136,7 +146,7 @@ end
 
 ############################################################################
 """
-    integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv})
+$(SIGNATURES)
 
 Calculate test function integral.
 """

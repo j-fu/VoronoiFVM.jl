@@ -1,6 +1,6 @@
 ##########################################################
 """
-   abstract type AbstractGrid
+$(TYPEDEF)
 
 Abstract type for grid like datastructures [`VoronoiFVM.Grid`](@ref) and [`VoronoiFVM.SubGrid`](@ref).
 """
@@ -10,16 +10,17 @@ abstract type AbstractGrid end
 
 ##########################################################
 """
-    dim_space(grid)
+$(TYPEDSIGNATURES)
 
-Space dimension of gridysics.jl
+Space dimension of grid
 """
 dim_space(grid::AbstractGrid)= size(grid.coord,1)
 
 
 ##########################################################
 """
-    num_nodes(grid)
+$(TYPEDSIGNATURES)
+
 
 Number of nodes in grid
 """
@@ -28,7 +29,7 @@ num_nodes(grid::AbstractGrid)= size(grid.coord,2)
 
 ##########################################################
 """
-    num_cells(grid)
+$(TYPEDSIGNATURES)
 
 Number of cells in grid
 """
@@ -36,7 +37,7 @@ num_cells(grid::AbstractGrid)= size(grid.cellnodes,2)
 
 ##########################################################
 """
-    cellnode(grid,i,icell)
+$(TYPEDSIGNATURES)
 
 Return index of i-th local node in cell icell
 """
@@ -44,7 +45,7 @@ cellnode(grid::AbstractGrid,inode,icell)=grid.cellnodes[inode,icell]
 
 ##########################################################
 """
-    nodecoord(grid,inode)
+$(TYPEDSIGNATURES)
 
 Return view of coordinates of node `inode`.
 """
@@ -52,7 +53,7 @@ nodecoord(grid::AbstractGrid,inode)=view(grid.coord,:,inode)
 
 ##########################################################
 """
-    num_nodes_per_cell(grid)
+$(TYPEDSIGNATURES)
 
 Return number of nodes per cell in grid.
 """
@@ -60,7 +61,7 @@ num_nodes_per_cell(grid::AbstractGrid)= size(grid.cellnodes,1)
 
 ##########################################################
 """
-    eltype(grid)
+$(TYPEDSIGNATURES)
 
 Return element type of grid coordinates.
 """
@@ -68,25 +69,71 @@ Base.eltype(grid::AbstractGrid)=Base.eltype(grid.coord)
 
 ##########################################################
 """
-    struct Grid
+$(TYPEDEF)
 
-Structure holding grid data.
+Structure holding grid data. It is parametrised by the
+type Tc of coordinates.
+
+$(FIELDS)
+
 """
 struct Grid{Tc} <: AbstractGrid
-    coord::Array{Tc,2}              # node coordinates
-    cellnodes::Array{Int32,2}       # node indices per cell
-    cellregions::Array{Int32,1}     # bulk region number per cell 
+
+    """ 
+    2D Array of node coordinates
+    """
+    coord::Array{Tc,2}
+
+    
+    """
+    2D Array of node indices per grid cell
+    """
+    cellnodes::Array{Int32,2}
+
+    
+    """
+    Array of cell region numbers
+    """
+    cellregions::Array{Int32,1}
+
+    
+    """
+    2D Array of node indices per boundary face
+    """
     bfacenodes::ElasticArray{Int32,2,1}      
+
+    
+    """
+    Array of boundary face region numbers
+    """
     bfaceregions::Array{Int32,1}
+
+    
+    """
+    Number of inner cell regions. Stored in an array in order
+    to keep the struct immutable.
+    """
     num_cellregions::Array{Int32,1}
+
+    
+    """
+    Number of boundary face  regions. Stored in an array in order
+    to keep the struct immutable.
+    """
     num_bfaceregions::Array{Int32,1}
+
+    
+    """
+    2D Array describing local scheme of distributions nodes per cell edge.
+    """
     celledgenodes::Array{Int32,2}
+
 end
 
 
 ##########################################################
 """
-    Grid(X::Array{Tc,1})
+$(SIGNATURES)
 
 Constructor for 1D grid.
 
@@ -103,7 +150,6 @@ grid marking control volumes: marked by `|`.
 ```
 
 """
-
 function Grid(X::Array{Tc,1}) where Tc
 
     coord=reshape(X,1,length(X))
@@ -136,7 +182,7 @@ end
 
 ##########################################################
 """
-    Grid(X::Array{Tc,1},X::Array{Tc,1})
+$(SIGNATURES)
 
 Constructor for 2D grid
 from coordinate arrays. 
@@ -150,8 +196,6 @@ Boundary region numbers count counterclockwise:
 | west      |       4 |
 
 """
-
-
 function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
 
     
@@ -313,11 +357,7 @@ end
 
 ######################################################
 """
-    function cellmask!(grid::Grid,          
-                       maskmin::AbstractArray, # lower left corner
-                       maskmax::AbstractArray, # upper right corner
-                       ireg::Int;          # new region number for elements under mask
-                       eps=1.0e-10)            # tolerance.
+$(TYPEDSIGNATURES)
 
 Edit region numbers of grid cells via rectangular mask.
 """
@@ -348,6 +388,12 @@ function cellmask!(grid::Grid,
 end
 
 
+######################################################
+"""
+$(TYPEDSIGNATURES)
+
+Edit region numbers of grid  boundary facets  via rectangular mask.
+"""
 function bfacemask!(grid::Grid,
                    maskmin::AbstractArray,
                    maskmax::AbstractArray,
@@ -388,89 +434,70 @@ end
 
 
 
-# 2D cell form factors
-function cellfac2d!(grid::Grid{Tv},icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
-    i1=cellnode(grid,1,icell)
-    i2=cellnode(grid,2,icell)
-    i3=cellnode(grid,3,icell)
-    
-    coord=grid.coord
-    
-    # Fill matrix of edge vectors
-    V11= grid.coord[1,i2]- grid.coord[1,i1]
-    V21= grid.coord[2,i2]- grid.coord[2,i1]
-    
-    V12= grid.coord[1,i3]- grid.coord[1,i1]
-    V22= grid.coord[2,i3]- grid.coord[2,i1]
-    
-    V13= grid.coord[1,i3]- grid.coord[1,i2]
-    V23= grid.coord[2,i3]- grid.coord[2,i2]
-    
-    
-    
-    # Compute determinant 
-    det=V11*V22 - V12*V21
-    vol=0.5*det
-    
-    ivol = 1.0/vol
-    
-    # squares of edge lengths
-    dd1=V13*V13+V23*V23 # l32
-    dd2=V12*V12+V22*V22 # l31
-    dd3=V11*V11+V21*V21 # l21
-    
-    
-    # contributions to \sigma_kl/h_kl
-    epar[1]= (dd2+dd3-dd1)*0.125*ivol
-    epar[2]= (dd3+dd1-dd2)*0.125*ivol
-    epar[3]= (dd1+dd2-dd3)*0.125*ivol
-    
-    
-    # contributions to \omega_k
-    npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
-    npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
-    npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
-end                              
-
-
-# 2D bface form factors
-function bfacefac2d!(grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    i1=bfacenode(grid,1,ibface)
-    i2=bfacenode(grid,2,ibface)
-    dx=grid.coord[1,i1]-grid.coord[1,i2]
-    dy=grid.coord[2,i1]-grid.coord[2,i2]
-    d=0.5*sqrt(dx*dx+dy*dy)
-    nodefac[1]=d
-    nodefac[2]=d
-end
-
-function cellfac1d!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
-    K=cellnode(grid,1,icell)
-    L=cellnode(grid,2,icell)
-    xK=nodecoord(grid,K)
-    xL=nodecoord(grid,L)
-    d=abs(xL[1]-xK[1])
-    nodefac[1]=d/2
-    nodefac[2]=d/2
-    edgefac[1]=1/d
-end
-
-
-# 1D bface form factors
-function bfacefac1d!(grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    nodefac[1]=1.0
-end
-
-
-
 
 ################################################
 """
-    cellfactors!(grid::Grid,icell,nodefac,edgefac)
+$(SIGNATURES)
 
 Calculate node volume  and voronoi surface contributions for cell.
 """ 
 function cellfactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+
+    function cellfac1d!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+        K=cellnode(grid,1,icell)
+        L=cellnode(grid,2,icell)
+        xK=nodecoord(grid,K)
+        xL=nodecoord(grid,L)
+        d=abs(xL[1]-xK[1])
+        nodefac[1]=d/2
+        nodefac[2]=d/2
+        edgefac[1]=1/d
+    end
+    
+    function cellfac2d!(grid::Grid{Tv},icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
+        i1=cellnode(grid,1,icell)
+        i2=cellnode(grid,2,icell)
+        i3=cellnode(grid,3,icell)
+        
+        coord=grid.coord
+        
+        # Fill matrix of edge vectors
+        V11= grid.coord[1,i2]- grid.coord[1,i1]
+        V21= grid.coord[2,i2]- grid.coord[2,i1]
+        
+        V12= grid.coord[1,i3]- grid.coord[1,i1]
+        V22= grid.coord[2,i3]- grid.coord[2,i1]
+        
+        V13= grid.coord[1,i3]- grid.coord[1,i2]
+        V23= grid.coord[2,i3]- grid.coord[2,i2]
+        
+        
+        
+        # Compute determinant 
+        det=V11*V22 - V12*V21
+        vol=0.5*det
+        
+        ivol = 1.0/vol
+        
+        # squares of edge lengths
+        dd1=V13*V13+V23*V23 # l32
+        dd2=V12*V12+V22*V22 # l31
+        dd3=V11*V11+V21*V21 # l21
+        
+        
+        # contributions to \sigma_kl/h_kl
+        epar[1]= (dd2+dd3-dd1)*0.125*ivol
+        epar[2]= (dd3+dd1-dd2)*0.125*ivol
+        epar[3]= (dd1+dd2-dd3)*0.125*ivol
+        
+        
+        # contributions to \omega_k
+        npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
+        npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
+        npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
+    end                              
+    
+    
     if dim_space(grid)==1
         cellfac1d!(grid,icell,nodefac,edgefac)
     elseif dim_space(grid)==2
@@ -480,11 +507,30 @@ end
 
 ################################################
 """
-    bfacefactors!(grid::Grid,icell,nodefac)
+$(SIGNATURES)
 
 Calculate node volume  and voronoi surface contributions for boundary face.
 """ 
 function bfacefactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv}) where Tv
+
+    # 1D bface form factors
+    function bfacefac1d!(grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
+        nodefac[1]=1.0
+    end
+    
+    
+    # 2D bface form factors
+    function bfacefac2d!(grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
+        i1=bfacenode(grid,1,ibface)
+        i2=bfacenode(grid,2,ibface)
+        dx=grid.coord[1,i1]-grid.coord[1,i2]
+        dy=grid.coord[2,i1]-grid.coord[2,i2]
+        d=0.5*sqrt(dx*dx+dy*dy)
+        nodefac[1]=d
+        nodefac[2]=d
+    end
+    
+    
     if dim_space(grid)==1
         bfacefac1d!(grid,icell,nodefac)
     elseif dim_space(grid)==2
@@ -494,7 +540,7 @@ end
 
 ################################################
 """
-    reg_cell(grid,icell)
+$(TYPEDSIGNATURES)
 
 Bulk region number for cell
 """
@@ -502,7 +548,8 @@ reg_cell(grid::Grid,icell)=grid.cellregions[icell]
 
 ################################################
 """
-    reg_bface(grid, ibface)
+$(TYPEDSIGNATURES)
+
 
 Boundary region number for boundary face
 """
@@ -510,7 +557,8 @@ reg_bface(grid::Grid,icell)=grid.bfaceregions[icell]
 
 ################################################
 """
-    dim_grid(grid)
+$(TYPEDSIGNATURES)
+
 
 Topological dimension of grid
 """
@@ -518,7 +566,7 @@ dim_grid(grid::Grid)= size(grid.bfacenodes,1)
 
 ################################################
 """
-    bfacenode(grid::Grid,inode,ibface)
+$(TYPEDSIGNATURES)
 
 Index of boundary face node.
 """
@@ -526,7 +574,7 @@ bfacenode(grid::Grid,inode,icell)=grid.bfacenodes[inode,icell]
 
 ################################################
 """
-    celledgenode(grid::Grid,inode,iedge,icell)
+$(TYPEDSIGNATURES)
 
 Index of cell edge node.
 """
@@ -534,7 +582,7 @@ celledgenode(grid::Grid,inode,iedge,icell)=grid.cellnodes[grid.celledgenodes[ino
 
 ################################################
 """
-    num_edges_per_cell(grid::Grid)
+$(TYPEDSIGNATURES)
     
 Number of edges per grid cell.
 """
@@ -542,7 +590,7 @@ num_edges_per_cell(grid::Grid)= size(grid.celledgenodes,2)
 
 ################################################
 """
-    num_nodes_per_bface(grid::Grid)
+$(TYPEDSIGNATURES)
 
 Number of nodes per boundary face
 """
@@ -550,7 +598,7 @@ num_nodes_per_bface(grid::Grid)= size(grid.bfacenodes,1)
 
 ################################################
 """
-    num_bfaces(grid::Grid)
+$(TYPEDSIGNATURES)
 
 Number of boundary faces in grid.
 """
@@ -558,7 +606,7 @@ num_bfaces(grid::Grid)= size(grid.bfacenodes,2)
 
 ################################################
 """
-    num_cellregions(grid::Grid)
+$(TYPEDSIGNATURES)
 
 Number of cell regions in grid.
 """
@@ -566,7 +614,7 @@ num_cellregions(grid::Grid)= grid.num_cellregions[1]
 
 ################################################
 """
-    num_bfaceregions(grid::Grid)
+$(TYPEDSIGNATURES)
 
 Number of boundary face regions in grid.
 """
@@ -576,16 +624,41 @@ num_bfaceregions(grid::Grid)=grid.num_bfaceregions[1]
 
 ##################################################################
 """
-    struct SubGrid{Tc} <: AbstractGrid
+$(TYPEDEF)
     
 Subgrid of parent grid (mainly for visualization purposes). Intended
 to hold support of species which are not defined everywhere.
+
+$(FIELDS)
 """
 struct SubGrid{Tc} <: AbstractGrid
+
+
+    """
+    Parent Grid
+    """
     parent::Grid
-    cellnodes::Array{Int32,2}
-    coord::Array{Tc,2}
+
+    
+    """
+    Incidence between subgrid node numbers and node numbers
+    in parent.
+    """
     node_in_parent::Array{Int32,1}
+
+    
+    """ 
+    2D Array of coordinates per grid node
+    """
+    coord::Array{Tc,2}
+
+    
+    """
+    2D Array of node numbers per grid cell
+    """
+    cellnodes::Array{Int32,2}
+
+    
 end
 
 
@@ -599,10 +672,7 @@ end
 
 ##################################################################
 """
-    function subgrid(parent::Grid, 
-                     subregions::AbstractArray; 
-                     transform::Function=copytransform!,
-                     boundary=false)
+$(TYPEDSIGNATURES)
 
 Create subgrid of list of regions.
 """
@@ -674,7 +744,7 @@ function subgrid(parent::Grid,
         transform(localcoord[:,inode],parent.coord[:,sub_nip[inode]])
     end
     
-    return SubGrid(parent,sub_cellnodes,localcoord,sub_nip)
+    return SubGrid(parent,sub_nip,localcoord,sub_cellnodes)
 end
 
 

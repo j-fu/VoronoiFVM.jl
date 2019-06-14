@@ -1,6 +1,6 @@
 ##########################################################
 """
-       abstract type AbstractSystem
+$(TYPEDEF)
     
 Abstract type for finite volume system structure
 """
@@ -18,23 +18,27 @@ const Dirichlet=1.0e30
 
 ##################################################################
 """
-    struct SparseSolutionArray{Tv} <: AbstractMatrix{Tv}
-        node_dof::SparseMatrixCSC{Tv,Int16}
-    end
+$(TYPEDEF)
 
 Struct holding solution information for SparseSystem. Solution
 is stored in a sparse matrix structure.
 
 This class plays well with the abstract array interface.
+
+$(FIELDS)
 """
 struct SparseSolutionArray{Tv} <: AbstractMatrix{Tv}
+
+    """
+    Sparse matrix holding actual data.
+    """
     node_dof::SparseMatrixCSC{Tv,Int16}
 end
 
 
 ##################################################################
 """
-    mutable struct SparseSystem{Tv}
+$(TYPEDEF)
 
 Structure holding data for finite volume system solution.
 Information on species distribution is kept in sparse
@@ -46,24 +50,72 @@ degrees of freedom which correspond to unknowns. However, handling
 of the sparse matrix structures for the bookeeping of the unknowns
 creates overhead.
 
+$(FIELDS)
 """
 mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
+
+    """
+    Grid
+    """
     grid::Grid
+
+    """
+    Physics data
+    """
     physics::Physics
-    boundary_values::Array{Tv,2} # Array of boundary values  
-    boundary_factors::Array{Tv,2}# Array of boundary factors 
+
+    """
+    Array of boundary values 
+    """
+    boundary_values::Array{Tv,2} 
+
+    """
+    Array of boundary factors 
+    """
+    boundary_factors::Array{Tv,2}
+
+    """
+    Sparse matrix containing species numbers for inner regions
+    """
     region_species::SparseMatrixCSC{Int8,Int16}
+
+    """
+    Sparse matrix containing species numbers for boundary regions
+    """
     bregion_species::SparseMatrixCSC{Int8,Int16}
+
+
+    """
+    Sparse matrix containing degree of freedom numbers for each node
+    """
     node_dof::SparseMatrixCSC{Int8,Int32}
+
+    """
+    Jacobi matrix for nonlinear problem
+    """
     matrix::SparseMatrixCSC{Tv,Int32}
+
+    """
+    Flag which says if the number of unknowns per node is constant
+    """
     species_homogeneous::Bool
+
+    """
+    Solution vector holding Newton update
+    """
     update::SparseSolutionArray{Tv}
+
+    """
+    Solution vector holding Newton residual
+    """
     residual::SparseSolutionArray{Tv}
+
     SparseSystem{Tv}() where Tv = new()
 end
+
 ##################################################################
 """
-    function  SparseSystem(grid::Grid, physics::Physics, maxspec::Integer)
+$(TYPEDSIGNATURES)
 
 Constructor for SparseSystem. `physics` provides some user data, `maxspec`
 is the maximum number of species.
@@ -85,7 +137,7 @@ end
 
 ##################################################################
 """
-    mutable struct DenseSystem{Tv}
+$(TYPEDEF)
 
 Structure holding data for finite volume system solution.
 Information on species distribution is kept in dense
@@ -99,25 +151,69 @@ of the sparse matrix structures for the bookeeping of the unknowns
 has less overhead, but additional dummy equations are added
 to the system matrix.
 
-
+$(FIELDS)
 """
 mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
+    """
+    Grid
+    """
     grid::Grid
+
+    """
+    Physics data
+    """
     physics::Physics
-    boundary_values::Array{Tv,2} # Array of boundary values  
-    boundary_factors::Array{Tv,2}# Array of boundary factors 
+
+    """
+    Array of boundary values 
+    """
+    boundary_values::Array{Tv,2} 
+
+    """
+    Array of boundary factors
+    """
+    boundary_factors::Array{Tv,2}
+
+    """
+    Full matrix containing species numbers for inner regions
+    """
     region_species::Array{Int8,2}
+
+    """
+    Full matrix containing species numbers for boundary regions
+    """
     bregion_species::Array{Int8,2}
+
+    """
+    Full matrix containing degree of freedom numbers for each node
+    """
     node_dof::Array{Int8,2}
+
+    """
+    Jacobi matrix for nonlinear problem
+    """
     matrix::SparseMatrixCSC{Tv,Int32}
+
+    """
+    Flag which says if the number of unknowns per node is constant
+    """
     species_homogeneous::Bool
+
+    """
+    Solution vector holding Newton update
+    """
     update::Matrix{Tv}
+
+    """
+    Solution vector holding Newton residual
+    """
     residual::Matrix{Tv}
+
     DenseSystem{Tv}() where Tv = new()
 end
 ##################################################################
 """
-    function  DenseSystem(grid::Grid, physics::Physics, maxspec::Integer)
+$(TYPEDSIGNATURES)
 
 Constructor for DenseSystem. `physics` provides some user data, `maxspec`
 is the maximum number of species.
@@ -139,7 +235,7 @@ end
 
 ##################################################################
 """
-    function is_boundary_species(this::AbstractSystem, ispec::Integer)
+$(TYPEDSIGNATURES)
 
 Check if species number corresponds to boundary species.
 """
@@ -155,7 +251,7 @@ end
 
 ##################################################################
 """
-    function is_bulk_species(this::AbstractSystem, ispec::Integer)
+$(TYPEDSIGNATURES)
 
 Check if species number corresponds bulk species.
 """
@@ -171,7 +267,7 @@ end
 
 ##################################################################
 """
-    function enable_species(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
+$(TYPEDSIGNATURES)
 
 Add species to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
@@ -199,7 +295,7 @@ end
 
 ##################################################################
 """
-    function enable_boundary_species(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
+$(TYPEDSIGNATURES)
 
 Add species to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
@@ -242,7 +338,7 @@ end
 
 ##################################################################
 """
-    isdof(this::AbstractSystem,ispec,inode)
+$(TYPEDSIGNATURES)
     
 Check if degree of freedom is defined.
 """
@@ -250,7 +346,7 @@ isdof(this::AbstractSystem,ispec,inode)= this.node_dof[ispec,inode]==ispec ? tru
 
 ##################################################################
 """
-    num_dof(this::SparseSystem)
+$(TYPEDSIGNATURES)
 
 Number of degrees of freedom for system.
 """
@@ -258,7 +354,7 @@ num_dof(this::SparseSystem)= nnz(this.node_dof)
 
 ##################################################################
 """
-    num_dof(this::SparseSystem)
+$(TYPEDSIGNATURES)
 
 Number of degrees of freedom for system.
 """
@@ -266,7 +362,7 @@ num_dof(this::DenseSystem)= length(this.node_dof)
 
 ##################################################################
 """
-    num_species(this::AbstractSystem)
+$(TYPEDSIGNATURES)
 
 Number of species in system
 """
@@ -276,7 +372,7 @@ num_species(this::AbstractSystem{Tv}) where Tv = this.physics.num_species
 
 ##################################################################
 """
-    num_species(this::AbstractSystem)
+$(TYPEDSIGNATURES)
 
 Retrieve user data record.
 """
@@ -287,7 +383,7 @@ data(this::AbstractSystem{Tv}) where Tv = this.physics.data
 
 ##################################################################
 """
-    function unknowns(::SparseSystem)
+$(TYPEDSIGNATURES)
 
 Create a solution vector for system.
 """
@@ -304,7 +400,7 @@ end
 
 ##################################################################
 """
-    function unknowns(::DenseSystem)
+$(TYPEDSIGNATURES)
 
 Create a solution vector for system.
 """
@@ -313,7 +409,7 @@ unknowns(sys::DenseSystem{Tv}) where Tv=Array{Tv}(undef,size(sys.node_dof,1), si
 
 ##################################################################
 """
-    size(a::SparseSolutionArray)
+$(TYPEDSIGNATURES)
     
 Return size of solution array.
 """
@@ -321,7 +417,7 @@ Base.size(a::SparseSolutionArray)=size(a.node_dof)
 
 ##################################################################
 """
-    num_nodes(a)
+$(TYPEDSIGNATURES)
                         
 Number of nodes (size of second dimension) of solution array.
 """
@@ -329,7 +425,7 @@ num_nodes(a)=size(a,2)
 
 ##################################################################
 """
-    num_species(a)
+$(TYPEDSIGNATURES)
 
 Number of species (size of first dimension) of solution array.
 """
@@ -337,7 +433,7 @@ num_species(a)=size(a,1)
 
 ##################################################################
 """
-    values(a::SparseSolutionArray)
+$(TYPEDSIGNATURES)
 
 Array of values in solution array.
 """
@@ -346,7 +442,7 @@ values(a::SparseSolutionArray)=a.node_dof.nzval
 
 ##################################################################
 """
-    values(a::Array)
+$(TYPEDSIGNATURES)
 
 Array of values in solution array.
 """
@@ -356,7 +452,7 @@ values(a::Array)= vec(a)
 
 ##################################################################
 """
-    copy(this::SparseSolutionArray)
+$(TYPEDSIGNATURES)
 
 Create a copy of solution array
 """
@@ -369,7 +465,7 @@ Base.copy(this::SparseSolutionArray{Tv}) where Tv = SparseSolutionArray{Tv}(Spar
                                                                             )
 ##################################################################
 """
-    function dof(a::SparseSolutionArray,ispec, inode)
+$(TYPEDSIGNATURES)
 
 Get number of degree of freedom. Return 0 if species is not defined in node.
 """
@@ -387,7 +483,7 @@ end
 
 ##################################################################
 """
-    function dof(Array{2},ispec, inode)
+$(TYPEDSIGNATURES)
 
 Get number of degree of freedom.
 """
@@ -396,7 +492,7 @@ dof(a::Array{Tv,2}, ispec::Integer, K::Integer) where Tv = (K-1)*size(a,1)+ispec
 
 ##################################################################
 """
-    function setdof!(a::SparseSolutionArray,v,i::Integer)
+$(TYPEDSIGNATURES)
 
 Set value for degree of freedom.
 """
@@ -406,7 +502,7 @@ end
 
 ##################################################################
 """
-    function getdof(a::SparseSolutionArray,i::Integer)
+$(TYPEDSIGNATURES)
 
 Return  value for degree of freedom.
 """
@@ -417,7 +513,7 @@ getdof(a::SparseSolutionArray,i::Integer) =a.node_dof.nzval[i]
 
 ##################################################################
 """
-     setindex!(a::SparseSolutionArray, v, ispec, inode)
+$(TYPEDSIGNATURES)
 
 Accessor for solution array.
 """
@@ -434,7 +530,7 @@ end
 
 ##################################################################
 """
-     getindex!(a::SparseSolutionArray, ispec, inode)
+$(TYPEDSIGNATURES)
 
 Accessor for solution array.
 """
@@ -451,18 +547,28 @@ end
 
 ##################################################################
 """
-    struct SubgridArrayView{Tv} <: AbstractMatrix{Tv}
+$(TYPEDEF)
 
 Struct holding information for solution array view on subgrid
+
+$(FIELDS)
 """
 struct SubgridArrayView{Tv,Ta} <: AbstractMatrix{Tv}
+
+    """
+    Original array
+    """
     sysarray::Ta
+
+    """
+    Subgrid for view
+    """
     subgrid::SubGrid
 end
 
 ##################################################################
 """
-    view(a::AbstractMatrix{Tv},sg::SubGrid)
+$(TYPEDSIGNATURES)
 
 Create a view of the solution array on a subgrid.
 """
@@ -471,7 +577,7 @@ Base.view(a::AbstractMatrix{Tv},sg::SubGrid) where Tv = SubgridArrayView{Tv,type
 
 ##############################################################################
 """
-    getindex(aview::SubgridArrayView,ispec::Integer,inode::Integer)
+$(TYPEDSIGNATURES)
 
 Accessor method for subgrid array view.
 """
@@ -479,7 +585,7 @@ Base.getindex(aview::SubgridArrayView,ispec::Integer,inode::Integer) = aview.sys
 
 ##############################################################################
 """
-    setindex!(aview::SubgridArrayView,v,ispec::Integer,inode::Integer)
+$(TYPEDSIGNATURES)
 
 Accessor method for subgrid array view.
 """
@@ -490,7 +596,7 @@ end
 
 ##################################################################
 """
-    size(a::SubgridArrayView)
+$(TYPEDSIGNATURES)
     
 Return size of solution array view.
 """
@@ -587,20 +693,32 @@ _add(U::Matrix{Tv},idof,val) where Tv=U[CartesianIndices(U)[idof]]+=val
 
 ##################################################################
 """
-    mutable struct BNode
+$(TYPEDEF)
 
 Structure holding local boundary  node information.
-Fields:
 
-    index::Int32
-    region::Int32
-    coord::Array{Tv,1}
-    nspec::Int64
+$(FIELDS)
 """
 mutable struct BNode{Tv}
+
+    """
+    Index in grid
+    """
     index::Int32
+
+    """
+    Boundary region number
+    """
     region::Int32
+
+    """
+    1D Array of node coordinates
+    """
     coord::Array{Tv,1}
+
+    """
+    Number of species defined in node
+    """
     nspec::Int64
     BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
 end
@@ -620,20 +738,32 @@ end
 
 ##################################################################
 """
-    mutable struct Node
+$(TYPEDEF)
 
 Structure holding local node information.
-Fields:
 
-    index::Int32
-    region::Int32
-    coord::Array{Tv,1}
-    nspec::Int64
+$(FIELDS)
 """
 mutable struct Node{Tv}
+
+    """
+    Index in grid
+
+    """
     index::Int32
+    """
+    Inner region number
+    """
     region::Int32
+
+    """
+    1D Array of node coordinates
+    """
     coord::Array{Tv,1}
+
+    """
+    Number of species defined in node
+    """
     nspec::Int64
     Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
 end
@@ -649,27 +779,47 @@ end
 
 ##################################################################
 """
-    mutable struct Edge
+$(TYPEDEF)
 
 Structure holding local edge information.
 
-Fields:
-
-    index::Int32
-    nodeK::Int32
-    nodeL::Int32
-    region::Int32
-    coordK::Array{Tv,1}
-    coordL::Array{Tv,1}
-    nspec::Int64
+$(FIELDS)
 """
 mutable struct Edge{Tv}
+
+    """
+    Index in grid
+    """
     index::Int32
+
+    """
+    Index of first node
+    """
     nodeK::Int32
+
+    """
+    Index of second node
+    """
     nodeL::Int32
+
+    """
+    Inner region number corresponding to edge
+    """
     region::Int32
+
+    """
+    1D Array of first node coordinates
+    """
     coordK::Array{Tv,1}
+
+    """
+    1D Array of second node coordinates
+    """
     coordL::Array{Tv,1}
+
+    """
+    Number of species defined in edge
+    """
     nspec::Int64
     Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys))
 end
@@ -691,7 +841,7 @@ end
 
 ##################################################################
 """
-    num_species(edge::Edge{Tv}) where Tv=edge.nspec
+$(TYPEDSIGNATURES)
 
 Return number of species for edge
 """
@@ -699,7 +849,7 @@ num_species(edge::Edge{Tv}) where Tv=edge.nspec
 
 ##################################################################
 """
-   function edgelength(edge::Edge)
+$(TYPEDSIGNATURES)
    
 Calculate the length of an edge. 
 """
@@ -713,11 +863,34 @@ function edgelength(edge::Edge{Tv}) where Tv
     return l
 end
 
+"""
+$(TYPEDSIGNATURES)
 
+Solution view on first edge node
+"""
 @inline viewK(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[1:edge.nspec]
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on second edge node
+"""
 @inline viewL(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[edge.nspec+1:2*edge.nspec]
 
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on first edge node
+"""
 @inline viewK(nspec::Int64,u::AbstractArray)=@views u[1:nspec]
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on second edge node
+"""
 @inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]
 
 

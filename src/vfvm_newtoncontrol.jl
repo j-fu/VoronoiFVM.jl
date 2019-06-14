@@ -1,35 +1,58 @@
 ################################################
 """
+$(TYPEDEF)
+
 Control parameter structure for Newton method.
 
-Fields:
-
-    tol_absolute::Float64 # Tolerance (in terms of norm of Newton update)
-    tol_relative::Float64 # Tolerance (relative to the first residual)
-    damp_initial::Float64      # Initial damping parameter
-    damp_growth::Float64  # Damping parameter growth factor
-    max_iterations::Int32     # Maximum number of iterations
-    max_lureuse::Int32 # Maximum number of reuses of lu factorization
-    tol_linear::Float64 # Tolerance of iterative linear solver
-    verbose::Bool      # Verbosity
-
-
+$(FIELDS)
 """
 mutable struct NewtonControl
-    tol_absolute::Float64 # Tolerance (in terms of norm of Newton update)
-    tol_relative::Float64 # Tolerance (relative to the first residual)
-    damp_initial::Float64      # Initial damping parameter
-    damp_growth::Float64  # Damping parameter growth factor
-    max_iterations::Int32     # Maximum number of iterations
-    max_lureuse::Int32 # Maximum number of reuses of lu factorization
-    tol_linear::Float64 # Tolerance of iterative linear solver
-    verbose::Bool      # Verbosity
+
+    """
+    Tolerance (in terms of norm of Newton update)
+    """
+    tol_absolute::Float64
+
+    """
+    Tolerance (relative to the first residual)
+    """
+    tol_relative::Float64
+
+    """
+    Initial damping parameter
+    """
+    damp_initial::Float64
+
+    """
+    Damping parameter growth factor
+    """
+    damp_growth::Float64
+
+    """
+    Maximum number of iterations
+    """
+    max_iterations::Int32
+
+    """
+    Maximum number of reuses of lu factorization
+    """
+    max_lureuse::Int32
+
+    """
+    Tolerance of iterative linear solver
+    """
+    tol_linear::Float64
+
+    """
+    Verbosity flag
+    """
+    verbose::Bool      
     NewtonControl()=NewtonControl(new())
 end
 
 ################################################
 """
-    NewtonControl()
+$(TYPEDSIGNATURES)
     
 Default constructor
 """

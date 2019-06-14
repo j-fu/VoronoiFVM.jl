@@ -1,6 +1,6 @@
 ##########################################################
 """
-   abstract type AbstractPhysics
+$(TYPEDEF)
     
 Abstract type for physics.
 """
@@ -10,9 +10,10 @@ abstract type AbstractPhysics end
 
 ##########################################################
 """
-    abstract type Data end
+$(TYPEDEF)
     
 Abstract type for user data.
+
 """
 abstract type AbstractData end
 
@@ -33,24 +34,11 @@ end
 
 ##########################################################
 """
-    struct Physics{Flux<:Function,
-                   Reaction<:Function,
-                   Storage<:Function,
-                   Source<:Function,
-                   BReaction<:Function,
-                   BStorage<:Function,
-                   D<:Data} <: AbstractPhysics
-    flux::Flux
-    storage::Storage
-    reaction::Reaction
-    source::Source
-    breaction::BReaction
-    bstorage::BStorage
-    data::D
-    num_species::Int8
-end
+$(TYPEDEF)
     
-Physics data record 
+Physics data record.
+
+$(FIELDS) 
 """
 struct Physics{Flux<:Function,
                Reaction<:Function,
@@ -59,27 +47,50 @@ struct Physics{Flux<:Function,
                BReaction<:Function,
                BStorage<:Function,
                D<:AbstractData} <: AbstractPhysics
+    """
+    Flux between neigboring control volumes
+    """
     flux::Flux
+
+    """
+    Storage term (term under time derivative)
+    """
     storage::Storage
+
+    """
+    Reaction term
+    """
     reaction::Reaction
+
+    """"
+    Source term
+    """
     source::Source
+
+    """
+    Boundary reaction term
+    """
     breaction::BReaction
+
+    """
+    Boundary storage term
+    """
     bstorage::BStorage
+
+    """
+    User data (parameters)
+    """
     data::D
+
+    """ 
+    Number of species
+    """
     num_species::Int8
 end
 
 ##########################################################
 """
-    function Physics(;num_species=1,
-                      data=nodata,
-                      flux::Function=nofunc,
-                       reaction::Function=nofunc,
-                       storage::Function=nofunc,
-                       source::Function=nofunc,
-                       breaction::Function=nofunc,
-                       storage::Function=nofunc
-                     )
+$(TYPEDSIGNATURES)
 
 Constructor for physics data with default values.
 """
