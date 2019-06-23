@@ -4,7 +4,7 @@ $(TYPEDEF)
 
 Control parameter structure for Newton method.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct NewtonControl
 

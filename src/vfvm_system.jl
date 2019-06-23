@@ -25,7 +25,7 @@ is stored in a sparse matrix structure.
 
 This class plays well with the abstract array interface.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 struct SparseSolutionArray{Tv} <: AbstractMatrix{Tv}
 
@@ -50,7 +50,7 @@ degrees of freedom which correspond to unknowns. However, handling
 of the sparse matrix structures for the bookeeping of the unknowns
 creates overhead.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
 
@@ -151,7 +151,7 @@ of the sparse matrix structures for the bookeeping of the unknowns
 has less overhead, but additional dummy equations are added
 to the system matrix.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
     """
@@ -551,7 +551,7 @@ $(TYPEDEF)
 
 Struct holding information for solution array view on subgrid
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 struct SubgridArrayView{Tv,Ta} <: AbstractMatrix{Tv}
 
@@ -697,7 +697,7 @@ $(TYPEDEF)
 
 Structure holding local boundary  node information.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct BNode{Tv}
 
@@ -742,7 +742,7 @@ $(TYPEDEF)
 
 Structure holding local node information.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct Node{Tv}
 
@@ -783,7 +783,7 @@ $(TYPEDEF)
 
 Structure holding local edge information.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct Edge{Tv}
 

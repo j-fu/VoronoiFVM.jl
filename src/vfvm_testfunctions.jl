@@ -6,7 +6,7 @@ Data structure containing DenseSystem used to calculate
 test functions for boundary flux calculations.
 
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 mutable struct TestFunctionFactory{Tv}
 

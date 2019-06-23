@@ -12,8 +12,7 @@ const fbernoulli_eps=1.0e-4
 $(TYPEDSIGNATURES)
 
 Bernoulli function implementation for exponentially
-fitted finite volumes.using DocStringExtensionsusing DocStringExtusing DocStringExtensions
-ensions
+fitted finite volumes.
 
 
 

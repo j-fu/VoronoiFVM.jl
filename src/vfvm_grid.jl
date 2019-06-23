@@ -74,7 +74,7 @@ $(TYPEDEF)
 Structure holding grid data. It is parametrised by the
 type Tc of coordinates.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 
 """
 struct Grid{Tc} <: AbstractGrid
@@ -629,7 +629,7 @@ $(TYPEDEF)
 Subgrid of parent grid (mainly for visualization purposes). Intended
 to hold support of species which are not defined everywhere.
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 struct SubGrid{Tc} <: AbstractGrid
 

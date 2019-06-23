@@ -38,7 +38,7 @@ $(TYPEDEF)
     
 Physics data record.
 
-$(FIELDS) 
+$(TYPEDFIELDS) 
 """
 struct Physics{Flux<:Function,
                Reaction<:Function,
