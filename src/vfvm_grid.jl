@@ -393,6 +393,7 @@ end
 $(TYPEDSIGNATURES)
 
 Edit region numbers of grid  boundary facets  via rectangular mask.
+Currently, only for 1D grids, inner boundaries can be added.
 """
 function bfacemask!(grid::Grid,
                    maskmin::AbstractArray,
@@ -401,7 +402,7 @@ function bfacemask!(grid::Grid,
                    eps=1.0e-10)
 
     
-    @assert(dim_space(grid)==1)
+
     xmaskmin=maskmin.-eps
     xmaskmax=maskmax.+eps
     
@@ -413,23 +414,43 @@ function bfacemask!(grid::Grid,
             return 0
         end
     end
-    
-    for inode=1:num_nodes(grid)
-        x=grid.coord[1,inode]
-        if x>xmaskmin[1] && x<xmaskmax[1]
-            ibface=isbface(inode)
-            if ibface>0
+    if dim_space(grid)==1
+        for inode=1:num_nodes(grid)
+            x=grid.coord[1,inode]
+            if x>xmaskmin[1] && x<xmaskmax[1]
+                ibface=isbface(inode)
+                if ibface>0
+                    grid.bfaceregions[ibface]=ireg
+                else
+                    ibface=length(grid.bfaceregions)+1
+                    push!(grid.bfaceregions,ireg)
+                    append!(grid.bfacenodes,[inode])
+                end
+            end
+        end
+    else
+        xmaskmin=maskmin.-eps
+        xmaskmax=maskmax.+eps
+        for ibface=1:num_bfaces(grid)
+            in_region=true
+            for inode=1:num_nodes_per_bface(grid)
+                coord=nodecoord(grid,bfacenode(grid,inode,ibface))
+                for idim=1:dim_space(grid)
+                    if coord[idim]<maskmin[idim]
+                        in_region=false
+                    elseif coord[idim]>maskmax[idim]
+                        in_region=false
+                    end
+                end
+            end
+            if in_region
                 grid.bfaceregions[ibface]=ireg
-            else
-                ibface=length(grid.bfaceregions)+1
-                push!(grid.bfaceregions,ireg)
-                append!(grid.bfacenodes,[inode])
             end
         end
     end
+        
     grid.num_bfaceregions[1]=max(num_bfaceregions(grid),ireg)
 end
-
 
 
 
