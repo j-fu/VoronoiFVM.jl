@@ -32,12 +32,14 @@ end
 # test value.
 
 
-function main(;n=11,pyplot=false,verbose=false, dense=false)
-    L=1
+function main(;nref=0,pyplot=false,verbose=false, dense=false)
+    L=1.0
 
-    
-    h=1.0/convert(Float64,n-1)
-    grid=VoronoiFVM.Grid(collect(0:h:L))
+    h0=0.1/2.0^nref
+    h1=0.5/2.0^nref
+    X=VoronoiFVM.geomspace(0.0,L,h0,h1)
+
+    grid=VoronoiFVM.Grid(X)
     
     data=Data()
     data.R=1
