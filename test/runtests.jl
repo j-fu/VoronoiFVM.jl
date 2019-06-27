@@ -71,8 +71,8 @@ using Test
     @time begin
         print("                      ImpedanceTest:")
         include("../examples/ImpedanceTest.jl")
-        @test ImpedanceTest.main() ≈ 0.26139875997135326
-        @test ImpedanceTest.main(dense=true) ≈ 0.26139875997135326
+        @test ImpedanceTest.main() ≈ 0.23106605162049176
+        @test ImpedanceTest.main(dense=true) ≈ 0.23106605162049176
     end
     @time begin
         print("         test-geomspace:")

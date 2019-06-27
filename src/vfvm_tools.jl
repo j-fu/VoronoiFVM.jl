@@ -45,7 +45,7 @@ function geomspace(a::Tv, b::Tv, ha::Tv, hb::Tv, tol=1.0e-10) where Tv
 
         # define initial number of intervals from
         # average of minmal and maximal h
-        n=Int8(ceil((2.0*l/(h0+hl))))
+        n=Int32(ceil((2.0*l/(h0+hl))))
         
         if n==1
             n=2
@@ -137,6 +137,13 @@ function geomspace(a::Tv, b::Tv, ha::Tv, hb::Tv, tol=1.0e-10) where Tv
     return X
 end
 
+"""
+$(SIGNATURES)
+
+Glue together two vectors a and b resulting in a vector c. They last element 
+of a shall be equal (up to tol) to the first element of b.
+The result fulfills `length(c)=length(a)+length(b)-1`
+"""
 function glue(a::Vector{Tv}, b::Vector{Tv}; tol=1.0e-10) where Tv
     #assert(is_monotone(a));
     #assert(is_monotone(b));
