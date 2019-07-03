@@ -69,7 +69,7 @@ function fvmplot(grid::Grid)
             rgb=frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
             coord1=nodecoord(grid,bfacenode(grid,1,ibface))
             coord2=nodecoord(grid,bfacenode(grid,2,ibface))
-            PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=3,color=rgb)
+            PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=5,color=rgb)
         end
 
     end
