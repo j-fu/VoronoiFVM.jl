@@ -32,7 +32,7 @@ struct SparseSolutionArray{Tv} <: AbstractMatrix{Tv}
     """
     Sparse matrix holding actual data.
     """
-    node_dof::SparseMatrixCSC{Tv,Int16}
+    node_dof::SparseMatrixCSC{Tv,Int32}
 end
 
 
@@ -93,7 +93,7 @@ mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::SparseMatrixCSC{Tv,Int32}
+    matrix::SparseMatrixCSC{Tv,Int64}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -192,7 +192,7 @@ mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::SparseMatrixCSC{Tv,Int32}
+    matrix::SparseMatrixCSC{Tv,Int64}
 
     """
     Flag which says if the number of unknowns per node is constant
