@@ -43,6 +43,7 @@ export getdof
 export setdof!
 export value
 export solve!
+export embed!
 export subgrid
 export testfunction
 export data

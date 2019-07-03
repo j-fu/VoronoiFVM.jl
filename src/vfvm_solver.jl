@@ -285,7 +285,59 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     _inactspecloop(this,U,UOld,F)
 end
 
+"""
+$(TYPEDEF)
 
+Exception thrown if Newton's method convergence fails.
+"""
+struct ConvergenceError <: Exception
+end
+
+"""
+$(TYPEDEF)
+
+Exception thrown if error occured during assembly (e.g. domain error)
+"""
+struct AssemblyError <: Exception
+end
+
+"""
+$(TYPEDEF)
+
+Exception thrown if error occured during factorization.
+"""
+struct FactorizationError <: Exception
+end
+
+"""
+$(TYPEDEF)
+
+Exception thrown if embedding fails
+"""
+struct EmbeddingError <: Exception
+end
+
+
+function _print_error(err,st)
+    println()
+    println(err)
+    nlines=5
+    for i=1:min(nlines,length(st))
+        line=@sprintf("%s",st[i])
+        L=length(line)
+        if L<80
+            println(line)
+        else
+            print(line[1:35])
+            print(" ... ")
+            println(line[L-35:L])
+        end
+    end
+    if length(st)>nlines
+        println("...")
+    end
+    println()
+end
 
 ################################################################
 function _solve!(
@@ -307,38 +359,77 @@ function _solve!(
     update=this.update
     _inidirichlet!(this,solution)
 
-    # Newton iteration (quick and dirty...)
+    # Newton iteration
     oldnorm=1.0
     converged=false
     if control.verbose
-        @printf("Start newton iteration: %s:%d\n", basename(@__FILE__),@__LINE__)
+        @printf("    Start Newton iteration\n")
     end
     nlu=0
+    nround=0
     lufact=nothing
     damp=control.damp_initial
     tolx=0.0
+    rnorm=LinearAlgebra.norm(values(solution),1)
 
     for ii=1:control.max_iterations
-        _eval_and_assemble(this,solution,oldsol,residual,tstep,
-                           this.physics.storage,
-                           this.physics.bstorage,
-                           this.physics.source)
+        try
+            _eval_and_assemble(this,solution,oldsol,residual,tstep,
+                               this.physics.storage,
+                               this.physics.bstorage,
+                               this.physics.source)
+        catch err
+            if (control.handle_exceptions)
+                _print_error(err,stacktrace(catch_backtrace()))
+                throw(AssemblyError())
+            else
+                rethrow(err)
+            end
+        end
+        
         
         # Sparse LU factorization
         # Here, we seem miss the possibility to re-use the 
         # previous symbolic information
         # We however reuse the factorization control.max_lureuse times.
+        nliniter=0
         if nlu==0
             lufact=LinearAlgebra.lu(this.matrix)
             # LU triangular solve gives Newton update
-            ldiv!(values(update),lufact,values(residual))
+            try
+                ldiv!(values(update),lufact,values(residual))
+            catch err
+                if (control.handle_exceptions)
+                    _print_error(err,stacktrace(catch_backtrace()))
+                    throw(FactorizationError())
+                else
+                    rethrow(err)
+                end
+            end
         else
             # When reusing lu factorization, we may try to iterate
             # Generally, this is advisable.
             if control.tol_linear <1.0
-                bicgstabl!(values(update),this.matrix,values(residual),2,Pl=lufact,tol=control.tol_linear)
+                (sol,history)= bicgstabl!(values(update),
+                                          this.matrix,
+                                          values(residual),
+                                          1,
+                                          Pl=lufact,
+                                          tol=control.tol_linear,
+                                          max_mv_products=20,
+                                          log=true)
+                nliniter=history.iters
             else
-                ldiv!(values(update),lufact,values(residual))
+                try
+                    ldiv!(values(update),lufact,values(residual))
+                catch err
+                    if (control.handle_exceptions)
+                        _print_error(err,stacktrace(catch_backtrace()))
+                        throw(FactorizationError())
+                    else
+                        rethrow(err)
+                    end
+                end
             end
         end
         nlu=min(nlu+1,control.max_lureuse)
@@ -349,17 +440,48 @@ function _solve!(
         if tolx==0.0
             tolx=norm*control.tol_relative
         end
+
+        dnorm=1.0
+        rnorm_new=LinearAlgebra.norm(values(solution),1)
+        if rnorm>1.0e-50
+            dnorm=abs((rnorm-rnorm_new)/rnorm)
+        end
+
+        if dnorm<control.tol_round
+            nround=nround+1
+        else
+            nround=0
+        end
+
         if control.verbose
-            @printf("  it=%03d norm=%.5e cont=%.5e\n",ii,norm, norm/oldnorm)
+            if   control.tol_linear<1.0
+                itstring=@sprintf("it=% 3d(% 2d)",ii,nliniter)
+            else
+                itstring=@sprintf("it=% 3d",ii)
+            end
+            if control.max_round>0
+                @printf("    %s du=%.3e cont=%.3e dnorm=%.3e %d\n",itstring,norm, norm/oldnorm,dnorm,nround)
+            else
+                @printf("    %s du=%.3e cont=%.3e\n",itstring,norm, norm/oldnorm)
+            end
         end
         if norm<control.tol_absolute || norm <tolx
             converged=true
             break
         end
         oldnorm=norm
+        rnorm=rnorm_new
+
+        if nround>control.max_round
+            converged=true
+            break
+        end
     end
     if !converged
-        error("Error: no convergence")
+        throw(ConvergenceError())
+    end
+    if control.verbose
+        @printf("    Newton iteration successful\n")
     end
 end
 
@@ -370,7 +492,8 @@ $(TYPEDSIGNATURES)
 Solution method for instance of System.
 
 Perform solution of stationary system (if `tstep==Inf`) or implicit Euler time
-step system. 
+step system using Newton's method with damping. Initial damping is chosen
+according to corresponding  value in the control parameter. 
 
 """
 function solve!(
@@ -384,7 +507,7 @@ function solve!(
         @time begin
             _solve!(solution,inival,this,control,tstep)
         end
-    else
+    else 
         _solve!(solution,inival,this,control,tstep)
     end
 end
@@ -395,7 +518,83 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Integrate solution vector over domain. 
+Solution method for instance of System.
+
+Perform solution via parameter embedding, calling
+solve! for each value of the parameter p from interval
+(0,1). The user is responsible for the interpretation of
+the parameter, which needs to be evaluated in the pre() callback
+method. The post() callback method can be used to perform
+various postprocessing steps.
+
+If ``control.handle_error`` is true, ``solve!``  throws an error, and
+ stepsize ``control.Δp`` is lowered,
+and ``solve!`` is called again with a smaller  parameter
+value. If ``control.Δp<control.Δp_min``, ``embed!`` is aborted
+with error.
+
+"""
+function embed!(
+    solution::AbstractMatrix{Tv}, # Solution
+    xinival::AbstractMatrix{Tv},   # Initial value 
+    this::AbstractSystem{Tv};     # Finite volume system
+    control=NewtonControl(),      # Newton solver control information
+    pre=function(sol,p) end,       # Function for preparing step
+    post=function(sol,p) end      # Function for postprocessing successful step
+) where Tv
+    inival=copy(xinival)
+    p=0.0
+    Δp=control.Δp
+    if control.verbose
+        @printf("  Embedding: start\n")
+    end
+    istep=0
+    while p<1.0
+        solved=false
+        p0=p
+        while !solved
+            solved=true
+            try
+                p=min(p0+Δp,1.0)
+                pre(solution,p)
+                solve!(solution,inival, this ,control=control)
+            catch err
+                if (control.handle_exceptions)
+                    _print_error(err,stacktrace(catch_backtrace()))
+                else
+                    rethrow(err)
+                end
+                # here we reduce the embedding step and retry the solution
+                Δp=Δp*0.5
+                if Δp<control.Δp_min
+                    throw(EmbeddingError())
+                end
+                solved=false
+                if control.verbose
+                    @printf("  Embedding: retry: Δp=%.3e\n",Δp)
+                end
+            end
+        end
+        istep=istep+1
+        if control.verbose
+            @printf("  Embedding: istep=%d p=%.3e\n",istep,p)
+        end
+        Δp=min(control.Δp_max,Δp*1.2)
+        post(solution,p)
+        inival.=solution
+    end
+    if control.verbose
+        @printf("  Embedding: success\n")
+    end
+end
+
+
+
+################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Integrate function ``F`` of  solution vector over domain. 
 The result contains the integral for each species separately
 """
 function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv})::Array{Tv,1} where Tv
