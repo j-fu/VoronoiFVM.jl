@@ -373,9 +373,9 @@ function cellmask!(grid::Grid,
         for inode=1:num_nodes_per_cell(grid)
             coord=nodecoord(grid,cellnode(grid,inode,icell))
             for idim=1:dim_space(grid)
-                if coord[idim]<maskmin[idim]
+                if coord[idim]<xmaskmin[idim]
                     in_region=false
-                elseif coord[idim]>maskmax[idim]
+                elseif coord[idim]>xmaskmax[idim]
                     in_region=false
                 end
             end
@@ -396,13 +396,13 @@ Edit region numbers of grid  boundary facets  via rectangular mask.
 Currently, only for 1D grids, inner boundaries can be added.
 """
 function bfacemask!(grid::Grid,
-                   maskmin::AbstractArray,
-                   maskmax::AbstractArray,
-                   ireg::Int;
-                   eps=1.0e-10)
+                    maskmin::AbstractArray,
+                    maskmax::AbstractArray,
+                    ireg::Int;
+                    eps=1.0e-10)
 
     
-
+    
     xmaskmin=maskmin.-eps
     xmaskmax=maskmax.+eps
     
@@ -429,16 +429,14 @@ function bfacemask!(grid::Grid,
             end
         end
     else
-        xmaskmin=maskmin.-eps
-        xmaskmax=maskmax.+eps
         for ibface=1:num_bfaces(grid)
             in_region=true
             for inode=1:num_nodes_per_bface(grid)
                 coord=nodecoord(grid,bfacenode(grid,inode,ibface))
                 for idim=1:dim_space(grid)
-                    if coord[idim]<maskmin[idim]
+                    if coord[idim]<xmaskmin[idim]
                         in_region=false
-                    elseif coord[idim]>maskmax[idim]
+                    elseif coord[idim]>xmaskmax[idim]
                         in_region=false
                     end
                 end
