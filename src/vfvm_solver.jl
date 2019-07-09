@@ -71,7 +71,8 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     end
     
     # Reset matrix + rhs
-    matrix.nzval.=0.0
+    nzv=nonzeros(matrix)
+    nzv.=0.0
     F.=0.0
 
     # structs holding diff results for storage, reaction,  flux ...
@@ -285,6 +286,11 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     _inactspecloop(this,U,UOld,F)
 end
 
+
+
+
+
+
 """
 $(TYPEDEF)
 
@@ -484,6 +490,33 @@ function _solve!(
         @printf("    Newton iteration successful\n")
     end
 end
+
+################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Wrapper for main assembly method.
+
+Evaluate solution with result in right hand side F and 
+assemble matrix into system.matrix.
+"""
+function eval_and_assemble(system::AbstractSystem{Tv},
+                           U::AbstractMatrix{Tv}, # Actual solution iteration
+                           UOld::AbstractMatrix{Tv}, # Old timestep solution
+                           F::AbstractMatrix{Tv},# Right hand side
+                           tstep::Tv, # time step size. Inf means stationary solution
+                           ) where {Tv}
+
+    _eval_and_assemble(system,
+                       solution,
+                       oldsol,
+                       residual,
+                       tstep,
+                       system.physics.storage,
+                       system.physics.bstorage,
+                       system.physics.source)
+end
+
 
 ################################################################
 """
