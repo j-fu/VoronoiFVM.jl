@@ -1,5 +1,16 @@
 abstract type AbstractImpedanceSystem{Tv <: Number} end
 
+
+function colptrs(M::SparseMatrixCSC)
+    return M.colptr
+end
+
+function colptrs(M::ExtendableSparseMatrix)
+    return xcolptrs(M)
+end
+
+
+
 mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
     sys::AbstractSystem{Tv}
     storderiv::AbstractMatrix{Tv}
@@ -19,11 +30,11 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
 
     this.sys=sys
     this.storderiv=spzeros(Tv,num_dof(sys), num_dof(sys))
-    this.matrix=SparseMatrixCSC(sys.matrix.m,
-                                sys.matrix.n,
-                                sys.matrix.colptr,
-                                sys.matrix.rowval,
-                                complex(sys.matrix.nzval)
+    m,n=size(sys.matrix)
+    this.matrix=SparseMatrixCSC(m,n,
+                                colptrs(sys.matrix),
+                                rowvals(sys.matrix),
+                                complex(nonzeros(sys.matrix))
                                 )
     this.ispec=xispec
     this.ibc=xibc
@@ -164,8 +175,10 @@ function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) w
     grid=this.sys.grid
     
     nspecies::Int32=num_species(this.sys)
-    for i=1:length(matrix.nzval)
-        matrix.nzval[i]=complex(sysmatrix.nzval[i])
+    sysnzval=nonzeros(sysmatrix)
+    nzval=nonzeros(matrix)
+    for i=1:length(nzval)
+        nzval[i]=complex(sysnzval[i])
     end
     U0=this.U0
     for inode=1:num_nodes(grid)

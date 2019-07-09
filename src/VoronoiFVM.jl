@@ -4,10 +4,14 @@ using ForwardDiff, DiffResults
 using IterativeSolvers
 using DocStringExtensions
 
+
 # These are in the standard distro
 using SparseArrays
 using ElasticArrays
+using ExtendableSparse
 using LinearAlgebra
+
+
 using Printf
 
 include("vfvm_physics.jl")

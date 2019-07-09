@@ -93,7 +93,7 @@ mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::SparseMatrixCSC{Tv,Int64}
+    matrix::ExtendableSparseMatrix{Tv,Int64}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -322,9 +322,8 @@ function enable_boundary_species!(this::AbstractSystem, ispec::Integer, regions:
 end
 
 # Create matrix in system
-function _create_matrix(this::AbstractSystem)
-    Tv=Base.eltype(this)
-    this.matrix=spzeros(Tv,num_dof(this), num_dof(this))
+function _create_matrix(this::AbstractSystem{Tv}) where Tv
+    this.matrix=ExtendableSparseMatrix{Tv,Int64}(num_dof(this), num_dof(this))
     this.species_homogeneous=true
     for inode=1:size(this.node_dof,2)
         for ispec=1:size(this.node_dof,1)
