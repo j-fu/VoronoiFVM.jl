@@ -95,8 +95,6 @@ version = "0.4.0"
 [[ExtendableSparse]]
 deps = ["DocStringExtensions", "LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "1af04c248602d9c80648ddffec2537258dc33d01"
-repo-rev = "master"
-repo-url = "https://github.com/j-fu/ExtendableSparse.jl"
 uuid = "95c220a8-a1cf-11e9-0c77-dbfce5f500b3"
 version = "0.1.0"
 
