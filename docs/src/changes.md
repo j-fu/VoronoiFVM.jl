@@ -1,5 +1,8 @@
 # Changes
-## V0.4, April 14, 2019
+
+## V0.4, July 12, 2019
+- Enhance Newton solver by embedding, exception handling
+- Replace SparseMatrixCSC with ExtendableSparseMatrix
 - fixed allocation issues in assembly
 - assured that users get allocation stuff right via
   typed functions in physics structure
