@@ -21,6 +21,11 @@ julia:
 #   allow_failures:
 #   - julia: nightly
 
+# Pkg.add("PyCall"); Pkg.build("PyCall"); Pkg.add("PyPlot"); 
+before_install:
+    - julia -e 'ENV["PYTHON"]=""; using Pkg; Pkg.add("Conda"); using Conda; Conda.add_channel("anaconda"); Conda.update(); Conda.add("numpy"); Conda.add("matplotlib");'
+ 
+
 notifications:
   email: false
 
