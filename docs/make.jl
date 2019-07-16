@@ -5,6 +5,7 @@ makedocs(
     modules = [VoronoiFVM],
     clean = true,
     authors = "J. Fuhrmann",
+    repo="https://github.com/j-fu/VoronoiFVM.jl",
     version = "0.4.0",
     pages=[
         "Home"=>"index.md",
@@ -30,3 +31,6 @@ makedocs(
     ]
 )
 
+deploydocs(
+    repo = "github.com/j-fu/VoronoiFVM.jl.git"
+)
