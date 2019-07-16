@@ -27,7 +27,7 @@ before_install:
  
 
 notifications:
-  email: false
+  email: true
 
   
 after_success: skip
