@@ -522,12 +522,11 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Solution method for instance of System.
+Solution method for instance of abstract system.
 
-Perform solution of stationary system (if `tstep==Inf`) or implicit Euler time
-step system using Newton's method with damping. Initial damping is chosen
-according to corresponding  value in the control parameter. 
-
+Perform solution of stationary system (if `tstep==Inf`) or one tine step
+of implicit Euler time step system using Newton's method with damping. 
+Initial damping is chosen according  `control.damp_initial`.
 """
 function solve!(
     solution::AbstractMatrix{Tv}, # Solution
@@ -551,19 +550,20 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Solution method for instance of System.
+Solution method for instance of abstract system.
 
 Perform solution via parameter embedding, calling
 solve! for each value of the parameter p from interval
 (0,1). The user is responsible for the interpretation of
-the parameter, which needs to be evaluated in the pre() callback
-method. The post() callback method can be used to perform
+the parameter. The optional `pre()` callback can be used
+to communicate its value to the system.
+The optional`post()` callback method can be used to perform
 various postprocessing steps.
 
-If ``control.handle_error`` is true, ``solve!``  throws an error, and
- stepsize ``control.Δp`` is lowered,
-and ``solve!`` is called again with a smaller  parameter
-value. If ``control.Δp<control.Δp_min``, ``embed!`` is aborted
+If `control.handle_error` is true, `solve!`  throws an error, and
+ stepsize `control.Δp` is lowered,
+and `solve!` is called again with a smaller  parameter
+value. If `control.Δp<control.Δp_min`, `embed!` is aborted
 with error.
 
 """
@@ -627,8 +627,8 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Integrate function ``F`` of  solution vector over domain. 
-The result contains the integral for each species separately
+Integrate function `F` of  solution vector over domain. 
+The result contains the integral for each species separately.
 """
 function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv})::Array{Tv,1} where Tv
     grid=this.grid

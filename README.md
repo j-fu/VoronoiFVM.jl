@@ -1,6 +1,11 @@
 VoronoiFVM.jl
 ===============
 
+[![Build Status](https://img.shields.io/travis/j-fu/VoronoiFVM.jl/master.svg?label=Linux+MacOSX)](https://travis-ci.org/j-fu/VoronoiFVM.jl)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://j-fu.github.io/VoronoiFVM.jl/stable)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://j-fu.github.io/VoronoiFVM.jl/dev)
+
+
 Author: J. Fuhrmann
 
 
@@ -12,10 +17,6 @@ This Julia package merges the ideas behind [pdelib](http://www.wias-berlin.de/so
 So far this is merely a design study to learn and evaluate Julia.  
 It is however aimed to be feasible at least for small projects.
 
-It requires Julia 1.0.
+It requires Julia 1.x
 
-## Documentation
-
-Documentation created with [Documenter.jl](https://juliadocs.github.io/Documenter.jl/stable/index.html)
-resides [here](https://www.wias-berlin.de/people/fuhrmann/VoronoiFVM.jl).
 
