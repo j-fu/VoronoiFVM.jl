@@ -38,7 +38,7 @@ jobs:
       julia: 1.1
       os: linux
       script:
-        - julia --project=docs/ -e 'using Pkg;  Pkg.add(PackageSpec(name="DocStringExtensions", version="0.8.0")); Pkg.add("Documenter"); Pkg.update(); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate();'
+        - julia --project=docs/ -e 'using Pkg;  Pkg.update(); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate();'
         - julia --project=docs/ docs/make.jl
       after_success: skip
 
