@@ -32,6 +32,6 @@ makedocs(
 
 deploydocs(
     repo = "github.com/j-fu/VoronoiFVM.jl.git",
-    versions = ["stable" => "v^", "v#.#"],
+    versions = ["stable" => "v^", "v#.#"]
 )
 
