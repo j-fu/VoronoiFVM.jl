@@ -192,7 +192,7 @@ mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::SparseMatrixCSC{Tv,Int64}
+    matrix::ExtendableSparseMatrix{Tv,Int64}
 
     """
     Flag which says if the number of unknowns per node is constant
