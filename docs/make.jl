@@ -7,7 +7,7 @@ makedocs(
     doctest = true,
     authors = "J. Fuhrmann",
     repo="https://github.com/j-fu/VoronoiFVM.jl",
-    pages=[
+    pages=[ 
         "Home"=>"index.md",
         "changes.md",
         "API Documentation" => [
