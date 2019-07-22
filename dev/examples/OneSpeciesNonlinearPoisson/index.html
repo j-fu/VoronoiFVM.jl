@@ -1,10 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>1D Nonlinear Poisson equation with one species · VoronoiFVM.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="../../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>VoronoiFVM.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../../">Home</a></li><li><a class="toctext" href="../../install/">Installation</a></li><li><a class="toctext" href="../../changes/">Changes</a></li><li><span class="toctext">API Documentation</span><ul><li><a class="toctext" href="../../grid/">Grid</a></li><li><a class="toctext" href="../../physics/">Physics</a></li><li><a class="toctext" href="../../system/">System</a></li><li><a class="toctext" href="../../allindex/">Index</a></li></ul></li><li><span class="toctext">Examples</span><ul><li class="current"><a class="toctext" href>1D Nonlinear Poisson equation with one species</a><ul class="internal"></ul></li><li><a class="toctext" href="../TwoSpeciesNonlinearPoisson/">1D Nonlinear Poisson equation with two species</a></li><li><a class="toctext" href="../IonicLiquid/">1D Ionic Liquid</a></li><li><a class="toctext" href="../NonlinearPoisson2D/">2D Nonlinear Poisson equation</a></li><li><a class="toctext" href="../NonlinearPoisson2D_Reaction/">2D Nonlinear Poisson equation with reaction</a></li><li><a class="toctext" href="../ThreeRegions1D/">Differing species sets in regions, 1D</a></li><li><a class="toctext" href="../NonlinearPoisson2D_BoundaryReaction/">2D Nonlinear Poisson equation with boundary reaction</a></li><li><a class="toctext" href="../NonlinearPoisson1D_BoundarySpecies/">1D two species system with boundary reaction and boundary species</a></li><li><a class="toctext" href="../NonlinearPoisson2D_BoundarySpecies/">2D Nonlinear Poisson equation with boundary reaction and boundary species</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>1D Nonlinear Poisson equation with one species</a></li></ul><a class="edit-page" href="https://github.com/j-fu/VoronoiFVM.jl"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>1D Nonlinear Poisson equation with one species</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="D-Nonlinear-Poisson-equation-with-one-species-1" href="#D-Nonlinear-Poisson-equation-with-one-species-1">1D Nonlinear Poisson equation with one species</a></h1><p>Solve the nonlinear Poisson equation</p><div>\[-\nabla \varepsilon \nabla u^2 + u^2 = 0.0001x\]</div><p>in $\Omega=(0,1)$ with boundary condition $u(0)=1$ and $u(1)=0.5$.</p><div><pre><code class="language-julia"># We wrap this example and all later ones
-# into a module structure. This allows to load
-# all of them at once into the REPL without name
-# clashes. We shouldn&#39;t forget the corresponding end
-# statement.
-module OneSpeciesNonlinearPoisson
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>1D Nonlinear Poisson equation with one species · VoronoiFVM.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="../../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>VoronoiFVM.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../../">Home</a></li><li><a class="toctext" href="../../changes/">Changes</a></li><li><span class="toctext">API Documentation</span><ul><li><a class="toctext" href="../../grid/">Grid</a></li><li><a class="toctext" href="../../physics/">Physics</a></li><li><a class="toctext" href="../../system/">System</a></li><li><a class="toctext" href="../../allindex/">Index</a></li></ul></li><li><span class="toctext">Examples</span><ul><li><a class="toctext" href="../Laplace/">1D Laplace Equation</a></li><li class="current"><a class="toctext" href>1D Nonlinear Poisson equation with one species</a><ul class="internal"></ul></li><li><a class="toctext" href="../TwoSpeciesNonlinearPoisson/">1D Nonlinear Poisson equation with two species</a></li><li><a class="toctext" href="../IonicLiquid/">1D Ionic Liquid</a></li><li><a class="toctext" href="../NonlinearPoisson2D/">2D Nonlinear Poisson equation</a></li><li><a class="toctext" href="../NonlinearPoisson2D_Reaction/">2D Nonlinear Poisson equation with reaction</a></li><li><a class="toctext" href="../ThreeRegions1D/">Differing species sets in regions, 1D</a></li><li><a class="toctext" href="../NonlinearPoisson2D_BoundaryReaction/">2D Nonlinear Poisson equation with boundary reaction</a></li><li><a class="toctext" href="../NonlinearPoisson1D_BoundarySpecies/">1D two species system with boundary reaction and boundary species</a></li><li><a class="toctext" href="../NonlinearPoisson2D_BoundarySpecies/">2D Nonlinear Poisson equation with boundary reaction and boundary species</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>1D Nonlinear Poisson equation with one species</a></li></ul><a class="edit-page" href="https://github.com/j-fu/VoronoiFVM.jl"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>1D Nonlinear Poisson equation with one species</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="D-Nonlinear-Poisson-equation-with-one-species-1" href="#D-Nonlinear-Poisson-equation-with-one-species-1">1D Nonlinear Poisson equation with one species</a></h1><p>Solve the nonlinear Poisson equation</p><div>\[-\nabla 0.01 \nabla u^2 + u^2 = 0.0001x\]</div><p>in <span>$\Omega=(0,1)$</span> with boundary condition <span>$u(0)=1$</span> and <span>$u(1)=0.5$</span>.</p><div><pre><code class="language-julia">module OneSpeciesNonlinearPoisson
 
 # This gives us he @printf macro (c-like output)
 using Printf
@@ -34,35 +29,34 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
 
     eps=1.0e-2
     
-    # Create a physics structure
-    physics=VoronoiFVM.Physics(
 
     # Flux function which describes the flux
     # between neigboring control volumes
     flux=function(f,u,edge,data)
         f[1]=eps*(u[1]^2-u[2]^2)
-    end,
+    end
 
 
     # Source term
     source=function(f,node,data)
         f[1]=1.0e-4*node.coord[1]
-    end,
+    end
 
     # Storage term (under the time derivative)
     storage=function(f,u,node,data)
         f[1]=u[1]
-    end,
-
+    end
+    
     # Reation term
     reaction=function(f,u,node,data)
         f[1]=u[1]^2
     end
-    )
+    # Create a physics structure
+    physics=VoronoiFVM.Physics(flux=flux,source=source,storage=storage,reaction=reaction)
+
 
     # Create a finite volume system - either
     # in the dense or  the sparse version.
-    # Need to provide the overall number of species here
     if dense
         sys=VoronoiFVM.DenseSystem(grid,physics)
     else
@@ -120,4 +114,4 @@ end
 
 end # Yes, this is *that* end (of the module...)
 
-</code></pre></div><footer><hr/><a class="previous" href="../../allindex/"><span class="direction">Previous</span><span class="title">Index</span></a><a class="next" href="../TwoSpeciesNonlinearPoisson/"><span class="direction">Next</span><span class="title">1D Nonlinear Poisson equation with two species</span></a></footer></article></body></html>
+</code></pre></div><footer><hr/><a class="previous" href="../Laplace/"><span class="direction">Previous</span><span class="title">1D Laplace Equation</span></a><a class="next" href="../TwoSpeciesNonlinearPoisson/"><span class="direction">Next</span><span class="title">1D Nonlinear Poisson equation with two species</span></a></footer></article></body></html>
