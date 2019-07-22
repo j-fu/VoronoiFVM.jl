@@ -1,6 +1,7 @@
 # Changes
 
 ## V0.4, July 12, 2019
+- Registered with Julia ecosystem
 - Enhance Newton solver by embedding, exception handling
 - Replace SparseMatrixCSC with ExtendableSparseMatrix
 - fixed allocation issues in assembly
