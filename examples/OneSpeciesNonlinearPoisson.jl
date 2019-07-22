@@ -1,8 +1,3 @@
-# We wrap this example and all later ones
-# into a module structure. This allows to load
-# all of them at once into the REPL without name
-# clashes. We shouldn't forget the corresponding end
-# statement.
 module OneSpeciesNonlinearPoisson
 
 # This gives us he @printf macro (c-like output)
@@ -33,35 +28,34 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
 
     eps=1.0e-2
     
-    # Create a physics structure
-    physics=VoronoiFVM.Physics(
 
     # Flux function which describes the flux
     # between neigboring control volumes
     flux=function(f,u,edge,data)
         f[1]=eps*(u[1]^2-u[2]^2)
-    end,
+    end
 
 
     # Source term
     source=function(f,node,data)
         f[1]=1.0e-4*node.coord[1]
-    end,
+    end
 
     # Storage term (under the time derivative)
     storage=function(f,u,node,data)
         f[1]=u[1]
-    end,
-
+    end
+    
     # Reation term
     reaction=function(f,u,node,data)
         f[1]=u[1]^2
     end
-    )
+    # Create a physics structure
+    physics=VoronoiFVM.Physics(flux=flux,source=source,storage=storage,reaction=reaction)
+
 
     # Create a finite volume system - either
     # in the dense or  the sparse version.
-    # Need to provide the overall number of species here
     if dense
         sys=VoronoiFVM.DenseSystem(grid,physics)
     else

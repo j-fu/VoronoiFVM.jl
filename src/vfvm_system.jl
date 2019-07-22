@@ -321,17 +321,32 @@ function enable_boundary_species!(this::AbstractSystem, ispec::Integer, regions:
     end
 end
 
-# Create matrix in system
-function _create_matrix(this::AbstractSystem{Tv}) where Tv
+
+# Create matrix in system and figure out if species
+# distribution is homgeneous
+function _complete!(this::AbstractSystem{Tv};create_newtonvectors=false) where Tv
+    if isdefined(this,:matrix)
+        return
+    end
     this.matrix=ExtendableSparseMatrix{Tv,Int64}(num_dof(this), num_dof(this))
     this.species_homogeneous=true
+    species_added=false
     for inode=1:size(this.node_dof,2)
         for ispec=1:size(this.node_dof,1)
-            if this.node_dof[ispec,inode]!=ispec
+            if this.node_dof[ispec,inode]==ispec
+                species_added=true
+            else
                 this.species_homogeneous=false
-                return
             end
         end
+    end
+    
+    if (!species_added)
+        error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
+    end
+    if create_newtonvectors
+        this.residual=unknowns(this)
+        this.update=unknowns(this)
     end
 end
 
@@ -613,24 +628,25 @@ Base.size(a::SubgridArrayView)=(size(a.sysarray,1),size(a.subgrid.node_in_parent
 #
 # Initialize Dirichlet BC
 #
-function _inidirichlet!(this::AbstractSystem,U) where Tv
+function _initialize_dirichlet!(U::AbstractMatrix{Tv},this::AbstractSystem{Tv}) where {Tv}
     for ibface=1:num_bfaces(this.grid)
         ibreg=this.grid.bfaceregions[ibface]
         for ispec=1:num_species(this)
-            if this.boundary_factors[ispec,ibreg]==Dirichlet
+            if this.boundary_factors[ispec,ibreg]≈ Dirichlet
                 for inode=1:dim_grid(this.grid)
                     U[ispec,this.grid.bfacenodes[inode,ibface]]=this.boundary_values[ispec,ibreg]
                 end
             end
         end
     end
-    _inactspecinit(this,U)
 end
+
+
 
 #
 # Assemble dummy equations for inactive species
 #
-function _inactspecloop(this::DenseSystem,U,Uold,F)
+function _eval_and_assemble_inactive_species(this::DenseSystem,U,Uold,F)
     if this.species_homogeneous
         return
     end
@@ -648,7 +664,7 @@ end
 #
 # Initialize values in inactive dof for dense system
 #
-function _inactspecinit(this::DenseSystem,U)
+function _initialize_inactive_dof!(U::Matrix{Tv},this::DenseSystem{Tv}) where {Tv}
     if this.species_homogeneous
         return
     end
@@ -661,17 +677,22 @@ function _inactspecinit(this::DenseSystem,U)
     end
 end
 
+function _initialize!(U::AbstractMatrix{Tv},this::AbstractSystem{Tv}) where {Tv}
+    _initialize_dirichlet!(U,this)
+    _initialize_inactive_dof!(U,this)
+end
+
 
 #
 # Dummy routine for sparse system
 #
-function _inactspecloop(this::SparseSystem,U,Uold,F)
+function _eval_and_assemble_inactive_species(this::SparseSystem,U,Uold,F)
 end
 
 #
 # Dummy routine for sparse system
 #
-function _inactspecinit(this::SparseSystem,U)
+function     _initialize_inactive_dof!(U::AbstractMatrix{Tv},this::SparseSystem{Tv}) where {Tv}
 end
 
 
@@ -892,6 +913,12 @@ Solution view on second edge node
 """
 @inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]
 
+
+
+function Base.show(io::IO,sys::AbstractSystem) where Tc
+    str=@sprintf("%s(num_species=%d)",typeof(sys),sys.physics.num_species)
+    println(io,str)
+end
 
 
 ####################################################################################

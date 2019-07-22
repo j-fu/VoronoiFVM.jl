@@ -107,9 +107,9 @@ function NewtonControl(this)
     return this
 end
 
-function Base.print(this::NewtonControl)
+function Base.show(io::IO, this::NewtonControl)
     for name in fieldnames(typeof(this))
         @printf("%16s = ",name)
-        println(getfield(this,name))
+        println(io,getfield(this,name))
     end
 end

@@ -130,6 +130,11 @@ struct Grid{Tc} <: AbstractGrid
 
 end
 
+function Base.show(io::IO,grid::Grid{Tc}) where Tc
+    str=@sprintf("%s(dim_space=%d, num_nodes=%d, num_cells=%d, num_bfaces=%d)",
+                 typeof(grid),dim_space(grid),num_nodes(grid), num_cells(grid), num_bfaces(grid))
+    println(io,str)
+end
 
 ##########################################################
 """

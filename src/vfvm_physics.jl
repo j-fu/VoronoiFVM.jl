@@ -31,6 +31,10 @@ const nodata=NoData()
 function nofunc(f,u,node, data)
 end
 
+function default_storage(f,u,node, data)
+    f.=u
+end
+
 
 ##########################################################
 """
@@ -98,7 +102,7 @@ function Physics(;num_species=1,
                  data=nodata,
                  flux::Function=nofunc,
                  reaction::Function=nofunc,
-                 storage::Function=nofunc,
+                 storage::Function=default_storage,
                  source::Function=nofunc,
                  breaction::Function=nofunc,
                  bstorage::Function=nofunc
@@ -116,3 +120,23 @@ function Physics(;num_species=1,
 end
 
 
+
+function Base.show(io::IO,physics::AbstractPhysics)
+    str=@sprintf("VoronoiFVM.Physics(num_species=%d",physics.num_species)
+    if physics.data!=nodata then
+        str=str*", data=$(name(physics.data))"
+    end
+    function addfunc(func,name)
+        if func!=nofunc
+            str=str*", $(name)=$(nameof(func))"
+        end
+    end
+
+    for name in fieldnames(typeof(physics))
+        if (name!=:num_species)  && (name!=:data) && getfield(physics,name)!=nofunc
+             str=str*", $(name)=$(nameof(getfield(physics,name)))"
+        end
+    end
+    str=str*")"
+    println(io,str)
+end

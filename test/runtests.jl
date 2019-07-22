@@ -3,6 +3,18 @@ using Test
 
 @time begin
     @time begin
+        print("         test-geomspace:")
+        include("test-geomspace.jl")
+    end
+
+    @time begin
+        print("         Laplace:")
+        include("../examples/Laplace.jl")
+        @test Laplace.main() ≈ 0.4
+    end
+
+    
+    @time begin
         print("         OneSpeciesNonlinearPoisson:")
         include("../examples/OneSpeciesNonlinearPoisson.jl")
         @test OneSpeciesNonlinearPoisson.main() ≈ 0.3371249631439964
@@ -72,10 +84,6 @@ using Test
         print("                      ImpedanceTest:")
         include("../examples/ImpedanceTest.jl")
         @test ImpedanceTest.main() ≈ 0.23106605162049176
-    end
-    @time begin
-        print("         test-geomspace:")
-        include("test-geomspace.jl")
     end
     print("                                all:")
 end

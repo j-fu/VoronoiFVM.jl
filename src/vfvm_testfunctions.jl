@@ -77,7 +77,7 @@ function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
                        factory.tfsystem.physics.bstorage,
                        factory.tfsystem.physics.source)
 
-    _inidirichlet!(factory.tfsystem,u)
+    _initialize!(u,factory.tfsystem)
     lufact=LinearAlgebra.lu(factory.tfsystem.matrix)
     ldiv!(vec(u),lufact,vec(f))
     return vec(u)

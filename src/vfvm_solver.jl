@@ -16,9 +16,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                             xsource::FSRC,  # ensure type stability
                            ) where {Tv,FSRC,FSTOR, FBSTOR}
 
-    if !isdefined(this,:matrix) # needed here for test function system 
-        _create_matrix(this)
-    end
+    _complete!(this) # needed here as well for test function system which does not use newton
     
     grid=this.grid
 
@@ -283,7 +281,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             
         end
     end
-    _inactspecloop(this,U,UOld,F)
+    _eval_and_assemble_inactive_species(this,U,UOld,F)
 end
 
 
@@ -353,17 +351,13 @@ function _solve!(
     control::NewtonControl,
     tstep::Tv
 ) where Tv
-    
-    if !isdefined(this,:matrix)
-        _create_matrix(this)
-        this.residual=unknowns(this)
-        this.update=unknowns(this)
-    end
+
+    _complete!(this, create_newtonvectors=true)
 
     solution.=oldsol
     residual=this.residual
     update=this.update
-    _inidirichlet!(this,solution)
+    _initialize!(solution,this)
 
     # Newton iteration
     oldnorm=1.0
@@ -392,7 +386,7 @@ function _solve!(
                 rethrow(err)
             end
         end
-        
+
         
         # Sparse LU factorization
         # Here, we seem miss the possibility to re-use the 
@@ -542,6 +536,7 @@ function solve!(
     else 
         _solve!(solution,inival,this,control,tstep)
     end
+    return solution
 end
 
 
@@ -619,6 +614,7 @@ function embed!(
     if control.verbose
         @printf("  Embedding: success\n")
     end
+    return solution
 end
 
 

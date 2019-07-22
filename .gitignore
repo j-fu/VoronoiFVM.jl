@@ -1,5 +1,6 @@
 QUARRY
-.project.jl
+startup.jl
 docs/build
 *~
+Manifest.toml
 
