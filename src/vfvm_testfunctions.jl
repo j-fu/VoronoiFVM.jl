@@ -119,6 +119,7 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
                 UKL[ispec]=U[ispec,edge.nodeK]
                 UKL[ispec+nspecies]=U[ispec,edge.nodeL]
             end
+            res.=0
             @views this.physics.flux(res,UKL,edge, this.physics.data)
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
@@ -130,6 +131,9 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
         for inode=1:num_nodes_per_cell(grid)
             _fill!(node,grid,inode,icell)
             @views begin
+                res.=0
+                stor.=0
+                storold.=0
                 this.physics.reaction(res,U[:,node.index],node,this.physics.data)
                 this.physics.storage(stor,U[:,node.index],node,this.physics.data)
                 this.physics.storage(storold,Uold[:,node.index],node,this.physics.data)

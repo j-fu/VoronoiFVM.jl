@@ -7,6 +7,7 @@ Constant for switch between Taylor series and full implementation
 """
 const fbernoulli_eps=1.0e-4
 
+
 ##############################################################
 """
 $(TYPEDSIGNATURES)
@@ -41,6 +42,22 @@ function fbernoulli(x::Real)
 end
 
 ##############################################################
+
+
+const etruncmax = 100.0
+const etruncmin = -100.0
+
+function trexp(x)
+  if(x<etruncmin)
+    return 1.0/(exp(etruncmin)*(-x+etruncmin+1.0));
+  elseif (x<etruncmax)
+    return exp(x);
+  else
+      return exp(etruncmax)*(x-etruncmax+1.0);
+  end
+end
+
+
 """ 
 $(TYPEDSIGNATURES)
 
@@ -59,7 +76,7 @@ Returns two real numbers containing the result for argument
 function fbernoulli_pm(x::Real)
     if x<-fbernoulli_eps
         expx=exp(x)
-        bp=x/(exp(x)-1)
+        bp=x/(expx-1.0)
         bm=expx*bp
         return bp,bm
     elseif x < fbernoulli_eps
@@ -80,7 +97,7 @@ function fbernoulli_pm(x::Real)
         return bp,bm
     else
         expx=exp(x)
-        bp=x/(exp(x)-1)
+        bp=x/(expx-1.0)
         bm=expx*bp
         return bp,bm
     end

@@ -785,16 +785,23 @@ mutable struct Node{Tv}
     Number of species defined in node
     """
     nspec::Int64
-    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
+
+    """
+    Number of discretization cell the node is invoked from
+    """
+    icell::Int64
+
+    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys),0)
 end
 
 function _fill!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
-        K=cellnode(grid,inode,icell)
-        node.region=grid.cellregions[icell]
-        node.index=K
-        for i=1:length(node.coord)
-            node.coord[i]=grid.coord[i,K]
-        end
+    K=cellnode(grid,inode,icell)
+    node.region=grid.cellregions[icell]
+    node.index=K
+    node.icell=icell
+    for i=1:length(node.coord)
+        node.coord[i]=grid.coord[i,K]
+    end
 end
 
 ##################################################################
@@ -841,7 +848,13 @@ mutable struct Edge{Tv}
     Number of species defined in edge
     """
     nspec::Int64
-    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys))
+
+    """
+    Number of discretization cell the edge is invoked from
+    """
+    icell::Int64
+
+    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys),0)
 end
 
 
@@ -852,6 +865,7 @@ function _fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
     edge.index=iedge
     edge.nodeK=K
     edge.nodeL=L
+    edge.icell=icell
     for i=1:length(edge.coordK)
         edge.coordK[i]=grid.coord[i,K]
         edge.coordL[i]=grid.coord[i,L]

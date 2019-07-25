@@ -14,7 +14,7 @@ Caveat: the algorithm behind this is  well tested but unproven.
 
 Returns an Array containing the points of the subdivision.
 """
-function geomspace(a::Tv, b::Tv, ha::Tv, hb::Tv, tol=1.0e-10) where Tv
+function geomspace(a::Tv, b::Tv, ha::Tv, hb::Tv; tol=1.0e-10) where Tv
     
     function _geomspace0(l,h0, hl, tol=1.0e-10)
         
@@ -178,4 +178,57 @@ Extract value from dual number. Use to debug physics callbacks.
 Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
+
+
+##################################################################
+"""
+$(SIGNATURES)
+
+Find the circumcenter of a triangle.                 
+									 
+The result is returned both in terms of x-y coordinates and xi-eta	 
+coordinates, relative to the triangle's point `a' (that is, `a' is	 
+the origin of both coordinate systems).	 Hence, the x-y coordinates	 
+returned are NOT absolute; one must add the coordinates of `a' to	 
+find the absolute coordinates of the circumcircle.  However, this means	 
+that the result is frequently more accurate than would be possible if	 
+absolute coordinates were returned, due to limited floating-point	 
+precision.  In general, the circumradius can be computed much more	 
+accurately.								 
+
+Created from C source of Jonathan R Shewchuk <jrs@cs.cmu.edu>
+
+Modified to return absolute coordinates.
+"""
+function tricircumcenter!(circumcenter::Vector{Tv},a::Vector{Tv},b::Vector{Tv},c::Vector{Tv}) where Tv
+
+    # Use coordinates relative to point `a' of the triangle.
+    xba = b[1] - a[1]
+    yba = b[2] - a[2]
+    xca = c[1] - a[1]
+    yca = c[2] - a[2]
+
+    # Squares of lengths of the edges incident to `a'.
+    balength = xba * xba + yba * yba
+    calength = xca * xca + yca * yca
+    
+    # Calculate the denominator of the formulae.
+    # if EXACT
+    #    Use orient2d() from http://www.cs.cmu.edu/~quake/robust.html	 
+    #    to ensure a correctly signed (and reasonably accurate) result, 
+    #    avoiding any possibility of division by zero.		    
+    #  denominator = 0.5 / orient2d((double*) b, (double*) c, (double*) a)
+    
+    
+    # Take your chances with floating-point roundoff
+    denominator = 0.5 / (xba * yca - yba * xca)
+
+    # Calculate offset (from `a') of circumcenter. 
+    xcirca = (yca * balength - yba * calength) * denominator  
+    ycirca = (xba * calength - xca * balength) * denominator  
+    circumcenter[1] = xcirca+a[1]
+    circumcenter[2] = ycirca+a[2]
+
+    return circumcenter
+end
 
