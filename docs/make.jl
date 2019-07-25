@@ -9,7 +9,7 @@ for example_source in example_sources
     Literate.markdown(joinpath(@__DIR__,"..","examples",example_source), output_dir,documenter=false)    
 end
 
-generated_examples=joinpath.("examples",readdir(output))
+generated_examples=joinpath.("examples",readdir(output_dir))
 
 
 clean=true
