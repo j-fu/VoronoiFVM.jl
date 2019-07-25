@@ -1,5 +1,4 @@
-module TwoSpeciesTestFunctions
-
+module Example125_TestFunctions1D 
 using Printf
 using VoronoiFVM
 
@@ -97,5 +96,9 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     end
     return I1[1]
 end
-    
+
+function test()
+    main(dense=false) ≈ 0.01 &&
+        main(dense=true) ≈ 0.01
+end
 end

@@ -1,4 +1,4 @@
-module NonlinearPoisson2D_BoundaryReaction
+module Example215_NonlinearPoisson2D_BoundaryReaction
 
 using Printf
 using VoronoiFVM
@@ -101,5 +101,10 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
         end
     end
     return u25
+end
+
+function test()
+    main() ≈ 0.008761335823958986 &&
+    main(dense=true) ≈ 0.008761335823958986
 end
 end

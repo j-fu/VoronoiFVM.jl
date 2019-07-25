@@ -1,4 +1,4 @@
-module IonicLiquid
+module Example160_UnipolarDriftDiffusion1D
 
 using Printf
 if isinteractive()
@@ -194,4 +194,10 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     end
 end
 
+function test()
+        main(dense=false) ≈ 0.9999546021312723 &&
+            main(dense=true) ≈ 0.9999546021312723 &&
+            main(dlcap=true) ≈ .010759276468375045 &&
+            main(dlcap=true,dense=true) ≈ .010759276468375045
+end
 end

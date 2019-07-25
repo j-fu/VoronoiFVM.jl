@@ -1,4 +1,6 @@
-module NonlinearPoisson2D
+# # 2D Nonlinear Poisson equation
+
+module Example205_NonlinearPoisson2D
 
 using Printf
 using VoronoiFVM
@@ -87,4 +89,8 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     return u15
 end
 
+function test()
+    main(dense=false) ≈ 0.3554284760906605 &&
+        main(dense=true) ≈ 0.3554284760906605
+end
 end

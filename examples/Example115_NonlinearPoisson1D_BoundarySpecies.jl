@@ -1,4 +1,7 @@
-module NonlinearPoisson1D_BoundarySpecies
+# # 1D two species system with boundary reaction and boundary species
+
+
+module Example115_NonlinearPoisson1D_BoundarySpecies
 
 using Printf
 using VoronoiFVM
@@ -114,5 +117,10 @@ function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
         end
     end
     return u5
+end
+
+function test()
+    main(dense=false) ≈ 0.22631106953924143 &&
+        main(dense=true) ≈ 0.22631106953924143
 end
 end

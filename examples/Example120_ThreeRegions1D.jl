@@ -1,4 +1,6 @@
-module ThreeRegions1D
+# # Differing species sets in regions, 1D
+
+module Example120_ThreeRegions1D
 
 using Printf
 using VoronoiFVM
@@ -118,5 +120,10 @@ function main(;n=30,pyplot=false,verbose=false,dense=false)
     end
     return testval
 end
+
+function test()
+    main(dense=false) ≈ 0.00039500514567080265 &&
+        main(dense=true) ≈ 0.00039500514567080265
 end
 
+end

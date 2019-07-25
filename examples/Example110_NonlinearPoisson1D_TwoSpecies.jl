@@ -1,4 +1,20 @@
-module TwoSpeciesNonlinearPoisson
+# # 1D Nonlinear Poisson equation with two species
+# Solve the nonlinear Poisson equation
+# 
+# ```math
+# -\nabla (0.01+2u_2)\nabla u_1 + u_1u_2= 0.0001(0.01+x)
+# ```
+# 
+# ```math
+# -\nabla (0.01+2u_1)\nabla u_2 -+ u_1u_2 = 0.0001(1.01-x)
+# ```
+# 
+# 
+# in $\Omega=(0,1)$ with boundary condition $u_1(0)=1$, $u_2(0)=0$ and $u_1(1)=1$, $u_2(1)=1$.
+# 
+
+
+module Example110_NonlinearPoisson1D_TwoSpecies
 
 using Printf
 using VoronoiFVM
@@ -88,6 +104,9 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     return u5
 end
 
-
-    
+function test()
+    main(dense=false) ≈ 0.7117546972922056 &&
+        main(dense=true) ≈ 0.7117546972922056
 end
+end
+

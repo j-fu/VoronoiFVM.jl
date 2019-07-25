@@ -1,4 +1,16 @@
-module OneSpeciesNonlinearPoisson
+# 1D Nonlinear Poisson equation with one species
+# 
+# Solve the nonlinear Poisson equation
+# 
+# ```math
+# -\nabla 0.01 \nabla u^2 + u^2 = 0.0001x
+# ```
+# in $\Omega=(0,1)$ with boundary condition $u(0)=1$ and $u(1)=0.5$.
+# 
+
+
+module Example105_NonlinearPoisson1D
+
 
 # This gives us he @printf macro (c-like output)
 using Printf
@@ -110,6 +122,11 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
     return test_result
 end
 
+
+function test()
+   main(dense=false) ≈ 0.3371249631439964 &&
+       main(dense=true) ≈ 0.3371249631439964
+end
 
 end # Yes, this is *that* end (of the module...)
 

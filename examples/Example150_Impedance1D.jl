@@ -1,4 +1,4 @@
-module ImpedanceTest
+# # Impedance calculation
 #
 #  Impedance calculation for 
 #
@@ -22,6 +22,8 @@ module ImpedanceTest
 #      ua(1)=0
 # 
 #        
+
+module Example150_Impedance1D
 
 using Printf
 using VoronoiFVM
@@ -177,5 +179,11 @@ function main(;nref=0,pyplot=false,verbose=false)
     #return test value
     return  imag(allIL[5])
 end
+
+function test()
+    main() ≈ 0.23106605162049176
+end
+
+
 end
 
