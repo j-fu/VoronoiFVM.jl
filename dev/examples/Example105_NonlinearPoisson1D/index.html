@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>105: 1D Nonlinear Poisson equation · VoronoiFVM.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="../../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>VoronoiFVM.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../../">Home</a></li><li><a class="toctext" href="../../changes/">Changes</a></li><li><span class="toctext">API Documentation</span><ul><li><a class="toctext" href="../../grid/">Grid</a></li><li><a class="toctext" href="../../physics/">Physics</a></li><li><a class="toctext" href="../../system/">System</a></li><li><a class="toctext" href="../../allindex/">Index</a></li></ul></li><li><span class="toctext">Examples</span><ul><li><a class="toctext" href="../Example101_Laplace1D/">101: 1D Laplace equation</a></li><li class="current"><a class="toctext" href>105: 1D Nonlinear Poisson equation</a><ul class="internal"></ul></li><li><a class="toctext" href="../Example110_NonlinearPoisson1D_TwoSpecies/">110: 1D Nonlinear Poisson equation with two species</a></li><li><a class="toctext" href="../Example115_NonlinearPoisson1D_BoundarySpecies/">115: 1D two species system with boundary reaction and boundary species</a></li><li><a class="toctext" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D</a></li><li><a class="toctext" href="../Example125_TestFunctions1D/">125: Terminal flux calculation via test functions</a></li><li><a class="toctext" href="../Example150_Impedance1D/">150: Impedance calculation</a></li><li><a class="toctext" href="../Example160_UnipolarDriftDiffusion1D/">160: Unipolar degenerate drift-diffusion</a></li><li><a class="toctext" href="../Example205_NonlinearPoisson2D/">205: 2D Nonlinear Poisson equation</a></li><li><a class="toctext" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction</a></li><li><a class="toctext" href="../Example215_NonlinearPoisson2D_BoundaryReaction/">215: 2D Nonlinear Poisson with boundary reaction</a></li><li><a class="toctext" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">220: 2D Nonlinear Poisson with boundary reaction and boundary species</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>105: 1D Nonlinear Poisson equation</a></li></ul><a class="edit-page" href="https://github.com/j-fu/VoronoiFVM.jl"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>105: 1D Nonlinear Poisson equation</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id=":-1D-Nonlinear-Poisson-equation-1" href="#:-1D-Nonlinear-Poisson-equation-1">105: 1D Nonlinear Poisson equation</a></h1><p>Solve the nonlinear Poisson equation</p><div>\[-\nabla 0.01 \nabla u^2 + u^2 = 0.0001x\]</div><p>in <span>$\Omega=(0,1)$</span> with boundary condition <span>$u(0)=1$</span> and <span>$u(1)=0.5$</span>.</p><pre><code class="language-julia">module Example105_NonlinearPoisson1D</code></pre><p>This gives us he @printf macro (c-like output)</p><pre><code class="language-julia">using Printf</code></pre><p>That&#39;s the thing we want to do</p><pre><code class="language-julia">using VoronoiFVM</code></pre><p>Allow plotting</p><pre><code class="language-julia">if isinteractive()
+    using PyPlot
+end</code></pre><p>Main function for user interaction from REPL and for testimg. Default physics need to generate correct test value.</p><pre><code class="language-julia">function main(;n=10,pyplot=false,verbose=false, dense=false)</code></pre><p>Create a one dimensional discretization project</p><pre><code class="language-julia">    h=1.0/convert(Float64,n)
+    grid=VoronoiFVM.Grid(collect(0:h:1))
+
+    eps=1.0e-2</code></pre><p>Flux function which describes the flux between neigboring control volumes</p><pre><code class="language-julia">    flux=function(f,u,edge,data)
+        f[1]=eps*(u[1]^2-u[2]^2)
+    end</code></pre><p>Source term</p><pre><code class="language-julia">    source=function(f,node,data)
+        f[1]=1.0e-4*node.coord[1]
+    end</code></pre><p>Storage term (under the time derivative)</p><pre><code class="language-julia">    storage=function(f,u,node,data)
+        f[1]=u[1]
+    end</code></pre><p>Reation term</p><pre><code class="language-julia">    reaction=function(f,u,node,data)
+        f[1]=u[1]^2
+    end</code></pre><p>Create a physics structure</p><pre><code class="language-julia">    physics=VoronoiFVM.Physics(flux=flux,source=source,storage=storage,reaction=reaction)</code></pre><p>Create a finite volume system - either in the dense or  the sparse version.</p><pre><code class="language-julia">    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end</code></pre><p>Add species 1 to region 1</p><pre><code class="language-julia">    enable_species!(sys,1,[1])</code></pre><p>Set boundary conditions</p><pre><code class="language-julia">    sys.boundary_values[1,1]=1.0
+    sys.boundary_values[1,2]=0.5
+    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
+    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet</code></pre><p>Create a solution array</p><pre><code class="language-julia">    inival=unknowns(sys)
+    U=unknowns(sys)</code></pre><p>Broadcast the initial value</p><pre><code class="language-julia">    inival.=0.5</code></pre><p>Create solver control info</p><pre><code class="language-julia">    control=VoronoiFVM.NewtonControl()
+    control.verbose=verbose</code></pre><p>time stepping</p><pre><code class="language-julia">    tstep=1.0e-2
+    times=collect(0.0:tstep:1.0)
+    test_result=0
+    for it=2:length(times)</code></pre><p>Solve for new timestep with old timestep solution in inival</p><pre><code class="language-julia">        solve!(U,inival,sys, control=control,tstep=tstep)
+        test_result=U[5]</code></pre><p>Update inival</p><pre><code class="language-julia">        inival.=U
+
+        if verbose
+            @printf(&quot;time=%g\n&quot;,times[it])
+        end</code></pre><p>Plot data</p><pre><code class="language-julia">        if pyplot
+            PyPlot.clf()
+            PyPlot.grid()
+            plot(grid.coord[1,:],U[1,:])
+            pause(1.0e-10)
+        end
+    end
+    return test_result
+end
+
+
+function test()
+   main(dense=false) ≈ 0.3371249631439964 &amp;&amp;
+       main(dense=true) ≈ 0.3371249631439964
+end
+
+end # Yes, this is *that* end (of the module...)</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../Example101_Laplace1D/"><span class="direction">Previous</span><span class="title">101: 1D Laplace equation</span></a><a class="next" href="../Example110_NonlinearPoisson1D_TwoSpecies/"><span class="direction">Next</span><span class="title">110: 1D Nonlinear Poisson equation with two species</span></a></footer></article></body></html>
