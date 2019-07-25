@@ -22,7 +22,7 @@ end
 
 @time begin
     wd=pwd()
-    run_testdir("$(wd)/test","test_")
-    run_testdir("$(wd)/examples","Example")
+    run_testdir("$(wd)","test_")
+    run_testdir("$(wd)/../examples","Example")
 end
 
