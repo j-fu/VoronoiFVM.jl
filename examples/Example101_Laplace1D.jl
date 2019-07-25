@@ -1,4 +1,4 @@
-# # 1D Laplace equation
+# # 101: 1D Laplace equation
 # 
 # Let $\Omega=(\gamma_1,\gamma_2)$ with $\gamma_1=0$, $\gamma_2=1$.
 # This is the simplest boundary value problem (BVP)

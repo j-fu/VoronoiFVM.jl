@@ -1,4 +1,4 @@
-# 1D Nonlinear Poisson equation with one species
+# # 105: 1D Nonlinear Poisson equation
 # 
 # Solve the nonlinear Poisson equation
 # 

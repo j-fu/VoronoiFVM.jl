@@ -7,7 +7,7 @@ function run_testdir(testdir,prefix)
     for example in examples
         println("$(example):")
         if example[1:length(prefix)]==prefix
-            path="$(testdir)/$(example).jl"
+            path=joinpath(testdir,"$(example).jl")
             @eval begin
                 include($path)
                 print("  compile:")
@@ -21,8 +21,7 @@ end
 
 
 @time begin
-    wd=pwd()
-    run_testdir("$(wd)","test_")
-    run_testdir("$(wd)/../examples","Example")
+    run_testdir(@__DIR__,"test_")
+    run_testdir(joinpath(@__DIR__,"..","examples"),"Example")
 end
 

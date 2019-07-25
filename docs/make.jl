@@ -1,10 +1,27 @@
-push!(LOAD_PATH,"../src/")
-using Documenter, VoronoiFVM,Markdown
+using Documenter, VoronoiFVM,Literate
+
+
+
+output_dir = joinpath(@__DIR__, "src","examples")
+example_sources=readdir(joinpath(@__DIR__,"..","examples"))
+for example_source in example_sources
+    println("$(example_source):")
+    Literate.markdown(joinpath(@__DIR__,"..","examples",example_source), output_dir,documenter=false)    
+end
+
+generated_examples=joinpath.("examples",readdir(output))
+
+
+clean=true
+if isinteractive()
+    clean=false
+end
+
 makedocs(
     sitename="VoronoiFVM.jl",
     modules = [VoronoiFVM],
-    clean = true,
-    doctest = true,
+    clean = clean,
+    doctest = false,
     authors = "J. Fuhrmann",
     repo="https://github.com/j-fu/VoronoiFVM.jl",
     pages=[ 
@@ -16,21 +33,12 @@ makedocs(
             "system.md",
             "allindex.md",
         ],
-        "Examples" => [
-            "examples/Laplace.md",
-            "examples/OneSpeciesNonlinearPoisson.md",
-            "examples/TwoSpeciesNonlinearPoisson.md",
-            "examples/IonicLiquid.md",
-            "examples/NonlinearPoisson2D.md",
-            "examples/NonlinearPoisson2D_Reaction.md",
-            "examples/ThreeRegions1D.md",
-            "examples/NonlinearPoisson2D_BoundaryReaction.md",
-            "examples/NonlinearPoisson1D_BoundarySpecies.md",
-            "examples/NonlinearPoisson2D_BoundarySpecies.md"
-        ],
+        "Examples" => generated_examples
     ]
 )
 
-deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
+if !isinteractive()
+    deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
+end
 
 

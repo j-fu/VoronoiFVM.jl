@@ -1,4 +1,4 @@
-# # 1D Nonlinear Poisson equation with two species
+# # 110: 1D Nonlinear Poisson equation with two species
 # Solve the nonlinear Poisson equation
 # 
 # ```math
