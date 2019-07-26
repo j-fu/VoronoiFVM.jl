@@ -1,26 +1,20 @@
-using Documenter, VoronoiFVM,Literate
+using Documenter, VoronoiFVM, Literate
 
 
-
-output_dir = joinpath(@__DIR__, "src","examples")
-example_sources=readdir(joinpath(@__DIR__,"..","examples"))
-for example_source in example_sources
-    println("$(example_source):")
-    Literate.markdown(joinpath(@__DIR__,"..","examples",example_source), output_dir,documenter=false)    
+#
+# Generate Markdown pages from examples
+#
+output_dir  = joinpath(@__DIR__,"src","examples")
+example_dir = joinpath(@__DIR__,"..","examples")
+for example_source in readdir(example_dir)
+    Literate.markdown(joinpath(@__DIR__,"..","examples",example_source), output_dir,documenter=false,info=false)    
 end
-
 generated_examples=joinpath.("examples",readdir(output_dir))
-
-
-clean=true
-if isinteractive()
-    clean=false
-end
 
 makedocs(
     sitename="VoronoiFVM.jl",
     modules = [VoronoiFVM],
-    clean = clean,
+    clean = !isinteractive(),
     doctest = false,
     authors = "J. Fuhrmann",
     repo="https://github.com/j-fu/VoronoiFVM.jl",
