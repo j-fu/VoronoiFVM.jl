@@ -21,6 +21,7 @@ makedocs(
     pages=[ 
         "Home"=>"index.md",
         "changes.md",
+        "method.md",
         "API Documentation" => [
             "grid.md",
             "physics.md",
