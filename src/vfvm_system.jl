@@ -214,8 +214,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Constructor for DenseSystem. `physics` provides some user data, `maxspec`
-is the maximum number of species.
+Constructor for DenseSystem. `grid` provides the grid and `physics` some user data.
 """
 function  DenseSystem(grid::Grid,physics::Physics)
     Tv=Base.eltype(grid)
