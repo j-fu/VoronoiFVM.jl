@@ -117,8 +117,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Constructor for SparseSystem. `physics` provides some user data, `maxspec`
-is the maximum number of species.
+Constructor for SparseSystem. `grid` provides the grid and `physics` some user data.
 """
 function  SparseSystem(grid::Grid,physics::Physics)
     Tv=Base.eltype(grid)
