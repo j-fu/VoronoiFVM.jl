@@ -772,3 +772,26 @@ function subgrid(parent::Grid,
 end
 
 
+################################################
+"""
+$(TYPEDSIGNATURES)
+
+Print more details about the grid. 
+"""
+function printGridInfo(grid::Grid)
+    # Meta grid information
+    str=@sprintf("%s(dim_space=%d, num_nodes=%d, num_cells=%d, num_bfaces=%d)",
+                 typeof(grid),dim_space(grid),num_nodes(grid), num_cells(grid), num_bfaces(grid))
+    println(str)
+    println("-----")
+    
+    # Specific grid data
+    f = fieldnames(Grid)
+    for i in eachindex(f)
+        println(f[i])
+        # println(getfield(grid,f[i])) 
+        display(getfield(grid,f[i]))
+        println("-----")
+    end
+    
+end
