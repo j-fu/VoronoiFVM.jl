@@ -19,7 +19,7 @@ include("vfvm_grid.jl")
 include("vfvm_functions.jl")
 include("vfvm_newtoncontrol.jl")
 include("vfvm_tools.jl")
-include("vfvm_pyplot.jl")
+include("vfvm_plots.jl")
 include("vfvm_system.jl")
 include("vfvm_solver.jl")
 include("vfvm_testfunctions.jl")
@@ -42,6 +42,7 @@ export enable_boundary_species!
 export cellmask!
 export bfacemask!
 export fvmplot
+export fvmplot!
 export dof
 export getdof
 export setdof!

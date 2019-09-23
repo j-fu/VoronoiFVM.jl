@@ -1,4 +1,5 @@
-import PyPlot
+import Plots
+
 
 function frgb(i,max;pastel=false)
     x=Float64(i-1)/Float64(max)
@@ -16,12 +17,12 @@ function frgb(i,max;pastel=false)
         g=0.5+0.5*g
         b=0.5+0.5*b
     end
-    return (r,g,b)
+    return Plots.RGB(r,g,b)
 end
 
 
 
-function fvmplot(grid::Grid)
+function fvmplot!(p,grid::Grid)
     
     
     if dim_space(grid)==1
@@ -35,16 +36,16 @@ function fvmplot(grid::Grid)
             coord2=nodecoord(grid,cellnode(grid,2,icell))
             x1=coord1[1]
             x2=coord2[1]
-            PyPlot.plot([x1,x1],[-h,h],linewidth=0.5,color="k")
-            PyPlot.plot([x2,x2],[-h,h],linewidth=0.5,color="k")
-            PyPlot.plot([x1,x2],[0,0],linewidth=3.0,color=rgb)
+            Plots.plot!(p,[x1,x1],[-h,h],linewidth=0.5,color=:black,label="")
+            Plots.plot!(p,[x2,x2],[-h,h],linewidth=0.5,color=:black,label="")
+            Plots.plot!(p,[x1,x2],[0,0],linewidth=3.0,color=rgb,label="")
         end
         
         for ibface=1:num_bfaces(grid)
             rgb=frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
             coord1=nodecoord(grid,bfacenode(grid,1,ibface))
             x1=coord1[1]
-            PyPlot.plot([x1,x1],[-2*h,2*h],linewidth=3.0,color=rgb)
+            Plots.plot!(p,[x1,x1],[-2*h,2*h],linewidth=3.0,color=rgb,label="")
         end
     end
 
@@ -55,21 +56,22 @@ function fvmplot(grid::Grid)
             coord1=nodecoord(grid,cellnode(grid,1,icell))
             coord2=nodecoord(grid,cellnode(grid,2,icell))
             coord3=nodecoord(grid,cellnode(grid,3,icell))
-            PyPlot.fill( [coord1[1],coord2[1], coord3[1]],[coord1[2],coord2[2],coord3[2]]  ,linewidth=0.5,color=rgb)
+            tri=Plots.Shape([coord1[1],coord2[1], coord3[1]],[coord1[2],coord2[2],coord3[2]])
+            Plots.plot!(p,tri,color=rgb,label="")
         end
         for icell=1:num_cells(grid)
             coord1=nodecoord(grid,cellnode(grid,1,icell))
             coord2=nodecoord(grid,cellnode(grid,2,icell))
             coord3=nodecoord(grid,cellnode(grid,3,icell))
-            PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=0.5,color="k")
-            PyPlot.plot( [coord1[1],coord3[1]],[coord1[2],coord3[2]]  ,linewidth=0.5,color="k")
-            PyPlot.plot( [coord2[1],coord3[1]],[coord2[2],coord3[2]]  ,linewidth=0.5,color="k")
+            Plots.plot!(p, [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=0.5,color=:black,label="")
+            Plots.plot!(p, [coord1[1],coord3[1]],[coord1[2],coord3[2]]  ,linewidth=0.5,color=:black,label="")
+            Plots.plot!(p, [coord2[1],coord3[1]],[coord2[2],coord3[2]]  ,linewidth=0.5,color=:black,label="")
         end
         for ibface=1:num_bfaces(grid)
             rgb=frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
             coord1=nodecoord(grid,bfacenode(grid,1,ibface))
             coord2=nodecoord(grid,bfacenode(grid,2,ibface))
-            PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=5,color=rgb)
+            Plots.plot!(p,[coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=5,color=rgb,label="")
         end
 
     end
@@ -77,46 +79,46 @@ function fvmplot(grid::Grid)
 end
 
 
-function fvmplot(subgrid::SubGrid)
+function fvmplot!(p,subgrid::SubGrid)
     if dim_space(subgrid.parent)==1
         xmin=minimum(subgrid.coord)
         xmax=maximum(subgrid.coord)
         h=(xmax-xmin)/20.0
-        PyPlot.xlim(xmin-h,xmax+h)
-        PyPlot.ylim(-20*h,20*h)
+        Plots.xlim!(p,xmin-h,xmax+h)
+        Plots.ylim!(p,-20*h,20*h)
         
         for icell=1:num_cells(subgrid)
             coord1=nodecoord(subgrid,subgrid.cellnodes[1,icell])
             coord2=nodecoord(subgrid,subgrid.cellnodes[2,icell])
             x1=coord1[1]
             x2=coord2[1]
-            PyPlot.plot([x1,x1],[-h,h],linewidth=0.5,color="k")
-            PyPlot.plot([x2,x2],[-h,h],linewidth=0.5,color="k")
-            PyPlot.plot([x1,x2],[0,0],linewidth=3.0,color="k")
+            Plots.plot!(p,[x1,x1],[-h,h],linewidth=0.5,color=:black)
+            Plots.plot!(p,[x2,x2],[-h,h],linewidth=0.5,color=:black)
+            Plots.plot!(p,[x1,x2],[0,0],linewidth=3.0,color=:black)
         end
     end
 end
 
 
 
-function fvmplot(grid::AbstractGrid, U::AbstractArray; color=(0,0,0),label="")
+function fvmplot!(p,grid::AbstractGrid, U::AbstractArray; color=(0,0,0),label="")
     if dim_space(grid)==1
         for icell=1:num_cells(grid)
             i1=grid.cellnodes[1,icell]
             i2=grid.cellnodes[2,icell]
             x1=grid.coord[1,i1]
             x2=grid.coord[1,i2]
-            if icell==1 && label !=""
-                PyPlot.plot([x1,x2],[U[i1],U[i2]],color=color,label=label)
+            if icell==1
+                Plots.plot!(p,[x1,x2],[U[i1],U[i2]],color=Plots.RGB(color...),label=label)
             else
-                PyPlot.plot([x1,x2],[U[i1],U[i2]],color=color)
+                Plots.plot!(p,[x1,x2],[U[i1],U[i2]],color=Plots.RGB(color...),label="")
             end                
         end
     end
 end
 
 
-function fvmplot(grid::SubGrid, U::Array{Tv,1}; color=(0,0,0),label="") where Tv
+function fvmplot!(p,grid::SubGrid, U::Array{Tv,1}; color=(0,0,0),label="") where Tv
     if dim_space(grid)==1
         for icell=1:num_cells(grid)
             i1=grid.cellnodes[1,icell]
@@ -127,9 +129,9 @@ function fvmplot(grid::SubGrid, U::Array{Tv,1}; color=(0,0,0),label="") where Tv
             ip2=grid.node_in_parent[i2]
 
             if icell==1 && label !=""
-                PyPlot.plot([x1,x2],[U[ip1],U[ip2]],color=color,label=label)
+                Plots.plot!(p,[x1,x2],[U[ip1],U[ip2]],label=label,linecolor=Plots.RGB(color...))
             else
-                PyPlot.plot([x1,x2],[U[ip1],U[ip2]],color=color)
+                Plots.plot!(p,[x1,x2],[U[ip1],U[ip2]],label="",linecolor=Plots.RGB(color...))
             end                
         end
     end

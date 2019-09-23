@@ -3,7 +3,7 @@ module Example160_UnipolarDriftDiffusion1D
 
 using Printf
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
 using VoronoiFVM
@@ -22,14 +22,12 @@ function plot_solution(sys,U0)
     ildata=data(sys)
     iphi=ildata.iphi
     ic=ildata.ic
-    PyPlot.clf()
+        p=Plots.plot(grid=true)
     @views begin
-        PyPlot.plot(sys.grid.coord[1,:],U0[iphi,:], label="Potential", color="g")
-        PyPlot.plot(sys.grid.coord[1,:],U0[ic,:], label="c-", color="b")
+        Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label="Potential", color=:green)
+        Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label="c-", color=:blue)
     end
-    PyPlot.grid()
-    PyPlot.legend(loc="upper right")
-    PyPlot.pause(1.0e-10)
+    gui(p)
 end
 
 function classflux!(f,u,edge,data)
@@ -71,7 +69,7 @@ function sedanflux!(f,u,edge,data)
 end 
 
 
-function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
+function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
     
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
@@ -117,7 +115,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
     U=unknowns(sys)
 
 
-    if pyplot
+    if doplot
         plot_solution(sys,inival)
     end
     
@@ -138,7 +136,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
             if verbose
                 @printf("time=%g\n",t)
             end
-            if pyplot
+            if doplot
                 plot_solution(sys,U)
             end
             tstep*=1.4
@@ -168,7 +166,7 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
                 sys.boundary_values[iphi,1]=dir*phi+delta
                 solve!(U,inival,sys,control=control)
                 inival.=U
-                if pyplot
+                if doplot
                     plot_solution(sys,U)
                 end
                 Qdelta=integrate(sys,physics.reaction,U)
@@ -183,13 +181,11 @@ function main(;n=20,pyplot=false,dlcap=false,verbose=false,dense=false)
                 phi+=dphi
             end
         end
-        if pyplot
-            PyPlot.clf()
-            PyPlot.plot(vplus,cdlplus,color="g")
-            PyPlot.plot(vminus,cdlminus,color="g")
-            PyPlot.grid()
-            PyPlot.legend(loc="upper right")
-            PyPlot.pause(1.0e-10)
+        if doplot
+            p=Plots.plot(grid=true)
+            Plots.plot!(p,vplus,cdlplus,color=:green)
+            Plots.plot!(p,vminus,cdlminus,color=:green)
+            gui(p)
         end
         return cdl
     end

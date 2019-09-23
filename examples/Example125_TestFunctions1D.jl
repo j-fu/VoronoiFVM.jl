@@ -7,10 +7,10 @@ using VoronoiFVM
 
 
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
-function main(;n=100,pyplot=false,verbose=false,dense=false)
+function main(;n=100,doplot=false,verbose=false,dense=false)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
@@ -63,14 +63,13 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     tf1=testfunction(factory,[2],[1])
     tf2=testfunction(factory,[1],[2])
     
-    if pyplot
-        clf()
-        plot(grid.coord[1,:],tf1)
-        pause(1.0e-10)
-        waitforbuttonpress()
-        plot(grid.coord[1,:],tf2)
-        pause(1.0e-10)
-        waitforbuttonpress()
+    if doplot
+        p=plot(grid.coord[1,:],tf1)
+        gui(p)
+        readline()
+        p=plot(grid.coord[1,:],tf2)
+        gui(p)
+        readline()
     end
     
     U=unknowns(sys)
@@ -88,11 +87,11 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
         I1=integrate(sys,tf1,U)
         
         inival.=U
-        if pyplot
-            clf()
-            plot(grid.coord[1,:],U[1,:])
-            plot(grid.coord[1,:],U[2,:])
-            pause(1.0e-10)
+        if doplot
+            p=plot()
+            plot!(p,grid.coord[1,:],U[1,:])
+            plot!(p,grid.coord[1,:],U[2,:])
+            gui(p)
         end
         u5=U[5]
     end

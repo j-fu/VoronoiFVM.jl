@@ -29,7 +29,7 @@ using Printf
 using VoronoiFVM
 
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
 # Structure containing  userdata information
@@ -41,7 +41,7 @@ mutable struct Data  <: VoronoiFVM.AbstractData
 end
 
 
-function main(;nref=0,pyplot=false,verbose=false)
+function main(;nref=0,doplot=false,verbose=false)
     L=1.0
 
     # Create array which is refined close to 0
@@ -146,12 +146,10 @@ function main(;nref=0,pyplot=false,verbose=false)
         push!(allIx0,Ix0)
         push!(allIxL,IxL)
 
-        if pyplot
-            PyPlot.clf()
-            PyPlot.grid()
-            plot(grid.coord[1,:],real(UZ[1,:]),label="Re")
-            plot(grid.coord[1,:],imag(UZ[1,:]),label="Im")
-            pause(1.0e-10)
+        if doplot
+            p=Plots.plot(grid.coord[1,:],real(UZ[1,:]),label="Re", grid=true)
+            Plots.plot!(p,grid.coord[1,:],imag(UZ[1,:]),label="Im")
+            Plots.gui(p)
         end    
 
         # increase omega
@@ -159,22 +157,18 @@ function main(;nref=0,pyplot=false,verbose=false)
 
     end
     
-    if pyplot
-        PyPlot.clf()
-        PyPlot.grid()
-        plot(real(allI0),imag(allI0),label="calc")
-        plot(real(allIx0),imag(allIx0),label="exact")
-        PyPlot.legend(loc="upper left")
-        pause(1.0e-10)
-        waitforbuttonpress()
+    if doplot
+        p=plot(grid=true)
+        plot!(p,real(allI0),imag(allI0),label="calc")
+        plot!(p,real(allIx0),imag(allIx0),label="exact")
+        gui(p)
+        readline()
 
-        PyPlot.clf()
-        PyPlot.grid()
-        plot(real(allIL),imag(allIL),label="calc")
-        plot(real(allIxL),imag(allIxL),label="exact")
-        PyPlot.legend(loc="upper left")
-        pause(1.0e-10)
-        waitforbuttonpress()
+        p=plot(grid=true)
+        plot!(p,real(allIL),imag(allIL),label="calc")
+        plot!(p,real(allIxL),imag(allIxL),label="exact")
+        gui(p)
+        readline()
     end
     #return test value
     return  imag(allIL[5])

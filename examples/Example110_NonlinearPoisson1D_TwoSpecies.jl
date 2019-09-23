@@ -22,12 +22,12 @@ using VoronoiFVM
 
 
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
 
 
-function main(;n=100,pyplot=false,verbose=false,dense=false)
+function main(;n=100,doplot=false,verbose=false,dense=false)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
@@ -89,15 +89,14 @@ function main(;n=100,pyplot=false,verbose=false,dense=false)
     control.verbose=verbose
     control.damp_initial=0.1
     u5=0
-    for xeps in [1.0,0.1,0.01]
+    for xeps in [1.0,0.5,0.25,0.1,0.05,0.025,0.01]
         eps=[xeps,xeps]
         solve!(U,inival,sys,control=control)
         inival.=U
-        if pyplot
-            clf()
-            plot(grid.coord[1,:],U[1,:])
-            plot(grid.coord[1,:],U[2,:])
-            pause(1.0e-10)
+        if doplot
+            p=Plots.plot(grid.coord[1,:],U[1,:], grid=true)
+            Plots.plot!(p,grid.coord[1,:],U[2,:],show=true, title=@sprintf("\$\\varepsilon=%8.3f\$",xeps)),
+            Plots.sleep(0.2)
         end
         u5=U[5]
     end

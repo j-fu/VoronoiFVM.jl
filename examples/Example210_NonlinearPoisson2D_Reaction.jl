@@ -6,7 +6,7 @@ using Printf
 using VoronoiFVM
 
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
 
@@ -20,7 +20,7 @@ end
 
 
 
-function main(;n=10,pyplot=false,verbose=false, dense=false)
+function main(;n=10,doplot=false,verbose=false, dense=false)
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -97,21 +97,11 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
         tstep*=1.0
         istep=istep+1
         
-        @views if pyplot && istep%10==1
-            if verbose
-                @printf("max1=%g max2=%g\n",maximum(U[1,:]),maximum(U[2,:]))
-            end
-            levels1=collect(0:0.01:1)
-            PyPlot.clf()
-            subplot(211)
-            contourf(X,Y,reshape(U[1,:],length(X),length(Y)), cmap=ColorMap("hot"),vmin=0, vmax=0.6)
-            colorbar()
-            levels2=collect(0:0.001:0.1)
-            subplot(212)
-            contourf(X,Y,reshape(U[2,:],length(X),length(Y)), cmap=ColorMap("hot"),vmin=0, vmax=0.6)
-            colorbar()
-            
-            pause(1.0e-10)
+        @views if doplot
+            p1=contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g\n",maximum(U[1,:]),maximum(U[2,:])))
+            p2=contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6), colorbar=:right,color=:viridis)
+            p=Plots.plot(p1,p2,layout=(2,1) )
+            gui(p)
         end
     end
     return u15

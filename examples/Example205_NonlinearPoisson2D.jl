@@ -6,12 +6,12 @@ using Printf
 using VoronoiFVM
 
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
 
 
-function main(;n=10,pyplot=false,verbose=false, dense=false)
+function main(;n=10,doplot=false,verbose=false, dense=false)
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -78,12 +78,10 @@ function main(;n=10,pyplot=false,verbose=false, dense=false)
         end
 
         tstep*=1.0
-        if pyplot
+        if doplot
             levels=collect(0:0.01:1)
-            PyPlot.clf()
-            contourf(X,Y,reshape(values(U),length(X),length(Y)), cmap=ColorMap("hot"),levels=levels)
-            colorbar()
-            pause(1.0e-10)
+            p=contourf(X,Y,reshape(values(U),length(X),length(Y)),levels=levels,colorbar=:right)
+            gui(p)
         end
     end
     return u15

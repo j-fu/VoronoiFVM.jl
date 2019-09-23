@@ -1,4 +1,4 @@
-# # 115: 1D two species system with boundary reaction and boundary species
+# 115: 1D two species system with boundary reaction and boundary species
 
 
 module Example115_NonlinearPoisson1D_BoundarySpecies
@@ -9,12 +9,12 @@ const Node=VoronoiFVM.Node
 const Edge=VoronoiFVM.Edge
 
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
 
 
-function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
+function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -101,19 +101,12 @@ function main(;n=10,pyplot=false,verbose=false,tend=1, dense=false)
         append!(T,time)
         append!(Ub,U[3,N])
         
-        if pyplot && istep%10 == 0
-            @printf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),U[3,N])
-            PyPlot.clf()
-            subplot(211)
-            plot(X,U[1,:],label="spec1")
-            plot(X,U[2,:],label="spec2")
-            PyPlot.legend(loc="best")
-            PyPlot.grid()
-            subplot(212)
-            plot(T,Ub,label="U_b")
-            PyPlot.legend(loc="best")
-            PyPlot.grid()
-            pause(1.0e-10)
+        if doplot
+            p1=Plots.plot(grid.coord[1,:],U[1,:], grid=true, label="spec1")
+            Plots.plot!(p1,grid.coord[1,:],U[2,:], label="spec2",title=@sprintf("max1=%.5f max2=%.5f maxb=%.5f\n",maximum(U[1,:]),maximum(U[2,:]),U[3,N]))
+            p2=Plots.plot(T,Ub,ylabel="U_b",xlabel="t")
+            p=Plots.plot(p1,p2,layout=(2,1),legend=false)
+            gui(p)
         end
     end
     return u5

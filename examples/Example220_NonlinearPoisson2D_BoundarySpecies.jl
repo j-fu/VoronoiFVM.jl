@@ -7,10 +7,10 @@ using VoronoiFVM
 
 
 if isinteractive()
-    using PyPlot
+    using Plots
 end
 
-function main(;n=10,pyplot=false,verbose=false,dense=false)
+function main(;n=10,doplot=false,verbose=false,dense=false)
     
     
     h=1.0/convert(Float64,n)
@@ -103,24 +103,13 @@ function main(;n=10,pyplot=false,verbose=false,dense=false)
         istep=istep+1
         U_bound=view(U,bgrid2)
         u5=U_bound[3,5]
-        if pyplot && istep%10 == 0
-            @printf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound[3,:]))
-            PyPlot.clf()
-
-            subplot(311)
-            levels1=collect(0:0.01:1)
-            contourf(X,Y,reshape(U[1,:],length(X),length(Y)), cmap=ColorMap("hot"))
-            colorbar()
-
-            subplot(312)
-            levels2=collect(0:0.001:0.1)
-            contourf(X,Y,reshape(U[2,:],length(X),length(Y)), cmap=ColorMap("hot"))
-            colorbar()
-
-            subplot(313)
-            levels2=collect(0:0.001:0.1)
-            fvmplot(bgrid2,U[3,:])
-            pause(1.0e-10)
+        @views if doplot
+            p1=contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound[3,:])))
+            p2=contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.0001:0.002),clim=(0,0.002), colorbar=:right,color=:viridis)
+            p3=plot(grid=true,ylims=(0,0.0025))
+            fvmplot!(p3,bgrid2,U_bound[3,:])
+            p=Plots.plot(p1,p2,p3,layout=(3,1) )
+            gui(p)
         end
     end
     return u5
