@@ -39,15 +39,22 @@ function make_all()
     #
     output_dir  = joinpath(@__DIR__,"src","examples")
     example_dir = joinpath(@__DIR__,"..","examples")
+    for f in readdir(output_dir)
+        @show f
+        rm(joinpath(output_dir,f))
+    end
     
     
     
     for example_source in readdir(example_dir)
-        Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
-                          output_dir,
-                          documenter=false,
-                          info=false,
-                          preprocess=hashify_block_comments)    
+        base,ext=splitext(example_source)
+        if ext==".jl"
+            Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
+                              output_dir,
+                              documenter=false,
+                              info=false,
+                              preprocess=hashify_block_comments)
+        end
     end
     generated_examples=joinpath.("examples",readdir(output_dir))
     

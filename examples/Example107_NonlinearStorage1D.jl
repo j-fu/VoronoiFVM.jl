@@ -1,22 +1,18 @@
 #=
 
-# 106: 1D Nonlinear Diffusion equation
+# 107: 1D Nonlinear Storage
 
-Solve the nonlinear diffusion equation
-
+This equation comes from the transformation of the nonlinear diffuision equation.
 ```math
-\partial_t u -\Delta u^m = 0
+\partial_t u^\frac{1}{m} -\Delta u = 0
 ```
-in $\Omega=(-1,1)$ with boundary condition $u(-1)=0$ and $u(1)=0$ using the implicit Euler method.
+in $\Omega=-1,1)$ with boundary condition $u(0)=0$ and $u(1)=0$ with 
+We can derive an exact solution from the Barenblatt solution of the previous
+example.
 
-This equation is also called  "porous medium equation". 
-The Barenblatt solution is an exact solution of this problem which for m>1 has a finite support.
-We initialize this problem with the exact solution for $t=t_0=0.001$.
-
-(see Barenblatt, G. I. "On nonsteady motions of gas and fluid in porous medium." Appl. Math. and Mech.(PMM) 16.1 (1952): 67-78.)
 =# 
 
-module Example106_NonlinearDiffusion1D
+module Example107_NonlinearStorage1D
 using Printf
 using VoronoiFVM
 if isinteractive()
@@ -36,24 +32,26 @@ function barenblatt(x,t,m)
 end
 
 
-function main(;n=20,m=2,doplot=false,verbose=false, dense=false,tend=0.01,tstep=0.0001)
+function main(;n=20,m=2.0,doplot=false,verbose=false, dense=false,tend=0.01,tstep=0.0001)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)
     X=collect(-1:h:1)
     grid=VoronoiFVM.Grid(X)
-
     ## Flux function which describes the flux
     ## between neigboring control volumes
     function flux!(f,u,edge,data)
         uk=viewK(edge,u)  
         ul=viewL(edge,u)
-        f[1]=uk[1]^m-ul[1]^m
+        f[1]=uk[1]-ul[1]
     end
 
+    ϵ=1.0e-10
     ## Storage term
+    ## This needs to be regularized as its derivative
+    ## at 0 is infinity
     function storage!(f,u,node,data)
-        f[1]=u[1]
+        f[1]=(ϵ+u[1])^(1.0/m)
     end
     
     ## Create a physics structure
@@ -86,8 +84,8 @@ function main(;n=20,m=2,doplot=false,verbose=false, dense=false,tend=0.01,tstep=
     solution=unknowns(sys)
     t0=0.001
     ## Broadcast the initial value
-    inival[1,:].=map(x->barenblatt(x,t0,m),X)
-
+    inival[1,:].=map(x->barenblatt(x,t0,m)^m,X)
+    solution.=inival
 
     ## Create solver control info
     control=VoronoiFVM.NewtonControl()
@@ -107,7 +105,7 @@ function main(;n=20,m=2,doplot=false,verbose=false, dense=false,tend=0.01,tstep=
                          title=@sprintf("Nonlinear Diffusion t=%.5f",time),
                          grid=true)
             Plots.plot!(p,X,
-                        map(x->barenblatt(x,time,m),X),
+                        map(x->barenblatt(x,time,m)^m,X),
                         label="exact",
                         show=true)
         end
@@ -117,7 +115,7 @@ end
 
 
 function test()
-    testval=46.66666666647518
+    testval=173.84998139534142
     main(dense=false) ≈ testval && main(dense=true) ≈ testval
 end
 

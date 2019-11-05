@@ -52,6 +52,7 @@ export embed!
 export subgrid
 export testfunction
 export data
+export edgelength
 export viewK,viewL
 end
 

@@ -888,13 +888,12 @@ $(TYPEDSIGNATURES)
 Calculate the length of an edge. 
 """
 function edgelength(edge::Edge{Tv}) where Tv
-    l::Tv
-    l=0.0
+    l::Tv=0.0
     for i=1:length(edge.coordK)
         d=edge.coordK[i]-edge.coordL[i]
         l=l+d*d
     end
-    return l
+    return sqrt(l)
 end
 
 """
