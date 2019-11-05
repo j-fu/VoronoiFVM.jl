@@ -24,7 +24,7 @@ The example describes three possible ways to define the flux function and demons
 the impact on the qualitative properties of the solution. 
 =# 
 
-module Example102_ConvectionDiffusion1D
+module Example102_StationaryConvectionDiffusion1D
 using Printf
 using VoronoiFVM
 if isinteractive()
