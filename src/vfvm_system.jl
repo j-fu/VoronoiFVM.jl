@@ -435,7 +435,7 @@ $(TYPEDSIGNATURES)
                         
 Number of nodes (size of second dimension) of solution array.
 """
-num_nodes(a)=size(a,2)
+num_nodes(a::AbstractArray)=size(a,2)
 
 ##################################################################
 """

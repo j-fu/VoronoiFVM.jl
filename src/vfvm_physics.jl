@@ -123,8 +123,8 @@ end
 
 function Base.show(io::IO,physics::AbstractPhysics)
     str=@sprintf("VoronoiFVM.Physics(num_species=%d",physics.num_species)
-    if physics.data!=nodata then
-        str=str*", data=$(name(physics.data))"
+    if physics.data!=nodata
+        str=str*", data=$(typeof(physics.data))"
     end
     function addfunc(func,name)
         if func!=nofunc
