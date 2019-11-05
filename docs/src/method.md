@@ -115,9 +115,11 @@ The following list  is work in progress and incomplete, but it references some s
 
 The entities describing the discrete system can be subdivided into two categories:
 - geometrical data: $|\omega_k|, \gamma_k, \sigma_{kl}, h_{kl}$ together with the connectivity information of the triangles
-- physical data: the number $m$ and the functions $s,g,r,b,f$ describing the particular problem
+- physical data: the number $m$ and the functions $s,g,r,b,f$ describing the particular problem.
 
 This structure allows to describe the problem to be solved by data derived from the discretization grid and by the functions describing the physics, giving rise to a software API.
 
 The solution of the nonlinear systems of equations can be performed by Newton's method combined with various direct and iterative linear solvers.
+
+The generic programming capabilities of Julia allow for an implementation of the method which results in an API which consists in  the implementation of functions $s,g,r,b,f$ without the need to write code for their derivatives.
 

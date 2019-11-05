@@ -1,14 +1,28 @@
-# # 105: 1D Nonlinear Poisson equation
-# 
-# Solve the nonlinear Poisson equation
-# 
-# ```math
-# -\nabla 0.01 \nabla u^2 + u^2 = 0.0001x
-# ```
-# in $\Omega=(0,1)$ with boundary condition $u(0)=1$ and $u(1)=0.5$.
-# 
+#=
+# 105: 1D Nonlinear Poisson equation
 
+Solve the nonlinear Poisson equation
 
+```math
+-\nabla \varepsilon \nabla u + e^{u}-e^{-u} = f
+```
+in $\Omega=(0,1)$ with boundary condition $u(0)=0$ and $u(1)=1$ with 
+```math
+f(x)=
+    \begin{cases}
+    1&,x>0.5\\
+    -1&, x<0.5
+    \end{cases}.
+```
+    
+This stationary problem is an example of a nonlinear Poisson equation or Poisson-Boltzmann equation.
+Such equation occur e.g. in simulations of electrochemical systems and semicondutor devices.
+ 
+=# 
+
+# 
+#  Start the module
+# 
 module Example105_NonlinearPoisson1D
 
 
@@ -25,51 +39,52 @@ end
 
 
 
-
 # Main function for user interaction from REPL and
-# for testimg. Default physics need to generate correct
+# for testing. Default physics need to generate correct
 # test value.
-
 function main(;n=10,doplot=false,verbose=false, dense=false)
-
-
-
+    
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
 
     ## A parameter which is "passed" to the flux function via scope
-    eps=1.0e-2
-    
+    ϵ=1.0e-3
+   
 
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    flux=function(f,u,edge,data)
-        f[1]=eps*(u[1]^2-u[2]^2)
+    function flux!(f,u,edge,data)
+        uk=viewK(edge,u)  
+        ul=viewL(edge,u)
+        f[1]=ϵ*(uk[1]-ul[1])
     end
-
 
     ## Source term
-    source=function(f,node,data)
-        f[1]=1.0e-4*node.coord[1]
-    end
-
-    ## Storage term (under the time derivative)
-    storage=function(f,u,node,data)
-        f[1]=u[1]
+    function source!(f,node,data)
+        if node.coord[1]<=0.5
+            f[1]=1
+        else
+            f[1]=-1
+        end
     end
     
     ## Reaction term
-    reaction=function(f,u,node,data)
-        f[1]=u[1]^2
+    function reaction!(f,u,node,data)
+        f[1]=exp(u[1]) - exp(-u[1]) 
     end
-
+    
     ## Create a physics structure
-    physics=VoronoiFVM.Physics(flux=flux,source=source,storage=storage,reaction=reaction)
-
+    physics=VoronoiFVM.Physics(
+        flux=flux!,
+        source=source!,
+        reaction=reaction!)
+    
 
     ## Create a finite volume system - either
     ## in the dense or  the sparse version.
+    ## The difference is in the way the solution object
+    ## is stored - as dense or as sparse matrix
     if dense
         sys=VoronoiFVM.DenseSystem(grid,physics)
     else
@@ -80,14 +95,14 @@ function main(;n=10,doplot=false,verbose=false, dense=false)
     enable_species!(sys,1,[1])
 
     ## Set boundary conditions
-    sys.boundary_values[1,1]=1.0
-    sys.boundary_values[1,2]=0.5
+    sys.boundary_values[1,1]=0.0
+    sys.boundary_values[1,2]=1.0
     sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
     sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
 
     ## Create a solution array
     inival=unknowns(sys)
-    U=unknowns(sys)
+    solution=unknowns(sys)
 
     ## Broadcast the initial value
     inival.=0.5
@@ -96,42 +111,23 @@ function main(;n=10,doplot=false,verbose=false, dense=false)
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
 
-    ## time stepping
-    tstep=1.0e-2
-    times=collect(0.0:tstep:1.0)
-    test_result=0
-    time=0.0
-    for it=2:length(times)
-        ## Solve for new timestep with old timestep
-        ## solution in inival
-        solve!(U,inival,sys, control=control,tstep=tstep)
-        time=time+tstep
-        test_result=U[5]
+    ## Stationary solution of the problem
+    solve!(solution,inival,sys, control=control)
 
-        ## Update inival
-        inival.=U
-
-        if verbose
-            @printf("time=%g\n",times[it])
-        end
-
-        ## Plot data
-        if doplot
-            Plots.plot(grid.coord[1,:],U[1,:],
-                       ylims=(0,1),
-                       label="",
-                       title=@sprintf("t=%8.3f",time),
-                       grid=true,show=true)
-        end
+    if doplot
+        Plots.plot(grid.coord[1,:],solution[1,:],
+                   label="",
+                   title="Nonlinear Poisson",
+                   grid=true,show=true)
     end
-    ## return test result
-    return test_result
+    
+    return sum(solution)
 end
 
 
 function test()
-   main(dense=false) ≈ 0.3371249631439964 &&
-       main(dense=true) ≈ 0.3371249631439964
+    testval=1.5247901344230088
+    main(dense=false) ≈ testval && main(dense=true) ≈ testval
 end
 
 # End of module
