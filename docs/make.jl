@@ -39,12 +39,6 @@ function make_all()
     #
     output_dir  = joinpath(@__DIR__,"src","examples")
     example_dir = joinpath(@__DIR__,"..","examples")
-    for f in readdir(output_dir)
-        @show f
-        rm(joinpath(output_dir,f))
-    end
-    
-    
     
     for example_source in readdir(example_dir)
         base,ext=splitext(example_source)
@@ -61,7 +55,7 @@ function make_all()
     makedocs(
         sitename="VoronoiFVM.jl",
         modules = [VoronoiFVM],
-        clean = !isinteractive(),
+        clean = true,
         doctest = false,
         authors = "J. Fuhrmann",
         repo="https://github.com/j-fu/VoronoiFVM.jl",
