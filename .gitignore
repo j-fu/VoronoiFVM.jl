@@ -3,4 +3,5 @@ startup.jl
 docs/build
 docs/src/examples
 *~
+./Manifest.toml
 
