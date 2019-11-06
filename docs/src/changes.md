@@ -1,5 +1,9 @@
 # Changes
 
+## V0.4.2, November 6, 2019
+- Replaced PyPlot by Plots
+- Better and more examples
+
 ## V0.4, July 12, 2019
 - Registered with Julia ecosystem
 - Enhance Newton solver by embedding, exception handling
@@ -10,7 +14,7 @@
 - more julianic API
 
 ## V0.3, April 9 2019
-- Renamed to  VoronoiFVM
+- Renamed from TwoPointFluxFVM to  VoronoiFVM
 - Complete rewrite of assembly allowing sparse or dense matrix 
   to store degree of freedom information
     - Solution is a nnodes x nspecies sparse or dense matrix
