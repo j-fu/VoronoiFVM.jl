@@ -1,16 +1,8 @@
 language: julia
 
 os:
-  - linux
   - osx
-
-branches:
-  only:
-  - master
-
-addons:
-  apt:
-    update: true
+  - linux
 
 julia:
   - 1.0
@@ -18,30 +10,30 @@ julia:
   - 1.2
 #  - nightly
 
+# # Uncomment the following lines to allow failures on nightly julia
+# # (tests will run but not make your overall status red)
 # matrix:
 #   allow_failures:
 #   - julia: nightly
 
-# For old pyplot based version
-# Pkg.add("PyCall"); Pkg.build("PyCall"); Pkg.add("PyPlot"); 
-#before_install:
-#    - julia -e 'ENV["PYTHON"]=""; using Pkg; Pkg.add("Conda"); using Conda; Conda.add_channel("anaconda"); Conda.update(); Conda.add("numpy"); Conda.add("matplotlib");'
- 
-
 notifications:
-  email: true
+  email: false
 
-  
+#script: # the default script is equivalent to the following
+#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+#  - julia --project -e 'using Pkg; Pkg.build(); Pkg.test(; coverage=true)';
+
 after_success: skip
+#  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
+#  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())';
 
 jobs:
   include:
     - stage: "Documentation"
-      julia: 1.2
+      julia: 1.0
       os: linux
       script:
-        - julia --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd())); '
+        - julia --project=docs/ -e 'using Pkg; Pkg.instantiate(); Pkg.develop(PackageSpec(path=pwd()))'
         - julia --project=docs/ docs/make.jl
       after_success: skip
-
 
