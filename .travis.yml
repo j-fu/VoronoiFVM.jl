@@ -8,9 +8,9 @@ branches:
   only:
   - master
 
-addons:
-  apt:
-    update: true
+#addons:
+#  apt:
+#    update: true
 
 julia:
   - 1.0
