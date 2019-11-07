@@ -37,6 +37,7 @@ export glue
 export num_nodes
 export num_bfaces
 export num_cells
+export prepare_edges!
 export enable_species!
 export enable_boundary_species!
 export cellmask!

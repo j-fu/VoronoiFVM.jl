@@ -39,6 +39,14 @@ num_cells(grid::AbstractGrid)= size(grid.cellnodes,2)
 """
 $(TYPEDSIGNATURES)
 
+Number of edges in grid
+"""
+num_edges(grid::AbstractGrid)= size(grid.edgenodes,2)
+
+##########################################################
+"""
+$(TYPEDSIGNATURES)
+
 Return index of i-th local node in cell icell
 """
 cellnode(grid::AbstractGrid,inode,icell)=grid.cellnodes[inode,icell]
@@ -69,7 +77,7 @@ Base.eltype(grid::AbstractGrid)=Base.eltype(grid.coord)
 
 ##########################################################
 """
-$(TYPEDEF)
+#$(TYPEDEF)
 
 Structure holding grid data. It is parametrised by the
 type Tc of coordinates.
@@ -77,63 +85,125 @@ type Tc of coordinates.
 $(TYPEDFIELDS)
 
 """
-struct Grid{Tc} <: AbstractGrid
+mutable struct Grid{Tc,Ti} <: AbstractGrid
 
     """ 
     2D Array of node coordinates
     """
-    coord::Array{Tc,2}
+    coord::AbstractArray{Tc,2}
 
     
     """
     2D Array of node indices per grid cell
     """
-    cellnodes::Array{Int32,2}
+    cellnodes::AbstractArray{Ti,2}
 
+    """
+    Array of edge indices per grid cell.
+    Instatiated with prepare_edges!(grid)
+    """
+    celledges::AbstractArray{Ti,2}
+
+    """
+    Array of cell indices per grid edge.
+    The number of these indices may be less than 
+    the number of columns in this array. Nonexisting 
+    indices are set to 0
+    Instatiated with prepare_edges!(grid)
+    """
+    edgecells::AbstractArray{Ti,2}
+
+    """
+    Array of node indices per grid edge.
+    Instatiated with prepare_edges!(grid)
+    """
+    edgenodes::AbstractArray{Ti,2}
     
     """
     Array of cell region numbers
     """
-    cellregions::Array{Int32,1}
+    cellregions::AbstractArray{Ti,1}
 
     
     """
     2D Array of node indices per boundary face
     """
-    bfacenodes::ElasticArray{Int32,2,1}      
+    bfacenodes::AbstractArray{Ti,2}      
 
     
     """
     Array of boundary face region numbers
     """
-    bfaceregions::Array{Int32,1}
+    bfaceregions::AbstractArray{Ti,1}
 
     
     """
-    Number of inner cell regions. Stored in an array in order
-    to keep the struct immutable.
+    Number of inner cell regions.
     """
-    num_cellregions::Array{Int32,1}
+    num_cellregions::Ti
 
     
     """
-    Number of boundary face  regions. Stored in an array in order
-    to keep the struct immutable.
+    Number of boundary face  regions.
     """
-    num_bfaceregions::Array{Int32,1}
+    num_bfaceregions::Ti
 
     
     """
-    2D Array describing local scheme of distributions nodes per cell edge.
+    2D AbstractArray describing local scheme of distributions nodes per cell edge.
     """
-    celledgenodes::Array{Int32,2}
+    local_celledgenodes::AbstractArray{Ti,2}
 
 end
 
 function Base.show(io::IO,grid::Grid{Tc}) where Tc
-    str=@sprintf("%s(dim_space=%d, num_nodes=%d, num_cells=%d, num_bfaces=%d)",
-                 typeof(grid),dim_space(grid),num_nodes(grid), num_cells(grid), num_bfaces(grid))
+    if num_edges(grid)>0
+        str=@sprintf("%s(dim_space=%d, num_nodes=%d, num_cells=%d, num_bfaces=%d, num_edges=%d)",
+                     typeof(grid),dim_space(grid),num_nodes(grid), num_cells(grid), num_bfaces(grid), num_edges(grid))
+    else
+        str=@sprintf("%s(dim_space=%d, num_nodes=%d, num_cells=%d, num_bfaces=%d)",
+                     typeof(grid),dim_space(grid),num_nodes(grid), num_cells(grid), num_bfaces(grid))
+        end
     println(io,str)
+end
+
+function local_cen(dim::Ti) where Ti
+    if dim==1
+        return reshape(Ti[1 2],:,1)
+    else
+        return Ti[2 1 1 ;
+                  3 3 2]
+    end
+end
+
+##########################################################
+"""
+  $(SIGNATURES)
+        
+  Main constructor for general grid from basic incidence information
+"""
+function Grid(coord::AbstractArray{Tc,2},
+              cellnodes::AbstractArray{Ti,2},
+              cellregions::AbstractArray{Ti,1},
+              bfacenodes::AbstractArray{Ti,2},
+              bfaceregions::AbstractArray{Ti,1}
+              ) where {Tc,Ti}
+    
+    dim::Ti=size(coord,1)
+    num_cellregions::Ti=maximum(cellregions)
+    num_bfaceregions::Ti=maximum(bfaceregions)
+    local_celledgenodes=local_cen(dim)
+    return Grid(coord,
+                cellnodes,
+                zeros(Ti,0,0),
+                zeros(Ti,0,0),
+                zeros(Ti,0,0),
+                cellregions,
+                bfacenodes,
+                bfaceregions,
+                num_cellregions,
+                num_bfaceregions,
+                local_celledgenodes)
 end
 
 ##########################################################
@@ -155,8 +225,7 @@ grid marking control volumes: marked by `|`.
 ```
 
 """
-function Grid(X::Array{Tc,1}) where Tc
-
+function Grid(X::AbstractArray{Tc,1}) where {Tc}
     coord=reshape(X,1,length(X))
     cellnodes=zeros(Int32,2,length(X)-1)
     cellregions=zeros(Int32,length(X)-1)
@@ -165,23 +234,17 @@ function Grid(X::Array{Tc,1}) where Tc
         cellnodes[2,i]=i+1
         cellregions[i]=1
     end
-    bfacenodes=ElasticArray{Int32}(undef,1,2)
+    bfacenodes=Array{Int32}(undef,1,2)
     bfaceregions=zeros(Int32,2)
     bfacenodes[1,1]=1
     bfacenodes[1,2]=length(X)
     bfaceregions[1]=1
     bfaceregions[2]=2
-    num_cellregions=[maximum(cellregions)]
-    num_bfaceregions=[maximum(bfaceregions)]
-    celledgenodes=reshape(Int32[1 2],:,1)
-    return Grid{Tc}(coord,
-                    cellnodes,
-                    cellregions,
-                    bfacenodes,
-                    bfaceregions,
-                    num_cellregions,
-                    num_bfaceregions,
-                    celledgenodes)
+    return Grid(coord,
+                cellnodes,
+                cellregions,
+                bfacenodes,
+                bfaceregions)
 end
 
 
@@ -201,7 +264,7 @@ Boundary region numbers count counterclockwise:
 | west      |       4 |
 
 """
-function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
+function  Grid(X::AbstractArray{Tc,1},Y::AbstractArray{Tc,1}) where {Tc}
 
     
     function leq(x, x1, x2)
@@ -290,8 +353,8 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     coord=zeros(Tc,2,num_nodes)
     cellnodes=zeros(Int32,3,num_cells)
     cellregions=zeros(Int32,num_cells)
-    bfacenodes=ElasticArray{Int32}(undef,2,num_bfacenodes)
-    resize!(bfacenodes,2,num_bfacenodes)
+    bfacenodes=Array{Int32}(undef,2,num_bfacenodes)
+#    resize!(bfacenodes,2,num_bfacenodes)
     bfaceregions=zeros(Int32,num_bfacenodes)
     
     ipoint=0
@@ -326,7 +389,7 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
             cellnodes[3,icell]=p00
             cellregions[icell]=1
         end
-   end
+    end
     @assert(icell==num_cells)
     
     #lazy way to  create boundary grid
@@ -342,19 +405,12 @@ function  Grid(X::Array{Tc,1},Y::Array{Tc,1}) where Tc
     end
     @assert(ibface==num_bfacenodes)
 
-    num_cellregions=[maximum(cellregions)]
-    num_bfaceregions=[maximum(bfaceregions)]
-    celledgenodes=[2 1 1 ;
-                   3 3 2]
-
-    return Grid{Tc}(coord,
-                    cellnodes,
-                    cellregions,
-                    bfacenodes,
-                    bfaceregions,
-                    num_cellregions,
-                    num_bfaceregions,
-                    celledgenodes)
+    local_celledgenodes=local_cen(Int32(2))
+    return Grid(coord,
+                cellnodes,
+                cellregions,
+                bfacenodes,
+                bfaceregions)
 end
 
 
@@ -389,7 +445,7 @@ function cellmask!(grid::Grid,
             grid.cellregions[icell]=ireg
         end
     end
-    grid.num_cellregions[1]=max(num_cellregions(grid),ireg)
+    grid.num_cellregions=max(num_cellregions(grid),ireg)
 end
 
 
@@ -452,11 +508,108 @@ function bfacemask!(grid::Grid,
         end
     end
         
-    grid.num_bfaceregions[1]=max(num_bfaceregions(grid),ireg)
+    grid.num_bfaceregions=max(num_bfaceregions(grid),ireg)
 end
 
 
+################################################
+"""
+$(SIGNATURES)
 
+Prepare edge adjacencies (celledges, edgecells, edgenodes)
+""" 
+function prepare_edges!(grid)
+    Ti=eltype(grid.cellnodes)
+
+    # Create cell-node incidence matrix
+    ecn=ExtendableSparseMatrix{Ti,Ti}(num_nodes(grid),num_cells(grid))
+    for icell=1:num_cells(grid)
+        for inode=1:VoronoiFVM.num_nodes_per_cell(grid)
+            ecn[grid.cellnodes[inode,icell],icell]=1
+        end
+    end
+    flush!(ecn)
+    # Get SparseMatrixCSC from the ExtendableMatrix
+    cn=ecn.cscmatrix
+    
+    # Create node-node incidence matrix for neigboring
+    # nodes. 
+    nn=cn*transpose(cn)
+
+    # To get unique edges, we set he lower triangular part
+    # including the diagonal to 0
+    for icol=1:length(nn.colptr)-1
+        for irow=nn.colptr[icol]:nn.colptr[icol+1]-1
+            if nn.rowval[irow]>=icol
+                nn.nzval[irow]=0
+            end
+        end
+    end
+    dropzeros!(nn)
+
+
+    # Now we know the number of edges and
+    nedges=length(nn.nzval)
+
+    # Let us do the Euler test (assuming no holes in the domain)
+    v=num_nodes(grid)
+    e=nedges
+    f=num_cells(grid)+1
+    @assert v-e+f==2
+
+    # Calculate edge nodes and celledges
+    edgenodes=zeros(Ti,2,nedges)
+    celledges=zeros(Ti,3,num_cells(grid))
+    for icell=1:num_cells(grid)
+        for iedge=1:VoronoiFVM.num_edges_per_cell(grid)
+            n1=VoronoiFVM.celledgenode(grid,1,iedge,icell)
+            n2=VoronoiFVM.celledgenode(grid,2,iedge,icell)            
+	    
+	    if (n1<n2)
+                n0=n1
+                n1=n2
+                n2=n0;
+            end
+
+            for irow=nn.colptr[n1]:nn.colptr[n1+1]-1
+                if nn.rowval[irow]==n2
+                    celledges[iedge,icell]=irow
+                    edgenodes[2,irow]=n1
+                    edgenodes[1,irow]=n2
+                end
+            end
+        end
+    end
+
+
+    # Create sparse incidence matrix for the cell-edge adjacency
+    ece=ExtendableSparseMatrix{Ti,Ti}(nedges,num_cells(grid))
+    for icell=1:num_cells(grid)
+        for iedge=1:VoronoiFVM.num_edges_per_cell(grid)
+            ece[celledges[iedge,icell],icell]=1
+        end
+    end
+    flush!(ece)
+    ce=ece.cscmatrix
+
+    # The edge cell matrix is the transpose
+    ec=SparseMatrixCSC(transpose(ce))
+
+    # Get the adjaency array from the matrix
+    edgecells=zeros(Ti,2,nedges)
+    for icol=1:length(ec.colptr)-1
+        ii=1
+        for irow=ec.colptr[icol]:ec.colptr[icol+1]-1
+            edgecells[ii,icol]=ec.rowval[irow]
+            ii+=1
+        end
+    end
+    grid.edgecells=edgecells
+    grid.celledges=celledges
+    grid.edgenodes=edgenodes
+
+    return grid
+end
 
 
 ################################################
@@ -602,7 +755,7 @@ $(TYPEDSIGNATURES)
 
 Index of cell edge node.
 """
-celledgenode(grid::Grid,inode,iedge,icell)=grid.cellnodes[grid.celledgenodes[inode,iedge],icell]
+celledgenode(grid::Grid,inode,iedge,icell)=grid.cellnodes[grid.local_celledgenodes[inode,iedge],icell]
 
 ################################################
 """
@@ -610,7 +763,7 @@ $(TYPEDSIGNATURES)
     
 Number of edges per grid cell.
 """
-num_edges_per_cell(grid::Grid)= size(grid.celledgenodes,2)
+num_edges_per_cell(grid::Grid)= size(grid.local_celledgenodes,2)
 
 ################################################
 """
@@ -634,7 +787,7 @@ $(TYPEDSIGNATURES)
 
 Number of cell regions in grid.
 """
-num_cellregions(grid::Grid)= grid.num_cellregions[1]
+num_cellregions(grid::Grid)= grid.num_cellregions
 
 ################################################
 """
@@ -642,7 +795,7 @@ $(TYPEDSIGNATURES)
 
 Number of boundary face regions in grid.
 """
-num_bfaceregions(grid::Grid)=grid.num_bfaceregions[1]
+num_bfaceregions(grid::Grid)=grid.num_bfaceregions
 
 
 
