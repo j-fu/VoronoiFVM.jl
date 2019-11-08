@@ -1,5 +1,9 @@
 # Changes
 
+## V0.4.3, November 7, 2019
+- Added edge handling to grid struct
+
+
 ## V0.4.2, November 6, 2019
 - Replaced PyPlot by Plots
 - Better and more examples

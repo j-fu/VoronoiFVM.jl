@@ -42,10 +42,12 @@ function fvmplot!(p,grid::Grid)
         end
         
         for ibface=1:num_bfaces(grid)
-            rgb=frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
-            coord1=nodecoord(grid,bfacenode(grid,1,ibface))
-            x1=coord1[1]
-            Plots.plot!(p,[x1,x1],[-2*h,2*h],linewidth=3.0,color=rgb,label="")
+            if grid.bfaceregions[ibface]>0
+                rgb=frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
+                coord1=nodecoord(grid,bfacenode(grid,1,ibface))
+                x1=coord1[1]
+                Plots.plot!(p,[x1,x1],[-2*h,2*h],linewidth=3.0,color=rgb,label="")
+            end
         end
     end
 

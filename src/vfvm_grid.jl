@@ -167,14 +167,6 @@ function Base.show(io::IO,grid::Grid{Tc}) where Tc
     println(io,str)
 end
 
-function local_cen(dim::Ti) where Ti
-    if dim==1
-        return reshape(Ti[1 2],:,1)
-    else
-        return Ti[2 1 1 ;
-                  3 3 2]
-    end
-end
 
 ##########################################################
 """
@@ -192,7 +184,24 @@ function Grid(coord::AbstractArray{Tc,2},
     dim::Ti=size(coord,1)
     num_cellregions::Ti=maximum(cellregions)
     num_bfaceregions::Ti=maximum(bfaceregions)
-    local_celledgenodes=local_cen(dim)
+    if dim==1
+        local_celledgenodes=reshape(Ti[1 2],:,1)
+    else
+        # see grid/simplex.h in pdelib
+        local_celledgenodes=zeros(Ti,2,3)
+        local_celledgenodes[1,1]=2
+        local_celledgenodes[2,1]=3
+
+        local_celledgenodes[1,2]=3
+        local_celledgenodes[2,2]=1
+        
+        local_celledgenodes[1,3]=1
+        local_celledgenodes[2,3]=2
+        
+        # local_celledgenodes= Ti[2 3 2 ;
+        #                         3 1 1]
+    end
+        
     return Grid(coord,
                 cellnodes,
                 zeros(Ti,0,0),
@@ -405,7 +414,7 @@ function  Grid(X::AbstractArray{Tc,1},Y::AbstractArray{Tc,1}) where {Tc}
     end
     @assert(ibface==num_bfacenodes)
 
-    local_celledgenodes=local_cen(Int32(2))
+
     return Grid(coord,
                 cellnodes,
                 cellregions,
@@ -748,6 +757,15 @@ $(TYPEDSIGNATURES)
 Index of boundary face node.
 """
 bfacenode(grid::Grid,inode,icell)=grid.bfacenodes[inode,icell]
+
+################################################
+"""
+$(TYPEDSIGNATURES)
+
+Index of cell edge node.
+"""
+celledge(grid::Grid,iedge,icell)=grid.celledges[iedge,icell]
+
 
 ################################################
 """

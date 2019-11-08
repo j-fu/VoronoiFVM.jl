@@ -862,14 +862,15 @@ function _fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
     K=celledgenode(grid,1,iedge,icell)
     L=celledgenode(grid,2,iedge,icell)
     edge.region=grid.cellregions[icell]
-    edge.index=iedge
+    if num_edges(grid)>0
+        edge.index=celledge(grid,iedge,icell)
+    end
+#    edge.index=iedge
     edge.nodeK=K
     edge.nodeL=L
     edge.icell=icell
-    for i=1:length(edge.coordK)
-        edge.coordK[i]=grid.coord[i,K]
-        edge.coordL[i]=grid.coord[i,L]
-    end
+    @. @inbounds @views edge.coordK=grid.coord[:,K]
+    @. @inbounds @views edge.coordL=grid.coord[:,L]
 end
 
 

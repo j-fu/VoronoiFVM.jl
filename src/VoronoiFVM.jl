@@ -35,6 +35,7 @@ export integrate
 
 export glue
 export num_nodes
+export num_edges
 export num_bfaces
 export num_cells
 export prepare_edges!
