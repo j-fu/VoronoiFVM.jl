@@ -25,6 +25,7 @@ include("vfvm_solver.jl")
 include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
 
+include("tokenstream.jl")
 
 export unknowns
 export fbernoulli
@@ -38,6 +39,7 @@ export num_nodes
 export num_edges
 export num_bfaces
 export num_cells
+export tridata
 export prepare_edges!
 export enable_species!
 export enable_boundary_species!
