@@ -1,5 +1,6 @@
 # Changes
 ## dev
+- Fixed performance regression: AbstractArrays for Grid components were slow.
 
 ## V0.5, November 10, 2019
 - Velocity projections

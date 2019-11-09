@@ -90,19 +90,19 @@ mutable struct Grid{Tc,Ti} <: AbstractGrid
     """ 
     2D Array of node coordinates
     """
-    coord::AbstractArray{Tc,2}
+    coord::Array{Tc,2}
 
     
     """
     2D Array of node indices per grid cell
     """
-    cellnodes::AbstractArray{Ti,2}
+    cellnodes::Array{Ti,2}
 
     """
     Array of edge indices per grid cell.
     Instatiated with prepare_edges!(grid)
     """
-    celledges::AbstractArray{Ti,2}
+    celledges::Array{Ti,2}
 
     """
     Array of cell indices per grid edge.
@@ -111,30 +111,30 @@ mutable struct Grid{Tc,Ti} <: AbstractGrid
     indices are set to 0
     Instatiated with prepare_edges!(grid)
     """
-    edgecells::AbstractArray{Ti,2}
+    edgecells::Array{Ti,2}
 
     """
     Array of node indices per grid edge.
     Instatiated with prepare_edges!(grid)
     """
-    edgenodes::AbstractArray{Ti,2}
+    edgenodes::Array{Ti,2}
     
     """
     Array of cell region numbers
     """
-    cellregions::AbstractArray{Ti,1}
+    cellregions::Array{Ti,1}
 
     
     """
     2D Array of node indices per boundary face
     """
-    bfacenodes::AbstractArray{Ti,2}      
+    bfacenodes::Array{Ti,2}      
 
     
     """
     Array of boundary face region numbers
     """
-    bfaceregions::AbstractArray{Ti,1}
+    bfaceregions::Array{Ti,1}
 
     
     """
@@ -150,9 +150,9 @@ mutable struct Grid{Tc,Ti} <: AbstractGrid
 
     
     """
-    2D AbstractArray describing local scheme of distributions nodes per cell edge.
+    2D Array describing local scheme of distributions nodes per cell edge.
     """
-    local_celledgenodes::AbstractArray{Ti,2}
+    local_celledgenodes::Array{Ti,2}
 
 end
 
@@ -174,11 +174,11 @@ end
         
   Main constructor for general grid from basic incidence information
 """
-function Grid(coord::AbstractArray{Tc,2},
-              cellnodes::AbstractArray{Ti,2},
-              cellregions::AbstractArray{Ti,1},
-              bfacenodes::AbstractArray{Ti,2},
-              bfaceregions::AbstractArray{Ti,1}
+function Grid(coord::Array{Tc,2},
+              cellnodes::Array{Ti,2},
+              cellregions::Array{Ti,1},
+              bfacenodes::Array{Ti,2},
+              bfaceregions::Array{Ti,1}
               ) where {Tc,Ti}
     
     dim::Ti=size(coord,1)
