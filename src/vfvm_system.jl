@@ -257,7 +257,7 @@ Check if species number corresponds bulk species.
 """
 function is_bulk_species(this::AbstractSystem, ispec::Integer)
     isrspec=false
-    for ixvreg=1:num_cellregions(this.grid)
+    for ixreg=1:num_cellregions(this.grid)
         if this.region_species[ispec,ixreg]>0
             isrspec=true
         end
@@ -870,7 +870,7 @@ function _fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
         K=grid.edgenodes[1,edge.index]
         L=grid.edgenodes[2,edge.index]
     else
-        edge.index=undef
+        edge.index=0
         K=celledgenode(grid,1,iedge,icell)
         L=celledgenode(grid,2,iedge,icell)
     end

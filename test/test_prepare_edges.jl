@@ -23,10 +23,8 @@ function test()
     grid=VoronoiFVM.Grid(nodes,cells,cellmat,bfaces,bfacemat)
 
     prepare_edges!(grid)
-
-
     grid.celledges==[3 5; 2 4; 1 3] &&       
-    grid.edgenodes==[1 1 2 2 3; 2 3 3 4 4] &&
+    grid.edgenodes==[2 3 3 4 4; 1 1 2 2 3] &&
     grid.edgecells==[1 1 1 2 2; 0 0 2 0 0] 
 
 end
