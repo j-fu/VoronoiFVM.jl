@@ -257,7 +257,7 @@ Check if species number corresponds bulk species.
 """
 function is_bulk_species(this::AbstractSystem, ispec::Integer)
     isrspec=false
-    for ixreg=1:num_cellregions(this.grid)
+    for ixvreg=1:num_cellregions(this.grid)
         if this.region_species[ispec,ixreg]>0
             isrspec=true
         end
@@ -859,13 +859,22 @@ end
 
 
 function _fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
-    K=celledgenode(grid,1,iedge,icell)
-    L=celledgenode(grid,2,iedge,icell)
-    edge.region=grid.cellregions[icell]
+    K=0
+    L=0
+    # If we work with projections of fluxes onto edges,
+    # we need to ensure that the edges are accessed with the
+    # same orientation without regard of the orientation induced
+    # by local cell numbering
     if num_edges(grid)>0
         edge.index=celledge(grid,iedge,icell)
+        K=grid.edgenodes[1,edge.index]
+        L=grid.edgenodes[2,edge.index]
+    else
+        edge.index=undef
+        K=celledgenode(grid,1,iedge,icell)
+        L=celledgenode(grid,2,iedge,icell)
     end
-#    edge.index=iedge
+    edge.region=grid.cellregions[icell]
     edge.nodeK=K
     edge.nodeL=L
     edge.icell=icell

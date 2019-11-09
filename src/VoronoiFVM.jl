@@ -58,5 +58,8 @@ export testfunction
 export data
 export edgelength
 export viewK,viewL
+
+export edgevelocities
+
 end
 

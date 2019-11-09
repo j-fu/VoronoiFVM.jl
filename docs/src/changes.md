@@ -1,8 +1,9 @@
 # Changes
+## dev
 
-## V0.4.3, November 7, 2019
+## V0.5, November 10, 2019
+- Velocity projections
 - Added edge handling to grid struct
-
 
 ## V0.4.2, November 6, 2019
 - Replaced PyPlot by Plots

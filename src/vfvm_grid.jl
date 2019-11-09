@@ -1,6 +1,6 @@
 ##########################################################
 """
-$(TYPEDEF)
+    $(TYPEDEF)
 
 Abstract type for grid like datastructures [`VoronoiFVM.Grid`](@ref) and [`VoronoiFVM.SubGrid`](@ref).
 """
@@ -614,34 +614,34 @@ function prepare_edges!(grid)
     Ti=eltype(grid.cellnodes)
     
     # Create cell-node incidence matrix
-    ecn=ExtendableSparseMatrix{Ti,Ti}(num_nodes(grid),num_cells(grid))
+    ext_cellnode_adj=ExtendableSparseMatrix{Ti,Ti}(num_nodes(grid),num_cells(grid))
     for icell=1:num_cells(grid)
         for inode=1:VoronoiFVM.num_nodes_per_cell(grid)
-            ecn[grid.cellnodes[inode,icell],icell]=1
+            ext_cellnode_adj[grid.cellnodes[inode,icell],icell]=1
         end
     end
-    flush!(ecn)
+    flush!(ext_cellnode_adj)
     # Get SparseMatrixCSC from the ExtendableMatrix
-    cn=ecn.cscmatrix
+    cellnode_adj=ext_cellnode_adj.cscmatrix
     
     # Create node-node incidence matrix for neigboring
     # nodes. 
-    nn=cn*transpose(cn)
+    nodenode_adj=cellnode_adj*transpose(cellnode_adj)
 
-    # To get unique edges, we set he lower triangular part
+    # To get unique edges, we set the lower triangular part
     # including the diagonal to 0
-    for icol=1:length(nn.colptr)-1
-        for irow=nn.colptr[icol]:nn.colptr[icol+1]-1
-            if nn.rowval[irow]>=icol
-                nn.nzval[irow]=0
+    for icol=1:length(nodenode_adj.colptr)-1
+        for irow=nodenode_adj.colptr[icol]:nodenode_adj.colptr[icol+1]-1
+            if nodenode_adj.rowval[irow]>=icol
+                nodenode_adj.nzval[irow]=0
             end
         end
     end
-    dropzeros!(nn)
+    dropzeros!(nodenode_adj)
 
 
     # Now we know the number of edges and
-    nedges=length(nn.nzval)
+    nedges=length(nodenode_adj.nzval)
 
     
     if dim_space(grid)==2
@@ -662,18 +662,23 @@ function prepare_edges!(grid)
         for iedge=1:VoronoiFVM.num_edges_per_cell(grid)
             n1=VoronoiFVM.celledgenode(grid,1,iedge,icell)
             n2=VoronoiFVM.celledgenode(grid,2,iedge,icell)            
-	    
-	    if (n1<n2)
-                n0=n1
-                n1=n2
-                n2=n0;
-            end
 
-            for irow=nn.colptr[n1]:nn.colptr[n1+1]-1
-                if nn.rowval[irow]==n2
+            # We need to look in nodenod_adj for upper triangular part entries
+            # therefore, we need to swap accordingly before looking
+	    if (n1<n2)
+		n0=n1
+		n1=n2
+		n2=n0;
+	    end
+            
+            for irow=nodenode_adj.colptr[n1]:nodenode_adj.colptr[n1+1]-1
+                if nodenode_adj.rowval[irow]==n2
+                    # If the coresponding entry has been found, set its
+                    # value. Note that this introduces a different edge orientation
+                    # compared to the one found locally from cell data
                     celledges[iedge,icell]=irow
-                    edgenodes[2,irow]=n1
-                    edgenodes[1,irow]=n2
+                    edgenodes[1,irow]=n1
+                    edgenodes[2,irow]=n2
                 end
             end
         end
@@ -681,24 +686,24 @@ function prepare_edges!(grid)
 
 
     # Create sparse incidence matrix for the cell-edge adjacency
-    ece=ExtendableSparseMatrix{Ti,Ti}(nedges,num_cells(grid))
+    ext_celledge_adj=ExtendableSparseMatrix{Ti,Ti}(nedges,num_cells(grid))
     for icell=1:num_cells(grid)
         for iedge=1:VoronoiFVM.num_edges_per_cell(grid)
-            ece[celledges[iedge,icell],icell]=1
+            ext_celledge_adj[celledges[iedge,icell],icell]=1
         end
     end
-    flush!(ece)
-    ce=ece.cscmatrix
+    flush!(ext_celledge_adj)
+    celledge_adj=ext_celledge_adj.cscmatrix
 
     # The edge cell matrix is the transpose
-    ec=SparseMatrixCSC(transpose(ce))
+    edgecell_adj=SparseMatrixCSC(transpose(celledge_adj))
 
     # Get the adjaency array from the matrix
     edgecells=zeros(Ti,2,nedges)
-    for icol=1:length(ec.colptr)-1
+    for icol=1:length(edgecell_adj.colptr)-1
         ii=1
-        for irow=ec.colptr[icol]:ec.colptr[icol+1]-1
-            edgecells[ii,icol]=ec.rowval[irow]
+        for irow=edgecell_adj.colptr[icol]:edgecell_adj.colptr[icol+1]-1
+            edgecells[ii,icol]=edgecell_adj.rowval[irow]
             ii+=1
         end
     end
