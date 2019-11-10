@@ -265,7 +265,7 @@ function edgevelocities(grid,velofunc)
     cn=grid.cellnodes
     ec=grid.edgecells
     en=grid.edgenodes
-    @show grid
+
     velovec=zeros(Float64,num_edges(grid))
     if VoronoiFVM.dim_space(grid)==1
         for iedge=1:num_edges(grid)

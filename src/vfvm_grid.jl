@@ -617,6 +617,7 @@ function bfacemask!(grid::Grid,
     end
         
     grid.num_bfaceregions=max(num_bfaceregions(grid),ireg)
+    return grid
 end
 
 

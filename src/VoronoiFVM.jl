@@ -47,6 +47,7 @@ export cellmask!
 export bfacemask!
 export fvmplot
 export fvmplot!
+export bfacenode,nodecoord
 export dof
 export getdof
 export setdof!
@@ -60,6 +61,7 @@ export edgelength
 export viewK,viewL
 export cartesian!, cylindrical!
 export edgevelocities
+export geomspace
 
 end
 
