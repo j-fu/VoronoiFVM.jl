@@ -18,14 +18,11 @@ include("vfvm_physics.jl")
 include("vfvm_grid.jl")
 include("vfvm_functions.jl")
 include("vfvm_newtoncontrol.jl")
-include("vfvm_tools.jl")
 include("vfvm_plots.jl")
 include("vfvm_system.jl")
 include("vfvm_solver.jl")
 include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
-
-include("tokenstream.jl")
 
 export unknowns
 export fbernoulli

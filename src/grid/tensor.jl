@@ -1,3 +1,7 @@
+#=
+Grid constructors from tensor data
+=#
+
 ##############################################################
 """
 $(SIGNATURES)
@@ -170,132 +174,210 @@ function glue(a::Vector{Tv}, b::Vector{Tv}; tol=1.0e-10) where Tv
 end
 
 
-##################################################################
+##########################################################
 """
 $(SIGNATURES)
 
-Extract value from dual number. Use to debug physics callbacks.
-Re-exported from ForwardDiff.jl
+Constructor for 1D grid.
+
+Construct 1D grid from an array of node cordinates.
+It creates two boundary regions with index 1 at the left end and
+index 2 at the right end.
+
+Primal grid holding unknowns: marked by `o`, dual
+grid marking control volumes: marked by `|`.
+
+```@raw html
+ o-----o-----o-----o-----o-----o-----o-----o-----o
+ |--|-----|-----|-----|-----|-----|-----|-----|--|
+```
+
 """
-const value=ForwardDiff.value
-
-
-##################################################################
-"""
-$(SIGNATURES)
-
-Find the circumcenter of a triangle.                 
-									 
-Created from C source of Jonathan R Shewchuk <jrs@cs.cmu.edu>
-
-Modified to return absolute coordinates.
-"""
-function tricircumcenter!(circumcenter::Vector{Tv},a::Vector{Tv},b::Vector{Tv},c::Vector{Tv}) where Tv
-
-    # Use coordinates relative to point `a' of the triangle.
-    xba = b[1] - a[1]
-    yba = b[2] - a[2]
-    xca = c[1] - a[1]
-    yca = c[2] - a[2]
-
-    # Squares of lengths of the edges incident to `a'.
-    balength = xba * xba + yba * yba
-    calength = xca * xca + yca * yca
-    
-    # Calculate the denominator of the formulae.
-    # if EXACT
-    #    Use orient2d() from http://www.cs.cmu.edu/~quake/robust.html	 
-    #    to ensure a correctly signed (and reasonably accurate) result, 
-    #    avoiding any possibility of division by zero.		    
-    #  denominator = 0.5 / orient2d((double*) b, (double*) c, (double*) a)
-    
-    
-    # Take your chances with floating-point roundoff
-    denominator = 0.5 / (xba * yca - yba * xca)
-
-    # Calculate offset (from `a') of circumcenter. 
-    xcirca = (yca * balength - yba * calength) * denominator  
-    ycirca = (xba * calength - xca * balength) * denominator  
-
-
-# The result is returned both in terms of x-y coordinates and xi-eta	 
-# coordinates, relative to the triangle's point `a' (that is, `a' is	 
-# the origin of both coordinate systems).	 Hence, the x-y coordinates	 
-# returned are NOT absolute; one must add the coordinates of `a' to	 
-# find the absolute coordinates of the circumcircle.  However, this means	 
-# that the result is frequently more accurate than would be possible if	 
-# absolute coordinates were returned, due to limited floating-point	 
-# precision.  In general, the circumradius can be computed much more	 
-# accurately.								 
-    
-
-circumcenter[1] = xcirca+a[1]
-    circumcenter[2] = ycirca+a[2]
-
-    return circumcenter
+function Grid(X::AbstractArray{Tc,1}) where {Tc}
+    coord=reshape(X,1,length(X))
+    cellnodes=zeros(Int32,2,length(X)-1)
+    cellregions=zeros(Int32,length(X)-1)
+    for i=1:length(X)-1 
+        cellnodes[1,i]=i
+        cellnodes[2,i]=i+1
+        cellregions[i]=1
+    end
+    bfacenodes=Array{Int32}(undef,1,2)
+    bfaceregions=zeros(Int32,2)
+    bfacenodes[1,1]=1
+    bfacenodes[1,2]=length(X)
+    bfaceregions[1]=1
+    bfaceregions[2]=2
+    return Grid(coord,
+                cellnodes,
+                cellregions,
+                bfacenodes,
+                bfaceregions)
 end
 
 
-
-
-##################################################################
+##########################################################
 """
 $(SIGNATURES)
 
-Project velocity onto grid edges,
+Constructor for 2D grid
+from coordinate arrays. 
+Boundary region numbers count counterclockwise:
+
+| location  |  number |
+| --------- | ------- |
+| south     |       1 |
+| east      |       2 |
+| north     |       3 |
+| west      |       4 |
+
 """
-function edgevelocities(grid,velofunc)
-    #
-    # TODO: this should be generalized for more quadrules
-    #
-    function integrate(coordl,coordr,hnormal,velofunc)
-        wl=1.0/6.0
-        wm=2.0/3.0
-        wr=1.0/6.0
-        coordm=0.5*(coordl+coordr)
-        (vxl,vyl)=velofunc(coordl[1],coordl[2])
-        (vxm,vym)=velofunc(coordm[1],coordm[2])
-        (vxr,vyr)=velofunc(coordr[1],coordr[2])
-        return (wl*vxl +wm*vxm+wr*vxr)*hnormal[1] + (wl*vyl +wm*vym+wr*vyr)*hnormal[2]
+function  Grid(X::AbstractArray{Tc,1},Y::AbstractArray{Tc,1}) where {Tc}
+
+    
+    function leq(x, x1, x2)
+        if (x>x1)
+            return false
+        end
+        if (x>x2)
+            return false
+        end
+        return true
     end
     
-    @assert num_edges(grid)>0
-    @assert dim_space(grid)<3
-
-    cn=grid.cellnodes
-    ec=grid.edgecells
-    en=grid.edgenodes
-
-    velovec=zeros(Float64,num_edges(grid))
-    if VoronoiFVM.dim_space(grid)==1
-        for iedge=1:num_edges(grid)
-            K=en[1,iedge]
-            L=en[2,iedge]
-            elen=grid.coord[1,L]-grid.coord[1,K]
-            vx,vy=velofunc((grid.coord[1,K]+grid.coord[1,L])/2,0)
-            velovec[iedge]=-elen*vx
+    function geq(x, x1, x2)
+        if (x<x1)
+            return false
         end
-    else
-        for iedge=1:num_edges(grid)
-            K=en[1,iedge]
-            L=en[2,iedge]
-            p1=Vector{Float64}(undef,2)
-            p2=Vector{Float64}(undef,2)
-            tricircumcenter!(p1,
-                             grid.coord[:,cn[1,ec[1,iedge]]],
-                             grid.coord[:,cn[2,ec[1,iedge]]],
-                             grid.coord[:,cn[3,ec[1,iedge]]])
-            if ec[2,iedge]>0
-                tricircumcenter!(p2,
-                                 grid.coord[:,cn[1,ec[2,iedge]]],
-                                 grid.coord[:,cn[2,ec[2,iedge]]],
-                                 grid.coord[:,cn[3,ec[2,iedge]]])
-            else
-                p2.=0.5*(grid.coord[:,K]+grid.coord[:,L])
-            end    
-            hnormal=grid.coord[:,K]-grid.coord[:,L]
-            velovec[iedge]=integrate(p1,p2,hnormal,velofunc)
+        if (x<x2)
+            return false
+        end
+        return true
+    end
+
+    nx=length(X)
+    ny=length(Y)
+    
+    hmin=X[2]-X[1]
+    for i=1:nx-1
+        h=X[i+1]-X[i]
+        if h <hmin
+            hmin=h
         end
     end
-    return velovec
+    for i=1:ny-1
+        h=Y[i+1]-Y[i]
+        if h <hmin
+            hmin=h
+        end
+    end
+    
+    @assert(hmin>0.0)
+    eps=1.0e-5*hmin
+
+    x1=X[1]+eps
+    xn=X[nx]-eps
+    y1=Y[1]+eps
+    yn=Y[ny]-eps
+    
+    
+    function  check_insert_bface(n1,n2)
+                
+        if (geq(x1,coord[1,n1],coord[1,n2]))
+            ibface=ibface+1
+            bfacenodes[1,ibface]=n1
+            bfacenodes[2,ibface]=n2
+	    bfaceregions[ibface]=4
+            return
+        end
+        if (leq(xn,coord[1,n1],coord[1,n2]))
+            ibface=ibface+1
+            bfacenodes[1,ibface]=n1
+            bfacenodes[2,ibface]=n2
+	    bfaceregions[ibface]=2
+            return
+        end
+        if (geq(y1,coord[2,n1],coord[2,n2]))
+            ibface=ibface+1
+            bfacenodes[1,ibface]=n1
+            bfacenodes[2,ibface]=n2
+	    bfaceregions[ibface]=1
+            return
+        end
+        if (leq(yn,coord[2,n1],coord[2,n2]))
+            ibface=ibface+1
+            bfacenodes[1,ibface]=n1
+            bfacenodes[2,ibface]=n2
+	    bfaceregions[ibface]=3
+            return
+        end
+    end
+    
+    
+    num_nodes=nx*ny
+    num_cells=2*(nx-1)*(ny-1)
+    num_bfacenodes=2*(nx-1)+2*(ny-1)
+    
+    coord=zeros(Tc,2,num_nodes)
+    cellnodes=zeros(Int32,3,num_cells)
+    cellregions=zeros(Int32,num_cells)
+    bfacenodes=Array{Int32}(undef,2,num_bfacenodes)
+#    resize!(bfacenodes,2,num_bfacenodes)
+    bfaceregions=zeros(Int32,num_bfacenodes)
+    
+    ipoint=0
+    for iy=1:ny
+        for ix=1:nx
+            ipoint=ipoint+1
+            coord[1,ipoint]=X[ix]
+            coord[2,ipoint]=Y[iy]
+        end
+    end
+    @assert(ipoint==num_nodes)
+    
+    icell=0
+    for iy=1:ny-1
+        for ix=1:nx-1
+	    ip=ix+(iy-1)*nx
+	    p00 = ip
+	    p10 = ip+1
+	    p01 = ip  +nx
+	    p11 = ip+1+nx
+            
+            icell=icell+1
+            cellnodes[1,icell]=p00
+            cellnodes[2,icell]=p10
+            cellnodes[3,icell]=p11
+            cellregions[icell]=1
+            
+            
+            icell=icell+1
+            cellnodes[1,icell]=p11
+            cellnodes[2,icell]=p01
+            cellnodes[3,icell]=p00
+            cellregions[icell]=1
+        end
+    end
+    @assert(icell==num_cells)
+    
+    #lazy way to  create boundary grid
+
+    ibface=0
+    for icell=1:num_cells
+        n1=cellnodes[1,icell]
+	n2=cellnodes[2,icell]
+	n3=cellnodes[3,icell]
+        check_insert_bface(n1,n2)
+	check_insert_bface(n1,n3)
+	check_insert_bface(n2,n3)
+    end
+    @assert(ibface==num_bfacenodes)
+
+
+    return Grid(coord,
+                cellnodes,
+                cellregions,
+                bfacenodes,
+                bfaceregions)
 end
+

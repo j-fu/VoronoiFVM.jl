@@ -1,3 +1,16 @@
+
+
+##################################################################
+"""
+$(SIGNATURES)
+
+Extract value from dual number. Use to debug physics callbacks.
+Re-exported from ForwardDiff.jl
+"""
+const value=ForwardDiff.value
+
+
+
 # Add value to matrix if it is nonzero
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if v!=zero(Tv)
