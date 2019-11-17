@@ -62,6 +62,7 @@ export viewK,viewL
 export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities
 export geomspace
+export TokenStream,gettoken, expecttoken,trytoken
 
 end
 

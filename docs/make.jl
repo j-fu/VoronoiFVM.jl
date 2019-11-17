@@ -1,6 +1,6 @@
 using Documenter, VoronoiFVM, Literate
 
-# Turn block comments into "normal" hash comments
+# Turn block comments starting in the first column into "normal" hash comments
 # as they currently are not handled by Literate.jl.
 function hashify_block_comments(input)
     lines_in = collect(eachline(IOBuffer(input)))

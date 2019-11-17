@@ -1,15 +1,59 @@
+"""
+$(TYPEDEF)
+
+Tokenstream allows to read tokenized data from file without keeping
+the file ocntent in memory.
+
+$(TYPEDFIELDS)
+"""
 mutable struct TokenStream
+    """
+    Input stream
+    """
     input::IOStream
+
+    """
+    Array of current tokens kept in memory.
+    """
     tokens::Array{SubString{String},1}
+
+    """
+    Position of actual token in tokens array
+    """
     itoken::Int
+
+
+    """
+    Line number in IOStream
+    """
     lineno::Int
+
+    """
+    Comment character
+    """
     comment::Char
+
+    """
+    Function telling if given character is a delimiter.
+    """
     dlm::Function
     TokenStream()=new()
 end
 
+"""
+  $(TYPEDSIGNATURES) 
+    
+    Tokenstream destructor should close input
+"""
 destruct!(tks::TokenStream)=close(tks.input)
 
+
+"""
+$(TYPEDEF)
+
+Error thrown when the token expected  in expect!  is not there.
+$(TYPEDFIELDS)
+"""
 struct UnexpectedTokenError <: Exception
     found::String
     expected::String
@@ -18,15 +62,18 @@ end
 
 Base.showerror(io::IO, e::UnexpectedTokenError) = print(io,"Unexpected token in line $(e.lineno): $(e.found) (expected $(e.expected))")
 
-export TokenStream,gettoken, expecttoken,trytoken
 
 """
-Create Tokenstream.
+  $(TYPEDSIGNATURES) 
+        
+Create Tokenstream with file name argument.
 """
 TokenStream(filename::String;comment='#', dlm=isspace)=TokenStream(open(filename),comment=comment,dlm=dlm)
 
 """
-Create Tokenstream.
+  $(TYPEDSIGNATURES) 
+
+Create Tokenstream with IOStream argument.
 """
 function TokenStream(input::IOStream; comment='#', dlm=isspace)
     tks=TokenStream()
@@ -40,6 +87,8 @@ function TokenStream(input::IOStream; comment='#', dlm=isspace)
 end
 
 """
+  $(TYPEDSIGNATURES) 
+
 Check if all tokens have been consumed.
 """
 Base.eof(tks::TokenStream)=!_fetch!(tks)
@@ -68,7 +117,9 @@ end
 
 
 """
-Get next token.
+  $(TYPEDSIGNATURES) 
+
+Get next token from tokenstream.
 """
 function  gettoken(tks::TokenStream)
     if _fetch!(tks)
@@ -80,6 +131,8 @@ function  gettoken(tks::TokenStream)
 end
 
 """
+  $(TYPEDSIGNATURES) 
+
   Expect keyword token.
 
   If token is missing, an UnexpectedTokenError is thrown
@@ -95,10 +148,14 @@ function expecttoken(tks::TokenStream,expected::String)
 end
 
 """
+  $(TYPEDSIGNATURES) 
+
   Try for keyword token.
-  It token is missing, the token read is put back into stream
-  and the next try/gettoken command continues at the same position.
-  A value of false is returned.
+
+
+  It token is missing, the token read is put back into stream,
+  a value of false is returned and the next try/gettoken command continues at the same position,
+
   Otherwise, true is returned, and reading continues after the token found.
 """
 function trytoken(tks::TokenStream,expected::String)
