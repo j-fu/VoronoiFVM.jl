@@ -59,7 +59,7 @@ export testfunction
 export data
 export edgelength
 export viewK,viewL
-export cartesian!, cylindrical!
+export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities
 export geomspace
 

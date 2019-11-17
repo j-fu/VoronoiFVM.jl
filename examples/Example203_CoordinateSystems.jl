@@ -18,7 +18,7 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,doplot=false)
     if dim==2
         grid=VoronoiFVM.Grid(R,Z)
     end
-    cylindrical!(grid)
+    circular_symmetric!(grid)
     
     function symlapcyl(r)
         if r1≈0.0
