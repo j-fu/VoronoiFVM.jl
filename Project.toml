@@ -4,6 +4,7 @@ authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
 version = "0.5.1"
 
 [deps]
+BinDeps = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 ElasticArrays = "fdbdab4c-e67f-52f5-8c3f-e7b388dad3d4"
@@ -24,4 +25,5 @@ ExtendableSparse = "~0.1"
 ForwardDiff = "~0.10"
 IterativeSolvers = "^0.8"
 Plots = "^0.27"
+BinDeps="^v0.8.10"
 julia = "1"

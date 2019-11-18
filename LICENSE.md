@@ -1,8 +1,10 @@
-LICENSE
+License information
+===================
 
 VoronoiFVM.jl is an open-source toolkit licensed under the BSD license.
 
-Copyright (c) 2018 Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>
+````
+Copyright (c) 2018,2019 Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>
 
 All rights reserved.
 
@@ -32,3 +34,29 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER  IN CONTRACT, STRICT LIABILITY,  OR TORT (INCLUDING
 NEGLIGENCE OR  OTHERWISE) ARISING IN  ANY WAY OUT  OF THE USE  OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+````
+
+Currently, VoronoiFVM distributes the source code of Triangle by
+Jonathan Richard Shewchuk. Triangle is distributed under the following
+license conditions:
+
+````
+These programs may be freely redistributed under the condition that the
+copyright notices (including the copy of this notice in the code comments
+and the copyright notice printed when the `-h' switch is selected) are
+not removed, and no compensation is received.  Private, research, and
+institutional use is free.  You may distribute modified versions of this
+code UNDER THE CONDITION THAT THIS CODE AND ANY MODIFICATIONS MADE TO IT
+IN THE SAME FILE REMAIN UNDER COPYRIGHT OF THE ORIGINAL AUTHOR, BOTH
+SOURCE AND OBJECT CODE ARE MADE FREELY AVAILABLE WITHOUT CHARGE, AND
+CLEAR NOTICE IS GIVEN OF THE MODIFICATIONS.  Distribution of this code as
+part of a commercial system is permissible ONLY BY DIRECT ARRANGEMENT
+WITH THE AUTHOR.  (If you are not directly supplying this code to a
+customer, and you are instead telling them how they can obtain it for
+free, then you are not required to make any arrangement with me.)
+````
+
+The Triangle binding code uses ideas from 
+[TriangleMesh.jl](https://github.com/konsim83/TriangleMesh.jl).
+The usage of Triangle in this project, in [TriangleMesh.jl](https://github.com/konsim83/TriangleMesh.jl)
+and [Triangle.jl](https://github.com/cvdlab/Triangle.jl) should be consolidated into one package.
