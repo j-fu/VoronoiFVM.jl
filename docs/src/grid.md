@@ -5,13 +5,13 @@
 
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = ["grid/grid.jl","grid/subgrid.jl","grid/tokenstream.jl"]
+Pages = ["grid/grid.jl","grid/subgrid.jl","grid/tokenstream.jl","grid/triangle.jl"]
 Order = [:type]
 ```
 
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = ["grid/grid.jl","grid/subgrid.jl","grid/tokenstream.jl"]
+Pages = ["grid/grid.jl","grid/subgrid.jl","grid/tokenstream.jl","grid/triangle.jl"]
 Order = [:constant]
 ```
 ## Methods
@@ -29,6 +29,7 @@ Pages = [
   "grid/tensor.jl",
   "grid/tokenstream.jl",
   "grid/velocities.jl",
+  "grid/triangle.jl"
 ]
 Order = [:function]
 ```
