@@ -8,14 +8,14 @@ Grid constructors from various file formats
     
     Read grid from file.
 """
-function Grid(fname::String;format="")
-    (fbase,fext)=splitext(fname)
+function Grid(::Type{<:IOStream};file::String="test.sg",format="")
+    (fbase,fext)=splitext(file)
     if format==""
         format=fext[2:end]
     end
     @assert format=="sg"
     
-    tks=TokenStream(fname)
+    tks=TokenStream(file)
     expecttoken(tks,"SimplexGrid")
     version=parse(Float64,gettoken(tks))
     version20=false;

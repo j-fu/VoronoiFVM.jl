@@ -1,4 +1,7 @@
 # Changes
+## v0.5.2 Nov 19, 2019
+- Reorganized grid stuff
+- Included triangle (after Ideas from TriangleMesh.jl)
 
 ## v0.5.1 Nov 13, 2019
 - Fixed performance regression: AbstractArrays for Grid components were slow.
