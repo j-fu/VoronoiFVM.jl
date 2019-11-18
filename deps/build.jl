@@ -39,7 +39,7 @@ else
     ldflags = "--shared"
     if Sys.isapple()
         libname = "libtriangle.dylib"
-        ldflags="-dynamiclib -undefined suppress -flat_namespace"
+#        ldflags="-dynamiclib -undefined suppress -flat_namespace"
     end
     libfile = joinpath(libdir, libname)
     provides(BinDeps.BuildProcess, (@build_steps begin
