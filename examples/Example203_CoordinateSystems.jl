@@ -7,8 +7,10 @@ module Example203_CoordinateSystems
 
 using VoronoiFVM
 using LinearAlgebra
-using Plots
 
+if installed("Plots")
+    using Plots
+end
 
 function main(;nref=0,r1=0.0, r2=5.0, dim=2,doplot=false)
     h=0.1*2.0^(-nref)
