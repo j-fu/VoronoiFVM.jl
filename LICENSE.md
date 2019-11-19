@@ -58,5 +58,3 @@ free, then you are not required to make any arrangement with me.)
 
 The Triangle binding code uses ideas from 
 [TriangleMesh.jl](https://github.com/konsim83/TriangleMesh.jl).
-The usage of Triangle in this project, in [TriangleMesh.jl](https://github.com/konsim83/TriangleMesh.jl)
-and [Triangle.jl](https://github.com/cvdlab/Triangle.jl) should be consolidated into one package.

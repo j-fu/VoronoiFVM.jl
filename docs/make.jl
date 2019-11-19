@@ -1,4 +1,4 @@
-using Documenter, VoronoiFVM, Literate
+using Documenter, VoronoiFVM,VoronoiFVM.Triangle, Literate
 
 # Turn block comments starting in the first column into "normal" hash comments
 # as they currently are not handled by Literate.jl.
@@ -54,7 +54,7 @@ function make_all()
     
     makedocs(
         sitename="VoronoiFVM.jl",
-        modules = [VoronoiFVM],
+        modules = [VoronoiFVM,VoronoiFVM.Triangle],
         clean = true,
         doctest = false,
         authors = "J. Fuhrmann",

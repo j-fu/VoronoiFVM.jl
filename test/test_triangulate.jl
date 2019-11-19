@@ -2,7 +2,7 @@ module test_triangulate
 using VoronoiFVM
 
 function test()
-    triin=VoronoiFVM.TriangulateIO()
+    triin=VoronoiFVM.Triangle.TriangulateIO()
     triin.pointlist=Matrix{Float64}([1.0 0.0 ; 0.0 1.0 ; -1.0 0.0 ; 0.0 -1.0]')
     triin.segmentlist=Matrix{Int32}([1 2 ; 2 3 ; 3 4 ; 4 1 ]')
     triin.segmentmarkerlist=Vector{Int32}([1, 2, 3, 4])

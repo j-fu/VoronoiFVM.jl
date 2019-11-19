@@ -4,8 +4,9 @@
 
 
 ```@autodocs
-Modules = [VoronoiFVM]
+Modules = [VoronoiFVM,VoronoiFVM.Triangle]
 Pages = [ 
+  "grid/triangle.jl",
   "grid/file.jl",
   "grid/formfactors.jl",
   "grid/grid_interface.jl",
@@ -14,16 +15,17 @@ Pages = [
   "grid/subgrid_interface.jl",
   "grid/subgrid.jl",
   "grid/tensor.jl",
+  "grid/generate.jl",
   "grid/tokenstream.jl",
-  "grid/velocities.jl",
-  "grid/triangle.jl"
+  "grid/velocities.jl"
 ]
 Order = [:type]
 ```
 
 ```@autodocs
-Modules = [VoronoiFVM]
+Modules = [VoronoiFVM,VoronoiFVM.Triangle]
 Pages = [ 
+  "grid/triangle.jl",
   "grid/file.jl",
   "grid/formfactors.jl",
   "grid/grid_interface.jl",
@@ -32,17 +34,18 @@ Pages = [
   "grid/subgrid_interface.jl",
   "grid/subgrid.jl",
   "grid/tensor.jl",
+  "grid/generate.jl",
   "grid/tokenstream.jl",
-  "grid/velocities.jl",
-  "grid/triangle.jl"
+  "grid/velocities.jl"
 ]
 Order = [:constant]
 ```
 ## Methods
 
 ```@autodocs
-Modules = [VoronoiFVM]
+Modules = [VoronoiFVM,VoronoiFVM.Triangle]
 Pages = [ 
+  "grid/triangle.jl",
   "grid/file.jl",
   "grid/formfactors.jl",
   "grid/grid_interface.jl",
@@ -51,9 +54,9 @@ Pages = [
   "grid/subgrid_interface.jl",
   "grid/subgrid.jl",
   "grid/tensor.jl",
+  "grid/generate.jl",
   "grid/tokenstream.jl",
-  "grid/velocities.jl",
-  "grid/triangle.jl"
+  "grid/velocities.jl"
 ]
 Order = [:function]
 ```

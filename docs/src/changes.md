@@ -1,4 +1,9 @@
 # Changes
+## dev
+- triangle in submodule
+- Conditional inclusion of vfvm_plots and vfvm_pyplot depending on installed Plots resp. PyPlot
+- Removed formal dependency on Plots
+
 ## v0.5.2 Nov 19, 2019
 - Reorganized grid stuff
 - Included triangle (after Ideas from TriangleMesh.jl)

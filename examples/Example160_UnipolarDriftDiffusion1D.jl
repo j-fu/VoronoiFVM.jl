@@ -2,11 +2,11 @@
 module Example160_UnipolarDriftDiffusion1D
 
 using Printf
+
+using VoronoiFVM
 if installed("Plots")
     using Plots
 end
-
-using VoronoiFVM
 
 mutable struct Data <: VoronoiFVM.AbstractData
     eps::Float64 

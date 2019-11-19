@@ -17,6 +17,10 @@ using LinearAlgebra
 
 using Printf
 
+
+include("triangle/triangle.jl")
+
+
 include("vfvm_physics.jl")
 include("vfvm_grid.jl")
 include("vfvm_functions.jl")
