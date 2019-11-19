@@ -15,7 +15,7 @@ example.
 module Example107_NonlinearStorage1D
 using Printf
 using VoronoiFVM
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

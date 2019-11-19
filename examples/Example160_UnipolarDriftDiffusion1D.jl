@@ -2,7 +2,7 @@
 module Example160_UnipolarDriftDiffusion1D
 
 using Printf
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

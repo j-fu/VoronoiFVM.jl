@@ -7,7 +7,7 @@ using VoronoiFVM
 const Node=VoronoiFVM.Node
 const Edge=VoronoiFVM.Edge
 
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

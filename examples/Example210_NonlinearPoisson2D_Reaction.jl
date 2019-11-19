@@ -5,7 +5,7 @@ module Example210_NonlinearPoisson2D_Reaction
 using Printf
 using VoronoiFVM
 
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

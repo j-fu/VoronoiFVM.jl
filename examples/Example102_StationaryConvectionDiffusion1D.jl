@@ -27,7 +27,7 @@ the impact on the qualitative properties of the solution.
 module Example102_StationaryConvectionDiffusion1D
 using Printf
 using VoronoiFVM
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

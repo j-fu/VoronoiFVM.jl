@@ -21,7 +21,7 @@ using VoronoiFVM
 
 
 
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

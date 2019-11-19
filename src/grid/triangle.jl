@@ -272,7 +272,7 @@ This conversion is not performed if the data types are thos
 indicated in the defaults and the leading dimension of 2D arrays
 corresponds to the space dimension.
 """
-function Grid(;flags::String="pAaqD",
+function Grid(;flags::String="pAaqDQ",
               points=Array{Float64,2}(undef,0,0),
               bfaces=Array{Int32,2}(undef,0,0),
               bfaceregions=Array{Int32,1}(undef,0),

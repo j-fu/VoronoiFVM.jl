@@ -1,6 +1,4 @@
 import Plots
-
-
 function frgb(i,max;pastel=false)
     x=Float64(i-1)/Float64(max)
     if (x<0.5)

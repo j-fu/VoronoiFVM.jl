@@ -33,7 +33,7 @@ using Printf
 using VoronoiFVM
 
 # Allow plotting
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

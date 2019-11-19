@@ -24,9 +24,7 @@ end
 
 
 
-function fvmpyplot(grid::Grid)
-    
-    
+function fvmpyplot(grid::Grid; aspect=1)
     if dim_space(grid)==1
         xmin=minimum(grid.coord)
         xmax=maximum(grid.coord)
@@ -49,43 +47,19 @@ function fvmpyplot(grid::Grid)
             x1=coord1[1]
             PyPlot.plot([x1,x1],[-2*h,2*h],linewidth=3.0,color=rgb)
         end
-    end
+    end 
 
     if dim_space(grid)==2
-        PyPlot.triplot(grid.coord[1,:], grid.coord[2,:],transpose(grid.cellnodes.-1),color="k")
+        PyPlot.axes(aspect=aspect)
+        PyPlot.tripcolor(tridata(grid)...,facecolors=grid.cellregions,cmap="Pastel2")
+        PyPlot.triplot(tridata(grid)...,color="k",linewidth=0.5)
         for ibface=1:num_bfaces(grid)
             rgb=pyplot_frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
             coord1=nodecoord(grid,bfacenode(grid,1,ibface))
             coord2=nodecoord(grid,bfacenode(grid,2,ibface))
-            PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=5,color=rgb)
+            PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=3,color=rgb)
         end
     end
-
-    # if dim_space(grid)==2
-    #     for icell=1:num_cells(grid)
-    #         rgb=pyplot_frgb(grid.cellregions[icell],num_cellregions(grid),pastel=true)
-    #         coord1=nodecoord(grid,cellnode(grid,1,icell))
-    #         coord2=nodecoord(grid,cellnode(grid,2,icell))
-    #         coord3=nodecoord(grid,cellnode(grid,3,icell))
-    #         PyPlot.fill( [coord1[1],coord2[1], coord3[1]],[coord1[2],coord2[2],coord3[2]]  ,linewidth=0.5,color=rgb)
-    #     end
-    #     for icell=1:num_cells(grid)
-    #         coord1=nodecoord(grid,cellnode(grid,1,icell))
-    #         coord2=nodecoord(grid,cellnode(grid,2,icell))
-    #         coord3=nodecoord(grid,cellnode(grid,3,icell))
-    #         PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=0.5,color="k")
-    #         PyPlot.plot( [coord1[1],coord3[1]],[coord1[2],coord3[2]]  ,linewidth=0.5,color="k")
-    #         PyPlot.plot( [coord2[1],coord3[1]],[coord2[2],coord3[2]]  ,linewidth=0.5,color="k")
-    #     end
-    #     for ibface=1:num_bfaces(grid)
-    #         rgb=pyplot_frgb(grid.bfaceregions[ibface],num_bfaceregions(grid))
-    #         coord1=nodecoord(grid,bfacenode(grid,1,ibface))
-    #         coord2=nodecoord(grid,bfacenode(grid,2,ibface))
-    #         PyPlot.plot( [coord1[1],coord2[1]],[coord1[2],coord2[2]]  ,linewidth=5,color=rgb)
-    #     end
-
-    # end
-
 end
 
 
@@ -111,7 +85,7 @@ end
 
 
 
-function fvmpyplot(grid::AbstractGrid, U::AbstractArray; color=(0,0,0),label="")
+function fvmpyplot(grid::AbstractGrid, U::AbstractArray; color=(0,0,0),cmap="hot",label="",levels=10,aspect=1)
     if dim_space(grid)==1
         for icell=1:num_cells(grid)
             i1=grid.cellnodes[1,icell]
@@ -126,8 +100,9 @@ function fvmpyplot(grid::AbstractGrid, U::AbstractArray; color=(0,0,0),label="")
         end
     end
     if dim_space(grid)==2
-        PyPlot.tricontourf(grid.coord[1,:], grid.coord[2,:],transpose(grid.cellnodes.-1),U)
-        PyPlot.tricontour(grid.coord[1,:], grid.coord[2,:],transpose(grid.cellnodes.-1),U,colors="k")
+        PyPlot.axes(aspect=aspect)
+        PyPlot.tricontourf(tridata(grid)...,U;levels=levels,cmap=cmap)
+        PyPlot.tricontour(tridata(grid)...,U,colors="k",levels=levels)
     end
 end
 

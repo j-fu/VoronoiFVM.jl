@@ -19,7 +19,7 @@ We initialize this problem with the exact solution for $t=t_0=0.001$.
 module Example106_NonlinearDiffusion1D
 using Printf
 using VoronoiFVM
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

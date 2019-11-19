@@ -5,8 +5,7 @@ module Example220_NonlinearPoisson2D_BoundarySpecies
 using Printf
 using VoronoiFVM
 
-
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 

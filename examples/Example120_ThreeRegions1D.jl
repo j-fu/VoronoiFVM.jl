@@ -5,7 +5,7 @@ module Example120_ThreeRegions1D
 using Printf
 using VoronoiFVM
 
-if isinteractive()
+if installed("Plots")
     using Plots
 end
 
