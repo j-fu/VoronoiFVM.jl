@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>202: 2D Laplace equation on unstructured mesh · VoronoiFVM.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="../../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>VoronoiFVM.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../../">Home</a></li><li><a class="toctext" href="../../changes/">Changes</a></li><li><a class="toctext" href="../../method/">The Voronoi finite volume method</a></li><li><span class="toctext">API Documentation</span><ul><li><a class="toctext" href="../../grid/">Grid</a></li><li><a class="toctext" href="../../physics/">Physics</a></li><li><a class="toctext" href="../../system/">System</a></li><li><a class="toctext" href="../../allindex/">Index</a></li></ul></li><li><span class="toctext">Examples</span><ul><li><a class="toctext" href="../Example101_Laplace1D/">101: 1D Laplace equation</a></li><li><a class="toctext" href="../Example102_StationaryConvectionDiffusion1D/">102: 1D Stationary convection-diffusion equation</a></li><li><a class="toctext" href="../Example105_NonlinearPoisson1D/">105: 1D Nonlinear Poisson equation</a></li><li><a class="toctext" href="../Example106_NonlinearDiffusion1D/">106: 1D Nonlinear Diffusion equation</a></li><li><a class="toctext" href="../Example107_NonlinearStorage1D/">107: 1D Nonlinear Storage</a></li><li><a class="toctext" href="../Example110_NonlinearPoisson1D_TwoSpecies/">110: 1D Nonlinear Poisson equation with two species</a></li><li><a class="toctext" href="../Example115_NonlinearPoisson1D_BoundarySpecies/">-</a></li><li><a class="toctext" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D</a></li><li><a class="toctext" href="../Example125_TestFunctions1D/">125: Terminal flux calculation via test functions</a></li><li><a class="toctext" href="../Example150_Impedance1D/">150: Impedance calculation</a></li><li><a class="toctext" href="../Example160_UnipolarDriftDiffusion1D/">160: Unipolar degenerate drift-diffusion</a></li><li class="current"><a class="toctext" href>202: 2D Laplace equation on unstructured mesh</a><ul class="internal"></ul></li><li><a class="toctext" href="../Example203_CoordinateSystems/">203: Various coordinate systems</a></li><li><a class="toctext" href="../Example205_NonlinearPoisson2D/">205: 2D Nonlinear Poisson equation</a></li><li><a class="toctext" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction</a></li><li><a class="toctext" href="../Example215_NonlinearPoisson2D_BoundaryReaction/">215: 2D Nonlinear Poisson with boundary reaction</a></li><li><a class="toctext" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">220: 2D Nonlinear Poisson with boundary reaction and boundary species</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>202: 2D Laplace equation on unstructured mesh</a></li></ul><a class="edit-page" href="https://github.com/j-fu/VoronoiFVM.jl"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>202: 2D Laplace equation on unstructured mesh</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id=":-2D-Laplace-equation-on-unstructured-mesh-1" href="#:-2D-Laplace-equation-on-unstructured-mesh-1">202: 2D Laplace equation on unstructured mesh</a></h1><pre><code class="language-julia">module Example202_Laplace2D_Unstructured
+
+using VoronoiFVM
+using LinearAlgebra
+
+if installed(&quot;PyPlot&quot;)
+    using PyPlot
+end</code></pre><p>Flux function which describes the flux between neigboring control volumes <span>$\omega_k$</span> and <span>$\omega_l$</span></p><pre><code class="language-julia">function flux!(f,u,edge,data)
+    uk=viewK(edge,u)
+    ul=viewL(edge,u)
+    f[1]=uk[1]-ul[1]
+end
+
+function source!(f,edge,data)
+    f[1]=1
+end
+
+
+function main(;plotgrid=false, doplot=false,nref=0)
+
+    nspecies=1
+    ispec=1
+    nrad=10*2^nref
+    grid=VoronoiFVM.Grid(points=reduce(hcat,[ [cos(2*pi*i/nrad), sin(2*pi*i/nrad)] for i=1:nrad]),
+                         bfaces=reduce(hcat,vcat([ [i,i+1] for i=1:nrad-1],[[nrad,1]])),
+                         bfaceregions=ones(nrad),
+                         regionpoints=[0.0 0.0;],
+                         regionnumbers=[1],
+                         regionvolumes=[0.1*2.0^(-2*nref)])
+
+    if plotgrid
+        PyPlot.clf()
+        fvmpyplot(grid)
+        return
+    end</code></pre><p>Create a physics structure</p><pre><code class="language-julia">    physics=VoronoiFVM.Physics(num_species=nspecies,flux=flux!,source=source!)</code></pre><p>Create a finite volume system with dense storage of unknowns</p><pre><code class="language-julia">    sys=VoronoiFVM.DenseSystem(grid,physics)</code></pre><p>Enable species 1 in region 1</p><pre><code class="language-julia">    enable_species!(sys,ispec,[1])</code></pre><p>Set boundary conditions Dirichlet boundary conditions are marked by setting a corresponding value of the boundary factor</p><pre><code class="language-julia">    for i=1:num_bfaceregions(grid)
+        sys.boundary_factors[ispec,i]=VoronoiFVM.Dirichlet
+        sys.boundary_values[ispec,i]=0
+    end</code></pre><p>Create &amp; initialize array for solution and initial value</p><pre><code class="language-julia">    inival=unknowns(sys)
+    solution=unknowns(sys)
+    inival.=0
+    solution.=0</code></pre><p>Solve stationary problem</p><pre><code class="language-julia">    solve!(solution,inival,sys)
+
+    if doplot
+        PyPlot.clf()
+        fvmpyplot(grid, solution[1,:])
+    end</code></pre><p>Return test value</p><pre><code class="language-julia">    return norm(solution,Inf)
+end</code></pre><p>Called by unit test</p><pre><code class="language-julia">function test()
+    main() ≈ 0.22723115735932964
+end
+
+end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../Example160_UnipolarDriftDiffusion1D/"><span class="direction">Previous</span><span class="title">160: Unipolar degenerate drift-diffusion</span></a><a class="next" href="../Example203_CoordinateSystems/"><span class="direction">Next</span><span class="title">203: Various coordinate systems</span></a></footer></article></body></html>
