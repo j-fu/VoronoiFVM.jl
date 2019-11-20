@@ -12,9 +12,14 @@ end
 
 
 mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
-    sys::AbstractSystem{Tv}
+    sysnzval::AbstractVector{Complex{Tv}}
+    grid::Grid
+    nspecies
     storderiv::AbstractMatrix{Tv}
     matrix::AbstractMatrix{Complex{Tv}}
+    node
+    edge
+    physics
     ibc::Integer
     ispec::Integer
     F::AbstractMatrix{Complex{Tv}}
@@ -27,14 +32,18 @@ end
 
 function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xibc) where Tv
     this=ImpedanceSystem{Tv}()
-
-    this.sys=sys
+    this.grid=sys.grid
+    this.physics=sys.physics
+    this.nspecies=num_species(sys)
+    this.node=Node{Tv}(sys)
+    this.edge=Edge{Tv}(sys)
+    this.sysnzval=complex(nonzeros(sys.matrix))
     this.storderiv=spzeros(Tv,num_dof(sys), num_dof(sys))
     m,n=size(sys.matrix)
     this.matrix=SparseMatrixCSC(m,n,
                                 colptrs(sys.matrix),
                                 rowvals(sys.matrix),
-                                complex(nonzeros(sys.matrix))
+                                copy(this.sysnzval)
                                 )
     this.ispec=xispec
     this.ibc=xibc
@@ -171,15 +180,11 @@ function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) w
 
     matrix=this.matrix
     storderiv=this.storderiv
-    sysmatrix=this.sys.matrix
-    grid=this.sys.grid
+    grid=this.grid
     
-    nspecies::Int32=num_species(this.sys)
-    sysnzval=nonzeros(sysmatrix)
+    nspecies::Int32=this.nspecies
     nzval=nonzeros(matrix)
-    for i=1:length(nzval)
-        nzval[i]=complex(sysnzval[i])
-    end
+    nzval.=this.sysnzval
     U0=this.U0
     for inode=1:num_nodes(grid)
         for idof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
@@ -195,19 +200,18 @@ end
 
 function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::AbstractMatrix{Complex{Tv}}) where Tv
     iω=ω*1im
-    sys=this.sys
-    grid=this.sys.grid
-    nspecies=num_species(sys)
+    grid=this.grid
+    nspecies=this.nspecies
     integral=zeros(Complex{Tv},nspecies)
     res=zeros(Tv,nspecies)
     stor=zeros(Tv,nspecies)
-    node=Node{Tv}(sys)
-    edge=Edge{Tv}(sys)
+    node=this.node
+    edge=this.edge
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
     U0=this.U0
-    physics=sys.physics
+    physics=this.physics
 
 
     @inline function fluxwrap(y::AbstractVector, u::AbstractVector)
