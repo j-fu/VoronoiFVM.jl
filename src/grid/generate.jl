@@ -6,8 +6,30 @@ Create Grid from Triangle input data.
 """
 function Grid(triangle_switches::String, tio_in::Triangle.TriangulateIO)
     triout,vorout=Triangle.triangulate(triangle_switches,tio_in)
+
+    pointlist=triout.pointlist
+    if eltype(pointlist)!=Float64
+        pointlist=Array{Float64,2}(pointlist)
+    end
+    
+    trianglelist=triout.trianglelist
+    if eltype(trianglelist)!=Int32
+        trianglelist=Array{Int32,2}(trianglelist)
+    end
+
     cellregions=Vector{Int32}(vec(triout.triangleattributelist))
-    return VoronoiFVM.Grid(triout.pointlist,triout.trianglelist,cellregions,triout.segmentlist,triout.segmentmarkerlist)
+    
+    segmentlist=triout.segmentlist
+    if eltype(segmentlist)!=Int32
+        segmentlist=Array{Int32,2}(segmentlist)
+    end
+    
+    segmentmarkerlist=triout.segmentmarkerlist
+    if eltype(segmentmarkerlist)!=Int32
+        segmentmarkerlist=Array{Int32,2}(segmentmarkerlist)
+    end
+    
+    return VoronoiFVM.Grid(pointlist,trianglelist,cellregions,segmentlist,segmentmarkerlist)
 end
 
 
@@ -15,7 +37,7 @@ end
 $(TYPEDSIGNATURES)
 
 Create Grid from a number of input arrays.
-The 2D input arrays are transposed and converted to
+The 2D input arrays are transposed if necessary and converted to
 the proper data types for Triangle.
 
 This conversion is not performed if the data types are thos
@@ -23,19 +45,19 @@ indicated in the defaults and the leading dimension of 2D arrays
 corresponds to the space dimension.
 """
 function Grid(;flags::String="pAaqDQ",
-              points=Array{Float64,2}(undef,0,0),
-              bfaces=Array{Int32,2}(undef,0,0),
-              bfaceregions=Array{Int32,1}(undef,0),
-              regionpoints=Array{Float64,2}(undef,0,0),
-              regionnumbers=Array{Int32,1}(undef,0),
-              regionvolumes=Array{Float64,1}(undef,0)
+              points=Array{Cdouble,2}(undef,0,0),
+              bfaces=Array{Cint,2}(undef,0,0),
+              bfaceregions=Array{Cint,1}(undef,0),
+              regionpoints=Array{Cdouble,2}(undef,0,0),
+              regionnumbers=Array{Cint,1}(undef,0),
+              regionvolumes=Array{Cdouble,1}(undef,0)
               )
     @assert ndims(points)==2
     if size(points,2)==2
         points=transpose(points)
     end
-    if typeof(points)!=Array{Float64,2}
-        points=Array{Float64,2}(points)
+    if typeof(points)!=Array{Cdouble,2}
+        points=Array{Cdouble,2}(points)
     end
     @assert(size(points,2)>2)
     
@@ -43,23 +65,23 @@ function Grid(;flags::String="pAaqDQ",
     if size(bfaces,2)==2
         bfaces=transpose(bfaces)
     end
-    if typeof(bfaces)!=Array{Int32,2}
-        bfaces=Array{Int32,2}(bfaces)
+    if typeof(bfaces)!=Array{Cint,2}
+        bfaces=Array{Cint,2}(bfaces)
     end
     @assert(size(bfaces,2)>0)
     
     @assert ndims(bfaceregions)==1
     @assert size(bfaceregions,1)==size(bfaces,2)
-    if typeof(bfaceregions)!=Array{Int32,1}
-        bfaceregions=Array{Int32,1}(bfaceregions)
+    if typeof(bfaceregions)!=Array{Cint,1}
+        bfaceregions=Array{Cint,1}(bfaceregions)
     end
     
     @assert ndims(regionpoints)==2
     if size(regionpoints,2)==2
         regionpoints=transpose(regionpoints)
     end
-    if typeof(regionpoints)!=Array{Float64,2}
-        regionpoints=Array{Float64,2}(regionpoints)
+    if typeof(regionpoints)!=Array{Cdouble,2}
+        regionpoints=Array{Cdouble,2}(regionpoints)
     end
     @assert(size(regionpoints,2)>0)
     
@@ -80,8 +102,8 @@ function Grid(;flags::String="pAaqDQ",
 
 
     
-    regionlist=Array{Float64,2}(undef,4,nregions)
-    holelist=Array{Float64,2}(undef,2,nholes)
+    regionlist=Array{Cdouble,2}(undef,4,nregions)
+    holelist=Array{Cdouble,2}(undef,2,nholes)
     
     ihole=1
     iregion=1

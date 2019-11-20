@@ -100,25 +100,25 @@ Julia version of Triangle's triangulateio structure.
 $(TYPEDFIELDS)
 """
 mutable struct TriangulateIO
-    pointlist :: Array{Float64,2}
-    pointattributelist :: Array{Float64,2}
+    pointlist :: Array{Cdouble,2}
+    pointattributelist :: Array{Cdouble,2}
     
-    trianglelist :: Array{Int32,2}
-    triangleattributelist :: Array{Float64,2}
-    trianglearealist :: Array{Float64,1} # input only
-    neighborlist :: Array{Int32,2} # output only
-    numberofcorners :: Int32
+    trianglelist :: Array{Cint,2}
+    triangleattributelist :: Array{Cdouble,2}
+    trianglearealist :: Array{Cdouble,1} # input only
+    neighborlist :: Array{Cint,2} # output only
+    numberofcorners :: Cint
     
-    segmentlist :: Array{Int32,2}
-    segmentmarkerlist :: Array{Int32,1}
+    segmentlist :: Array{Cint,2}
+    segmentmarkerlist :: Array{Cint,1}
 
-    holelist :: Array{Float64,2} # input only, copied to output list
+    holelist :: Array{Cdouble,2} # input only, copied to output list
 
-    regionlist ::  Array{Float64,2} # input only, copied to output list
+    regionlist ::  Array{Cdouble,2} # input only, copied to output list
 
-    edgelist :: Array{Int32,2} # output only
-    edgemarkerlist :: Array{Int32,1} # output only
-    normlist :: Array{Float64,2} # output only
+    edgelist :: Array{Cint,2} # output only
+    edgemarkerlist :: Array{Cint,1} # output only
+    normlist :: Array{Cdouble,2} # output only
 end 
 
 ##########################################################
@@ -129,20 +129,20 @@ $(TYPEDSIGNATURES)
 Create empty TriangulateIO structure
 """
 function TriangulateIO()
-    return TriangulateIO(Array{Float64,2}(undef,0,0), # poinlist
-                         Array{Float64,2}(undef,0,0), # pointattrlist
-                         Array{Int32,2}(undef,0,0),   # trianglelist
-                         Array{Int32,2}(undef,0,0),   # triangleattrlist
-                         Array{Float64,1}(undef,0),   # trianglearealist
-                         Array{Int32,2}(undef,0,0),   # nblist
+    return TriangulateIO(Array{Cdouble,2}(undef,0,0), # poinlist
+                         Array{Cdouble,2}(undef,0,0), # pointattrlist
+                         Array{Cint,2}(undef,0,0),   # trianglelist
+                         Array{Cint,2}(undef,0,0),   # triangleattrlist
+                         Array{Cdouble,1}(undef,0),   # trianglearealist
+                         Array{Cint,2}(undef,0,0),   # nblist
                          0,
-                         Array{Int32,2}(undef,0,0),   # seglist
-                         Array{Int32,1}(undef,0),     # segmarkers
-                         Array{Float64,2}(undef,0,0), # holelist
-                         Array{Float64,2}(undef,0,0), # regionlist
-                         Array{Int32,2}(undef,0,0),   # edgelist
-                         Array{Int32,1}(undef,0),     # edgemarkerlist
-                         Array{Float64,2}(undef,0,0)  # normlist
+                         Array{Cint,2}(undef,0,0),   # seglist
+                         Array{Cint,1}(undef,0),     # segmarkers
+                         Array{Cdouble,2}(undef,0,0), # holelist
+                         Array{Cdouble,2}(undef,0,0), # regionlist
+                         Array{Cint,2}(undef,0,0),   # edgelist
+                         Array{Cint,1}(undef,0),     # edgemarkerlist
+                         Array{Cdouble,2}(undef,0,0)  # normlist
                          )
 end
 
@@ -205,29 +205,29 @@ end
 function TriangulateIO(ctio::CTriangulateIO)
     tio=TriangulateIO()
     if ctio.numberofpoints>0
-        tio.pointlist = convert(Array{Float64,2}, Base.unsafe_wrap(Array, ctio.pointlist, (2,Int(ctio.numberofpoints)), own=true))
+        tio.pointlist = convert(Array{Cdouble,2}, Base.unsafe_wrap(Array, ctio.pointlist, (2,Int(ctio.numberofpoints)), own=true))
     end
     if ctio.numberofpointattributes>0
-        tio.pointattributelist=convert(Array{Float64,2}, Base.unsafe_wrap(Array, ctio.pointattributelistlist, (Int(ctio.numberofpointattributes),Int(ctio.numberofpoints)), own=true))
+        tio.pointattributelist=convert(Array{Cdouble,2}, Base.unsafe_wrap(Array, ctio.pointattributelistlist, (Int(ctio.numberofpointattributes),Int(ctio.numberofpoints)), own=true))
     end
     if ctio.numberoftriangles>0
-        tio.trianglelist=convert(Array{Int32,2}, Base.unsafe_wrap(Array, ctio.trianglelist, (3,Int(ctio.numberoftriangles)), own=true))
+        tio.trianglelist=convert(Array{Cint,2}, Base.unsafe_wrap(Array, ctio.trianglelist, (3,Int(ctio.numberoftriangles)), own=true))
     end
     if ctio.numberoftriangleattributes>0
-        tio.triangleattributelist=convert(Array{Float64,2}, Base.unsafe_wrap(Array, ctio.triangleattributelist, (Int(ctio.numberoftriangleattributes),Int(ctio.numberoftriangles)), own=true))
+        tio.triangleattributelist=convert(Array{Cdouble,2}, Base.unsafe_wrap(Array, ctio.triangleattributelist, (Int(ctio.numberoftriangleattributes),Int(ctio.numberoftriangles)), own=true))
     end
     # todo: trianglearealist check if the C pointer is 0
     if ctio.numberofsegments>0
-        tio.segmentlist=convert(Array{Int32,2}, Base.unsafe_wrap(Array, ctio.segmentlist, (2,Int(ctio.numberofsegments)), own=true))
-        tio.segmentmarkerlist=convert(Array{Int32,1}, Base.unsafe_wrap(Array, ctio.segmentmarkerlist, (Int(ctio.numberofsegments)), own=true))
+        tio.segmentlist=convert(Array{Cint,2}, Base.unsafe_wrap(Array, ctio.segmentlist, (2,Int(ctio.numberofsegments)), own=true))
+        tio.segmentmarkerlist=convert(Array{Cint,1}, Base.unsafe_wrap(Array, ctio.segmentmarkerlist, (Int(ctio.numberofsegments)), own=true))
     end
     
     # todo: copy regions,holes to output
     if ctio.numberofedges>0
-        tio.edgelist=convert(Array{Int32,2}, Base.unsafe_wrap(Array, ctio.edgelist, (2,Int(ctio.numberofedges)), own=true))
-        tio.edgemarkerlist=convert(Array{Int32,1}, Base.unsafe_wrap(Array, ctio.edgemarkerlist, (Int(ctio.numberofedges)), own=true))
+        tio.edgelist=convert(Array{Cint,2}, Base.unsafe_wrap(Array, ctio.edgelist, (2,Int(ctio.numberofedges)), own=true))
+        tio.edgemarkerlist=convert(Array{Cint,1}, Base.unsafe_wrap(Array, ctio.edgemarkerlist, (Int(ctio.numberofedges)), own=true))
         # todo: check if the C pointer is 0
-        # tio.normlist=convert(Array{Float64,2}, Base.unsafe_wrap(Array, ctio.edgemarkerlist, (2,Int(ctio.numberofedges)), own=true))
+        # tio.normlist=convert(Array{Cdouble,2}, Base.unsafe_wrap(Array, ctio.edgemarkerlist, (2,Int(ctio.numberofedges)), own=true))
     end
     return tio
 end
