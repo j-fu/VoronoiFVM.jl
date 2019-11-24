@@ -7,9 +7,9 @@ using VoronoiFVM
 if installed(&quot;Plots&quot;)
     using Plots
 end</code></pre><p>Structure containing  userdata information</p><pre><code class="language-julia">mutable struct Data  &lt;: VoronoiFVM.AbstractData
-    D::Real
-    C::Real
-    R::Real
+    D::Float64
+    C::Float64
+    R::Float64
     Data()=new()
 end
 
