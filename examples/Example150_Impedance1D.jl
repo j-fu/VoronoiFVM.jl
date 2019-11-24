@@ -34,9 +34,9 @@ end
 
 # Structure containing  userdata information
 mutable struct Data  <: VoronoiFVM.AbstractData
-    D::Real           
-    C::Real
-    R::Real
+    D::Float64           
+    C::Float64
+    R::Float64
     Data()=new()
 end
 
