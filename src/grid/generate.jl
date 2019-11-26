@@ -1,11 +1,18 @@
+Tri=nothing
+if installed("TriangleRaw")
+    import TriangleRaw
+    Tri=TriangleRaw
+else
+    Tri=Triangle
+end
 
 """
 $(TYPEDSIGNATURES)
 
 Create Grid from Triangle input data.
 """
-function Grid(triangle_switches::String, tio_in::Triangle.TriangulateIO)
-    triout,vorout=Triangle.triangulate(triangle_switches,tio_in)
+function Grid(triangle_switches::String, tio_in::Tri.TriangulateIO)
+    triout,vorout=Tri.triangulate(triangle_switches,tio_in)
 
     pointlist=triout.pointlist
     if eltype(pointlist)!=Float64
@@ -38,7 +45,7 @@ $(TYPEDSIGNATURES)
 
 Create Grid from a number of input arrays.
 The 2D input arrays are transposed if necessary and converted to
-the proper data types for Triangle.
+the proper data types for Tri.
 
 This conversion is not performed if the data types are thos
 indicated in the defaults and the leading dimension of 2D arrays
@@ -120,7 +127,7 @@ function Grid(;flags::String="pAaqDQ",
             iregion+=1
         end
     end
-    tio=Triangle.TriangulateIO()
+    tio=Tri.TriangulateIO()
     tio.pointlist=points
     tio.segmentlist=bfaces
     tio.segmentmarkerlist=bfaceregions

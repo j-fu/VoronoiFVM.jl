@@ -1,4 +1,3 @@
-# This is "dead code" meant for some ideas.
 import PyPlot
 
 

@@ -17,8 +17,11 @@ using LinearAlgebra
 
 using Printf
 
+installed(pkg)=haskey(Pkg.installed(),pkg)
 
-include("triangle/triangle.jl")
+if !installed("TriangleRaw")
+    include("triangle/triangle.jl")
+end
 
 
 include("vfvm_physics.jl")
@@ -31,7 +34,6 @@ include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
 
 
-installed(pkg)=haskey(Pkg.installed(),pkg)
 
 if installed("Plots")
     include("vfvm_plots.jl")
@@ -41,7 +43,6 @@ end
 
 if installed("PyPlot")
     include("vfvm_pyplot.jl")
-    export fvmpyplot
 end
 
 export installed

@@ -3,6 +3,9 @@ using VoronoiFVM
 
 
 function test()
+    if installed("TriangleRaw")
+        return true
+    end
     nodes=Matrix{Cdouble}([1.0 0.0 ; 0.0 1.0 ; -1.0 0.0 ; 0.0 -1.0]')
     faces=Matrix{Cint}([1 2 ; 2 3 ; 3 4 ; 4 1 ]')
     faceregions=Matrix{Cint}([1 2 3 4]')

@@ -22,7 +22,6 @@ end
 
 function fvmplot!(p,grid::Grid)
     
-    
     if dim_space(grid)==1
         xmin=minimum(grid.coord)
         xmax=maximum(grid.coord)
