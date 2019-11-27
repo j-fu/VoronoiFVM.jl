@@ -1,8 +1,16 @@
 module test_triangulate
 using VoronoiFVM
 
+Tri=nothing
+if installed("TriangleRaw")
+    import TriangleRaw
+    Tri=TriangleRaw
+else
+    Tri=VoronoiFVM.Triangle
+end
+
 function test()
-    triin=VoronoiFVM.Triangle.TriangulateIO()
+    triin=Tri.TriangulateIO()
     triin.pointlist=Matrix{Float64}([1.0 0.0 ; 0.0 1.0 ; -1.0 0.0 ; 0.0 -1.0]')
     triin.segmentlist=Matrix{Int32}([1 2 ; 2 3 ; 3 4 ; 4 1 ]')
     triin.segmentmarkerlist=Vector{Int32}([1, 2, 3, 4])
