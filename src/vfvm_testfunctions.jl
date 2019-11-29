@@ -24,7 +24,7 @@ end
 
 ################################################
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Constructor for TestFunctionFactory from System
 """
@@ -46,7 +46,7 @@ end
 
 ############################################################################
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Create testfunction which has Dirichlet zero boundary conditions  for boundary
 regions in bc0 and Dirichlet one boundary conditions  for boundary
@@ -86,9 +86,9 @@ end
 
 ############################################################################
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
-Calculate test function integral.
+Calculate test function integral for transient solution.
 """
 function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where Tv
     grid=this.grid
@@ -150,11 +150,108 @@ end
 
 ############################################################################
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
-Calculate test function integral.
+Calculate test function integral for steady state solution.
 """
 integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}) where Tv=integrate(this,tf,U,U,Inf)
 
 
 
+############################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Steady state part of test function integral.
+"""
+function integrate_stdy(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+    grid=this.grid
+    nspecies=num_species(this)
+    integral=zeros(Tu,nspecies)
+    res=zeros(Tu,nspecies)
+    stor=zeros(Tu,nspecies)
+    node=Node{Tv}(this)
+    edge=Edge{Tv}(this)
+    node_factors=zeros(Tv,num_nodes_per_cell(grid))
+    edge_factors=zeros(Tv,num_edges_per_cell(grid))
+    edge_cutoff=1.0e-12
+    UKL=Array{Tu,1}(undef,2*nspecies)
+    UK=Array{Tu,1}(undef,nspecies)
+    
+    for icell=1:num_cells(grid)
+        cellfactors!(grid,icell,node_factors,edge_factors)
+        edge.region=reg_cell(grid,icell)
+        for iedge=1:num_edges_per_cell(grid)
+            if edge_factors[iedge]<edge_cutoff
+                continue
+            end
+            _fill!(edge,grid,iedge,icell)
+
+            for ispec=1:nspecies
+                UKL[ispec]=U[ispec,edge.nodeK]
+                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+                res[ispec]=0.0
+            end
+            this.physics.flux(res,UKL,edge, this.physics.data)
+            for ispec=1:nspecies
+                if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
+                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
+                end
+            end
+        end
+        
+        for inode=1:num_nodes_per_cell(grid)
+            _fill!(node,grid,inode,icell)
+            for ispec=1:nspecies
+                res[ispec]=0.0
+                UK[ispec]=U[ispec,node.index]
+            end
+            this.physics.reaction(res,UK,node,this.physics.data)
+            for ispec=1:nspecies
+                if this.node_dof[ispec,node.index]==ispec
+                    integral[ispec]+=node_factors[inode]*res[ispec]*tf[node.index]
+                end
+            end
+        end
+    end
+    return integral
+end
+
+############################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Calculate transient part of test function integral.
+"""
+function integrate_tran(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+    grid=this.grid
+    nspecies=num_species(this)
+    integral=zeros(Tu,nspecies)
+    res=zeros(Tu,nspecies)
+    stor=zeros(Tu,nspecies)
+    node=Node{Tv}(this)
+    edge=Edge{Tv}(this)
+    node_factors=zeros(Tv,num_nodes_per_cell(grid))
+    edge_factors=zeros(Tv,num_edges_per_cell(grid))
+    edge_cutoff=1.0e-12
+    UK=Array{Tu,1}(undef,nspecies)
+    
+    for icell=1:num_cells(grid)
+        cellfactors!(grid,icell,node_factors,edge_factors)
+        for inode=1:num_nodes_per_cell(grid)
+            _fill!(node,grid,inode,icell)
+            for ispec=1:nspecies
+                UK[ispec]=U[ispec,node.index]
+                res[ispec]=0.0
+                stor[ispec]=0.0
+            end
+            this.physics.storage(stor,U[:,node.index],node,this.physics.data)
+            for ispec=1:nspecies
+                if this.node_dof[ispec,node.index]==ispec
+                    integral[ispec]+=node_factors[inode]*stor[ispec]*tf[node.index]
+                end
+            end
+        end
+    end
+    return integral
+end

@@ -1,3 +1,6 @@
+using SparseDiffTools
+using SparseArrays
+
 abstract type AbstractImpedanceSystem{Tv <: Number} end
 
 
@@ -14,14 +17,8 @@ end
 mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
     sysnzval::AbstractVector{Complex{Tv}}
     grid::Grid
-    nspecies
     storderiv::AbstractMatrix{Tv}
     matrix::AbstractMatrix{Complex{Tv}}
-    node
-    edge
-    physics
-    ibc::Integer
-    ispec::Integer
     F::AbstractMatrix{Complex{Tv}}
     U0::AbstractMatrix{Tv}
     ImpedanceSystem{Tv}() where Tv =new()
@@ -30,13 +27,9 @@ end
 
 
 
-function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xibc) where Tv
+function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, excited_spec,excited_bc) where Tv
     this=ImpedanceSystem{Tv}()
     this.grid=sys.grid
-    this.physics=sys.physics
-    this.nspecies=num_species(sys)
-    this.node=Node{Tv}(sys)
-    this.edge=Edge{Tv}(sys)
     this.sysnzval=complex(nonzeros(sys.matrix))
     this.storderiv=spzeros(Tv,num_dof(sys), num_dof(sys))
     m,n=size(sys.matrix)
@@ -45,8 +38,6 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
                                 rowvals(sys.matrix),
                                 copy(this.sysnzval)
                                 )
-    this.ispec=xispec
-    this.ibc=xibc
     this.U0=U0
 
     matrix=this.matrix
@@ -59,10 +50,10 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
     
     grid=sys.grid
     
-    physics::Physics=sys.physics
-    node::Node=Node{Tv}(sys)
-    bnode::BNode=BNode{Tv}(sys)
-    nspecies::Int32=num_species(sys)
+    physics=sys.physics
+    node=Node{Tv}(sys)
+    bnode=BNode{Tv}(sys)
+    nspecies=num_species(sys)
     
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
@@ -82,11 +73,10 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
     UK=Array{Tv,1}(undef,nspecies)
     Y=Array{Tv,1}(undef,nspecies)
     
-    # structs holding diff results for storage, reaction,  flux ...
+    # structs holding diff results for storage
     result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
     
-    
-    # Main cell loop
+    # Main cell loop for building up storderiv
     for icell=1:num_cells(grid)
         # set up form factors
         cellfactors!(grid,icell,node_factors,edge_factors)
@@ -128,9 +118,9 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
                 
                 UK[1:nspecies]=U0[:,bnode.index]
             end
-            if ibreg==xibc
+            if ibreg==excited_bc
                 for ispec=1:nspecies # should involve only rspecies
-                    if ispec!=xispec
+                    if ispec!=excited_spec
                         continue
                     end
                     idof=dof(F,ispec,bnode.index)
@@ -165,24 +155,16 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, xispec,xib
             
         end
     end
-
-    
     return this
 end
 
-unknowns(this::ImpedanceSystem{Tv}) where Tv=copy(this.F)
+unknowns(this::ImpedanceSystem{Tv}) where Tv=similar(this.F)
                                                      
 function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) where Tv
     iω=ω*1im
-
-    # hoist field accesses for immutable struct
-    # cf. https://github.com/JuliaLang/julia/issues/15668
-
     matrix=this.matrix
     storderiv=this.storderiv
     grid=this.grid
-    
-    nspecies::Int32=this.nspecies
     nzval=nonzeros(matrix)
     nzval.=this.sysnzval
     U0=this.U0
@@ -198,116 +180,38 @@ function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) w
 end
 
 
-function integrate(this::AbstractImpedanceSystem{Tv},tf::Vector{Tv},ω::Tv,UZ::AbstractMatrix{Complex{Tv}}) where Tv
-    iω=ω*1im
-    grid=this.grid
-    nspecies=this.nspecies
-    integral=zeros(Complex{Tv},nspecies)
-    res=zeros(Tv,nspecies)
-    stor=zeros(Tv,nspecies)
-    node=this.node
-    edge=this.edge
-    node_factors=zeros(Tv,num_nodes_per_cell(grid))
-    edge_factors=zeros(Tv,num_edges_per_cell(grid))
-    edge_cutoff=1.0e-12
-    U0=this.U0
-    physics=this.physics
 
-
-    @inline function fluxwrap(y::AbstractVector, u::AbstractVector)
-        y.=0
-        @views physics.flux(y,u,edge,physics.data)
-    end
-
-    @inline function reactionwrap(y::AbstractVector, u::AbstractVector)
-        y.=0
-        physics.reaction(y,u,node,physics.data)
-    end
-
-    @inline function storagewrap(y::AbstractVector, u::AbstractVector)
-        y.=0
-        physics.storage(y,u,node,physics.data)
-    end
-
-
-    # istoragew+= S'*uz*nodefac*tfc
-    # ireactionw+= R'*uz*nodefac*tfc
-    # iflux+=(FK'*uzk+FL'*uzl)*(tfcK-tfcL)*edgefac
-
-    # integral=istoragew+ireactionw+iflux
-    
-    # structs holding diff results for storage, reaction,  flux ...
-    result_r=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_flx=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,2*nspecies))
-
-    jac_react=zeros(Tv,nspecies,nspecies)
-
-    # Arrays for gathering solution data
-    UK=Array{Tv,1}(undef,nspecies)
-    UKL=Array{Tv,1}(undef,2*nspecies)
-    Y=Array{Tv,1}(undef,nspecies)
-
-    for icell=1:num_cells(grid)
-        cellfactors!(grid,icell,node_factors,edge_factors)
-        for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
-            @views  UK[1:nspecies]=U0[:,node.index]
-
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK)
-            jac_stor=DiffResults.jacobian(result_s)
-            if isdefined(physics, :reaction)
-                ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK)
-                jac_react=DiffResults.jacobian(result_r)
-            end
-            K=node.index
-            for idof=_firstnodedof(U0,K):_lastnodedof(U0,K)
-                ispec=_spec(U0,idof,K)
-                for jdof=_firstnodedof(U0,K):_lastnodedof(U0,K)
-                    jspec=_spec(U0,jdof,K)
-                    
-                    integral[ispec]+=(node_factors[inode]*tf[K]
-                                      *(jac_stor[ispec,jspec]*iω+jac_react[ispec,jspec])*UZ[jspec,K])
-                end
-            end
-        end
-
-
-        for iedge=1:num_edges_per_cell(grid)
-            if edge_factors[iedge]<edge_cutoff
-                continue
-            end
-            _fill!(edge,grid,iedge,icell)
-            for ispec=1:nspecies
-                UKL[ispec]=U0[ispec,edge.nodeK]
-                UKL[ispec+nspecies]=U0[ispec,edge.nodeL]
-            end
-
-            ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL)
-            jac=DiffResults.jacobian(result_flx)
-            
-            K=edge.nodeK
-            L=edge.nodeL
-            fac=edge_factors[iedge]*(tf[K]-tf[L])
-            for idofK=_firstnodedof(U0,K):_lastnodedof(U0,K)
-                ispec=_spec(U0,idofK,K)
-                idofL=dof(U0,ispec,L)
-                if idofL==0
-                    continue
-                end
-                for jdofK=_firstnodedof(U0,K):_lastnodedof(U0,K)
-                    jspec=_spec(U0,jdofK,K)
-                    jdofL=dof(U0,jspec,L)
-                    if jdofL==0
-                        continue
-                    end
-                    integral[ispec]+=fac*(jac[ispec,jspec]*UZ[jspec,K]+jac[ispec,jspec+nspecies]*UZ[jspec,L])
-
-                end
-            end
-        end
-        
-    end
-    
-    return integral
+function measurement_derivative(sys,meas,steadystate)
+    ndof=num_dof(sys)
+    colptr=[i for i in 1:ndof+1]
+    rowval=[1 for i in 1:ndof]
+    nzval=[1.0 for in in 1:ndof]
+    jac=SparseMatrixCSC(1,ndof,colptr,rowval,nzval)
+    colors = matrix_colors(jac)
+    forwarddiff_color_jacobian!(jac, meas, vec(steadystate), colorvec = colors)
+    return jac
 end
+
+ 
+function freqdomain_impedance(isys, # frequency domain system
+                              ω,   # frequency 
+                              steadystate, # steady state slution
+                              excited_spec,  # excitated spec
+                              excited_bc,  # excitation bc number
+                              excited_bcval, # excitation bc value
+                              dmeas_stdy,dmeas_tran
+                              )
+    
+    iω=1im*ω
+    # solve impedance system
+    UZ=unknowns(isys)
+    solve!(UZ,isys,ω)
+ 
+    # obtain measurement in frequency  domain
+    m_stdy=dmeas_stdy*vec(UZ)
+    m_tran=dmeas_tran*vec(UZ)
+    z=m_stdy[1]+iω*m_tran[1]
+    return z
+end
+
+

@@ -42,6 +42,10 @@ end
 
 
 function main(;nref=0,doplot=false,verbose=false)
+    if (!installed("Plots"))
+        doplot=false
+    end
+
     L=1.0
 
     # Create array which is refined close to 0
@@ -82,9 +86,14 @@ function main(;nref=0,doplot=false,verbose=false)
     enable_species!(sys,1,[1])
 
     # Create test functions for current measurement
+
+    excited_bc=1
+    excited_bcval=1.0
+    excited_spec=1
+
+
     factory=VoronoiFVM.TestFunctionFactory(sys)
-    tf0=testfunction(factory,[2],[1])
-    tfL=testfunction(factory,[1],[2])
+    measurement_testfunction=testfunction(factory,[1],[2])
 
     # Solve steady state problem
     sys.boundary_values[1,1]=1.0
@@ -97,6 +106,25 @@ function main(;nref=0,doplot=false,verbose=false)
     steadystate=unknowns(sys)
     inival.=0.0
     solve!(steadystate,inival,sys)
+
+    function meas_stdy(meas,U)
+        # -> reshape(sys,U), should work also for sparse
+        u=reshape(U,1,length(U))
+        meas[1]=VoronoiFVM.integrate_stdy(sys,measurement_testfunction,u)[1]
+        nothing
+    end
+
+    function meas_tran(meas,U)
+        u=reshape(U,1,length(U))
+        meas[1]=VoronoiFVM.integrate_tran(sys,measurement_testfunction,u)[1]
+        nothing
+    end
+    
+
+    dmeas_stdy=measurement_derivative(sys,meas_stdy,steadystate)
+    dmeas_tran=measurement_derivative(sys,meas_tran,steadystate)
+
+
 
     # Create Impeadancs system from steady state
     excited_spec=1
@@ -129,28 +157,19 @@ function main(;nref=0,doplot=false,verbose=false)
         solve!(UZ,isys,ω)
 
         # calculate aproximate solution
-        I0=integrate(isys,tf0,ω,UZ)[1]
-        IL=integrate(isys,tfL,ω,UZ)[1]
+        # obtain measurement in frequency  domain
+        IL=freqdomain_impedance(isys,ω,steadystate,excited_spec,excited_bc,excited_bcval,dmeas_stdy, dmeas_tran)
 
         # record approximate solution
         push!(allomega, ω)
-        push!(allI0,I0)
         push!(allIL,IL)
 
         # record exact solution
         z=sqrt(iω*data.C/data.D+data.R/data.D);
         eplus=exp(z*L);
         eminus=exp(-z*L);
-        Ix0=-data.D*z*(eminus+eplus)/(eminus-eplus); 
         IxL=2.0*data.D*z/(eminus-eplus);
-        push!(allIx0,Ix0)
         push!(allIxL,IxL)
-
-        if doplot
-            p=Plots.plot(grid.coord[1,:],real(UZ[1,:]),label="Re", grid=true)
-            Plots.plot!(p,grid.coord[1,:],imag(UZ[1,:]),label="Im")
-            Plots.gui(p)
-        end    
 
         # increase omega
         ω=ω*1.2
@@ -158,12 +177,6 @@ function main(;nref=0,doplot=false,verbose=false)
     end
     
     if doplot
-        p=plot(grid=true)
-        plot!(p,real(allI0),imag(allI0),label="calc")
-        plot!(p,real(allIx0),imag(allIx0),label="exact")
-        gui(p)
-        readline()
-
         p=plot(grid=true)
         plot!(p,real(allIL),imag(allIL),label="calc")
         plot!(p,real(allIxL),imag(allIxL),label="exact")

@@ -62,6 +62,7 @@ export num_bfaces
 export num_cells
 export num_bfaceregions
 export num_cellregions
+export num_dof
 export tridata
 export prepare_edges!
 export enable_species!
@@ -78,6 +79,8 @@ export value
 export solve!
 export embed!
 export subgrid
+export freqdomain_impedance
+export measurement_derivative
 export testfunction
 export data
 export edgelength
