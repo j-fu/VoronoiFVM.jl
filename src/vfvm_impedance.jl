@@ -31,8 +31,9 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, excited_sp
     this=ImpedanceSystem{Tv}()
     this.grid=sys.grid
     this.sysnzval=complex(nonzeros(sys.matrix))
-    this.storderiv=spzeros(Tv,num_dof(sys), num_dof(sys))
     m,n=size(sys.matrix)
+    
+    this.storderiv=spzeros(Tv,m,n)
     this.matrix=SparseMatrixCSC(m,n,
                                 colptrs(sys.matrix),
                                 rowvals(sys.matrix),
@@ -45,7 +46,8 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, excited_sp
 
 
     
-    F=complex(unknowns(sys))
+    F=unknowns(Complex{Float64},sys)
+    
     this.F=F
     
     grid=sys.grid
@@ -158,7 +160,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, excited_sp
     return this
 end
 
-unknowns(this::ImpedanceSystem{Tv}) where Tv=similar(this.F)
+unknowns(this::ImpedanceSystem{Tv}) where Tv=copy(this.F)
                                                      
 function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) where Tv
     iω=ω*1im
@@ -188,7 +190,8 @@ function measurement_derivative(sys,meas,steadystate)
     nzval=[1.0 for in in 1:ndof]
     jac=SparseMatrixCSC(1,ndof,colptr,rowval,nzval)
     colors = matrix_colors(jac)
-    forwarddiff_color_jacobian!(jac, meas, vec(steadystate), colorvec = colors)
+    forwarddiff_color_jacobian!(jac, meas, values(steadystate), colorvec = colors)
+    dropzeros!(jac)
     return jac
 end
 
@@ -208,8 +211,8 @@ function freqdomain_impedance(isys, # frequency domain system
     solve!(UZ,isys,ω)
  
     # obtain measurement in frequency  domain
-    m_stdy=dmeas_stdy*vec(UZ)
-    m_tran=dmeas_tran*vec(UZ)
+    m_stdy=dmeas_stdy*values(UZ)
+    m_tran=dmeas_tran*values(UZ)
     z=m_stdy[1]+iω*m_tran[1]
     return z
 end

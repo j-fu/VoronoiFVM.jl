@@ -285,8 +285,9 @@ function enable_species!(this::AbstractSystem,ispec::Integer, regions::AbstractV
         this.region_species[ispec,ireg]=ispec
         for icell=1:num_cells(this.grid)
             if this.grid.cellregions[icell]==ireg
-                for inode=1:size(this.grid.cellnodes,1)
-                    this.node_dof[ispec,this.grid.cellnodes[inode,icell]]=ispec
+                for iloc=1:size(this.grid.cellnodes,1)
+                    iglob=this.grid.cellnodes[iloc,icell]
+                    this.node_dof[ispec,iglob]=ispec
                 end
             end
         end
@@ -301,20 +302,21 @@ Add species to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
 
 """
-function enable_boundary_species!(this::AbstractSystem, ispec::Integer, regions::AbstractVector)
+function enable_boundary_species!(this::AbstractSystem, ispec::Integer, bregions::AbstractVector)
     if ispec>num_species(this)
         throw(DomainError(ispec,"Number of species exceeded"))
     end
     if is_bulk_species(this,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
-    for i in eachindex(regions)
-        ireg=regions[i]
-        this.bregion_species[ispec,ireg]=1
+    for i in eachindex(bregions)
+        ireg=bregions[i]
+        this.bregion_species[ispec,ireg]=ispec
         for ibface=1:num_bfaces(this.grid)
             if this.grid.bfaceregions[ibface]==ireg
-                for inode=1:size(this.grid.bfacenodes,1)
-                    this.node_dof[ispec,this.grid.bfacenodes[inode,ibface]]=ispec
+                for iloc=1:size(this.grid.bfacenodes,1)
+                    iglob=this.grid.bfacenodes[iloc,ibface]
+                    this.node_dof[ispec,iglob]=ispec
                 end
             end
         end
@@ -403,12 +405,28 @@ Create a solution vector for system.
 """
 function unknowns(sys::SparseSystem{Tv}) where Tv
     return SparseSolutionArray{Tv}(SparseMatrixCSC(sys.node_dof.m,
-                                        sys.node_dof.n,
-                                        sys.node_dof.colptr,
-                                        sys.node_dof.rowval,
-                                        Array{Tv}(undef,num_dof(sys))
-                                        )
-                        )
+                                                   sys.node_dof.n,
+                                                   sys.node_dof.colptr,
+                                                   sys.node_dof.rowval,
+                                                   Array{Tv}(undef,num_dof(sys))
+                                                   )
+                                   )
+end
+
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Create a solution vector for system with given type
+"""
+function unknowns(Tu::Type, sys::SparseSystem{Tv}) where Tv
+    return SparseSolutionArray{Tu}(SparseMatrixCSC(sys.node_dof.m,
+                                                   sys.node_dof.n,
+                                                   sys.node_dof.colptr,
+                                                   sys.node_dof.rowval,
+                                                   Array{Tu}(undef,num_dof(sys))
+                                                   )
+                                   )
 end
 
 
@@ -418,8 +436,52 @@ $(TYPEDSIGNATURES)
 
 Create a solution vector for system.
 """
-unknowns(sys::DenseSystem{Tv}) where Tv=Array{Tv}(undef,size(sys.node_dof,1), size(sys.node_dof,2))
+function unknowns(sys::DenseSystem{Tv}) where Tv
+    return Array{Tv}(undef,size(sys.node_dof,1), size(sys.node_dof,2))
+end
 
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Create a solution vector for system.
+"""
+function unknowns(Tu::Type,sys::DenseSystem{Tv}) where Tv
+    return Array{Tu}(undef,size(sys.node_dof,1), size(sys.node_dof,2))
+end
+
+
+ 
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Reshape vector to fit as solution to system.
+"""
+function Base.reshape(v::AbstractVector{Tu}, sys::DenseSystem{Tv}) where {Tu,Tv}
+    @assert  length(v)==num_dof(sys)
+    reshape(v,Int64(num_species(sys)),num_nodes(sys.grid))
+end
+
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Reshape vector to fit as solution to system.
+"""
+function Base.reshape(v::AbstractVector{Tu},sys::SparseSystem{Tv}) where {Tu,Tv}
+    @assert  length(v)==num_dof(sys)
+    SparseSolutionArray{Tu}(SparseMatrixCSC(sys.node_dof.m,
+                                            sys.node_dof.n,
+                                            sys.node_dof.colptr,
+                                            sys.node_dof.rowval,
+                                            Vector{Tu}(v)
+                                            )
+                            )
+end
+
+Base.reshape(v::SparseSolutionArray{Tu},sys::SparseSystem{Tv}) where {Tu,Tv}=v
+Base.reshape(v::Matrix{Tu},sys::DenseSystem{Tv}) where {Tu,Tv}=v
 
 ##################################################################
 """
@@ -452,6 +514,7 @@ $(TYPEDSIGNATURES)
 Array of values in solution array.
 """
 values(a::SparseSolutionArray)=a.node_dof.nzval
+
 
 
 ##################################################################

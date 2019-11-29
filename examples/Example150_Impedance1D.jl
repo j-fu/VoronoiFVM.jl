@@ -41,7 +41,7 @@ mutable struct Data  <: VoronoiFVM.AbstractData
 end
 
 
-function main(;nref=0,doplot=false,verbose=false)
+function main(;nref=0,doplot=false,verbose=false, dense=false)
     if (!installed("Plots"))
         doplot=false
     end
@@ -82,7 +82,11 @@ function main(;nref=0,doplot=false,verbose=false)
                                reaction=reaction
                                )
     # Create discrete system and enabe species
-    sys=VoronoiFVM.DenseSystem(grid,physics)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
     enable_species!(sys,1,[1])
 
     # Create test functions for current measurement
@@ -108,14 +112,13 @@ function main(;nref=0,doplot=false,verbose=false)
     solve!(steadystate,inival,sys)
 
     function meas_stdy(meas,U)
-        # -> reshape(sys,U), should work also for sparse
-        u=reshape(U,1,length(U))
+        u=reshape(U,sys)
         meas[1]=VoronoiFVM.integrate_stdy(sys,measurement_testfunction,u)[1]
         nothing
     end
 
     function meas_tran(meas,U)
-        u=reshape(U,1,length(U))
+        u=reshape(U,sys)
         meas[1]=VoronoiFVM.integrate_tran(sys,measurement_testfunction,u)[1]
         nothing
     end
@@ -188,7 +191,7 @@ function main(;nref=0,doplot=false,verbose=false)
 end
 
 function test()
-    main() ≈ 0.23106605162049176
+    main(dense=true) ≈ 0.23106605162049176 &&  main(dense=false) ≈ 0.23106605162049176
 end
 
 

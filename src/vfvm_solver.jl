@@ -639,11 +639,11 @@ $(TYPEDSIGNATURES)
 Integrate function `F` of  solution vector over domain. 
 The result contains the integral for each species separately.
 """
-function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tv})::Array{Tv,1} where Tv
+function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tu}) where {Tu,Tv}
     grid=this.grid
     nspecies=num_species(this)
-    integral=zeros(Tv,nspecies)
-    res=zeros(Tv,nspecies)
+    integral=zeros(Tu,nspecies)
+    res=zeros(Tu,nspecies)
     node=Node{Tv}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
