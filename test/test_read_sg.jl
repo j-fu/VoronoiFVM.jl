@@ -55,6 +55,7 @@ END
     open("t.sg", "w") do io
         write(io, content)
     end
+    sleep(0.5)
     grid=VoronoiFVM.Grid(IOStream,file="t.sg")
     rm("t.sg")
     num_nodes(grid)==12 && num_cells(grid)==9 && num_bfaces(grid)==13
