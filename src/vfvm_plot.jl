@@ -287,12 +287,12 @@ $(TYPEDSIGNATURES)
 
 Plot array as piecewise constant function on subgrid
 """
-function plot(Plotter::Module,grid::VoronoiFVM.SubGrid, U::Array{Tv,1};
+function plot(Plotter::Module,grid::VoronoiFVM.SubGrid, U::AbstractArray;
               color=(0,0,0),
               label="",
               clear=true,
               show=true,
-              p=nothing) where Tv
+              p=nothing)
 
     if ispyplot(Plotter)
         if clear
