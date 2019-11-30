@@ -19,11 +19,12 @@ SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-BinDeps = "^v0.8.10"
+BinDeps = "^0.8.10"
 DiffResults = "^0.0.4"
 ElasticArrays = "^0.4"
 ExtendableSparse = "^0.1"
 ForwardDiff = "^0.10"
 IterativeSolvers = "^0.8"
 SparseDiffTools = "^1.0"
+DocStringExtensions = "^0.8"
 julia = "1"
