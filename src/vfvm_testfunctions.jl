@@ -160,7 +160,7 @@ integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}) where T
 
 ############################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Steady state part of test function integral.
 """
@@ -219,7 +219,7 @@ end
 
 ############################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Calculate transient part of test function integral.
 """

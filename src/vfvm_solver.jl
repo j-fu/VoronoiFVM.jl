@@ -634,7 +634,7 @@ end
 
 ################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Integrate function `F` of  solution vector over domain. 
 The result contains the integral for each species separately.

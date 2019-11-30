@@ -454,7 +454,7 @@ end
  
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Reshape vector to fit as solution to system.
 """
@@ -465,7 +465,7 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Reshape vector to fit as solution to system.
 """
