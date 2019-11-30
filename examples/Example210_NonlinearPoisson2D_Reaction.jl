@@ -21,6 +21,9 @@ end
 
 
 function main(;n=10,doplot=false,verbose=false, dense=false)
+    if !installed("Plots")
+        doplot=false
+    end
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)

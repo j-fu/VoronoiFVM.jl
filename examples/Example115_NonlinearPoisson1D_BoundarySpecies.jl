@@ -15,6 +15,9 @@ end
 
 
 function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
+    if !installed("Plots")
+        doplot=false
+    end
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -80,6 +83,9 @@ function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5
+    if !installed("Plots")
+        doplot=false
+    end
     control.max_lureuse=0
     tstep=0.01
     time=0.0

@@ -33,6 +33,9 @@ end
 
 
 function main(;n=20,m=2.0,doplot=false,verbose=false, dense=false,tend=0.01,tstep=0.0001)
+    if !installed("Plots")
+        doplot=false
+    end
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)

@@ -67,6 +67,7 @@ function make_all()
                 "grid.md",
                 "physics.md",
                 "system.md",
+                "plot.md",
                 "allindex.md",
             ],
             "Examples" => generated_examples

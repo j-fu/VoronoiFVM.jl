@@ -1,8 +1,11 @@
 # Changes
 ## dev
 - triangle in submodule
-- Conditional inclusion of vfvm_plots and vfvm_pyplot depending on installed Plots resp. PyPlot
-- Removed formal dependency on Plots
+- Modified API for plotting
+   - Removed formal dependency on Plots and PyPlot
+   - Use Plotter module as first parameter to plot methods  - replaces fvmplot
+     and fvmpyplot fuctions. Use `VoronoiFVM.plot(PyPlot,...)` resp.  `VoronoiFVM.plot(Plots,...)`
+- Modified API for impedance
 
 ## v0.5.2 Nov 19, 2019
 - Reorganized grid stuff

@@ -13,6 +13,9 @@ if installed("Plots")
 end
 
 function main(;nref=0,r1=0.0, r2=5.0, dim=2,doplot=false)
+    if !installed("Plots")
+        doplot=false
+    end
     h=0.1*2.0^(-nref)
     R=collect(r1:h:r2)
     Z=collect(0:h:2)

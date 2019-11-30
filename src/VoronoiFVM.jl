@@ -19,6 +19,7 @@ using Printf
 
 installed(pkg)=haskey(Pkg.installed(),pkg)
 
+
 if !installed("TriangleRaw")
     include("triangle/triangle.jl")
 end
@@ -32,18 +33,8 @@ include("vfvm_system.jl")
 include("vfvm_solver.jl")
 include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
+include("vfvm_plot.jl")
 
-
-
-if installed("Plots")
-    include("vfvm_plots.jl")
-end
-
-
-
-if installed("PyPlot")
-    include("vfvm_pyplot.jl")
-end
 
 export installed
 
@@ -63,6 +54,8 @@ export num_cells
 export num_bfaceregions
 export num_cellregions
 export num_dof
+export dim_space
+export cellnode
 export tridata
 export prepare_edges!
 export enable_species!

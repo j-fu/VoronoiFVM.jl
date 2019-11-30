@@ -39,8 +39,7 @@ function main(;plotgrid=false, doplot=false,nref=0)
                          regionvolumes=[0.1*2.0^(-2*nref)])
 
     if plotgrid
-        PyPlot.clf()
-        fvmpyplot(grid)
+        p=VoronoiFVM.plot(PyPlot,grid)
         return
     end
 
@@ -72,8 +71,7 @@ function main(;plotgrid=false, doplot=false,nref=0)
     solve!(solution,inival,sys)
     
     if doplot
-        PyPlot.clf()
-        fvmpyplot(grid, solution[1,:])
+        VoronoiFVM.plot(PyPlot,grid, solution[1,:])
     end
     
     # Return test value

@@ -126,6 +126,9 @@ function calculate(grid,data,flux,verbose)
 end
 
 function main(;n=10,doplot=false,verbose=false,D=0.01,v=1.0)
+    if !installed("Plots")
+        doplot=false
+    end
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)

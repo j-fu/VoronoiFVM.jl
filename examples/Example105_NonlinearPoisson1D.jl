@@ -43,6 +43,9 @@ end
 # for testing. Default physics need to generate correct
 # test value.
 function main(;n=10,doplot=false,verbose=false, dense=false)
+    if !installed("Plots")
+        doplot=false
+    end
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)

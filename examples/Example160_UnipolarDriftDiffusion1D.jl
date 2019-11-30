@@ -4,9 +4,7 @@ module Example160_UnipolarDriftDiffusion1D
 using Printf
 
 using VoronoiFVM
-if installed("Plots")
-    using Plots
-end
+
 
 mutable struct Data <: VoronoiFVM.AbstractData
     eps::Float64 
@@ -16,19 +14,23 @@ mutable struct Data <: VoronoiFVM.AbstractData
     Data()=new()
 end
 
-
-
-function plot_solution(sys,U0)
-    ildata=data(sys)
-    iphi=ildata.iphi
-    ic=ildata.ic
+if installed("Plots")
+    using Plots
+    function plot_solution(sys,U0)
+        ildata=data(sys)
+        iphi=ildata.iphi
+        ic=ildata.ic
         p=Plots.plot(grid=true)
-    @views begin
-        Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label="Potential", color=:green)
-        Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label="c-", color=:blue)
+        @views begin
+            Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label="Potential", color=:green)
+            Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label="c-", color=:blue)
+        end
+        gui(p)
     end
-    gui(p)
 end
+
+
+
 
 function classflux!(f,u,edge,data)
     uk=viewK(edge,u)
@@ -70,6 +72,9 @@ end
 
 
 function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
+    if !installed("Plots")
+        doplot=false
+    end
     
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))

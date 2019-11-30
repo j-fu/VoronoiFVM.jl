@@ -28,6 +28,9 @@ end
 
 
 function main(;n=100,doplot=false,verbose=false,dense=false)
+    if !installed("Plots")
+        doplot=false
+    end
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
