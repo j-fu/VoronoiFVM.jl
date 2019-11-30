@@ -1,10 +1,12 @@
 # Changes
-## dev
-- triangle in submodule
+
+## v0.5.3
+- triangle in optional submodule
 - Modified API for plotting
    - Removed formal dependency on Plots and PyPlot
    - Use Plotter module as first parameter to plot methods  - replaces fvmplot
-     and fvmpyplot fuctions. Use `VoronoiFVM.plot(PyPlot,...)` resp.  `VoronoiFVM.plot(Plots,...)`
+     and fvmpyplot functions. Use `VoronoiFVM.plot(PyPlot,...)` resp.  `VoronoiFVM.plot(Plots,...)`
+   - No more complaints when package is used in environment with plots or pyplot installed
 - Modified API for impedance
 
 ## v0.5.2 Nov 19, 2019
