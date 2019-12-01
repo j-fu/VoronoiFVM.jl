@@ -32,20 +32,12 @@ using Printf
 # That's the thing we want to do
 using VoronoiFVM
 
-# Allow plotting
-if installed("Plots")
-    using Plots
-end
-
 
 
 # Main function for user interaction from REPL and
 # for testing. Default physics need to generate correct
 # test value.
-function main(;n=10,doplot=false,verbose=false, dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)
@@ -117,8 +109,8 @@ function main(;n=10,doplot=false,verbose=false, dense=false)
     ## Stationary solution of the problem
     solve!(solution,inival,sys, control=control)
 
-    if doplot
-        Plots.plot(grid.coord[1,:],solution[1,:],
+    if isplots(Plotter)
+        Plotter.plot(grid.coord[1,:],solution[1,:],
                    label="",
                    title="Nonlinear Poisson",
                    grid=true,show=true)

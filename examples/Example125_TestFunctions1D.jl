@@ -6,15 +6,7 @@ using VoronoiFVM
 
 
 
-if installed("Plots")
-    using Plots
-end
-
-function main(;n=100,doplot=false,verbose=false,dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
-
+function main(;n=100,Plotter=nothing,verbose=false,dense=false)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
@@ -67,14 +59,6 @@ function main(;n=100,doplot=false,verbose=false,dense=false)
     tf1=testfunction(factory,[2],[1])
     tf2=testfunction(factory,[1],[2])
     
-    if doplot
-        p=plot(grid.coord[1,:],tf1)
-        gui(p)
-        readline()
-        p=plot(grid.coord[1,:],tf2)
-        gui(p)
-        readline()
-    end
     
     U=unknowns(sys)
     inival=unknowns(sys)
@@ -91,11 +75,11 @@ function main(;n=100,doplot=false,verbose=false,dense=false)
         I1=integrate(sys,tf1,U)
         
         inival.=U
-        if doplot
-            p=plot()
-            plot!(p,grid.coord[1,:],U[1,:])
-            plot!(p,grid.coord[1,:],U[2,:])
-            gui(p)
+        if isplots(Plotter)
+            p=Plotter.plot()
+            Plotter.plot!(p,grid.coord[1,:],U[1,:])
+            Plotter.plot!(p,grid.coord[1,:],U[2,:])
+            Plotter.gui(p)
         end
         u5=U[5]
     end

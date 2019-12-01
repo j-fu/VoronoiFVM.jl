@@ -21,16 +21,8 @@ using VoronoiFVM
 
 
 
-if installed("Plots")
-    using Plots
-end
 
-
-
-function main(;n=100,doplot=false,verbose=false,dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=100,Plotter=nothing,verbose=false,dense=false)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
@@ -96,10 +88,10 @@ function main(;n=100,doplot=false,verbose=false,dense=false)
         eps=[xeps,xeps]
         solve!(U,inival,sys,control=control)
         inival.=U
-        if doplot
-            p=Plots.plot(grid.coord[1,:],U[1,:], grid=true)
-            Plots.plot!(p,grid.coord[1,:],U[2,:],show=true, title=@sprintf("\$\\varepsilon=%8.3f\$",xeps)),
-            Plots.sleep(0.2)
+        if isplots(Plotter)
+            p=Plotter.plot(grid.coord[1,:],U[1,:], grid=true)
+            Plotter.plot!(p,grid.coord[1,:],U[2,:],show=true, title=@sprintf("\$\\varepsilon=%8.3f\$",xeps)),
+            Plotter.sleep(0.2)
         end
         u5=U[5]
     end

@@ -5,17 +5,10 @@ module Example120_ThreeRegions1D
 using Printf
 using VoronoiFVM
 
-if installed("Plots")
-    using Plots
-end
- 
 
 
 
-function main(;n=30,doplot=false,verbose=false,dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,dense=false)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
     grid=VoronoiFVM.Grid(X)
@@ -27,11 +20,11 @@ function main(;n=30,doplot=false,verbose=false,dense=false)
     subgrid2=subgrid(grid,[1,2,3])
     subgrid3=subgrid(grid,[3])
     
-    if doplot
-        p=Plots.plot()
-        VoronoiFVM.plot(Plots,grid,p=p)
-        gui(p)
-        readline()
+    if isplots(Plotter)&&plot_grid
+        p=Plotter.plot()
+        VoronoiFVM.plot(Plotter,grid,p=p)
+        Plotter.gui(p)
+        return
     end
     
     eps=[1,1,1]
@@ -110,12 +103,13 @@ function main(;n=30,doplot=false,verbose=false,dense=false)
         tstep*=1.0
         istep=istep+1
         testval=U[2,15]
-        if doplot
+        if isplots(Plotter)
+            Plots=Plotter
             p=Plots.plot()
             VoronoiFVM.plot(Plots,subgrid1, U[1,:],label="spec1", color=(0.5,0,0),p=p,show=false)
             VoronoiFVM.plot(Plots,subgrid2, U[2,:],label="spec2", color=(0.0,0.5,0),p=p,show=false)
             VoronoiFVM.plot(Plots,subgrid3, U[3,:],label="spec3", color=(0.0,0.0,0.5),p=p,show=false)
-            gui(p)
+            Plots.gui(p)
         end
     end
     return testval

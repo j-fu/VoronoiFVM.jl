@@ -14,19 +14,17 @@ mutable struct Data <: VoronoiFVM.AbstractData
     Data()=new()
 end
 
-if installed("Plots")
-    using Plots
-    function plot_solution(sys,U0)
-        ildata=data(sys)
-        iphi=ildata.iphi
-        ic=ildata.ic
-        p=Plots.plot(grid=true)
-        @views begin
-            Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label="Potential", color=:green)
-            Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label="c-", color=:blue)
-        end
-        gui(p)
+function plot_solution(Plots,sys,U0)
+    !isplots(Plots) && return
+    ildata=data(sys)
+    iphi=ildata.iphi
+    ic=ildata.ic
+    p=Plots.plot(grid=true)
+    @views begin
+        Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label="Potential", color=:green)
+        Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label="c-", color=:blue)
     end
+    Plots.gui(p)
 end
 
 
@@ -71,10 +69,7 @@ function sedanflux!(f,u,edge,data)
 end 
 
 
-function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,dense=false)
     
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
@@ -120,9 +115,8 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
     U=unknowns(sys)
 
 
-    if doplot
-        plot_solution(sys,inival)
-    end
+    plot_solution(Plotter,sys,inival)
+    
     
     data.eps=1.0e-3
     control=VoronoiFVM.NewtonControl()
@@ -141,9 +135,7 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
             if verbose
                 @printf("time=%g\n",t)
             end
-            if doplot
-                plot_solution(sys,U)
-            end
+            plot_solution(Plotter,sys,U)
             tstep*=1.4
         end
         return u1
@@ -171,9 +163,7 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
                 sys.boundary_values[iphi,1]=dir*phi+delta
                 solve!(U,inival,sys,control=control)
                 inival.=U
-                if doplot
-                    plot_solution(sys,U)
-                end
+                plot_solution(Plotter,sys,U)
                 Qdelta=integrate(sys,physics.reaction,U)
                 cdl=(Qdelta[iphi]-Q[iphi])/delta
                 if dir==1
@@ -186,11 +176,12 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
                 phi+=dphi
             end
         end
-        if doplot
+        if isplots(Plotter)
+            Plots=Plotter
             p=Plots.plot(grid=true)
             Plots.plot!(p,vplus,cdlplus,color=:green)
             Plots.plot!(p,vminus,cdlminus,color=:green)
-            gui(p)
+            Plots.gui(p)
         end
         return cdl
     end

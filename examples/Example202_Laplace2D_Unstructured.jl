@@ -8,10 +8,6 @@ module Example202_Laplace2D_Unstructured
 using VoronoiFVM
 using LinearAlgebra
 
-if installed("PyPlot")
-    using PyPlot
-end
-
 
 # Flux function which describes the flux
 # between neigboring control volumes $\omega_k$ and $\omega_l$
@@ -26,7 +22,7 @@ function source!(f,edge,data)
 end
 
 
-function main(;plotgrid=false, doplot=false,nref=0)
+function main(;Plotter=nothing, plot_grid=false,nref=0)
 
     nspecies=1
     ispec=1
@@ -38,8 +34,8 @@ function main(;plotgrid=false, doplot=false,nref=0)
                          regionnumbers=[1],
                          regionvolumes=[0.1*2.0^(-2*nref)])
 
-    if plotgrid
-        p=VoronoiFVM.plot(PyPlot,grid)
+    if plot_grid
+        p=VoronoiFVM.plot(Plotter,grid)
         return
     end
 
@@ -70,9 +66,7 @@ function main(;plotgrid=false, doplot=false,nref=0)
     # Solve stationary problem
     solve!(solution,inival,sys)
     
-    if doplot
-        VoronoiFVM.plot(PyPlot,grid, solution[1,:])
-    end
+    VoronoiFVM.plot(Plotter,grid, solution[1,:])
     
     # Return test value
     return norm(solution,Inf)

@@ -8,14 +8,8 @@ module Example203_CoordinateSystems
 using VoronoiFVM
 using LinearAlgebra
 
-if installed("Plots")
-    using Plots
-end
 
-function main(;nref=0,r1=0.0, r2=5.0, dim=2,doplot=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     h=0.1*2.0^(-nref)
     R=collect(r1:h:r2)
     Z=collect(0:h:2)
@@ -71,9 +65,9 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,doplot=false)
     # Solve stationary problem
     solve!(solution,inival,sys)
     
-    if doplot
-        p=contourf(R,Z,transpose(reshape(values(solution),length(R),length(Z))),colorbar=:right)
-        gui(p)
+    if isplots(Plotter)
+        p=Plotter.contourf(R,Z,transpose(reshape(values(solution),length(R),length(Z))),colorbar=:right)
+        Plotter.gui(p)
     end
     
     exact=symlapcyl.(grid.coord[1,:])

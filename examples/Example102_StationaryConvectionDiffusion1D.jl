@@ -27,9 +27,6 @@ the impact on the qualitative properties of the solution.
 module Example102_StationaryConvectionDiffusion1D
 using Printf
 using VoronoiFVM
-if installed("Plots")
-    using Plots
-end
 
 ## Data  passed to the different functions
 struct XData <: VoronoiFVM.AbstractData
@@ -125,10 +122,7 @@ function calculate(grid,data,flux,verbose)
     return solution
 end
 
-function main(;n=10,doplot=false,verbose=false,D=0.01,v=1.0)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)
@@ -139,7 +133,8 @@ function main(;n=10,doplot=false,verbose=false,D=0.01,v=1.0)
     solution_exponential=calculate(grid,data,exponential_flux!,verbose)
     solution_upwind=calculate(grid,data,upwind_flux!,verbose)
     solution_central=calculate(grid,data,central_flux!,verbose)
-    if doplot
+    if isplots(Plotter)
+        Plots=Plotter
         p=Plots.plot(title="Convection-Diffusion",grid=true)
         Plots.plot!(p,grid.coord[1,:],solution_exponential[1,:],label="exponential")
         Plots.plot!(p,grid.coord[1,:],solution_upwind[1,:],label="upwind")

@@ -2,7 +2,7 @@ module test_triangulate
 using VoronoiFVM
 
 Tri=nothing
-if installed("TriangleRaw")
+if false #installed("TriangleRaw")
     import TriangleRaw
     Tri=TriangleRaw
 else

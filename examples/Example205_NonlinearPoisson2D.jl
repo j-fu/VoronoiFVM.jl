@@ -5,16 +5,9 @@ module Example205_NonlinearPoisson2D
 using Printf
 using VoronoiFVM
 
-if installed("Plots")
-    using Plots
-end
 
 
-
-function main(;n=10,doplot=false,verbose=false, dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -80,10 +73,9 @@ function main(;n=10,doplot=false,verbose=false, dense=false)
         end
 
         tstep*=1.0
-        if doplot
-            levels=collect(0:0.01:1)
-            p=contourf(X,Y,reshape(values(U),length(X),length(Y)),levels=levels,colorbar=:right)
-            gui(p)
+        if isplots(Plotter)
+            levels=collect(0:0.05:1)
+            p=Plotter.contourf(X,Y,reshape(values(U),length(X),length(Y)),levels=levels,colorbar=:right,show=true)
         end
     end
     return u15

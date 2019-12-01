@@ -7,14 +7,8 @@ using VoronoiFVM
 const Node=VoronoiFVM.Node
 const Edge=VoronoiFVM.Edge
 
-if installed("Plots")
-    using Plots
-end
 
-function main(;n=10,doplot=false,verbose=false, dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -90,11 +84,11 @@ function main(;n=10,doplot=false,verbose=false, dense=false)
         tstep*=1.0
         istep=istep+1
         u25=U[25]
-        @views if doplot
-            p1=contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.125:0.75),clim=(0,0.75),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g\n",maximum(U[1,:]),maximum(U[2,:])))
-            p2=contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.0025:0.02),clim=(0,0.02), colorbar=:right,color=:viridis)
-            p=Plots.plot(p1,p2,layout=(2,1) )
-            gui(p)
+        if isplots(Plotter)
+            p1=Plotter.contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.125:0.75),clim=(0,0.75),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g\n",maximum(U[1,:]),maximum(U[2,:])))
+            p2=Plotter.contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.0025:0.02),clim=(0,0.02), colorbar=:right,color=:viridis)
+            p=Plotter.plot(p1,p2,layout=(2,1) )
+            Plotter.gui(p)
         end
     end
     return u25

@@ -1,11 +1,10 @@
 module VoronoiFVM
 
-import  Pkg
-
 # Packages for Autodiff magic
 using ForwardDiff, DiffResults
 using IterativeSolvers
 using DocStringExtensions
+
 
 
 # These are in the standard distro
@@ -17,12 +16,7 @@ using LinearAlgebra
 
 using Printf
 
-installed(pkg)=haskey(Pkg.installed(),pkg)
-
-
-if !installed("TriangleRaw")
-    include("triangle/triangle.jl")
-end
+include("triangle/triangle.jl")
 
 
 include("vfvm_physics.jl")
@@ -36,8 +30,6 @@ include("vfvm_impedance.jl")
 include("vfvm_plot.jl")
 
 
-export installed
-
 
 export unknowns
 export fbernoulli
@@ -45,6 +37,9 @@ export fbernoulli_pm
 export integrate
 
 
+export isplots
+export ispyplot
+export ispyplotter
 
 export glue
 export num_nodes

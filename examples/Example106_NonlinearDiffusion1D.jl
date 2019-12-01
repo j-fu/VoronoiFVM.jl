@@ -19,9 +19,6 @@ We initialize this problem with the exact solution for $t=t_0=0.001$.
 module Example106_NonlinearDiffusion1D
 using Printf
 using VoronoiFVM
-if installed("Plots")
-    using Plots
-end
 
 
 function barenblatt(x,t,m)
@@ -36,10 +33,7 @@ function barenblatt(x,t,m)
 end
 
 
-function main(;n=20,m=2,doplot=false,verbose=false, dense=false,tend=0.01,tstep=0.0001)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=20,m=2,Plotter=nothing,verbose=false, dense=false,tend=0.01,tstep=0.0001)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)
@@ -103,13 +97,13 @@ function main(;n=20,m=2,doplot=false,verbose=false, dense=false,tend=0.01,tstep=
         if verbose
             @printf("time=%g\n",time)
         end
-        if doplot
-            p=Plots.plot(X,
+        if isplots(Plotter)
+            p=Plotter.plot(X,
                          solution[1,:],
                          label="numerical",
                          title=@sprintf("Nonlinear Diffusion t=%.5f",time),
                          grid=true)
-            Plots.plot!(p,X,
+            Plotter.plot!(p,X,
                         map(x->barenblatt(x,time,m),X),
                         label="exact",
                         show=true)

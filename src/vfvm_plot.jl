@@ -3,7 +3,7 @@ $(TYPEDSIGNATURES)
 
 Check if plotter is PyPlot
 """
-ispyplot(Plotter::Module)=isdefined(Plotter,:Gcf)
+ispyplot(Plotter)= (typeof(Plotter)==Module)&&isdefined(Plotter,:Gcf)
 
 
 """
@@ -11,8 +11,15 @@ $(TYPEDSIGNATURES)
 
 Check if plotter is Plots
 """
-isplots(Plotter::Module)=isdefined(Plotter,:gr)
+isplots(Plotter)= (typeof(Plotter)==Module) && isdefined(Plotter,:gr)
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Check if plotter is a plotter at all.
+"""
+isplotter(Plotter)=isplots(Plotter)||ispyplot(Plotter)
 
 """
 $(TYPEDSIGNATURES)
@@ -49,7 +56,7 @@ $(TYPEDSIGNATURES)
 
 Plot grid.
 """
-function plot(Plotter::Module,grid::VoronoiFVM.Grid;
+function plot(Plotter,grid::VoronoiFVM.Grid;
               aspect=1,
               clear=true,
               show=true,
@@ -164,7 +171,7 @@ $(TYPEDSIGNATURES)
 
 Plot subgrid.
 """
-function plot(Plotter::Module,subgrid::VoronoiFVM.SubGrid;
+function plot(Plotter,subgrid::VoronoiFVM.SubGrid;
               clear=true,
               show=true)
     
@@ -224,7 +231,7 @@ $(TYPEDSIGNATURES)
 
 Plot array as piecewise constant function on grid.
 """
-function plot(Plotter::Module,grid::VoronoiFVM.AbstractGrid, U::AbstractArray;
+function plot(Plotter,grid::VoronoiFVM.AbstractGrid, U::AbstractArray;
               color=(0,0,0),
               cmap="hot",
               label="",
@@ -273,6 +280,9 @@ function plot(Plotter::Module,grid::VoronoiFVM.AbstractGrid, U::AbstractArray;
                 end                
             end
         end
+        if dim_space(grid)==2
+            println("Not available for Plots, see e.g. https://github.com/JuliaPlots/Plots.jl/issues/392")
+        end
         if show
             Plotter.gui(p)
         end
@@ -287,7 +297,7 @@ $(TYPEDSIGNATURES)
 
 Plot array as piecewise constant function on subgrid
 """
-function plot(Plotter::Module,grid::VoronoiFVM.SubGrid, U::AbstractArray;
+function plot(Plotter,grid::VoronoiFVM.SubGrid, U::AbstractArray;
               color=(0,0,0),
               label="",
               clear=true,

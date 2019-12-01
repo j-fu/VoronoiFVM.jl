@@ -8,16 +8,9 @@ using VoronoiFVM
 const Node=VoronoiFVM.Node
 const Edge=VoronoiFVM.Edge
 
-if installed("Plots")
-    using Plots
-end
 
 
-
-function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
-    if !installed("Plots")
-        doplot=false
-    end
+function main(;n=10,Plotter=nothing,verbose=false,tend=1, dense=false)
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -83,9 +76,6 @@ function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5
-    if !installed("Plots")
-        doplot=false
-    end
     control.max_lureuse=0
     tstep=0.01
     time=0.0
@@ -107,12 +97,13 @@ function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
         append!(T,time)
         append!(Ub,U[3,N])
         
-        if doplot
+        if isplots(Plotter)
+            Plots=Plotter
             p1=Plots.plot(grid.coord[1,:],U[1,:], grid=true, label="spec1")
             Plots.plot!(p1,grid.coord[1,:],U[2,:], label="spec2",title=@sprintf("max1=%.5f max2=%.5f maxb=%.5f\n",maximum(U[1,:]),maximum(U[2,:]),U[3,N]))
             p2=Plots.plot(T,Ub,ylabel="U_b",xlabel="t")
             p=Plots.plot(p1,p2,layout=(2,1),legend=false)
-            gui(p)
+            Plots.gui(p)
         end
     end
     return u5

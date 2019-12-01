@@ -28,10 +28,6 @@ module Example150_Impedance1D
 using Printf
 using VoronoiFVM
 
-if installed("Plots")
-    using Plots
-end
-
 # Structure containing  userdata information
 mutable struct Data  <: VoronoiFVM.AbstractData
     D::Float64           
@@ -41,10 +37,7 @@ mutable struct Data  <: VoronoiFVM.AbstractData
 end
 
 
-function main(;nref=0,doplot=false,verbose=false, dense=false)
-    if (!installed("Plots"))
-        doplot=false
-    end
+function main(;nref=0,Plotter=nothing,verbose=false, dense=false)
 
     L=1.0
 
@@ -179,12 +172,11 @@ function main(;nref=0,doplot=false,verbose=false, dense=false)
 
     end
     
-    if doplot
-        p=plot(grid=true)
-        plot!(p,real(allIL),imag(allIL),label="calc")
-        plot!(p,real(allIxL),imag(allIxL),label="exact")
-        gui(p)
-        readline()
+    if isplots(Plotter)
+        p=Plotter.plot(grid=true)
+        Plotter.plot!(p,real(allIL),imag(allIL),label="calc")
+        Plotter.plot!(p,real(allIxL),imag(allIxL),label="exact")
+        Plotter.gui(p)
     end
     #return test value
     return  imag(allIL[5])

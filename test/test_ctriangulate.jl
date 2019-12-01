@@ -3,7 +3,7 @@ using VoronoiFVM
 
 
 function test()
-    if installed("TriangleRaw")
+    if false #installed("TriangleRaw")
         return true
     end
     nodes=Matrix{Cdouble}([1.0 0.0 ; 0.0 1.0 ; -1.0 0.0 ; 0.0 -1.0]')
