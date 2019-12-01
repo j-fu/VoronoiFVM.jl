@@ -6,16 +6,9 @@ using VoronoiFVM
 const Node=VoronoiFVM.Node
 const Edge=VoronoiFVM.Edge
 
-if installed(&quot;Plots&quot;)
-    using Plots
-end
 
 
-
-function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
-    if !installed(&quot;Plots&quot;)
-        doplot=false
-    end
+function main(;n=10,Plotter=nothing,verbose=false,tend=1, dense=false)
 
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -81,9 +74,6 @@ function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
     control.verbose=verbose
     control.tol_linear=1.0e-5
     control.tol_relative=1.0e-5
-    if !installed(&quot;Plots&quot;)
-        doplot=false
-    end
     control.max_lureuse=0
     tstep=0.01
     time=0.0
@@ -105,12 +95,13 @@ function main(;n=10,doplot=false,verbose=false,tend=1, dense=false)
         append!(T,time)
         append!(Ub,U[3,N])
 
-        if doplot
+        if isplots(Plotter)
+            Plots=Plotter
             p1=Plots.plot(grid.coord[1,:],U[1,:], grid=true, label=&quot;spec1&quot;)
             Plots.plot!(p1,grid.coord[1,:],U[2,:], label=&quot;spec2&quot;,title=@sprintf(&quot;max1=%.5f max2=%.5f maxb=%.5f\n&quot;,maximum(U[1,:]),maximum(U[2,:]),U[3,N]))
             p2=Plots.plot(T,Ub,ylabel=&quot;U_b&quot;,xlabel=&quot;t&quot;)
             p=Plots.plot(p1,p2,layout=(2,1),legend=false)
-            gui(p)
+            Plots.gui(p)
         end
     end
     return u5
@@ -120,4 +111,4 @@ function test()
     main(dense=false) ≈ 0.22631106953924143 &amp;&amp;
         main(dense=true) ≈ 0.22631106953924143
 end
-end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example110_NonlinearPoisson1D_TwoSpecies/">« 110: 1D Nonlinear Poisson equation with two species</a><a class="docs-footer-nextpage" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 30 November 2019 19:47">Saturday 30 November 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example110_NonlinearPoisson1D_TwoSpecies/">« 110: 1D Nonlinear Poisson equation with two species</a><a class="docs-footer-nextpage" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 1 December 2019 22:43">Sunday 1 December 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

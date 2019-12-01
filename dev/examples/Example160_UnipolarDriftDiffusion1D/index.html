@@ -14,19 +14,17 @@ mutable struct Data &lt;: VoronoiFVM.AbstractData
     Data()=new()
 end
 
-if installed(&quot;Plots&quot;)
-    using Plots
-    function plot_solution(sys,U0)
-        ildata=data(sys)
-        iphi=ildata.iphi
-        ic=ildata.ic
-        p=Plots.plot(grid=true)
-        @views begin
-            Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label=&quot;Potential&quot;, color=:green)
-            Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label=&quot;c-&quot;, color=:blue)
-        end
-        gui(p)
+function plot_solution(Plots,sys,U0)
+    !isplots(Plots) &amp;&amp; return
+    ildata=data(sys)
+    iphi=ildata.iphi
+    ic=ildata.ic
+    p=Plots.plot(grid=true)
+    @views begin
+        Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label=&quot;Potential&quot;, color=:green)
+        Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label=&quot;c-&quot;, color=:blue)
     end
+    Plots.gui(p)
 end
 
 
@@ -71,10 +69,7 @@ function sedanflux!(f,u,edge,data)
 end
 
 
-function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
-    if !installed(&quot;Plots&quot;)
-        doplot=false
-    end
+function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,dense=false)
 
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
@@ -120,9 +115,8 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
     U=unknowns(sys)
 
 
-    if doplot
-        plot_solution(sys,inival)
-    end
+    plot_solution(Plotter,sys,inival)
+
 
     data.eps=1.0e-3
     control=VoronoiFVM.NewtonControl()
@@ -141,9 +135,7 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
             if verbose
                 @printf(&quot;time=%g\n&quot;,t)
             end
-            if doplot
-                plot_solution(sys,U)
-            end
+            plot_solution(Plotter,sys,U)
             tstep*=1.4
         end
         return u1
@@ -171,9 +163,7 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
                 sys.boundary_values[iphi,1]=dir*phi+delta
                 solve!(U,inival,sys,control=control)
                 inival.=U
-                if doplot
-                    plot_solution(sys,U)
-                end
+                plot_solution(Plotter,sys,U)
                 Qdelta=integrate(sys,physics.reaction,U)
                 cdl=(Qdelta[iphi]-Q[iphi])/delta
                 if dir==1
@@ -186,11 +176,12 @@ function main(;n=20,doplot=false,dlcap=false,verbose=false,dense=false)
                 phi+=dphi
             end
         end
-        if doplot
+        if isplots(Plotter)
+            Plots=Plotter
             p=Plots.plot(grid=true)
             Plots.plot!(p,vplus,cdlplus,color=:green)
             Plots.plot!(p,vminus,cdlminus,color=:green)
-            gui(p)
+            Plots.gui(p)
         end
         return cdl
     end
@@ -202,4 +193,4 @@ function test()
             main(dlcap=true) ≈ .010759276468375045 &amp;&amp;
             main(dlcap=true,dense=true) ≈ .010759276468375045
 end
-end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example202_Laplace2D_Unstructured/">202: 2D Laplace equation on unstructured mesh »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 30 November 2019 19:47">Saturday 30 November 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example202_Laplace2D_Unstructured/">202: 2D Laplace equation on unstructured mesh »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 1 December 2019 22:43">Sunday 1 December 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

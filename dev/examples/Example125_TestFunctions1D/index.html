@@ -5,15 +5,7 @@ using VoronoiFVM
 
 
 
-if installed(&quot;Plots&quot;)
-    using Plots
-end
-
-function main(;n=100,doplot=false,verbose=false,dense=false)
-    if !installed(&quot;Plots&quot;)
-        doplot=false
-    end
-
+function main(;n=100,Plotter=nothing,verbose=false,dense=false)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
 
@@ -66,14 +58,6 @@ function main(;n=100,doplot=false,verbose=false,dense=false)
     tf1=testfunction(factory,[2],[1])
     tf2=testfunction(factory,[1],[2])
 
-    if doplot
-        p=plot(grid.coord[1,:],tf1)
-        gui(p)
-        readline()
-        p=plot(grid.coord[1,:],tf2)
-        gui(p)
-        readline()
-    end
 
     U=unknowns(sys)
     inival=unknowns(sys)
@@ -90,11 +74,11 @@ function main(;n=100,doplot=false,verbose=false,dense=false)
         I1=integrate(sys,tf1,U)
 
         inival.=U
-        if doplot
-            p=plot()
-            plot!(p,grid.coord[1,:],U[1,:])
-            plot!(p,grid.coord[1,:],U[2,:])
-            gui(p)
+        if isplots(Plotter)
+            p=Plotter.plot()
+            Plotter.plot!(p,grid.coord[1,:],U[1,:])
+            Plotter.plot!(p,grid.coord[1,:],U[2,:])
+            Plotter.gui(p)
         end
         u5=U[5]
     end
@@ -105,4 +89,4 @@ function test()
     main(dense=false) ≈ 0.01 &amp;&amp;
         main(dense=true) ≈ 0.01
 end
-end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example120_ThreeRegions1D/">« 120: Differing species sets in regions, 1D</a><a class="docs-footer-nextpage" href="../Example150_Impedance1D/">150: Impedance calculation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 30 November 2019 19:47">Saturday 30 November 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example120_ThreeRegions1D/">« 120: Differing species sets in regions, 1D</a><a class="docs-footer-nextpage" href="../Example150_Impedance1D/">150: Impedance calculation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 1 December 2019 22:44">Sunday 1 December 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

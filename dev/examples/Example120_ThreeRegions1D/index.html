@@ -4,17 +4,10 @@
 using Printf
 using VoronoiFVM
 
-if installed(&quot;Plots&quot;)
-    using Plots
-end
 
 
 
-
-function main(;n=30,doplot=false,verbose=false,dense=false)
-    if !installed(&quot;Plots&quot;)
-        doplot=false
-    end
+function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,dense=false)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
     grid=VoronoiFVM.Grid(X)
@@ -26,11 +19,11 @@ function main(;n=30,doplot=false,verbose=false,dense=false)
     subgrid2=subgrid(grid,[1,2,3])
     subgrid3=subgrid(grid,[3])
 
-    if doplot
-        p=Plots.plot()
-        VoronoiFVM.plot(Plots,grid,p=p)
-        gui(p)
-        readline()
+    if isplots(Plotter)&amp;&amp;plot_grid
+        p=Plotter.plot()
+        VoronoiFVM.plot(Plotter,grid,p=p)
+        Plotter.gui(p)
+        return
     end
 
     eps=[1,1,1]
@@ -109,12 +102,13 @@ function main(;n=30,doplot=false,verbose=false,dense=false)
         tstep*=1.0
         istep=istep+1
         testval=U[2,15]
-        if doplot
+        if isplots(Plotter)
+            Plots=Plotter
             p=Plots.plot()
             VoronoiFVM.plot(Plots,subgrid1, U[1,:],label=&quot;spec1&quot;, color=(0.5,0,0),p=p,show=false)
             VoronoiFVM.plot(Plots,subgrid2, U[2,:],label=&quot;spec2&quot;, color=(0.0,0.5,0),p=p,show=false)
             VoronoiFVM.plot(Plots,subgrid3, U[3,:],label=&quot;spec3&quot;, color=(0.0,0.0,0.5),p=p,show=false)
-            gui(p)
+            Plots.gui(p)
         end
     end
     return testval
@@ -125,4 +119,4 @@ function test()
         main(dense=true) ≈ 0.00039500514567080265
 end
 
-end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_NonlinearPoisson1D_BoundarySpecies/">« -</a><a class="docs-footer-nextpage" href="../Example125_TestFunctions1D/">125: Terminal flux calculation via test functions »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 30 November 2019 19:47">Saturday 30 November 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_NonlinearPoisson1D_BoundarySpecies/">« -</a><a class="docs-footer-nextpage" href="../Example125_TestFunctions1D/">125: Terminal flux calculation via test functions »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 1 December 2019 22:43">Sunday 1 December 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
