@@ -92,7 +92,7 @@ mutable struct Grid{Tc,Ti} <: AbstractGrid
     """
     2D Array of node indices per grid cell
     """
-    cellnodes::Array{Ti,2}
+    cellnodes::ElasticArray{Ti,2}
 
     """
     Array of edge indices per grid cell.
@@ -124,7 +124,7 @@ mutable struct Grid{Tc,Ti} <: AbstractGrid
     """
     2D Array of node indices per boundary face
     """
-    bfacenodes::Array{Ti,2}      
+    bfacenodes::ElasticArray{Ti,2}      
 
     
     """
@@ -203,12 +203,12 @@ function Grid(coord::Array{Tc,2},
     end
         
     return Grid(coord,
-                cellnodes,
+                ElasticArray{Ti,2}(cellnodes),
                 zeros(Ti,0,0),
                 zeros(Ti,0,0),
                 zeros(Ti,0,0),
                 cellregions,
-                bfacenodes,
+                ElasticArray{Ti,2}(bfacenodes),
                 bfaceregions,
                 num_cellregions,
                 num_bfaceregions,

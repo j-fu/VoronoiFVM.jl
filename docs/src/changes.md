@@ -1,6 +1,8 @@
 # Changes
-
-## v0.5.3
+## v0.5.4 Dec 3 2019
+- Re-enabled ElasticArrays in grid structure (for the time being)
+- Added potkink example: this adds an inner boudary
+## v0.5.3 Dec 1 2019
 - triangle in optional submodule
 - Modified API for plotting
    - Removed formal dependency on Plots and PyPlot

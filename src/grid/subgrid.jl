@@ -41,6 +41,11 @@ struct SubGrid{Tc} <: AbstractGrid
     
 end
 
+function Base.show(io::IO,subgrid::SubGrid)
+    str=@sprintf("%s(dim_space=%d, num_nodes=%d, num_cells=%d)",
+                 typeof(subgrid),dim_space(subgrid),num_nodes(subgrid), num_cells(subgrid))
+    println(io,str)
+end
 
 ##################################################################
 # Default transform for subgrid creation
