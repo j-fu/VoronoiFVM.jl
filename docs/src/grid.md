@@ -6,7 +6,6 @@
 ```@autodocs
 Modules = [VoronoiFVM,VoronoiFVM.Triangle]
 Pages = [ 
-  "triangle/triangle.jl",
   "grid/file.jl",
   "grid/formfactors.jl",
   "grid/grid_interface.jl",
@@ -25,7 +24,6 @@ Order = [:type]
 ```@autodocs
 Modules = [VoronoiFVM,VoronoiFVM.Triangle]
 Pages = [ 
-  "triangle/triangle.jl",
   "grid/file.jl",
   "grid/formfactors.jl",
   "grid/grid_interface.jl",
@@ -45,7 +43,6 @@ Order = [:constant]
 ```@autodocs
 Modules = [VoronoiFVM,VoronoiFVM.Triangle]
 Pages = [ 
-  "triangle/triangle.jl",
   "grid/file.jl",
   "grid/formfactors.jl",
   "grid/grid_interface.jl",

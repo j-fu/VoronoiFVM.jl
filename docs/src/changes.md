@@ -1,4 +1,6 @@
 # Changes
+## v0.5.5 Dec 4 2019
+- (Temporary) Copy of TriangleRaw as Triangle submodule. To be replaced by dependency on evisioned package
 ## v0.5.4 Dec 3 2019
 - Re-enabled ElasticArrays in grid structure (for the time being)
 - Added potkink example: this adds an inner boudary
