@@ -18,7 +18,7 @@ using Test
 #
 # Plot a pair of input and output triangulateio structs
 #
-function plotpair(Plotter::Module, triin, triout;title="")
+function plotpair(Plotter::Module, triin, triout;voronoi=nothing,title="")
     if ispyplot(Plotter)
         PyPlot=Plotter
         PyPlot.clf()
@@ -28,7 +28,7 @@ function plotpair(Plotter::Module, triin, triout;title="")
         Triangle.plot(PyPlot,triin)
         PyPlot.subplot(122)
         PyPlot.title("Out")
-        Triangle.plot(PyPlot,triout)
+        Triangle.plot(PyPlot,triout,voronoi=voronoi)
     end
 end
 
@@ -60,6 +60,16 @@ function main(;Plotter=Triangle, example="all")
         plotpair(Plotter,triin,triout,title=example)
     end
 
+    # Delaunay triangulation of convex hull
+    if do_example("vconvexhull")
+        triin=Triangle.TriangulateIO()
+        triin.pointlist=[ 1 2 ; 3 4]'
+        (triout, vorout)=triangulate("cv", triin)
+        plotpair(Plotter,triin,triout,voronoi=vorout,title=example)
+    end
+
+
+    
     # Constrained Delaunay triangulation 
     if do_example("cdt")
         triin=Triangle.TriangulateIO()

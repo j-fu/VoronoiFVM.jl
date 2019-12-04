@@ -127,7 +127,7 @@ mutable struct TriangulateIO
 
     """
     An array of normal vectors, used for infinite rays in       
-    Voronoi diagrams. For eachfinite edge in a Voronoi diagram, 
+    Voronoi diagrams. For each finite edge in a Voronoi diagram, 
     the normal vector written is the     
      zero vector.  `sizeof(normlist,1)==2`. Output only.                        
     """              
@@ -163,6 +163,15 @@ Return number of triangles in triangulateio structure.
 
 """
 numberoftriangles(tio::TriangulateIO)=size(tio.trianglelist,2)
+
+##########################################################
+"""
+$(TYPEDSIGNATURES)
+
+Return number of triangles in triangulateio structure.
+
+"""
+numberofedges(tio::TriangulateIO)=size(tio.edgelist,2)
 
 ##########################################################
 """
@@ -289,7 +298,7 @@ function TriangulateIO(ctio::CTriangulateIO)
         tio.regionlist=convert(Array{Cdouble,2}, Base.unsafe_wrap(Array, ctio.holelist, (2,Int(ctio.numberofregions)), own=true))
     end
     
-    if ctio.numberofedges>0
+    if ctio.numberofedges>0 && ctio.edgelist!=C_NULL        
         tio.edgelist=convert(Array{Cint,2}, Base.unsafe_wrap(Array, ctio.edgelist, (2,Int(ctio.numberofedges)), own=true))
         tio.edgemarkerlist=convert(Array{Cint,1}, Base.unsafe_wrap(Array, ctio.edgemarkerlist, (Int(ctio.numberofedges)), own=true))
         if ctio.normlist!=C_NULL
@@ -353,6 +362,7 @@ This is the list of switches used by triangle:
 
 """
 function triangulate(switches::String, tri_in::TriangulateIO)
+    @assert(numberofpoints(tri_in)>=3)
     ctio_in=CTriangulateIO(tri_in)
     ctio_out=CTriangulateIO()
     cvor_out=CTriangulateIO()

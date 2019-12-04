@@ -50,18 +50,23 @@ The plot module (currently only PyPlot is possible,Plots may follow soon)
 is passed as a parameter. This allows to keep the package free of heavy
 plot package dependencies.
 """
-function plot(Plotter::Module,tio::TriangulateIO)
+function plot(Plotter::Module,
+              tio::TriangulateIO;
+              voronoi=nothing,
+              aspect=1
+              )
     
     if ispyplot(Plotter)
         ax = Plotter.matplotlib.pyplot.gca()
+        ax.set_aspect(aspect)
         if numberofpoints(tio)==0
             return
         end
         x=tio.pointlist[1,:]
         y=tio.pointlist[2,:]
-        Plotter.scatter(x,y)
+        Plotter.scatter(x,y, s=10,color="b")
         if numberoftriangles(tio)>0
-            Plotter.triplot(x,y,transpose(tio.trianglelist.-1),color="k",linewidth=0.5)
+            Plotter.triplot(x,y,transpose(tio.trianglelist.-1),color="k")
         end
         if numberofsegments(tio)>0
             lines=Any[]
@@ -77,6 +82,46 @@ function plot(Plotter::Module,tio::TriangulateIO)
                 push!(rgb,frgb(Plotter,tio.segmentmarkerlist[i],markermax))
             end
             ax.add_collection(Plotter.matplotlib.collections.LineCollection(lines,colors=rgb,linewidth=3))
+        end
+        if voronoi!=nothing && numberofedges(voronoi)>0
+            bcx=sum(x)/length(x)
+            bcy=sum(y)/length(y)
+            wx=maximum(abs.(x.-bcx))
+            wy=maximum(abs.(y.-bcy))
+            ww=max(wx,wy)
+            
+            x=voronoi.pointlist[1,:]
+            y=voronoi.pointlist[2,:]
+            Plotter.scatter(x,y, s=10,color="g")
+            for i=1:numberofedges(voronoi)
+                i1=voronoi.edgelist[1,i]
+                i2=voronoi.edgelist[2,i]
+                if i1>0 && i2>0
+                    Plotter.plot([voronoi.pointlist[1,i1],voronoi.pointlist[1,i2]],
+                                 [voronoi.pointlist[2,i1],voronoi.pointlist[2,i2]],
+                                 color="g")
+                else
+                    x0=voronoi.pointlist[1,i1]
+                    y0=voronoi.pointlist[2,i1]
+                    xn=voronoi.normlist[1,i]
+                    yn=voronoi.normlist[2,i]
+                    normscale=1.0e10
+                    if x0+normscale*xn>bcx+ww
+                        normscale=abs((bcx+ww-x0)/xn)
+                    end
+                    if x0+normscale*xn<bcx-ww
+                        normscale=abs((bcx-ww-x0)/xn)
+                    end
+                    if y0+normscale*yn>bcy+ww
+                        normscale=abs((bcy+ww-y0)/yn)
+                    end
+                    if y0+normscale*yn<bcy-ww
+                        normscale=abs((bcy-ww-y0)/yn)
+                    end
+                    Plotter.plot([x0, x0+normscale*xn], [y0,y0+normscale*yn],color="g")
+                end
+                
+            end
         end
     end
     

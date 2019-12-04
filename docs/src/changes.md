@@ -1,4 +1,9 @@
 # Changes
+## v0.5.5 Dec 5 2019
+- Bug fixes
+- check triangle input for min 3 points
+- check triangle edgelist for C_NULL
+- voronoi plot
 ## v0.5.5 Dec 4 2019
 - (Temporary) Copy of TriangleRaw as Triangle submodule. To be replaced by dependency on evisioned package
 ## v0.5.4 Dec 3 2019
