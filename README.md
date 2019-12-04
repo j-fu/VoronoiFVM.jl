@@ -3,9 +3,7 @@ VoronoiFVM.jl
 
 [![Build Status](https://img.shields.io/travis/j-fu/VoronoiFVM.jl/master.svg?label=Linux+MacOSX)](https://travis-ci.org/j-fu/VoronoiFVM.jl)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://j-fu.github.io/VoronoiFVM.jl/dev)
-
-
-Author: J. Fuhrmann
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3529808.svg)](https://doi.org/10.5281/zenodo.3529808)
 
 
 Solver for coupled nonlinear partial differential equations based on the Voronoi finite volume method.
