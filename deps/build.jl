@@ -15,7 +15,7 @@ libdir = joinpath(prefix, "lib")
 mkpath(libdir)
 
 if Sys.iswindows()
-    # not checked
+    # not checked, currently not working
     libfile = joinpath(libdir, "libtriangle.dll")
     arch = "x86"
     if Sys.WORD_SIZE == 64
@@ -45,7 +45,7 @@ else
     provides(BinDeps.BuildProcess, (@build_steps begin
                                     FileRule(libfile, @build_steps begin
                                              BinDeps.ChangeDirectory(srcdir)
-                                             `cc  -DTRILIBRARY -fPIC -DNDEBUG -DNO_TIMER $(ldflags) -o $(libfile) triangle.c `
+                                             `cc  -DTRILIBRARY -fPIC -DNDEBUG -DNO_TIMER -DEXTERNAL_TEST $(ldflags) -o $(libfile) triangle/triangle.c triunsuitable.c`
                                              end)
                                     end), libtriangle)
 end

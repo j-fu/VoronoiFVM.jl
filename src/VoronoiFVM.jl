@@ -16,7 +16,7 @@ using LinearAlgebra
 
 using Printf
 
-include("triangle/triangle.jl")
+include("triangle/Triangle.jl")
 
 
 include("vfvm_physics.jl")
