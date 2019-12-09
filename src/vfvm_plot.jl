@@ -91,7 +91,8 @@ function plot(Plotter,grid::VoronoiFVM.Grid;
         end 
 
         if dim_space(grid)==2
-            ax=Plotter.axes(aspect=aspect)
+            ax=Plotter.matplotlib.pyplot.gca()
+            ax.set_aspect(aspect)
             Plotter.tripcolor(tridata(grid)...,facecolors=grid.cellregions,cmap="Pastel2")
             Plotter.triplot(tridata(grid)...,color="k",linewidth=0.5)
             
@@ -259,7 +260,8 @@ function plot(Plotter,grid::VoronoiFVM.AbstractGrid, U::AbstractArray;
         end
         
         if dim_space(grid)==2
-            Plotter.axes(aspect=aspect)
+            ax=Plotter.matplotlib.pyplot.gca()
+            ax.set_aspect(aspect)
             Plotter.tricontourf(tridata(grid)...,U;levels=levels,cmap=cmap)
             Plotter.tricontour(tridata(grid)...,U,colors="k",levels=levels)
         end
