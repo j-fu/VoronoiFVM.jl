@@ -11,7 +11,6 @@ module TriangleExamples
 
 # Include TriangleRaw and Test module
 
-using VoronoiFVM.Triangle
 using Test
 
 
@@ -25,10 +24,10 @@ function plotpair(Plotter::Module, triin, triout;voronoi=nothing,title="")
         PyPlot.suptitle(title)
         PyPlot.subplot(121)
         PyPlot.title("In")
-        Triangle.plot(PyPlot,triin)
+        Triangulate.plot(PyPlot,triin)
         PyPlot.subplot(122)
         PyPlot.title("Out")
-        Triangle.plot(PyPlot,triout,voronoi=voronoi)
+        Triangulate.plot(PyPlot,triout,voronoi=voronoi)
     end
 end
 
@@ -52,7 +51,7 @@ function main(;Plotter=Triangle, example="all")
     
     # Delaunay triangulation of convex hull
     if do_example("convexhull")
-        triin=Triangle.TriangulateIO()
+        triin=Triangulate.TriangulateIO()
         triin.pointlist=rand(Cdouble,2,20)
         (triout, vorout)=triangulate("c", triin)
         @test numberofpoints(triin)==numberofpoints(triout)
@@ -62,7 +61,7 @@ function main(;Plotter=Triangle, example="all")
 
     # Delaunay triangulation of convex hull
     if do_example("vconvexhull")
-        triin=Triangle.TriangulateIO()
+        triin=Triangulate.TriangulateIO()
         triin.pointlist=[ 1 2 ; 3 4]'
         (triout, vorout)=triangulate("cv", triin)
         plotpair(Plotter,triin,triout,voronoi=vorout,title=example)
@@ -72,7 +71,7 @@ function main(;Plotter=Triangle, example="all")
     
     # Constrained Delaunay triangulation 
     if do_example("cdt")
-        triin=Triangle.TriangulateIO()
+        triin=Triangulate.TriangulateIO()
         triin.pointlist=rand(Cdouble,2,20)
         triin.segmentlist=Matrix{Cint}([1 20; 9 10]')
         triin.segmentmarkerlist=Vector{Cint}([2,3])
@@ -84,7 +83,7 @@ function main(;Plotter=Triangle, example="all")
     
     # Delaunay triangulation of pointset
     if do_example("dcdt")
-        triin=Triangle.TriangulateIO()
+        triin=Triangulate.TriangulateIO()
         triin.pointlist=rand(Cdouble,2,20)
         triin.segmentlist=Matrix{Cint}([1 20; 9 10]')
         triin.segmentmarkerlist=Vector{Cint}([2,3])
@@ -96,7 +95,7 @@ function main(;Plotter=Triangle, example="all")
     
     # Delaunay triangulation of domain
     if do_example("domain")
-        triin=Triangle.TriangulateIO()
+        triin=Triangulate.TriangulateIO()
         triin.pointlist=Matrix{Cdouble}([0.0 0.0 ; 1.0 0.0 ; 0.9  0.9 ; 0.0 1.0]')
         triin.segmentlist=Matrix{Cint}([1 2 ; 2 3 ; 3 4 ; 4 1 ]')
         triin.segmentmarkerlist=Vector{Int32}([1, 2, 3, 4])
@@ -108,7 +107,7 @@ function main(;Plotter=Triangle, example="all")
     end
     # Boundary conforming Delaunay triangulation of domain
     if do_example("ddomain")
-        triin=Triangle.TriangulateIO()
+        triin=Triangulate.TriangulateIO()
         triin.pointlist=Matrix{Cdouble}([0.0 0.0 ; 1.0 0.0 ; 0.9  0.9 ; 0.0 1.0]')
         triin.segmentlist=Matrix{Cint}([1 2 ; 2 3 ; 3 4 ; 4 1 ]')
         triin.segmentmarkerlist=Vector{Int32}([1, 2, 3, 4])
@@ -139,7 +138,7 @@ function main(;Plotter=Triangle, example="all")
         end
         
         triunsuitable(unsuitable)
-        triin=Triangle.TriangulateIO()
+        triin=Triangulate.TriangulateIO()
         triin.pointlist=Matrix{Cdouble}([0.0 0.0 ; 10.0 0.0 ; 10.0  10.0 ; 0.0 10.0]')
         triin.segmentlist=Matrix{Cint}([1 2 ; 2 3 ; 3 4 ; 4 1 ]')
         triin.segmentmarkerlist=Vector{Int32}([1, 2, 3, 4])

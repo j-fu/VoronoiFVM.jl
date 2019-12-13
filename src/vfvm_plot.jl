@@ -230,7 +230,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Plot array as piecewise constant function on grid.
+Plot array as piecewise linear function on grid.
 """
 function plot(Plotter,grid::VoronoiFVM.AbstractGrid, U::AbstractArray;
               color=(0,0,0),

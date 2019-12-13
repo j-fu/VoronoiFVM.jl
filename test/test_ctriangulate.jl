@@ -1,6 +1,6 @@
 module test_ctriangulate
 using VoronoiFVM
-
+using Triangulate
 
 function test()
     if false #installed("TriangleRaw")
@@ -11,9 +11,9 @@ function test()
     faceregions=Matrix{Cint}([1 2 3 4]')
     regionpoints=Matrix{Cdouble}([0.5 0.5 1 0.01;]')
     regionnumbers=[1]
-    triin=VoronoiFVM.Triangle.CTriangulateIO()
-    triout=VoronoiFVM.Triangle.CTriangulateIO()
-    vorout=VoronoiFVM.Triangle.CTriangulateIO()
+    triin=Triangulate.CTriangulateIO()
+    triout=Triangulate.CTriangulateIO()
+    vorout=Triangulate.CTriangulateIO()
     triin.numberofpoints=Cint(size(nodes,2))
     triin.pointlist=pointer(nodes)
     triin.numberofsegments=size(faces,2)
@@ -22,7 +22,7 @@ function test()
     triin.numberofregions=size(regionpoints,2)
     triin.regionlist=pointer(regionpoints)
     
-    VoronoiFVM.Triangle.triangulate("paAqQ",triin,triout,vorout)
+    Triangulate.triangulate("paAqQ",triin,triout,vorout)
     points = convert(Array{Float64,2}, Base.unsafe_wrap(Array, triout.pointlist, (2,Int(triout.numberofpoints)), own=true))
     cells  = convert(Array{Int32,2}, Base.unsafe_wrap(Array, triout.trianglelist, (2,Int(triout.numberoftriangles)), own=true))
     bfaces = convert(Array{Int32,2}, Base.unsafe_wrap(Array, triout.segmentlist, (2,Int(triout.numberofsegments)), own=true))

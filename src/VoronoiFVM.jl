@@ -1,5 +1,8 @@
 module VoronoiFVM
 
+# Packages for meshing
+using Triangulate
+
 # Packages for Autodiff magic
 using ForwardDiff, DiffResults
 using IterativeSolvers
@@ -15,8 +18,6 @@ using LinearAlgebra
 
 
 using Printf
-
-include("triangle/Triangle.jl")
 
 
 include("vfvm_physics.jl")
