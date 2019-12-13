@@ -58,7 +58,9 @@ END
     sleep(0.5)
     grid=VoronoiFVM.Grid(IOStream,file="t.sg")
     sleep(0.5)
-    rm("t.sg")
+    #   we get EBUSY on windows here, figure out how to resolve this
+    # for the time being, don't remove...
+    #    rm("t.sg")
     num_nodes(grid)==12 && num_cells(grid)==9 && num_bfaces(grid)==13
 end
 end
