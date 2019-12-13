@@ -14,7 +14,7 @@ function run_tests_from_directory(testdir,prefix)
         examples=modname.(readdir(testdir))
         for example in examples
             println("  $(example):")
-            if example[1:length(prefix)]==prefix
+            if length(example)>=length(prefix) &&example[1:length(prefix)]==prefix
                 path=joinpath(testdir,"$(example).jl")
                 @eval begin
                     include($path)

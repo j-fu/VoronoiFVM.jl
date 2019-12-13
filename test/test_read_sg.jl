@@ -57,6 +57,7 @@ END
     end
     sleep(0.5)
     grid=VoronoiFVM.Grid(IOStream,file="t.sg")
+    sleep(0.5)
     rm("t.sg")
     num_nodes(grid)==12 && num_cells(grid)==9 && num_bfaces(grid)==13
 end
