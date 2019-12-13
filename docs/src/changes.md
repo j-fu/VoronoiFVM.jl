@@ -1,5 +1,8 @@
 # Changes
-## v0.5.5 Dec 5 2019
+## dev
+- Removed Triangle submodule, depend on Triangulate.jl
+
+## v0.5.6 Dec 5 2019
 - Bug fixes
 - check triangle input for min 3 points
 - check triangle edgelist for C_NULL
