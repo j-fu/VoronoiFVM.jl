@@ -1,4 +1,5 @@
-# # 160: Unipolar degenerate drift-diffusion ([source code](SOURCE_URL))
+# # 160: Unipolar degenerate drift-diffusion
+# ([source code](SOURCE_URL))
 module Example160_UnipolarDriftDiffusion1D
 
 using Printf

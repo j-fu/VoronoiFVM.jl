@@ -1,6 +1,7 @@
 #=
 
-# 107: 1D Nonlinear Storage ([source code](SOURCE_URL))
+# 107: 1D Nonlinear Storage 
+([source code](SOURCE_URL))
 
 This equation comes from the transformation of the nonlinear diffuision equation.
 ```math

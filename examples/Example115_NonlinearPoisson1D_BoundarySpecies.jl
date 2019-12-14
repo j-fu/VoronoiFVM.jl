@@ -1,4 +1,5 @@
-# 115: 1D two species system with boundary reaction and boundary species ([source code](SOURCE_URL))
+# 115: 1D two species system with boundary reaction and boundary species
+# ([source code](SOURCE_URL))
 
 
 module Example115_NonlinearPoisson1D_BoundarySpecies

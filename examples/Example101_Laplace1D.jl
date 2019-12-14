@@ -1,6 +1,7 @@
 #= 
 
-# 101: 1D Laplace equation ([source code](SOURCE_URL))
+# 101: 1D Laplace equation 
+([source code](SOURCE_URL))
 
 
 Let $\Omega=(\gamma_1,\gamma_2)$ with $\gamma_1=0$, $\gamma_2=1$.

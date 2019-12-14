@@ -1,4 +1,5 @@
-# # 215: 2D Nonlinear Poisson with boundary reaction ([source code](SOURCE_URL))
+# # 215: 2D Nonlinear Poisson with boundary reaction
+# ([source code](SOURCE_URL))
 
 module Example215_NonlinearPoisson2D_BoundaryReaction
 
