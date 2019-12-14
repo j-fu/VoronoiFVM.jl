@@ -93,13 +93,11 @@ function main(;nref=0,Plotter=nothing,verbose=false, dense=false)
     factory=VoronoiFVM.TestFunctionFactory(sys)
     measurement_testfunction=testfunction(factory,[1],[2])
 
-    # Solve steady state problem
-    sys.boundary_values[1,1]=1.0
-    sys.boundary_values[1,2]=0
-    
-    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
 
+    boundary_dirichlet!(sys,excited_spec,excited_bc,excited_bcval)
+    boundary_dirichlet!(sys,1,2,0.0)
+    
+    
     inival=unknowns(sys)
     steadystate=unknowns(sys)
     inival.=0.0

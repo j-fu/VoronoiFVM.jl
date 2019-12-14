@@ -7,7 +7,7 @@ This equation comes from the transformation of the nonlinear diffuision equation
 ```math
 \partial_t u^\frac{1}{m} -\Delta u = 0
 ```
-in $\Omega=-1,1)$ with boundary condition $u(0)=0$ and $u(1)=0$ with 
+in $\Omega=-1,1)$ with homogeneous Neumann boundary conditons.
 We can derive an exact solution from the Barenblatt solution of the previous
 example.
 
@@ -71,12 +71,6 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, dense=false,tend=0.01,t
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
     
-    ## Set boundary conditions
-    sys.boundary_values[1,1]=0.0
-    sys.boundary_values[1,2]=0.0
-    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
-
     ## Create a solution array
     inival=unknowns(sys)
     solution=unknowns(sys)

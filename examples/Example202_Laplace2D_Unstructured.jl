@@ -54,8 +54,7 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
     # Dirichlet boundary conditions are marked by setting a corresponding value of the
     # boundary factor
     for i=1:num_bfaceregions(grid)
-        sys.boundary_factors[ispec,i]=VoronoiFVM.Dirichlet
-        sys.boundary_values[ispec,i]=0
+        boundary_dirichlet!(sys,ispec,i,0.0)
     end
     
     # Create & initialize array for solution and initial value

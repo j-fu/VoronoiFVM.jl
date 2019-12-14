@@ -60,13 +60,10 @@ function main(;nref=0,Plotter=nothing, verbose=false, dense=false, brea=false)
     enable_species!(sys,1,[1,2])
 
     # Set boundary conditions
-    sys.boundary_values[1,1]=1.0
-    sys.boundary_values[1,2]=0.0
-    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
 
+    boundary_dirichlet!(sys,1,1,1.0)
+    boundary_dirichlet!(sys,1,2,0.0)
 
-    
     # Create a solution array
     inival=unknowns(sys)
     U=unknowns(sys)

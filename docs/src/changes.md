@@ -1,7 +1,8 @@
 # Changes
 ## dev
-- Removed Triangle submodule, depend on Triangulate.jl
-
+- Removed Triangle submodule, depend on new Triangulate.jl Triangle wrapper
+- link to source code in examples
+- boundary_dirichlet! etc methods for setting boundary conditions
 ## v0.5.6 Dec 5 2019
 - Bug fixes
 - check triangle input for min 3 points

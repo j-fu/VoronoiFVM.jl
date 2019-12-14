@@ -52,12 +52,10 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
         ileft=4
     end
     if !(r1≈0.0)
-        sys.boundary_factors[ispec,ileft]=VoronoiFVM.Dirichlet
-        sys.boundary_values[ispec,ileft]=1
+        boundary_dirichlet!(sys,ispec,ileft,1.0)
     end
-    sys.boundary_factors[ispec,2]=VoronoiFVM.Dirichlet
-    sys.boundary_values[ispec,2]=0
-    
+    boundary_dirichlet!(sys,ispec,2,0.0)
+     
     inival=unknowns(sys)
     solution=unknowns(sys)
     inival.=0

@@ -45,11 +45,8 @@ function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     end        
     enable_species!(sys,1,[1])
 
-    sys.boundary_values[1,2]=0.1
-    sys.boundary_values[1,4]=0.1
-    
-    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[1,4]=VoronoiFVM.Dirichlet
+    boundary_dirichlet!(sys,1,2,0.1)
+    boundary_dirichlet!(sys,1,4,0.1)
     
     inival=unknowns(sys)
     U=unknowns(sys)

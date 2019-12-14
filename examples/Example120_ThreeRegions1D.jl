@@ -80,8 +80,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,dense=false)
     enable_species!(sys,2,[1,2,3])
     enable_species!(sys,3,[3])
 
-    sys.boundary_factors[3,2]=VoronoiFVM.Dirichlet
-    sys.boundary_values[3,2]=0
+    boundary_dirichlet!(sys,3,2,0.0)
     
     inival=unknowns(sys)
     U=unknowns(sys)

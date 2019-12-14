@@ -43,18 +43,9 @@ function main(;n=100,Plotter=nothing,verbose=false,dense=false)
     
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
-    
-    sys.boundary_values[1,1]=0.01
-    sys.boundary_values[1,2]=0.0
-    
-    sys.boundary_factors[1,1]=0
-    sys.boundary_factors[1,2]=0
-    
-    sys.boundary_values[2,1]=0.0
-    sys.boundary_values[2,2]=0.0
-    
-    sys.boundary_factors[2,1]=0
-    sys.boundary_factors[2,2]=VoronoiFVM.Dirichlet
+
+    boundary_neumann!(sys,1,1,0.01)
+    boundary_dirichlet!(sys,2,2,0.0)
 
     factory=VoronoiFVM.TestFunctionFactory(sys)
     tf1=testfunction(factory,[2],[1])

@@ -8,7 +8,7 @@ Solve the nonlinear diffusion equation
 ```math
 \partial_t u -\Delta u^m = 0
 ```
-in $\Omega=(-1,1)$ with boundary condition $u(-1)=0$ and $u(1)=0$ using the implicit Euler method.
+in $\Omega=(-1,1)$ with homogeneous Neumann boundary conditons using the implicit Euler method.
 
 This equation is also called  "porous medium equation". 
 The Barenblatt solution is an exact solution of this problem which for m>1 has a finite support.
@@ -73,11 +73,6 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, dense=false,tend=0.01,tst
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
     
-    ## Set boundary conditions
-    sys.boundary_values[1,1]=0.0
-    sys.boundary_values[1,2]=0.0
-    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
 
     ## Create a solution array
     inival=unknowns(sys)

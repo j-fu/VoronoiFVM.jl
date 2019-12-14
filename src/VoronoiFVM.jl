@@ -56,6 +56,9 @@ export tridata
 export prepare_edges!
 export enable_species!
 export enable_boundary_species!
+export boundary_dirichlet!
+export boundary_neumann!
+export boundary_robin!
 export cellmask!
 export bfacemask!
 export fvmplot
@@ -78,6 +81,5 @@ export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities
 export geomspace
 export TokenStream,gettoken, expecttoken,trytoken
-export TriangulateIO, triangulate
 end
 

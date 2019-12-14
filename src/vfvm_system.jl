@@ -395,6 +395,42 @@ Retrieve user data record.
 data(this::AbstractSystem{Tv}) where Tv = this.physics.data
 
 
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Set Dirichlet boundary conditon for species ispec at boundary ibc.
+"""
+function boundary_dirichlet!(this::AbstractSystem{Tv}, ispec::Integer, ibc::Integer, val::Real) where Tv
+    this.boundary_factors[ispec,ibc]=Dirichlet
+    this.boundary_values[ispec,ibc]=val
+end
+
+
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Set Neumann boundary conditon for species ispec at boundary ibc.
+"""
+function boundary_neumann!(this::AbstractSystem{Tv}, ispec::Integer, ibc::Integer, val::Real) where Tv
+    this.boundary_factors[ispec,ibc]=0.0
+    this.boundary_values[ispec,ibc]=val
+end
+
+
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Set Robin boundary conditon for species ispec at boundary ibc.
+"""
+function boundary_robin!(this::AbstractSystem{Tv}, ispec::Integer, ibc::Integer,fac::Real, val::Real) where Tv
+    this.boundary_factors[ispec,ibc]=fac
+    this.boundary_values[ispec,ibc]=val
+end
+
+
 
 
 ##################################################################

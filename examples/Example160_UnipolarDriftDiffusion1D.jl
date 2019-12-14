@@ -100,15 +100,10 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,dense=false)
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 
-    
-    sys.boundary_values[iphi,1]=5
-    sys.boundary_values[iphi,2]=0.0
-    
-    sys.boundary_factors[iphi,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[iphi,2]=VoronoiFVM.Dirichlet
+    boundary_dirichlet!(sys,iphi,1,5.0)
+    boundary_dirichlet!(sys,iphi,2,0.0)
+    boundary_dirichlet!(sys,ic,2,0.5)
 
-    sys.boundary_values[ic,2]=0.5
-    sys.boundary_factors[ic,2]=VoronoiFVM.Dirichlet
     
     inival=unknowns(sys)
     @views inival[iphi,:].=2

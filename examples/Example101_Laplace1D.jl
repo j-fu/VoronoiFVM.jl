@@ -122,12 +122,8 @@ function main()
     enable_species!(sys,ispec,[1])
 
     # Set boundary conditions
-    # Dirichlet boundary conditions are marked by setting a corresponding value of the
-    # boundary factor
-    sys.boundary_factors[ispec,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[ispec,2]=VoronoiFVM.Dirichlet
-    sys.boundary_values[ispec,1]=0
-    sys.boundary_values[ispec,2]=1
+    boundary_dirichlet!(sys,ispec,1,0.0)
+    boundary_dirichlet!(sys,ispec,2,1.0)
     
     # Create & initialize array for solution and initial value
     inival=unknowns(sys)

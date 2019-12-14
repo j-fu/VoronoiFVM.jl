@@ -64,18 +64,12 @@ function main(;n=100,Plotter=nothing,verbose=false,dense=false)
     
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
+
+    boundary_dirichlet!(sys,1,1,1.0)
+    boundary_dirichlet!(sys,1,2,0.0)
     
-    sys.boundary_values[1,1]=1.0
-    sys.boundary_values[1,2]=0.0
-    
-    sys.boundary_factors[1,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[1,2]=VoronoiFVM.Dirichlet
-    
-    sys.boundary_values[2,1]=1.0
-    sys.boundary_values[2,2]=0.0
-    
-    sys.boundary_factors[2,1]=VoronoiFVM.Dirichlet
-    sys.boundary_factors[2,2]=VoronoiFVM.Dirichlet
+    boundary_dirichlet!(sys,2,1,1.0)
+    boundary_dirichlet!(sys,2,2,0.0)
     
     inival=unknowns(sys)
     U=unknowns(sys)
