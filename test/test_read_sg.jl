@@ -52,12 +52,11 @@ FACES
 12 5 1
 END
 """
-    open("t.sg", "w") do io
-        write(io, content)
-    end
+    (tempname,tempfile)=mktemp()
+    write(tempfile,content)
+    close(tempfile)
     sleep(0.5)
-    grid=VoronoiFVM.Grid(IOStream,file="t.sg")
-    sleep(0.5)
+    grid=VoronoiFVM.Grid(IOStream,file=tempname,format="sg")
     #   we get EBUSY on windows here, figure out how to resolve this
     # for the time being, don't remove...
     #    rm("t.sg")
