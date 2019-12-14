@@ -1,4 +1,4 @@
-# # 1D Electrostatic potential with point charge
+# # 1D Electrostatic potential with point charge ([source code](SOURCE_URL))
 #
 
 module Example121_PotKink

@@ -1,6 +1,6 @@
 #=
 
-# 106: 1D Nonlinear Diffusion equation
+# 106: 1D Nonlinear Diffusion equation ([source code](SOURCE_URL))
 
 Solve the nonlinear diffusion equation
 

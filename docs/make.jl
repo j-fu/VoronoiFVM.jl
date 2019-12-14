@@ -1,7 +1,7 @@
 using Documenter, VoronoiFVM, Literate
 
 # Turn block comments starting in the first column into "normal" hash comments
-# as they currently are not handled by Literate.jl.
+# as block comments currently are not handled by Literate.jl.
 function hashify_block_comments(input)
     lines_in = collect(eachline(IOBuffer(input)))
     lines_out=IOBuffer()
@@ -32,6 +32,20 @@ function hashify_block_comments(input)
     return String(take!(lines_out))
 end
 
+#
+# Replace SOURCE_URL marker with github url of source
+#
+function replace_source_url(input,source_url)
+    lines_in = collect(eachline(IOBuffer(input)))
+    lines_out=IOBuffer()
+    for line in lines_in
+        println(lines_out,replace(line,"SOURCE_URL" => source_url))
+    end
+    return String(take!(lines_out))
+end
+
+
+
 
 function make_all()
     #
@@ -43,11 +57,13 @@ function make_all()
     for example_source in readdir(example_dir)
         base,ext=splitext(example_source)
         if ext==".jl"
+            source_url="https://github.com/j-fu/VoronoiFVM.jl/raw/master/examples/"*example_source
+            preprocess(buffer)=replace_source_url(buffer,source_url)|>hashify_block_comments
             Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
                               output_dir,
                               documenter=false,
                               info=false,
-                              preprocess=hashify_block_comments)
+                              preprocess=preprocess)
         end
     end
     generated_examples=joinpath.("examples",readdir(output_dir))

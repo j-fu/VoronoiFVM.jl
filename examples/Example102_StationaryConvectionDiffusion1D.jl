@@ -1,5 +1,5 @@
 #=
-# 102: 1D Stationary convection-diffusion equation
+# 102: 1D Stationary convection-diffusion equation ([source code](SOURCE_URL))
 
 Solve the equation
 

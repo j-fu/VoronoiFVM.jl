@@ -1,4 +1,4 @@
-# # 210: 2D Nonlinear Poisson with reaction
+# # 210: 2D Nonlinear Poisson with reaction ([source code](SOURCE_URL))
 
 module Example210_NonlinearPoisson2D_Reaction
 
