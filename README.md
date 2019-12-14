@@ -14,7 +14,3 @@ This Julia package merges the ideas behind [pdelib](http://www.wias-berlin.de/so
 
 It requires Julia 1.x
 
-The package contains a submodule Triangle which is a current copy of the provisional package [TriangleRaw.jl](https://github.com/j-fu/TriangleRaw)
-which attempts to consolidate the use of triangle based on ideas from [TriangleMesh.jl](https://github.com/konsim83/TriangleMesh.jl)
-and [Triangle.jl](https://github.com/cvdlab/Triangle.jl).
-
