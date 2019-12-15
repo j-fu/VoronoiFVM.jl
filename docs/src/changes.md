@@ -1,5 +1,5 @@
 # Changes
-## dev
+## v0.6, Dec 15 2019
 - Removed Triangle submodule, depend on new Triangulate.jl Triangle wrapper
 - link to source code in examples
 - boundary_dirichlet! etc methods for setting boundary conditions

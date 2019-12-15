@@ -2,6 +2,7 @@ VoronoiFVM.jl
 ===============
 
 [![Build Status](https://img.shields.io/travis/j-fu/VoronoiFVM.jl/master.svg?label=Linux+MacOSX+Windows)](https://travis-ci.org/j-fu/VoronoiFVM.jl)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://j-fu.github.io/VoronoiFVM.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://j-fu.github.io/VoronoiFVM.jl/dev)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3529808.svg)](https://doi.org/10.5281/zenodo.3529808)
 
