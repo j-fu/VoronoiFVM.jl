@@ -44,11 +44,9 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
         ileft=4
     end
     if !(r1≈0.0)
-        sys.boundary_factors[ispec,ileft]=VoronoiFVM.Dirichlet
-        sys.boundary_values[ispec,ileft]=1
+        boundary_dirichlet!(sys,ispec,ileft,1.0)
     end
-    sys.boundary_factors[ispec,2]=VoronoiFVM.Dirichlet
-    sys.boundary_values[ispec,2]=0
+    boundary_dirichlet!(sys,ispec,2,0.0)
 
     inival=unknowns(sys)
     solution=unknowns(sys)
@@ -66,4 +64,4 @@ end</code></pre><p>Called by unit test</p><pre><code class="language-julia">func
     main() &lt;1.0e-14
 end
 
-end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example202_Laplace2D_Unstructured/">« 202: 2D Laplace equation on unstructured mesh</a><a class="docs-footer-nextpage" href="../Example205_NonlinearPoisson2D/">205: 2D Nonlinear Poisson equation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 14 December 2019 22:20">Saturday 14 December 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example202_Laplace2D_Unstructured/">« 202: 2D Laplace equation on unstructured mesh</a><a class="docs-footer-nextpage" href="../Example205_NonlinearPoisson2D/">205: 2D Nonlinear Poisson equation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 15 December 2019 00:21">Sunday 15 December 2019</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
