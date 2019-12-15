@@ -173,3 +173,22 @@ Needs to be splatted. Use it e.g. like
 ```
 """
 tridata(g)=g.coord[1,:], g.coord[2,:],transpose(g.cellnodes.-1)
+
+
+
+
+################################################
+"""
+$(TYPEDSIGNATURES)
+
+Map a function onto grid coordinates.
+"""
+function map(f::Function, grid::Grid)
+    if dim_space(grid)==1
+        @views map(f,grid.coord[1,:])
+    elseif dim_space(grid)==2
+        @views map(f,grid.coord[1,:], grid.coord[2,:])
+    else
+        @views map(f,grid.coord[1,:], grid.coord[2,:], grid.coord[3,:])
+    end
+end

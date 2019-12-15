@@ -19,6 +19,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 
 [compat]
+Triangulate = "^0.2.0"
 BinDeps = "^0.8.10"
 DiffResults = "^0.0.4"
 DocStringExtensions = "^0.8"
