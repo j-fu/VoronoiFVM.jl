@@ -55,7 +55,7 @@ END
     (tempname,tempfile)=mktemp()
     write(tempfile,content)
     close(tempfile)
-    sleep(0.1)
+    sleep(0.5)
     grid=VoronoiFVM.Grid(IOStream,file=tempname,format="sg")
     num_nodes(grid)==12 && num_cells(grid)==9 && num_bfaces(grid)==13
 end
