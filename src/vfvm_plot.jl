@@ -262,8 +262,9 @@ function plot(Plotter,grid::VoronoiFVM.AbstractGrid, U::AbstractArray;
         if dim_space(grid)==2
             ax=Plotter.matplotlib.pyplot.gca()
             ax.set_aspect(aspect)
-            Plotter.tricontourf(tridata(grid)...,U;levels=levels,cmap=cmap)
+            plotted=Plotter.tricontourf(tridata(grid)...,U;levels=levels,cmap=cmap)
             Plotter.tricontour(tridata(grid)...,U,colors="k",levels=levels)
+            return plotted
         end
     end
 
