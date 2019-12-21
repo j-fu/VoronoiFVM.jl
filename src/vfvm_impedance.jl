@@ -4,13 +4,6 @@ using SparseArrays
 abstract type AbstractImpedanceSystem{Tv <: Number} end
 
 
-function colptrs(M::SparseMatrixCSC)
-    return M.colptr
-end
-
-function colptrs(M::ExtendableSparseMatrix)
-    return xcolptrs(M)
-end
 
 
 
