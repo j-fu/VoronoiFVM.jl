@@ -231,63 +231,107 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
         end
     end
 
+    # Assembly loop for boundary conditions
     for ibface=1:num_bfaces(grid)
+
+        # Calculate measure of boundary face contribution
+        # to the corresponding nodes
         bfacefactors!(grid,ibface,bnode_factors)
+
+        # Obtain boundary region number
         ibreg=grid.bfaceregions[ibface]
 
+        # Loop over nodes of boundary face
         for ibnode=1:num_nodes_per_bface(grid)
+
+            # Fill bnode data shuttle with data from grid
             _fill!(bnode,grid,ibnode,ibface)
+
+            # Copy unknown values from solution into dense array
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,bnode.index]
-                UKOld[ispec]=UOld[ispec,bnode.index]
             end
-            for ispec=1:nspecies # should involve only rspecies
-                idof=dof(F,ispec,bnode.index)
+
+            # Measure of boundary face part assembled to node
+            bnode_factor=bnode_factors[ibnode]
+
+            # Global index of node
+            K=bnode.index
+            
+            # Assemble "standard" boundary conditions: Robin or
+            # Dirichlet
+            # valid only for interior species, currently not checked
+            for ispec=1:nspecies
+                idof=dof(F,ispec,K)
+                # If species is present, assemble the boundary condition
                 if idof>0
-                    fac=this.boundary_factors[ispec,ibreg]
-                    val=this.boundary_values[ispec,ibreg]
-                    if fac==Dirichlet
-                        F[ispec,bnode.index]+=fac*(U[ispec,bnode.index]-val)
-                        _addnz(matrix,idof,idof,fac,1)
+                    # Get user specified data
+                    boundary_factor=this.boundary_factors[ispec,ibreg]
+                    boundary_value=this.boundary_values[ispec,ibreg]
+                    
+                    if boundary_factor==Dirichlet
+                        # Dirichlet is encoded in the boundary condition factor
+                        # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
+                        
+                        # Add penalty*boundry_value to right hand side
+                        F[ispec,K]+=boundary_factor*(U[ispec,K]-boundary_value)
+                        
+                        # Add penalty to matrix main diagonal (without bnode factor, so penalty
+                        # is independent of h)
+                        _addnz(matrix,idof,idof,boundary_factor,1)
                     else
-                        F[ispec,bnode.index]+=bnode_factors[ibnode]*(fac*U[ispec,bnode.index]-val)
-                        _addnz(matrix,idof,idof,fac,bnode_factors[ibnode])
+                        # Robin boundary condition
+                        F[ispec,K]+=bnode_factor*(boundary_factor*U[ispec,K]-boundary_value)
+                        _addnz(matrix,idof,idof,boundary_factor, bnode_factor)
                     end
                 end
             end
 
-            if isbreaction# involves bspecies and species
+            # Boundary reaction term has been given.
+            # Valid for both boundary and interior species
+            if isbreaction
+
+                # Evaluate function + derivative
                 ForwardDiff.jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
                 res_breact=DiffResults.value(result_r)
                 jac_breact=DiffResults.jacobian(result_r)
-                K=bnode.index
-                fac=bnode_factors[ibnode]
+                
+                # Assemble RHS + matrix
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
-                    _add(F,idof,fac*res_breact[ispec])
+                    _add(F,idof,bnode_factor*res_breact[ispec])
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
-                        _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],fac)
+                        _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
                     end
                 end
 
             end
             
-            if isbstorage # should involve only bspecies
-                # Evaluate & differentiate storage term
+            # Boundary reaction term has been given.
+            # Valid only for boundary species, but this is currently not checked.
+            if isbstorage
+                
+                # Fetch data for old timestep
+                for ispec=1:nspecies
+                    UKOld[ispec]=UOld[ispec,K]
+                end
+                # Evaluate storage term for old timestep
+                bstoragewrap(oldbstor,UKOld)
+
+                # Evaluate & differentiate storage term for new time step value
                 ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
                 res_bstor=DiffResults.value(result_s)
                 jac_bstor=DiffResults.jacobian(result_s)
                 
-                # Evaluate storage term for old timestep
-                bstoragewrap(oldbstor,UKOld)
-                
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
-                    _add(F,idof,fac*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
+                    # Assemble finite difference in time for right hand side
+                    _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
+                    # Assemble matrix.
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
-                        _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],fac*tstepinv)
+                        _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
                     end
                 end
             end
