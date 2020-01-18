@@ -47,7 +47,7 @@ i.e. effectively it is a sparse matrix.
 
 Unlike in the DenseSystem, the system matrix handles exactly those
 degrees of freedom which correspond to unknowns. However, handling
-of the sparse matrix structures for the bookeeping of the unknowns
+of the sparse matrix structures for the bookkeeping of the unknowns
 creates overhead.
 
 $(TYPEDFIELDS)
@@ -437,7 +437,8 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Create a solution vector for system.
+Create a solution vector for system. 
+The entries of the returned vector are undefined.
 """
 function unknowns(sys::SparseSystem{Tv}) where Tv
     return SparseSolutionArray{Tv}(SparseMatrixCSC(sys.node_dof.m,
@@ -454,6 +455,7 @@ end
 $(TYPEDSIGNATURES)
 
 Create a solution vector for system with given type
+The entries of the returned vector are undefined.
 """
 function unknowns(Tu::Type, sys::SparseSystem{Tv}) where Tv
     return SparseSolutionArray{Tu}(SparseMatrixCSC(sys.node_dof.m,
@@ -471,6 +473,7 @@ end
 $(TYPEDSIGNATURES)
 
 Create a solution vector for system.
+The entries of the returned vector are undefined.
 """
 function unknowns(sys::DenseSystem{Tv}) where Tv
     return Array{Tv}(undef,size(sys.node_dof,1), size(sys.node_dof,2))
@@ -481,6 +484,7 @@ end
 $(TYPEDSIGNATURES)
 
 Create a solution vector for system.
+The entries of the returned vector are undefined.
 """
 function unknowns(Tu::Type,sys::DenseSystem{Tv}) where Tv
     return Array{Tu}(undef,size(sys.node_dof,1), size(sys.node_dof,2))
