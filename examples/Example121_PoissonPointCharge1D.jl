@@ -1,8 +1,17 @@
-# # 1D Electrostatic potential with point charge
-# ([source code](SOURCE_URL))
-#
+#=
+ # 121: 1D Poisson with point charge
+ ([source code](SOURCE_URL))
 
-module Example121_PotKink
+Solve a Poisson equation
+```math
+- \Delta u = 0
+```
+
+in $\Omega=(-1,1)$
+with a point charge $Q$ at $x=0$. 
+=#
+
+module Example121_PoissonPointCharge1D
 
 using Printf
 
@@ -10,7 +19,7 @@ using VoronoiFVM
 
 function main(;nref=0,Plotter=nothing, verbose=false, dense=false, brea=false)
     
-    # Create grid in (-1,1) refined around 0
+    ## Create grid in (-1,1) refined around 0
     hmax=0.2/2.0^nref
     hmin=0.05/2.0^nref
     X1=VoronoiFVM.geomspace(-1.0,0.0, hmax,hmin)
@@ -18,12 +27,12 @@ function main(;nref=0,Plotter=nothing, verbose=false, dense=false, brea=false)
     X=glue(X1,X2)
     grid=VoronoiFVM.Grid(X)
 
-    # Edit default region numbers:
-    #   additional boundary region 3 at 0.0
+    ## Edit default region numbers:
+    ##   additional boundary region 3 at 0.0
     bfacemask!(grid, [0.0],[0.0],3)
-    # Material 1 left of 0
+    ## Material 1 left of 0
     cellmask!(grid, [-1.0],[0.0],1)
-    # Material 2 right of 0
+    ## Material 2 right of 0
     cellmask!(grid, [0.0],[1.0],2)
     
 
@@ -36,63 +45,62 @@ function main(;nref=0,Plotter=nothing, verbose=false, dense=false, brea=false)
         f[1]=u[1]
     end
 
-    # Define boundary reaction defining charge
-    # Note that the term  is written on  the left hand side, therefore the - sign
-    # Alternatively,  can put the charge
-    # into the boundary reaction term.
+    ## Define boundary reaction defining charge
+    ## Note that the term  is written on  the left hand side, therefore the - sign
     function breaction!(f,u,node,data)
         if node.region==3
             f[1]=-Q
         end
     end
 
-    # Create physics
+   ## Create physics
     physics=VoronoiFVM.Physics(
         flux=flux!,
         storage=storage!,
         breaction=breaction!
     )
 
-    # Create system
+    ## Create system
     sys=VoronoiFVM.DenseSystem(grid,physics)
 
-    #  put potential into both regions
+    ##  put potential into both regions
     enable_species!(sys,1,[1,2])
 
-    # Set boundary conditions
+    ## Set boundary conditions
 
     boundary_dirichlet!(sys,1,1,1.0)
     boundary_dirichlet!(sys,1,2,0.0)
 
-    # Create a solution array
+    ## Create a solution array
     inival=unknowns(sys)
     U=unknowns(sys)
     inival.=0
 
-    # Create solver control info
+    ## Create solver control info
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     if ispyplot(Plotter)
         Plotter.clf()
     end
 
-    # Solve and plot for several values of charge
+    ## Solve and plot for several values of charge
     for q in [0.1,0.2,0.4,0.8,1.6]
-        # surface charge at x=0
         
         if brea
-            # Charge in reaction term
+            ## Charge in reaction term
             Q=q
         else
-            # Charge as boundary condition
+            ## Charge as boundary condition
             sys.boundary_values[1,3]=q
         end
         solve!(U,inival,sys, control=control)
         
-        # Plot data
+        ## Plot data
         if ispyplot(Plotter)
             Plotter.grid()
-            Plotter.plot(grid.coord[1,:],U[1,:],label=@sprintf("q=%.2f",q))
+            Plotter.plot(grid.coord[1,:],U[1,:],label=@sprintf("Q=%.2f",q))
+            Plotter.xlabel("x")
+            Plotter.ylabel("\$\\phi\$")
             Plotter.legend(loc="upper right")
             Plotter.pause(1.0e-10)
         end
