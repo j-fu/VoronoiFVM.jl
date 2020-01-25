@@ -14,7 +14,7 @@ const value=ForwardDiff.value
 # Add value to matrix if it is nonzero
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if v!=zero(Tv)
-        matrix[i,j]+=v*fac
+        updateindex!(matrix,+,v*fac,i,j)
     end
 end
 

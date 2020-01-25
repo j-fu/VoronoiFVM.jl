@@ -1,5 +1,24 @@
 # Changes
-## v0.6, Dec 15 2019
+## v0.6.5 Jan 25 2019
+- use updateindex! for matrix, depend on ExtendableSparse 0.2.6
+
+## v0.6.4 2020-01-20
+- Rearranged + commented boundary assembly loop
+- Reworked + renamed some examples
+- Document that unknowns doesn't initialize values.
+
+## v0.6.3 2019-12-21 
+remove xcolptrs call
+Update dependency on ExtendableSparse
+
+## v0.6.2 2019-12-20
+Updated dependency list (Triangulate ^0.4.0)
+
+## v0.6.1, 2019-12-17
+- return "plotted" for being able to  place colormap
+- require Triangulate >= 0.3.0
+
+## v0.6.0, Dec 15 2019
 - Removed Triangle submodule, depend on new Triangulate.jl Triangle wrapper
 - link to source code in examples
 - boundary_dirichlet! etc methods for setting boundary conditions
