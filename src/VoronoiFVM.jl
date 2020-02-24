@@ -24,7 +24,12 @@ include("vfvm_physics.jl")
 include("vfvm_grid.jl")
 include("vfvm_functions.jl")
 include("vfvm_newtoncontrol.jl")
-include("vfvm_system.jl")
+include("vfvm_abstractsystem.jl")
+include("vfvm_densesystem.jl")
+include("vfvm_sparsesystem.jl")
+include("vfvm_geometryitems.jl")
+include("vfvm_subgridview.jl")
+
 include("vfvm_solver.jl")
 include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
@@ -81,5 +86,6 @@ export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities
 export geomspace
 export TokenStream,gettoken, expecttoken,trytoken
+
 end
 
