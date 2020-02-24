@@ -158,11 +158,12 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
             end
 
             if isreaction
-                # Evaluate reaction term if present
+                # Evaluate & differentiate reaction term if present
                 ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
                 res_react=DiffResults.value(result_r)
                 jac_react=DiffResults.jacobian(result_r)
             end
+
             # Evaluate & differentiate storage term
             ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
             res_stor=DiffResults.value(result_s)
@@ -221,8 +222,8 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                         continue
                     end
                     
-                    _addnz(matrix,idofK,jdofK,+jac[ispec,jspec            ],fac)
-                    _addnz(matrix,idofL,jdofK,-jac[ispec,jspec            ],fac)
+                    _addnz(matrix,idofK,jdofK,+jac[ispec,jspec         ],fac)
+                    _addnz(matrix,idofL,jdofK,-jac[ispec,jspec         ],fac)
                     _addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
                     _addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
                     

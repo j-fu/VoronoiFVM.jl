@@ -96,7 +96,7 @@ end
 
 
 function calculate(grid,data,flux,verbose)
-    sys=FVMSystem(grid,VoronoiFVM.Physics(flux=flux, data=data),unknown_storage=:dense)
+    sys=VoronoiFVM.DenseSystem(grid,VoronoiFVM.Physics(flux=flux, data=data))
     
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])

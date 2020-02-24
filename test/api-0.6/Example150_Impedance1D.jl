@@ -38,7 +38,7 @@ mutable struct Data  <: VoronoiFVM.AbstractData
 end
 
 
-function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(;nref=0,Plotter=nothing,verbose=false, dense=false)
 
     L=1.0
 
@@ -76,7 +76,11 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
                                reaction=reaction
                                )
     # Create discrete system and enabe species
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
     enable_species!(sys,1,[1])
 
     # Create test functions for current measurement
@@ -178,7 +182,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 end
 
 function test()
-    main(unknown_storage=:dense) ≈ 0.23106605162049176 &&  main(unknown_storage=:sparse) ≈ 0.23106605162049176
+    main(dense=true) ≈ 0.23106605162049176 &&  main(dense=false) ≈ 0.23106605162049176
 end
 
 

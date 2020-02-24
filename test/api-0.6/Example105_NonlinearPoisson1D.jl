@@ -38,7 +38,7 @@ using VoronoiFVM
 # Main function for user interaction from REPL and
 # for testing. Default physics need to generate correct
 # test value.
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)
@@ -81,8 +81,11 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     ## in the dense or  the sparse version.
     ## The difference is in the way the solution object
     ## is stored - as dense or as sparse matrix
-
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
 
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
@@ -118,7 +121,7 @@ end
 
 function test()
     testval=1.5247901344230088
-    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
+    main(dense=false) ≈ testval && main(dense=true) ≈ testval
 end
 
 # End of module

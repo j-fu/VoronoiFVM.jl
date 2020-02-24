@@ -7,7 +7,7 @@ using VoronoiFVM
 
 
 
-function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
+function main(;n=100,Plotter=nothing,verbose=false,dense=false)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
@@ -34,8 +34,13 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         f[2]=u[2]
     end
     )
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
 
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
+    
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 
@@ -74,7 +79,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.01 &&
-        main(unknown_storage=:dense) ≈ 0.01
+    main(dense=false) ≈ 0.01 &&
+        main(dense=true) ≈ 0.01
 end
 end

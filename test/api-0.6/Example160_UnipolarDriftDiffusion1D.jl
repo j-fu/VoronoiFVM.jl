@@ -70,7 +70,7 @@ function sedanflux!(f,u,edge,data)
 end 
 
 
-function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:sparse)
+function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,dense=false)
     
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
@@ -91,7 +91,12 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
                                reaction=reaction!,
                                storage=storage!
                                )
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
+
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 
@@ -179,9 +184,9 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
 end
 
 function test()
-        main(unknown_storage=:sparse) ≈ 0.9999546021312723 &&
-            main(unknown_storage=:dense) ≈ 0.9999546021312723 &&
+        main(dense=false) ≈ 0.9999546021312723 &&
+            main(dense=true) ≈ 0.9999546021312723 &&
             main(dlcap=true) ≈ .010759276468375045 &&
-            main(dlcap=true,unknown_storage=:dense) ≈ .010759276468375045
+            main(dlcap=true,dense=true) ≈ .010759276468375045
 end
 end

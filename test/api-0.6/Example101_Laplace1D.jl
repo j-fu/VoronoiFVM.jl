@@ -116,7 +116,7 @@ function main()
     physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
 
     # Create a finite volume system with dense storage of unknowns
-    sys=FVMSystem(grid,physics,unknown_storage=:dense)
+    sys=VoronoiFVM.DenseSystem(grid,physics)
 
     # Enable species 1 in region 1
     enable_species!(sys,ispec,[1])

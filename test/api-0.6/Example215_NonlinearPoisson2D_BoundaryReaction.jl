@@ -9,7 +9,7 @@ const Node=VoronoiFVM.Node
 const Edge=VoronoiFVM.Edge
 
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -49,7 +49,11 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         f[2]=u[2]
     end)
 
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 
@@ -92,7 +96,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.008761335823958986 &&
-    main(unknown_storage=:dense) ≈ 0.008761335823958986
+    main() ≈ 0.008761335823958986 &&
+    main(dense=true) ≈ 0.008761335823958986
 end
 end

@@ -24,6 +24,7 @@ include("vfvm_physics.jl")
 include("vfvm_grid.jl")
 include("vfvm_functions.jl")
 include("vfvm_newtoncontrol.jl")
+
 include("vfvm_abstractsystem.jl")
 include("vfvm_densesystem.jl")
 include("vfvm_sparsesystem.jl")
@@ -47,6 +48,7 @@ export isplots
 export ispyplot
 export ispyplotter
 
+export FVMSystem
 export glue
 export num_nodes
 export num_edges

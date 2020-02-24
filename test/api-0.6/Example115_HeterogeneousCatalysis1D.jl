@@ -59,7 +59,7 @@ using Printf
 using VoronoiFVM
 
 # Main function
-function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
+function main(;n=10,Plotter=nothing,verbose=false,tend=1, dense=false)
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -136,7 +136,11 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
         source=source!
     )
     
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
 
     ## Enable species in bulk resp
     enable_species!(sys,iA,[1])
@@ -188,7 +192,7 @@ end
 # Test evaluation
 function test()
     testval=0.87544440641274
-    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
+    main(dense=false) ≈ testval && main(dense=true) ≈ testval
 end
 
 # Module end

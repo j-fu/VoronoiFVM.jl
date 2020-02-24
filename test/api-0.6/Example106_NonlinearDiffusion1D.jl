@@ -34,7 +34,7 @@ function barenblatt(x,t,m)
 end
 
 
-function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=0.01,tstep=0.0001)
+function main(;n=20,m=2,Plotter=nothing,verbose=false, dense=false,tend=0.01,tstep=0.0001)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)
@@ -64,7 +64,11 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
     ## in the dense or  the sparse version.
     ## The difference is in the way the solution object
     ## is stored - as dense or as sparse matrix
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
 
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
@@ -107,7 +111,7 @@ end
 
 function test()
     testval=46.66666666647518
-    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
+    main(dense=false) ≈ testval && main(dense=true) ≈ testval
 end
 
 # End of module

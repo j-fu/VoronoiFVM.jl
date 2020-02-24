@@ -17,7 +17,7 @@ end
 
 
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -61,7 +61,11 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     data.k=1.0
 
     
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
 
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
@@ -101,7 +105,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.014566189535134827 &&
-        main(unknown_storage=:dense) ≈ 0.014566189535134827
+    main(dense=false) ≈ 0.014566189535134827 &&
+        main(dense=true) ≈ 0.014566189535134827
 end
 end

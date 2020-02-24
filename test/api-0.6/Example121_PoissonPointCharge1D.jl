@@ -17,7 +17,7 @@ using Printf
 
 using VoronoiFVM
 
-function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, brea=false)
+function main(;nref=0,Plotter=nothing, verbose=false, dense=false, brea=false)
     
     ## Create grid in (-1,1) refined around 0
     hmax=0.2/2.0^nref
@@ -61,8 +61,7 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
     )
 
     ## Create system
-    sys=FVMSystem(grid,physics,unknown_storage=:dense)
-
+    sys=VoronoiFVM.DenseSystem(grid,physics)
 
     ##  put potential into both regions
     enable_species!(sys,1,[1,2])

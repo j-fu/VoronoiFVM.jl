@@ -7,7 +7,7 @@ using Printf
 using VoronoiFVM
 
 
-function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
+function main(;n=10,Plotter=nothing,verbose=false,dense=false)
     
     
     h=1.0/convert(Float64,n)
@@ -57,7 +57,11 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     end
     )
     
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end
     
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
@@ -109,7 +113,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.0020781361856598
-    main(unknown_storage=:dense) ≈ 0.0020781361856598
+    main() ≈ 0.0020781361856598
+    main(dense=true) ≈ 0.0020781361856598
 end
 end

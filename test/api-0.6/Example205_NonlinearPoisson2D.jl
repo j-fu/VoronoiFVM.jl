@@ -8,7 +8,7 @@ using VoronoiFVM
 
 
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -37,7 +37,12 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         storage=function(f,u,node,data)
         f[1]=u[1]
         end)
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    
+    if dense
+        sys=VoronoiFVM.DenseSystem(grid,physics)
+    else
+        sys=VoronoiFVM.SparseSystem(grid,physics)
+    end        
     enable_species!(sys,1,[1])
 
     boundary_dirichlet!(sys,1,2,0.1)
@@ -75,7 +80,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.3554284760906605 &&
-        main(unknown_storage=:dense) ≈ 0.3554284760906605
+    main(dense=false) ≈ 0.3554284760906605 &&
+        main(dense=true) ≈ 0.3554284760906605
 end
 end
