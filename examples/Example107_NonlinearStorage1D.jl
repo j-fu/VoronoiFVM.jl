@@ -39,9 +39,7 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     ## Flux function which describes the flux
     ## between neigboring control volumes
     function flux!(f,u,edge)
-        uk=viewK(edge,u)  
-        ul=viewL(edge,u)
-        f[1]=uk[1]-ul[1]
+        f[1]=u[1,1]-u[1,2]
     end
 
     ϵ=1.0e-10

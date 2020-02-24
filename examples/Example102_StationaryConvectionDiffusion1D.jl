@@ -44,11 +44,9 @@ can fix this situation by decreasing $h$.
 
 function central_flux!(f,u,edge)
     data=physics_data(edge)
-    uk=viewK(edge,u)  
-    ul=viewL(edge,u)
-    h=edgelength(edge)
-    f_diff=data.D*(uk[1]-ul[1])
-    f[1]=f_diff+data.v*h*(uk[1]+ul[1])/2
+    h=meas(edge)
+    f_diff=data.D*(u[1,1]-u[1,2])
+    f[1]=f_diff+data.v*h*(u[1,1]+u[1,2])/2
 end
 
 #=
@@ -58,14 +56,12 @@ to the central flux.
 =#
 function upwind_flux!(f,u,edge)
     data=physics_data(edge)
-    uk=viewK(edge,u)  
-    ul=viewL(edge,u)
-    h=edgelength(edge)
-    fdiff=data.D*(uk[1]-ul[1])
+    h=meas(edge)
+    fdiff=data.D*(u[1,]-u[1,2])
     if data.v>0
-        f[1]=fdiff+data.v*h*uk[1]
+        f[1]=fdiff+data.v*h*u[1,1]
     else
-        f[1]=fdiff+data.v*h*ul[1]
+        f[1]=fdiff+data.v*h*u[1,2]
     end
 end
 
@@ -87,12 +83,10 @@ end
 
 function exponential_flux!(f,u,edge)
     data=physics_data(edge)
-    uk=viewK(edge,u)  
-    ul=viewL(edge,u)
-    h=edgelength(edge)
+    h=meas(edge)
     Bplus= data.D*bernoulli(data.v*h/data.D)
     Bminus=data.D*bernoulli(-data.v*h/data.D)
-    f[1]=Bminus*uk[1]-Bplus*ul[1]
+    f[1]=Bminus*u[1,1]-Bplus*u[1,2]
 end
 
 

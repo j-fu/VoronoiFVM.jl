@@ -39,15 +39,14 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
                                
                                flux=function(f,u,edge)   
                                nspecies=2
-                               uk=viewK(2,u)
-                               ul=viewL(2,u)
-                               f[1]=eps[1]*(uk[1]-ul[1])*(0.01+uk[2]+ul[2])
-                               f[2]=eps[2]*(uk[2]-ul[2])*(0.01+uk[1]+ul[1])
+                               f[1]=eps[1]*(u[1,1]-u[1,2])*(0.01+u[2,1]+u[2,2])
+                               f[2]=eps[2]*(u[2,1]-u[2,2])*(0.01+u[1,1]+u[1,2])
                                end,
                                
                                source=function(f,node)
-                               f[1]=1.0e-4*(0.01+node.coord[1])
-                               f[2]=1.0e-4*(0.01+1.0-node.coord[1])
+                               coord=nodecoord(node)
+                               f[1]=1.0e-4*(0.01+coord[1])
+                               f[2]=1.0e-4*(0.01+1.0-coord[1])
                                end,
                                
                                storage=function(f,u,node)

@@ -22,10 +22,8 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     end,
 
     flux=function(f,u,edge)   
-        uk=viewK(edge,u)
-        ul=viewL(edge,u)
-        f[1]=eps[1]*(uk[1]-ul[1])
-        f[2]=eps[2]*(uk[2]-ul[2])
+        f[1]=eps[1]*(u[1,1]-u[1,2])
+        f[2]=eps[2]*(u[2,1]-u[2,2])
     end,
     
     

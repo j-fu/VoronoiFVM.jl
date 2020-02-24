@@ -33,14 +33,11 @@ end
 
 function classflux!(f,u,edge)
     data=physics_data(edge)
-    uk=viewK(edge,u)
-    ul=viewL(edge,u)
     ic=data.ic
     iphi=data.iphi
-    f[iphi]=data.eps*(uk[iphi]-ul[iphi])
-    arg=uk[iphi]-ul[iphi]
-    bp,bm=fbernoulli_pm(uk[iphi]-ul[iphi])
-    f[ic]=bm*uk[ic]-bp*ul[ic]
+    f[iphi]=data.eps*(u[iphi,1]-u[iphi,2])
+    bp,bm=fbernoulli_pm(u[iphi,1]-u[iphi,2])
+    f[ic]=bm*u[ic,1]-bp*u[ic,2]
 end 
 
 
@@ -62,15 +59,13 @@ end
 
 function sedanflux!(f,u,edge)
     data=physics_data(edge)
-    uk=viewK(edge,u)
-    ul=viewL(edge,u)
     ic=data.ic
     iphi=data.iphi
-    f[iphi]=data.eps*(uk[iphi]-ul[iphi])
-    muk=-log(1-uk[ic])
-    mul=-log(1-ul[ic])
-    bp,bm=fbernoulli_pm(data.z*2*(uk[iphi]-ul[iphi])+(muk-mul))
-    f[ic]=bm*uk[ic]-bp*ul[ic]
+    f[iphi]=data.eps*(u[iphi,1]-u[iphi,2])
+    mu1=-log(1-u[ic,1])
+    mu2=-log(1-u[ic,2])
+    bp,bm=fbernoulli_pm(data.z*2*(u[iphi,1]-u[iphi,2])+(mu1-mu2))
+    f[ic]=bm*u[ic,1]-bp*u[ic,2]
 end 
 
 

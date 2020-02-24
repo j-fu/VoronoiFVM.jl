@@ -96,9 +96,7 @@ using VoronoiFVM
 # Flux function which describes the flux
 # between neigboring control volumes $\omega_k$ and $\omega_l$
 function g!(f,u,edge)
-    uk=viewK(edge,u)  
-    ul=viewL(edge,u)
-    f[1]=uk[1]-ul[1]
+    f[1]=u[1,1]-u[1,2]
 end
 
 

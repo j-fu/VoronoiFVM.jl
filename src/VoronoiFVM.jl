@@ -85,13 +85,19 @@ export subgrid
 export freqdomain_impedance
 export measurement_derivative
 export testfunction
-export data
-export edgelength
-export viewK,viewL
+export meas
+
+
 export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities
 export geomspace
 export TokenStream,gettoken, expecttoken,trytoken
+
+
+# deprecated
+export edgelength
+export viewK,viewL
+
 
 end
 

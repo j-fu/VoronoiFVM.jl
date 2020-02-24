@@ -47,7 +47,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     isbstorage=(physics.bstorage!=nofunc2)
 
     
-    function fluxwrap(y::AbstractVector, u::AbstractVector)
+    function fluxwrap(y::AbstractVector, u::AbstractMatrix)
         y.=0
         physics.flux(y,u,edge)
     end
@@ -96,7 +96,7 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     # Arrays for gathering solution data
     UK=Array{Tv,1}(undef,nspecies)
     UKOld=Array{Tv,1}(undef,nspecies)
-    UKL=Array{Tv,1}(undef,2*nspecies)
+    UKL=Array{Tv,2}(undef,nspecies,2)
 
     # array holding source term
     src=zeros(Tv,nspecies)
@@ -194,16 +194,16 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
 
             #Set up argument for fluxwrap
             for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.nodeK]
-                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+                UKL[ispec,1]=U[ispec,edge.node[1]]
+                UKL[ispec,2]=U[ispec,edge.node[2]]
             end
 
             ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
             res=DiffResults.value(result_flx)
             jac=DiffResults.jacobian(result_flx)
 
-            K=edge.nodeK
-            L=edge.nodeL
+            K=edge.node[1]
+            L=edge.node[2]
             fac=edge_factors[iedge]
             for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idofK,K)

@@ -120,7 +120,7 @@ function _eval_and_assemble_oldapi(this::AbstractSystem{Tv},
         edge.region=reg_cell(grid,icell)
 
         for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid, inode,icell)
+            _fill_oldapi!(node,grid, inode,icell)
             for ispec=1:nspecies
                 # xx gather:
                 # ii=0
@@ -175,20 +175,20 @@ function _eval_and_assemble_oldapi(this::AbstractSystem{Tv},
                 continue
             end
 
-            _fill!(edge,grid,iedge,icell)
+            _fill_oldapi!(edge,grid,iedge,icell)
 
             #Set up argument for fluxwrap
             for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.nodeK]
-                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+                UKL[ispec]=U[ispec,edge.node[1]]
+                UKL[ispec+nspecies]=U[ispec,edge.node[2]]
             end
 
             ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
             res=DiffResults.value(result_flx)
             jac=DiffResults.jacobian(result_flx)
 
-            K=edge.nodeK
-            L=edge.nodeL
+            K=edge.node[1]
+            L=edge.node[2]
             fac=edge_factors[iedge]
             for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idofK,K)
@@ -230,7 +230,7 @@ function _eval_and_assemble_oldapi(this::AbstractSystem{Tv},
         for ibnode=1:num_nodes_per_bface(grid)
 
             # Fill bnode data shuttle with data from grid
-            _fill!(bnode,grid,ibnode,ibface)
+            _fill_oldapi!(bnode,grid,ibnode,ibface)
 
             # Copy unknown values from solution into dense array
             for ispec=1:nspecies
@@ -350,23 +350,23 @@ function _integrate_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMa
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
-            _fill!(edge,grid,iedge,icell)
+            _fill_oldapi!(edge,grid,iedge,icell)
 
             for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.nodeK]
-                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+                UKL[ispec]=U[ispec,edge.node[1]]
+                UKL[ispec+nspecies]=U[ispec,edge.node[2]]
             end
             res.=0
             @views this.physics.flux(res,UKL,edge, this.physics.data)
             for ispec=1:nspecies
-                if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
-                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
+                if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
+                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
         
         for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
+            _fill_oldapi!(node,grid,inode,icell)
             @views begin
                 res.=0
                 stor.=0
@@ -408,23 +408,23 @@ function _integrate_stdy_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::Abstr
             if edge_factors[iedge]<edge_cutoff
                 continue
             end
-            _fill!(edge,grid,iedge,icell)
+            _fill_oldapi!(edge,grid,iedge,icell)
 
             for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.nodeK]
-                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+                UKL[ispec]=U[ispec,edge.node[1]]
+                UKL[ispec+nspecies]=U[ispec,edge.node[2]]
                 res[ispec]=0.0
             end
             this.physics.flux(res,UKL,edge, this.physics.data)
             for ispec=1:nspecies
-                if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
-                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
+                if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
+                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
         
         for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
+            _fill_oldapi!(node,grid,inode,icell)
             for ispec=1:nspecies
                 res[ispec]=0.0
                 UK[ispec]=U[ispec,node.index]
@@ -457,7 +457,7 @@ function _integrate_tran_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::Abstr
     for icell=1:num_cells(grid)
         cellfactors!(grid,icell,node_factors,edge_factors)
         for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
+            _fill_oldapi!(node,grid,inode,icell)
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,node.index]
                 res[ispec]=0.0
@@ -472,4 +472,75 @@ function _integrate_tran_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::Abstr
         end
     end
     return integral
+end
+
+
+
+##################################################################
+"""
+$(TYPEDSIGNATURES)
+   
+Calculate the length of an edge. 
+"""
+function edgelength(edge::Edge{Tv}) where Tv
+    l::Tv=0.0
+    for i=1:length(edge.coordK)
+        d=edge.coordK[i]-edge.coordL[i]
+        l=l+d*d
+    end
+    return sqrt(l)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on first edge node
+"""
+@inline viewK(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[1:edge.nspec]
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on second edge node
+"""
+@inline viewL(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[edge.nspec+1:2*edge.nspec]
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on first edge node
+"""
+@inline viewK(nspec::Int64,u::AbstractArray)=@views u[1:nspec]
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on second edge node
+"""
+@inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]
+
+function _fill_oldapi!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
+    _fill!(node,grid,inode,icell)
+    for i=1:length(node.coord)
+        node.coord[i]=grid.coord[i,node.index]
+    end
+end
+
+
+function _fill_oldapi!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
+    _fill!(node,grid,ibnode,ibface)
+    for i=1:length(node.coord)
+        node.coord[i]=grid.coord[i,node.index]
+    end
+end
+
+
+function _fill_oldapi!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
+    _fill!(edge,grid,iedge,icell)
+    for i=1:length(edge.coordK)
+        edge.coordK[i]=grid.coord[i,edge.node[1]]
+        edge.coordL[i]=grid.coord[i,edge.node[2]]
+    end
 end

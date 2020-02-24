@@ -46,22 +46,21 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     end,
     
     flux=function(f,u,edge)   
-        uk=viewK(edge,u)
-        ul=viewL(edge,u)
         if edge.region==1
-            f[1]=eps[1]*(uk[1]-ul[1])
-            f[2]=eps[2]*(uk[2]-ul[2])
+            f[1]=eps[1]*(u[1,1]-u[1,2])
+            f[2]=eps[2]*(u[2,1]-u[2,2])
         elseif edge.region==2
-            f[2]=eps[2]*(uk[2]-ul[2])
+            f[2]=eps[2]*(u[2,1]-u[2,2])
         elseif edge.region==3
-            f[2]=eps[2]*(uk[2]-ul[2])
-            f[3]=eps[3]*(uk[3]-ul[3])
+            f[2]=eps[2]*(u[2,1]-u[2,2])
+            f[3]=eps[3]*(u[3,1]-u[3,2])
         end
     end,
     
     source=function(f,node)
         if node.region==1
-            f[1]=1.0e-4*(3.0-node.coord[1])
+           coord=nodecoord(node)
+           f[1]=1.0e-4*(3.0-coord[1])
         end
     end,
     

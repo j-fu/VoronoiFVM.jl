@@ -39,15 +39,14 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     
     
     flux=function(f,u,edge)
-        uk=viewK(edge,u)
-        ul=viewL(edge,u)
-        f[1]=eps*(uk[1]-ul[1])
-        f[2]=eps*(uk[2]-ul[2])
+        f[1]=eps*(u[1,1]-u[1,2])
+        f[2]=eps*(u[2,1]-u[2,2])
     end,
     
     source=function(f,node)
-        x1=node.coord[1]-0.5
-        x2=node.coord[2]-0.5
+        coord=nodecoord(node)
+        x1=coord[1]-0.5
+        x2=coord[2]-0.5
         f[1]=exp(-20.0*(x1^2+x2^2))
     end,
     

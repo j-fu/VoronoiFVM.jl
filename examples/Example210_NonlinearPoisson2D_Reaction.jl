@@ -32,15 +32,14 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     end
     
     function flux!(f,u,edge)
-        uk=viewK(2,u)
-        ul=viewL(2,u)
-        f[1]=data.eps*(uk[1]-ul[1])
-        f[2]=data.eps*(uk[2]-ul[2])
+        f[1]=data.eps*(u[1,1]-u[1,2])
+        f[2]=data.eps*(u[2,1]-u[2,2])
     end
     
     function source!(f,node)
-        x1=node.coord[1]-0.5
-        x2=node.coord[2]-0.5
+        coord=nodecoord(node)
+        x1=coord[1]-0.5
+        x2=coord[2]-0.5
         f[1]=exp(-20*(x1^2+x2^2))
     end
     

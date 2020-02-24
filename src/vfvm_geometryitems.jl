@@ -21,30 +21,33 @@ mutable struct BNode{Tv} <: AbstractGeometryItem
     region::Int32
 
     """
-    1D Array of node coordinates
-    """
-    coord::Array{Tv,1}
-
-    """
     Number of species defined in node
     """
     nspec::Int64
 
     """
+    Grid
+    """
+    grid
+    
+    """
     Physics data
     """
     physics_data
+
+    """
+    (deprecated) Coordinates
+    """
+    coord::Array{Tv,1}
+
     
-    BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys),sys.physics.data)
+    BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,num_species(sys),sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
 end
 
 function _fill!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
     K=grid.bfacenodes[ibnode,ibface]
     node.region=grid.bfaceregions[ibface]
     node.index=K
-    for i=1:length(node.coord)
-        node.coord[i]=grid.coord[i,K]
-    end
 end
 
 
@@ -72,11 +75,6 @@ mutable struct Node{Tv} <: AbstractGeometryItem
     region::Int32
 
     """
-    1D Array of node coordinates
-    """
-    coord::Array{Tv,1}
-
-    """
     Number of species defined in node
     """
     nspec::Int64
@@ -87,11 +85,22 @@ mutable struct Node{Tv} <: AbstractGeometryItem
     icell::Int64
 
     """
+    Grid
+    """
+    grid
+    
+    """
     Physics data
     """
     physics_data
 
-    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys),0, sys.physics.data)
+
+    """
+    (deprecated) Coordinates
+    """
+    coord::Array{Tv,1}
+    
+    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,num_species(sys),0, sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
 end
 
 function _fill!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
@@ -99,10 +108,9 @@ function _fill!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
     node.region=grid.cellregions[icell]
     node.index=K
     node.icell=icell
-    for i=1:length(node.coord)
-        node.coord[i]=grid.coord[i,K]
-    end
 end
+
+nodecoord(node::Node)=@views node.grid.coord[:,node.index]
 
 ##################################################################
 """
@@ -120,29 +128,14 @@ mutable struct Edge{Tv}  <: AbstractGeometryItem
     index::Int32
 
     """
-    Index of first node
+    Index 
     """
-    nodeK::Int32
-
-    """
-    Index of second node
-    """
-    nodeL::Int32
+    node::Vector{Int32}
 
     """
     Inner region number corresponding to edge
     """
     region::Int32
-
-    """
-    1D Array of first node coordinates
-    """
-    coordK::Array{Tv,1}
-
-    """
-    1D Array of second node coordinates
-    """
-    coordL::Array{Tv,1}
 
     """
     Number of species defined in edge
@@ -153,13 +146,29 @@ mutable struct Edge{Tv}  <: AbstractGeometryItem
     Number of discretization cell the edge is invoked from
     """
     icell::Int64
+    
+    """
+    Grid
+    """
+    grid
 
     """
     Physics data
     """
     physics_data
 
-    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys),0,sys.physics.data)
+
+    """
+    (deprecated) Coordinates
+    """
+    coordK::Array{Tv,1}
+    """
+    (deprecated) Coordinates
+    """
+    coordL::Array{Tv,1}
+
+    
+    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,[0,0],0,num_species(sys),0,sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)))
 end
 
 
@@ -180,13 +189,14 @@ function _fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
         L=celledgenode(grid,2,iedge,icell)
     end
     edge.region=grid.cellregions[icell]
-    edge.nodeK=K
-    edge.nodeL=L
+    edge.node[1]=K
+    edge.node[2]=L
     edge.icell=icell
-    @. @inbounds @views edge.coordK=grid.coord[:,K]
-    @. @inbounds @views edge.coordL=grid.coord[:,L]
 end
 
+
+
+nodecoord(edge::Edge,i)=@views edge.grid.coord[:,node.index[i]]
 
 ##################################################################
 """
@@ -196,57 +206,23 @@ Return number of species for edge
 """
 num_species(edge::Edge{Tv}) where Tv=edge.nspec
 
+
 ##################################################################
 """
 $(TYPEDSIGNATURES)
    
 Calculate the length of an edge. 
 """
-function edgelength(edge::Edge{Tv}) where Tv
+function meas(edge::Edge{Tv}) where Tv
     l::Tv=0.0
-    for i=1:length(edge.coordK)
-        d=edge.coordK[i]-edge.coordL[i]
+    for i=1:dim_space(edge.grid)
+        d=edge.grid.coord[i,edge.node[1]]-edge.grid.coord[i,edge.node[2]]
         l=l+d*d
     end
     return sqrt(l)
 end
 
-"""
-$(TYPEDSIGNATURES)
 
-Solution view on first edge node
-"""
-@inline viewK(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[1:edge.nspec]
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Solution view on second edge node
-"""
-@inline viewL(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[edge.nspec+1:2*edge.nspec]
-
-"""
-$(TYPEDSIGNATURES)
-
-Solution view on first edge node
-"""
-@inline viewK(nspec::Int64,u::AbstractArray)=@views u[1:nspec]
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Solution view on second edge node
-"""
-@inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]
-
-
-
-function Base.show(io::IO,sys::AbstractSystem) where Tc
-    str=@sprintf("%s(num_species=%d)",typeof(sys),sys.physics.num_species)
-    println(io,str)
-end
 
 
 physics_data(item::AbstractGeometryItem)=item.physics_data

@@ -263,3 +263,9 @@ end
 
 
 
+
+function Base.show(io::IO,sys::AbstractSystem) where Tc
+    str=@sprintf("%s(num_species=%d)",typeof(sys),sys.physics.num_species)
+    println(io,str)
+end
+

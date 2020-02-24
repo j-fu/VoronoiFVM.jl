@@ -29,9 +29,7 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     end
 
     function flux!(f,u,edge)
-        uk=viewK(edge,u)  
-        ul=viewL(edge,u)
-        f[1]=uk[1]-ul[1]
+        f[1]=u[1,1]-u[1,2]
     end
     
     function source!(f,node)

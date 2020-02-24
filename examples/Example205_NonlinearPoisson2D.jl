@@ -25,12 +25,13 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         end,
         
         flux=function(f,u,edge)
-        f[1]=eps*(u[1]^2-u[2]^2)
+        f[1]=eps*(u[1,1]^2-u[1,2]^2)
         end,
         
         source=function(f,node)
-        x1=node.coord[1]-0.5
-        x2=node.coord[2]-0.5
+        coord=nodecoord(node)
+        x1=coord[1]-0.5
+        x2=coord[2]-0.5
         f[1]=exp(-20.0*(x1^2+x2^2))
         end,
         

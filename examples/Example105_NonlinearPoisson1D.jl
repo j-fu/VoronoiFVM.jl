@@ -51,14 +51,13 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     ## Flux function which describes the flux
     ## between neigboring control volumes
     function flux!(f,u,edge)
-        uk=viewK(edge,u)  
-        ul=viewL(edge,u)
-        f[1]=ϵ*(uk[1]-ul[1])
+        f[1]=ϵ*(u[1,1]-u[1,2])
     end
 
     ## Source term
     function source!(f,node)
-        if node.coord[1]<=0.5
+        coord=nodecoord(node)
+        if coord[1]<=0.5
             f[1]=1
         else
             f[1]=-1

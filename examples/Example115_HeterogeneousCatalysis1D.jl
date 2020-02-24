@@ -78,10 +78,8 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     D_A=1.0
     D_B=1.0e-2
     function flux!(f,u,edge)
-        uk=viewK(edge,u)
-        ul=viewL(edge,u)
-        f[iA]=D_A*(uk[iA]-ul[iA])
-        f[iB]=D_B*(uk[iB]-ul[iB])
+        f[iA]=D_A*(u[iA,1]-u[iA,2])
+        f[iB]=D_B*(u[iB,1]-u[iB,2])
     end
 
     ## Storage term of species A and B
@@ -92,7 +90,8 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
 
     ## Source term for species a around 0.5
     function source!(f,node)
-        x1=node.coord[1]-0.5
+        coord=nodecoord(node)
+        x1=coord[1]-0.5
         f[iA]=exp(-100*x1^2)
     end
 

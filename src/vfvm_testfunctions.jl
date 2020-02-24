@@ -107,7 +107,7 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
-    UKL=Array{Tv,1}(undef,2*nspecies)
+    UKL=Array{Tv,2}(undef,nspecies,2)
 
     
     for icell=1:num_cells(grid)
@@ -120,14 +120,14 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
             _fill!(edge,grid,iedge,icell)
 
             for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.nodeK]
-                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+                UKL[ispec,1]=U[ispec,edge.node[1]]
+                UKL[ispec,2]=U[ispec,edge.node[2]]
             end
             res.=0
             @views this.physics.flux(res,UKL,edge)
             for ispec=1:nspecies
-                if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
-                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
+                if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
+                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
@@ -195,14 +195,14 @@ function integrate_stdy(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray
             _fill!(edge,grid,iedge,icell)
 
             for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.nodeK]
-                UKL[ispec+nspecies]=U[ispec,edge.nodeL]
+                UKL[ispec]=U[ispec,edge.node[1]]
+                UKL[ispec+nspecies]=U[ispec,edge.node[2]]
                 res[ispec]=0.0
             end
             this.physics.flux(res,UKL,edge)
             for ispec=1:nspecies
-                if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
-                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
+                if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
+                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
