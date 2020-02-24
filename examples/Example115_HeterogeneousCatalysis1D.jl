@@ -77,7 +77,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     ## Diffusion flux for species A and B
     D_A=1.0
     D_B=1.0e-2
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         uk=viewK(edge,u)
         ul=viewL(edge,u)
         f[iA]=D_A*(uk[iA]-ul[iA])
@@ -85,13 +85,13 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     end
 
     ## Storage term of species A and B
-    function storage!(f,u,node,data)
+    function storage!(f,u,node)
         f[iA]=u[iA]
         f[iB]=u[iB]
     end
 
     ## Source term for species a around 0.5
-    function source!(f,node,data)
+    function source!(f,node)
         x1=node.coord[1]-0.5
         f[iA]=exp(-100*x1^2)
     end
@@ -112,7 +112,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     R_AC(u_A, u_C)=kp_AC*u_A*(1-u_C) - km_AC*u_C
     R_BC(u_B, u_C)=kp_BC*u_B*(1-u_C) - km_BC*u_C
     
-    function breaction!(f,u,node,data)
+    function breaction!(f,u,node)
         if  node.region==1
             f[iA]=S*R_AC(u[iA], u[iC])
             f[iB]=S*R_BC(u[iB], u[iC])
@@ -121,13 +121,13 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     end
 
     ## This is for the term \partial_t u_C at the boundary
-    function bstorage!(f,u,node,data)
+    function bstorage!(f,u,node)
         if  node.region==1
             f[iC]=u[iC]
         end
     end
     
-    physics=VoronoiFVM.Physics(
+    physics=FVMPhysics(
         num_species=3,
         breaction=breaction!,
         bstorage=bstorage!,

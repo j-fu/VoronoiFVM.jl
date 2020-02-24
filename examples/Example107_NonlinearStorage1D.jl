@@ -38,7 +38,7 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     grid=VoronoiFVM.Grid(X)
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         uk=viewK(edge,u)  
         ul=viewL(edge,u)
         f[1]=uk[1]-ul[1]
@@ -48,12 +48,12 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     ## Storage term
     ## This needs to be regularized as its derivative
     ## at 0 is infinity
-    function storage!(f,u,node,data)
+    function storage!(f,u,node)
         f[1]=(ϵ+u[1])^(1.0/m)
     end
     
     ## Create a physics structure
-    physics=VoronoiFVM.Physics(
+    physics=FVMPhysics(
         flux=flux!,
         storage=storage!)
     

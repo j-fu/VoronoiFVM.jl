@@ -95,7 +95,7 @@ using VoronoiFVM
 
 # Flux function which describes the flux
 # between neigboring control volumes $\omega_k$ and $\omega_l$
-function g!(f,u,edge,data)
+function g!(f,u,edge)
     uk=viewK(edge,u)  
     ul=viewL(edge,u)
     f[1]=uk[1]-ul[1]
@@ -113,7 +113,7 @@ function main()
 
 
     # Create a physics structure
-    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
+    physics=FVMPhysics(num_species=nspecies,flux=g!)
 
     # Create a finite volume system with dense storage of unknowns
     sys=FVMSystem(grid,physics,unknown_storage=:dense)

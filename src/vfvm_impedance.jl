@@ -54,16 +54,29 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, excited_sp
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     bnode_factors=zeros(Tv,num_nodes_per_bface(grid))
     
-    @inline function storagewrap(y::AbstractVector, u::AbstractVector)
+    storagewrap=function(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.storage(y,u,node,physics.data)
+        physics.storage(y,u,node)
     end
     
-    @inline function bstoragewrap(y::AbstractVector, u::AbstractVector)
+    bstoragewrap=function(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.bstorage(y,u,bnode,physics.data)
+        physics.bstorage(y,u,bnode)
     end
     
+    
+    if sys.oldapi
+        storagewrap=function(y::AbstractVector, u::AbstractVector)
+            y.=0
+            physics.storage(y,u,node,physics.data)
+        end
+        
+        bstoragewrap=function(y::AbstractVector, u::AbstractVector)
+            y.=0
+            physics.bstorage(y,u,bnode,physics.data)
+        end
+    end
+        
     F.=0.0
     UK=Array{Tv,1}(undef,nspecies)
     Y=Array{Tv,1}(undef,nspecies)

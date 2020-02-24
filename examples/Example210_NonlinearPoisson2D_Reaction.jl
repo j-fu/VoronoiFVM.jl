@@ -26,31 +26,31 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     grid=VoronoiFVM.Grid(X,Y)
     data=MyData()
     
-    function reaction!(f,u,node,data)
+    function reaction!(f,u,node)
         f[1]=data.k*(u[1]-u[2])
         f[2]=data.k*(u[2]-u[1])
     end
     
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         uk=viewK(2,u)
         ul=viewL(2,u)
         f[1]=data.eps*(uk[1]-ul[1])
         f[2]=data.eps*(uk[2]-ul[2])
     end
     
-    function source!(f,node,data)
+    function source!(f,node)
         x1=node.coord[1]-0.5
         x2=node.coord[2]-0.5
         f[1]=exp(-20*(x1^2+x2^2))
     end
     
-    function storage!(f,u,node,data)
+    function storage!(f,u,node)
         f[1]=u[1]
         f[2]=u[2]
     end
     
     
-    physics=VoronoiFVM.Physics(num_species=2,
+    physics=FVMPhysics(num_species=2,
                                data=data,
                                flux=flux!,
                                storage=storage!,

@@ -34,7 +34,6 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     grid=this.grid
 
     physics::Physics=this.physics
-    data=physics.data
     node::Node{Tv}=Node{Tv}(this)
     bnode::BNode{Tv}=BNode{Tv}(this)
     edge::Edge{Tv}=Edge{Tv}(this)
@@ -42,43 +41,43 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
     nspecies::Int32=num_species(this)
     
     matrix=this.matrix
-    issource=(physics.source!=nofunc)
-    isreaction=(physics.reaction!=nofunc)
-    isbreaction=(physics.breaction!=nofunc)
-    isbstorage=(physics.bstorage!=nofunc)
+    issource=(physics.source!=nofunc2)
+    isreaction=(physics.reaction!=nofunc2)
+    isbreaction=(physics.breaction!=nofunc2)
+    isbstorage=(physics.bstorage!=nofunc2)
 
     
     function fluxwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.flux(y,u,edge,data)
+        physics.flux(y,u,edge)
     end
 
 
     function reactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
         ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-        physics.reaction(y,u,node,data)
+        physics.reaction(y,u,node)
         ## for ii in .. y[ii]=y[node.speclist[ii]]
     end
 
     function storagewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        xstorage(y,u,node,data)
+        xstorage(y,u,node)
     end
 
     function sourcewrap(y)
         y.=0
-        xsource(y,node,data)
+        xsource(y,node)
     end
 
     @inline function breactionwrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.breaction(y,u,bnode,data)
+        physics.breaction(y,u,bnode)
     end
 
     @inline function bstoragewrap(y::AbstractVector, u::AbstractVector)
         y.=0
-        xbstorage(y,u,bnode,data)
+        xbstorage(y,u,bnode)
     end
     
     # Reset matrix + rhs
@@ -432,10 +431,17 @@ function _solve!(
 
     for ii=1:control.max_iterations
         try
-            _eval_and_assemble(this,solution,oldsol,residual,tstep,
-                               this.physics.storage,
-                               this.physics.bstorage,
-                               this.physics.source)
+            if this.oldapi
+                _eval_and_assemble_oldapi(this,solution,oldsol,residual,tstep,
+                                   this.physics.storage,
+                                   this.physics.bstorage,
+                                   this.physics.source)
+            else
+                _eval_and_assemble(this,solution,oldsol,residual,tstep,
+                                   this.physics.storage,
+                                   this.physics.bstorage,
+                                   this.physics.source)
+            end                
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -559,16 +565,26 @@ function eval_and_assemble(system::AbstractSystem{Tv},
                            tstep::Tv, # time step size. Inf means stationary solution
                            ) where {Tv}
 
-    _eval_and_assemble(system,
-                       solution,
-                       oldsol,
-                       residual,
-                       tstep,
-                       system.physics.storage,
-                       system.physics.bstorage,
-                       system.physics.source)
+    if system.oldapi
+        _eval_and_assemble_oldapi(system,
+                                  solution,
+                                  oldsol,
+                                  residual,
+                                  tstep,
+                                  system.physics.storage,
+                                  system.physics.bstorage,
+                                  system.physics.source)
+    else
+        _eval_and_assemble(system,
+                           solution,
+                           oldsol,
+                           residual,
+                           tstep,
+                           system.physics.storage,
+                           system.physics.bstorage,
+                           system.physics.source)
+    end        
 end
-
 
 ################################################################
 """
@@ -686,6 +702,7 @@ The result contains the integral for each species separately.
 """
 function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tu}) where {Tu,Tv}
     grid=this.grid
+    data=this.physics.data
     nspecies=num_species(this)
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
@@ -693,18 +710,33 @@ function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tu}) w
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
 
-    for icell=1:num_cells(grid)
-        cellfactors!(grid,icell,node_factors,edge_factors)
-        for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
-            F(res,U[:,node.index],node,this.physics.data)
-            for ispec=1:nspecies
-                if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=node_factors[inode]*res[ispec]
+    if this.oldapi
+        for icell=1:num_cells(grid)
+            cellfactors!(grid,icell,node_factors,edge_factors)
+            for inode=1:num_nodes_per_cell(grid)
+                _fill!(node,grid,inode,icell)
+                F(res,U[:,node.index],node,data)
+                for ispec=1:nspecies
+                    if this.node_dof[ispec,node.index]==ispec
+                        integral[ispec]+=node_factors[inode]*res[ispec]
+                    end
                 end
             end
         end
-    end
+    else
+        for icell=1:num_cells(grid)
+            cellfactors!(grid,icell,node_factors,edge_factors)
+            for inode=1:num_nodes_per_cell(grid)
+                _fill!(node,grid,inode,icell)
+                F(res,U[:,node.index],node)
+                for ispec=1:nspecies
+                    if this.node_dof[ispec,node.index]==ispec
+                        integral[ispec]+=node_factors[inode]*res[ispec]
+                    end
+                end
+            end
+        end
+    end        
     return integral
 end
 

@@ -12,13 +12,13 @@ using LinearAlgebra
 
 # Flux function which describes the flux
 # between neigboring control volumes $\omega_k$ and $\omega_l$
-function flux!(f,u,edge,data)
+function flux!(f,u,edge)
     uk=viewK(edge,u)  
     ul=viewL(edge,u)
     f[1]=uk[1]-ul[1]
 end
 
-function source!(f,edge,data)
+function source!(f,edge)
     f[1]=1
 end
 
@@ -42,7 +42,7 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
 
     
     # Create a physics structure
-    physics=VoronoiFVM.Physics(num_species=nspecies,flux=flux!,source=source!)
+    physics=FVMPhysics(num_species=nspecies,flux=flux!,source=source!)
 
     # Create a finite volume system with dense storage of unknowns
     sys=FVMSystem(grid,physics,unknown_storage=:dense)

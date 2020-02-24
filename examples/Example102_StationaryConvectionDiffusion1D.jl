@@ -30,7 +30,7 @@ using Printf
 using VoronoiFVM
 
 ## Data  passed to the different functions
-struct XData <: VoronoiFVM.AbstractData
+struct Data <: VoronoiFVM.AbstractData
     v
     D
 end
@@ -42,7 +42,8 @@ number $\frac{vh}{D}>1$, the monotonicity property is lost.  Grid refinement
 can fix this situation by decreasing $h$.
 =#
 
-function central_flux!(f,u,edge,data)
+function central_flux!(f,u,edge)
+    data=physics_data(edge)
     uk=viewK(edge,u)  
     ul=viewL(edge,u)
     h=edgelength(edge)
@@ -55,7 +56,8 @@ The simple upwind flux corrects the monotonicity properties essentially
 via brute force and loses one order of convergence for small $h$ compared
 to the central flux.
 =#
-function upwind_flux!(f,u,edge,data)
+function upwind_flux!(f,u,edge)
+    data=physics_data(edge)
     uk=viewK(edge,u)  
     ul=viewL(edge,u)
     h=edgelength(edge)
@@ -83,7 +85,8 @@ function bernoulli(x)
     return x/(exp(x)-1)
 end
 
-function exponential_flux!(f,u,edge,data)
+function exponential_flux!(f,u,edge)
+    data=physics_data(edge)
     uk=viewK(edge,u)  
     ul=viewL(edge,u)
     h=edgelength(edge)
@@ -96,7 +99,7 @@ end
 
 
 function calculate(grid,data,flux,verbose)
-    sys=FVMSystem(grid,VoronoiFVM.Physics(flux=flux, data=data),unknown_storage=:dense)
+    sys=FVMSystem(grid,FVMPhysics(flux=flux, data=data),unknown_storage=:dense)
     
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
@@ -127,7 +130,7 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
-    data=XData(v,D)
+    data=Data(v,D)
     
     solution_exponential=calculate(grid,data,exponential_flux!,verbose)
     solution_upwind=calculate(grid,data,upwind_flux!,verbose)

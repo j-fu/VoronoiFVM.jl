@@ -57,20 +57,23 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     data.C=2
 
     # Declare constitutive functions
-    flux=function(f,u,edge,data)
+    flux=function(f,u,edge)
+        data=physics_data(edge)
         f[1]=data.D*(u[1]-u[2])
     end
 
-    storage=function(f,u,node,data)
+    storage=function(f,u,node)
+        data=physics_data(node)
         f[1]=data.C*u[1]
     end
 
-    reaction=function(f,u,node,data)
+    reaction=function(f,u,node)
+        data=physics_data(node)
         f[1]=data.R*u[1]
     end
 
     # Create physics struct
-    physics=VoronoiFVM.Physics(data=data,
+    physics=FVMPhysics(data=data,
                                flux=flux,
                                storage=storage,
                                reaction=reaction

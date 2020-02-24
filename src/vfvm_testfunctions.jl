@@ -29,15 +29,15 @@ $(TYPEDSIGNATURES)
 Constructor for TestFunctionFactory from System
 """
 function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
-    physics=Physics( 
-        flux=function(f,u,edge,data)
-        f[1]=u[1]-u[2]
-        end,
-        storage=function(f,u,node,data)
-        f[1]=u[1]
-        end
-    )
-    tfsystem=DenseSystem(system.grid,physics)
+        physics=FVMPhysics( 
+            flux=function(f,u,edge)
+            f[1]=u[1]-u[2]
+            end,
+            storage=function(f,u,node)
+            f[1]=u[1]
+            end
+        )
+    tfsystem=FVMSystem(system.grid,physics,unknown_storage=:dense)
     enable_species!(tfsystem,1,[i for i=1:num_cellregions(system.grid)])
     return TestFunctionFactory{Tv}(system,tfsystem)
 end
@@ -85,12 +85,16 @@ end
 
 
 ############################################################################
+
 """
 $(TYPEDSIGNATURES)
 
 Calculate test function integral for transient solution.
 """
 function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where Tv
+    if this.oldapi
+        return _integrate_oldapi(this,tf,U,Uold,tstep)
+    end
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
@@ -120,7 +124,7 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
                 UKL[ispec+nspecies]=U[ispec,edge.nodeL]
             end
             res.=0
-            @views this.physics.flux(res,UKL,edge, this.physics.data)
+            @views this.physics.flux(res,UKL,edge)
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
                     integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
@@ -134,9 +138,9 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
                 res.=0
                 stor.=0
                 storold.=0
-                this.physics.reaction(res,U[:,node.index],node,this.physics.data)
-                this.physics.storage(stor,U[:,node.index],node,this.physics.data)
-                this.physics.storage(storold,Uold[:,node.index],node,this.physics.data)
+                this.physics.reaction(res,U[:,node.index],node)
+                this.physics.storage(stor,U[:,node.index],node)
+                this.physics.storage(storold,Uold[:,node.index],node)
             end
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
@@ -165,6 +169,9 @@ $(SIGNATURES)
 Steady state part of test function integral.
 """
 function integrate_stdy(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+    if this.oldapi
+        return _integrate_stdy_oldapi(this,tf,U)
+    end
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tu,nspecies)
@@ -192,7 +199,7 @@ function integrate_stdy(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray
                 UKL[ispec+nspecies]=U[ispec,edge.nodeL]
                 res[ispec]=0.0
             end
-            this.physics.flux(res,UKL,edge, this.physics.data)
+            this.physics.flux(res,UKL,edge)
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.nodeK]==ispec && this.node_dof[ispec,edge.nodeL]==ispec
                     integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.nodeK]-tf[edge.nodeL])
@@ -206,7 +213,7 @@ function integrate_stdy(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray
                 res[ispec]=0.0
                 UK[ispec]=U[ispec,node.index]
             end
-            this.physics.reaction(res,UK,node,this.physics.data)
+            this.physics.reaction(res,UK,node)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
                     integral[ispec]+=node_factors[inode]*res[ispec]*tf[node.index]
@@ -224,6 +231,9 @@ $(SIGNATURES)
 Calculate transient part of test function integral.
 """
 function integrate_tran(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+    if this.oldapi
+        return _integrate_tran_oldapi(this,tf,U)
+    end
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tu,nspecies)
@@ -245,7 +255,7 @@ function integrate_tran(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray
                 res[ispec]=0.0
                 stor[ispec]=0.0
             end
-            this.physics.storage(stor,U[:,node.index],node,this.physics.data)
+            this.physics.storage(stor,U[:,node.index],node)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
                     integral[ispec]+=node_factors[inode]*stor[ispec]*tf[node.index]

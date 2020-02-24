@@ -30,14 +30,14 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     
     eps=[1.0,1.0]
     
-    physics=VoronoiFVM.Physics(num_species=2,
+    physics=FVMPhysics(num_species=2,
                                
-                               reaction=function(f,u,node,data)
+                               reaction=function(f,u,node)
                                f[1]=u[1]*u[2]
                                f[2]=-u[1]*u[2]
                                end,
                                
-                               flux=function(f,u,edge,data)   
+                               flux=function(f,u,edge)   
                                nspecies=2
                                uk=viewK(2,u)
                                ul=viewL(2,u)
@@ -45,12 +45,12 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
                                f[2]=eps[2]*(uk[2]-ul[2])*(0.01+uk[1]+ul[1])
                                end,
                                
-                               source=function(f,node,data)
+                               source=function(f,node)
                                f[1]=1.0e-4*(0.01+node.coord[1])
                                f[2]=1.0e-4*(0.01+1.0-node.coord[1])
                                end,
                                
-                               storage=function(f,u,node,data)
+                               storage=function(f,u,node)
                                f[1]=u[1]
                                f[2]=u[2]
                                end

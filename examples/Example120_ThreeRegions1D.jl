@@ -31,9 +31,9 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     eps=[1,1,1]
     k=[1,1,1]
 
-    physics=VoronoiFVM.Physics(
+    physics=FVMPhysics(
     num_species=3,
-    reaction=function(f,u,node,data)
+    reaction=function(f,u,node)
         if node.region==1
             f[1]=k[1]*u[1]
             f[2]=-k[1]*u[1]
@@ -45,7 +45,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         end
     end,
     
-    flux=function(f,u,edge,data)   
+    flux=function(f,u,edge)   
         uk=viewK(edge,u)
         ul=viewL(edge,u)
         if edge.region==1
@@ -59,13 +59,13 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         end
     end,
     
-    source=function(f,node,data)
+    source=function(f,node)
         if node.region==1
             f[1]=1.0e-4*(3.0-node.coord[1])
         end
     end,
     
-    storage=function(f,u,node,data)
+    storage=function(f,u,node)
         f.=u
     end
     )

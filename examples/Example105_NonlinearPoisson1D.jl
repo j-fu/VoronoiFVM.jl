@@ -50,14 +50,14 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         uk=viewK(edge,u)  
         ul=viewL(edge,u)
         f[1]=ϵ*(uk[1]-ul[1])
     end
 
     ## Source term
-    function source!(f,node,data)
+    function source!(f,node)
         if node.coord[1]<=0.5
             f[1]=1
         else
@@ -66,12 +66,12 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     end
     
     ## Reaction term
-    function reaction!(f,u,node,data)
+    function reaction!(f,u,node)
         f[1]=exp(u[1]) - exp(-u[1]) 
     end
     
     ## Create a physics structure
-    physics=VoronoiFVM.Physics(
+    physics=FVMPhysics(
         flux=flux!,
         source=source!,
         reaction=reaction!)

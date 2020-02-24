@@ -1,3 +1,5 @@
+abstract type AbstractGeometryItem end
+
 ##################################################################
 """
 $(TYPEDEF)
@@ -6,7 +8,7 @@ Structure holding local boundary  node information.
 
 $(TYPEDFIELDS)
 """
-mutable struct BNode{Tv}
+mutable struct BNode{Tv} <: AbstractGeometryItem 
 
     """
     Index in grid
@@ -27,7 +29,13 @@ mutable struct BNode{Tv}
     Number of species defined in node
     """
     nspec::Int64
-    BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys))
+
+    """
+    Physics data
+    """
+    physics_data
+    
+    BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys),sys.physics.data)
 end
 
 function _fill!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
@@ -51,7 +59,7 @@ Structure holding local node information.
 
 $(TYPEDFIELDS)
 """
-mutable struct Node{Tv}
+mutable struct Node{Tv} <: AbstractGeometryItem 
 
     """
     Index in grid
@@ -78,7 +86,12 @@ mutable struct Node{Tv}
     """
     icell::Int64
 
-    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys),0)
+    """
+    Physics data
+    """
+    physics_data
+
+    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,zeros(Tv,dim_space(sys.grid)),num_species(sys),0, sys.physics.data)
 end
 
 function _fill!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
@@ -99,7 +112,7 @@ Structure holding local edge information.
 
 $(TYPEDFIELDS)
 """
-mutable struct Edge{Tv}
+mutable struct Edge{Tv}  <: AbstractGeometryItem
 
     """
     Index in grid
@@ -141,7 +154,12 @@ mutable struct Edge{Tv}
     """
     icell::Int64
 
-    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys),0)
+    """
+    Physics data
+    """
+    physics_data
+
+    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,0,0,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)),num_species(sys),0,sys.physics.data)
 end
 
 
@@ -231,5 +249,6 @@ function Base.show(io::IO,sys::AbstractSystem) where Tc
 end
 
 
+physics_data(item::AbstractGeometryItem)=item.physics_data
 ####################################################################################
 

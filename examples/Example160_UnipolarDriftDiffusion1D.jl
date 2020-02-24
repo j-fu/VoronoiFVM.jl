@@ -31,7 +31,8 @@ end
 
 
 
-function classflux!(f,u,edge,data)
+function classflux!(f,u,edge)
+    data=physics_data(edge)
     uk=viewK(edge,u)
     ul=viewL(edge,u)
     ic=data.ic
@@ -43,21 +44,24 @@ function classflux!(f,u,edge,data)
 end 
 
 
-function storage!(f,u,node,data)
+function storage!(f,u,node)
+    data=physics_data(node)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=0
     f[ic]=u[ic]
 end
 
-function reaction!(f,u,node,data)
+function reaction!(f,u,node)
+    data=physics_data(node)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=data.z*(1-2*u[ic])
     f[ic]=0
 end
 
-function sedanflux!(f,u,edge,data)
+function sedanflux!(f,u,edge)
+    data=physics_data(edge)
     uk=viewK(edge,u)
     ul=viewL(edge,u)
     ic=data.ic
@@ -85,7 +89,7 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
     iphi=data.iphi
 
     
-    physics=VoronoiFVM.Physics(data=data,
+    physics=FVMPhysics(data=data,
                                num_species=2,
                                flux=sedanflux!,
                                reaction=reaction!,

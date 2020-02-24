@@ -74,6 +74,12 @@ mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
     """
     residual::Matrix{Tv}
 
+
+    """
+    API version
+    """
+    oldapi::Bool
+    
     DenseSystem{Tv}() where Tv = new()
 end
 ##################################################################
@@ -83,7 +89,7 @@ $(TYPEDSIGNATURES)
 Constructor for DenseSystem. `physics` provides some user data, `maxspec`
 is the maximum number of species.
 """
-function  DenseSystem(grid::Grid,physics::Physics)
+function  DenseSystem(grid::Grid,physics::Physics; oldapi=true)
     Tv=Base.eltype(grid)
     this=DenseSystem{Tv}()
     maxspec=physics.num_species
@@ -95,6 +101,7 @@ function  DenseSystem(grid::Grid,physics::Physics)
     this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.species_homogeneous=false
+    this.oldapi=oldapi
     return this
 end
 
