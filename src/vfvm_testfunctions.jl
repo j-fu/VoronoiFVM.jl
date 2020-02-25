@@ -87,7 +87,7 @@ end
 ############################################################################
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Calculate test function integral for transient solution.
 """
@@ -154,7 +154,7 @@ end
 
 ############################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Calculate test function integral for steady state solution.
 """

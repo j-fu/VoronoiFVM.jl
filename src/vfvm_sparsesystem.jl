@@ -137,7 +137,7 @@ num_dof(this::SparseSystem)= nnz(this.node_dof)
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Create a solution vector for system. 
 The entries of the returned vector are undefined.
@@ -154,7 +154,7 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Create a solution vector for system with given type
 The entries of the returned vector are undefined.
@@ -214,7 +214,7 @@ values(a::SparseSolutionArray)=a.node_dof.nzval
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Create a copy of solution array
 """
@@ -227,7 +227,7 @@ Base.copy(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{
                                                                             )
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Get number of degree of freedom. Return 0 if species is not defined in node.
 """
