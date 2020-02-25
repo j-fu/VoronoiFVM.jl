@@ -29,9 +29,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         end,
         
         source=function(f,node)
-        coord=nodecoord(node)
-        x1=coord[1]-0.5
-        x2=coord[2]-0.5
+        x1=node[1]-0.5
+        x2=node[2]-0.5
         f[1]=exp(-20.0*(x1^2+x2^2))
         end,
         

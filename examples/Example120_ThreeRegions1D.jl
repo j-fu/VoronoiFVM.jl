@@ -59,8 +59,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     
     source=function(f,node)
         if node.region==1
-           coord=nodecoord(node)
-           f[1]=1.0e-4*(3.0-coord[1])
+           f[1]=1.0e-4*(3.0-node[1])
         end
     end,
     

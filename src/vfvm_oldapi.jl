@@ -3,7 +3,7 @@
 #
 
 # Main assembly loop
-function _eval_and_assemble_oldapi(this::AbstractSystem{Tv},
+function _eval_and_assemble_oldapi(this::AbstractSystem{Tv,Ti},
                             U::AbstractMatrix{Tv}, # Actual solution iteration
                             UOld::AbstractMatrix{Tv}, # Old timestep solution
                             F::AbstractMatrix{Tv},# Right hand side
@@ -11,7 +11,7 @@ function _eval_and_assemble_oldapi(this::AbstractSystem{Tv},
                             xstorage::FSTOR, # ensure type stability
                             xbstorage::FBSTOR, # ensure type stability
                             xsource::FSRC,  # ensure type stability
-                           ) where {Tv,FSRC,FSTOR, FBSTOR}
+                           ) where {Tv,Ti,FSRC,FSTOR, FBSTOR}
 
     _complete!(this) # needed here as well for test function system which does not use newton
     
@@ -19,9 +19,9 @@ function _eval_and_assemble_oldapi(this::AbstractSystem{Tv},
 
     physics::Physics=this.physics
     data=physics.data
-    node::Node{Tv}=Node{Tv}(this)
-    bnode::BNode{Tv}=BNode{Tv}(this)
-    edge::Edge{Tv}=Edge{Tv}(this)
+    node=Node{Tv,Ti}(this)
+    bnode=BNode{Tv,Ti}(this)
+    edge=Edge{Tv,Ti}(this)
     edge_cutoff=1.0e-12
     nspecies::Int32=num_species(this)
     
@@ -327,7 +327,7 @@ function _eval_and_assemble_oldapi(this::AbstractSystem{Tv},
 end
 
 # Test function integration
-function _integrate_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where Tv
+function _integrate_oldapi(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv,Ti}
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
@@ -335,8 +335,8 @@ function _integrate_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMa
     stor=zeros(Tv,nspecies)
     storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
-    node=Node{Tv}(this)
-    edge=Edge{Tv}(this)
+    node=Node{Tv,Ti}(this)
+    edge=Edge{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -387,14 +387,14 @@ end
 
 
 
-function _integrate_stdy_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+function _integrate_stdy_oldapi(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     stor=zeros(Tu,nspecies)
-    node=Node{Tv}(this)
-    edge=Edge{Tv}(this)
+    node=Node{Tv,Ti}(this)
+    edge=Edge{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -441,14 +441,14 @@ function _integrate_stdy_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::Abstr
 end
 
 
-function _integrate_tran_oldapi(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+function _integrate_tran_oldapi(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     stor=zeros(Tu,nspecies)
-    node=Node{Tv}(this)
-    edge=Edge{Tv}(this)
+    node=Node{Tv,Ti}(this)
+    edge=Edge{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -482,8 +482,8 @@ $(TYPEDSIGNATURES)
    
 Calculate the length of an edge. 
 """
-function edgelength(edge::Edge{Tv}) where Tv
-    l::Tv=0.0
+function edgelength(edge::Edge)
+    l=0.0
     for i=1:length(edge.coordK)
         d=edge.coordK[i]-edge.coordL[i]
         l=l+d*d
@@ -496,7 +496,7 @@ $(TYPEDSIGNATURES)
 
 Solution view on first edge node
 """
-@inline viewK(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[1:edge.nspec]
+@inline viewK(edge::Edge,u::AbstractArray)=@views u[1:edge.nspec]
 
 
 """
@@ -504,14 +504,14 @@ $(TYPEDSIGNATURES)
 
 Solution view on second edge node
 """
-@inline viewL(edge::Edge{Tv},u::AbstractArray) where Tv=@views u[edge.nspec+1:2*edge.nspec]
+@inline viewL(edge::Edge,u::AbstractArray)=@views u[edge.nspec+1:2*edge.nspec]
 
 """
 $(TYPEDSIGNATURES)
 
 Solution view on first edge node
 """
-@inline viewK(nspec::Int64,u::AbstractArray)=@views u[1:nspec]
+@inline viewK(nspec,u::AbstractArray)=@views u[1:nspec]
 
 
 """
@@ -519,9 +519,9 @@ $(TYPEDSIGNATURES)
 
 Solution view on second edge node
 """
-@inline viewL(nspec::Int64,u::AbstractArray)=@views u[nspec+1:2*nspec]
+@inline viewL(nspec,u::AbstractArray)=@views u[nspec+1:2*nspec]
 
-function _fill_oldapi!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
+function _fill_oldapi!(node::Node,grid::Grid,inode,icell)
     _fill!(node,grid,inode,icell)
     for i=1:length(node.coord)
         node.coord[i]=grid.coord[i,node.index]
@@ -529,7 +529,7 @@ function _fill_oldapi!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
 end
 
 
-function _fill_oldapi!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
+function _fill_oldapi!(node::BNode,grid::Grid,ibnode,ibface)
     _fill!(node,grid,ibnode,ibface)
     for i=1:length(node.coord)
         node.coord[i]=grid.coord[i,node.index]
@@ -537,10 +537,12 @@ function _fill_oldapi!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
 end
 
 
-function _fill_oldapi!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
+function _fill_oldapi!(edge::Edge,grid::Grid,iedge,icell)
     _fill!(edge,grid,iedge,icell)
     for i=1:length(edge.coordK)
         edge.coordK[i]=grid.coord[i,edge.node[1]]
         edge.coordL[i]=grid.coord[i,edge.node[2]]
     end
 end
+
+data(item::AbstractGeometryItem)=item.physics_data

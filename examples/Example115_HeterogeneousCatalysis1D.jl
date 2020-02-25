@@ -90,8 +90,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
 
     ## Source term for species a around 0.5
     function source!(f,node)
-        coord=nodecoord(node)
-        x1=coord[1]-0.5
+        x1=node[1]-0.5
         f[iA]=exp(-100*x1^2)
     end
 

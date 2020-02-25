@@ -44,9 +44,8 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
                                end,
                                
                                source=function(f,node)
-                               coord=nodecoord(node)
-                               f[1]=1.0e-4*(0.01+coord[1])
-                               f[2]=1.0e-4*(0.01+1.0-coord[1])
+                               f[1]=1.0e-4*(0.01+node[1])
+                               f[2]=1.0e-4*(0.01+1.0-node[1])
                                end,
                                
                                storage=function(f,u,node)

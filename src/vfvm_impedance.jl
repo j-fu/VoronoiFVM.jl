@@ -20,7 +20,7 @@ end
 
 
 
-function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, excited_spec,excited_bc) where Tv
+function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Ti}
     this=ImpedanceSystem{Tv}()
     this.grid=sys.grid
     this.sysnzval=complex(nonzeros(sys.matrix))
@@ -46,8 +46,8 @@ function ImpedanceSystem(sys::AbstractSystem{Tv}, U0::AbstractMatrix, excited_sp
     grid=sys.grid
     
     physics=sys.physics
-    node=Node{Tv}(sys)
-    bnode=BNode{Tv}(sys)
+    node=Node{Tv,Ti}(sys)
+    bnode=BNode{Tv,Ti}(sys)
     nspecies=num_species(sys)
     
     node_factors=zeros(Tv,num_nodes_per_cell(grid))

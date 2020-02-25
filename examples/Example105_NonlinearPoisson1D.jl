@@ -56,8 +56,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
     ## Source term
     function source!(f,node)
-        coord=nodecoord(node)
-        if coord[1]<=0.5
+        if node[1]<=0.5
             f[1]=1
         else
             f[1]=-1

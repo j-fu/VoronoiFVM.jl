@@ -18,9 +18,9 @@ to the system matrix.
 
 $(TYPEDFIELDS)
 """
-mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
+mutable struct DenseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
-    Grid
+    Grid{Tv,Ti}
     """
     grid::Grid
 
@@ -57,7 +57,7 @@ mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::ExtendableSparseMatrix{Tv,Int64}
+    matrix::ExtendableSparseMatrix{Tv,Ti}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -80,7 +80,7 @@ mutable struct DenseSystem{Tv} <: AbstractSystem{Tv}
     """
     oldapi::Bool
     
-    DenseSystem{Tv}() where Tv = new()
+    DenseSystem{Tv,Ti}() where {Tv,Ti} = new()
 end
 ##################################################################
 """
@@ -91,7 +91,8 @@ is the maximum number of species.
 """
 function  DenseSystem(grid::Grid,physics::Physics; oldapi=true)
     Tv=Base.eltype(grid)
-    this=DenseSystem{Tv}()
+    Ti=eltype(grid.cellnodes)
+    this=DenseSystem{Tv,Ti}()
     maxspec=physics.num_species
     this.grid=grid
     this.physics=physics

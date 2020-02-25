@@ -9,12 +9,12 @@ This class plays well with the abstract array interface.
 
 $(TYPEDFIELDS)
 """
-struct SparseSolutionArray{Tv} <: AbstractMatrix{Tv}
+struct SparseSolutionArray{Tv,Ti} <: AbstractMatrix{Tv}
 
     """
     Sparse matrix holding actual data.
     """
-    node_dof::SparseMatrixCSC{Tv,Int32}
+    node_dof::SparseMatrixCSC{Tv,Ti}
 end
 
 
@@ -34,12 +34,12 @@ creates overhead.
 
 $(TYPEDFIELDS)
 """
-mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
+mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
 
     """
     Grid
     """
-    grid::Grid
+    grid::Grid{Tv, Ti}
 
     """
     Physics data
@@ -59,23 +59,23 @@ mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
     """
     Sparse matrix containing species numbers for inner regions
     """
-    region_species::SparseMatrixCSC{Int8,Int16}
+    region_species::SparseMatrixCSC{Int8,Ti}
 
     """
     Sparse matrix containing species numbers for boundary regions
     """
-    bregion_species::SparseMatrixCSC{Int8,Int16}
+    bregion_species::SparseMatrixCSC{Int8,Ti}
 
 
     """
     Sparse matrix containing degree of freedom numbers for each node
     """
-    node_dof::SparseMatrixCSC{Int8,Int32}
+    node_dof::SparseMatrixCSC{Int8,Ti}
 
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::ExtendableSparseMatrix{Tv,Int64}
+    matrix::ExtendableSparseMatrix{Tv,Ti}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -85,19 +85,19 @@ mutable struct SparseSystem{Tv} <: AbstractSystem{Tv}
     """
     Solution vector holding Newton update
     """
-    update::SparseSolutionArray{Tv}
+    update::SparseSolutionArray{Tv,Ti}
 
     """
     Solution vector holding Newton residual
     """
-    residual::SparseSolutionArray{Tv}
+    residual::SparseSolutionArray{Tv,Ti}
 
     """
     API version
     """
     oldapi::Bool
 
-    SparseSystem{Tv}() where Tv = new()
+    SparseSystem{Tv,Ti}() where {Tv,Ti} = new()
 end
 
 ##################################################################
@@ -109,7 +109,8 @@ is the maximum number of species.
 """
 function  SparseSystem(grid::Grid,physics::Physics; oldapi=true)
     Tv=Base.eltype(grid)
-    this=SparseSystem{Tv}()
+    Ti=eltype(grid.cellnodes)
+    this=SparseSystem{Tv,Ti}()
     maxspec=physics.num_species
     this.grid=grid
     this.physics=physics
@@ -141,8 +142,8 @@ $(TYPEDSIGNATURES)
 Create a solution vector for system. 
 The entries of the returned vector are undefined.
 """
-function unknowns(sys::SparseSystem{Tv}) where Tv
-    return SparseSolutionArray{Tv}(SparseMatrixCSC(sys.node_dof.m,
+function unknowns(sys::SparseSystem{Tv,Ti}) where {Tv,Ti}
+    return SparseSolutionArray{Tv,Ti}(SparseMatrixCSC(sys.node_dof.m,
                                                    sys.node_dof.n,
                                                    sys.node_dof.colptr,
                                                    sys.node_dof.rowval,
@@ -158,13 +159,13 @@ $(TYPEDSIGNATURES)
 Create a solution vector for system with given type
 The entries of the returned vector are undefined.
 """
-function unknowns(Tu::Type, sys::SparseSystem{Tv}) where Tv
-    return SparseSolutionArray{Tu}(SparseMatrixCSC(sys.node_dof.m,
-                                                   sys.node_dof.n,
-                                                   sys.node_dof.colptr,
-                                                   sys.node_dof.rowval,
-                                                   Array{Tu}(undef,num_dof(sys))
-                                                   )
+function unknowns(Tu::Type, sys::SparseSystem{Tv, Ti}) where {Tv,Ti}
+    return SparseSolutionArray{Tu,Ti}(SparseMatrixCSC(sys.node_dof.m,
+                                                      sys.node_dof.n,
+                                                      sys.node_dof.colptr,
+                                                      sys.node_dof.rowval,
+                                                      Array{Tu}(undef,num_dof(sys))
+                                                      )
                                    )
 end
 
@@ -176,9 +177,9 @@ $(SIGNATURES)
 
 Reshape vector to fit as solution to system.
 """
-function Base.reshape(v::AbstractVector{Tu},sys::SparseSystem{Tv}) where {Tu,Tv}
+function Base.reshape(v::AbstractVector{Tu},sys::SparseSystem{Tv,Ti}) where {Tu,Tv,Ti}
     @assert  length(v)==num_dof(sys)
-    SparseSolutionArray{Tu}(SparseMatrixCSC(sys.node_dof.m,
+    SparseSolutionArray{Tu,Ti}(SparseMatrixCSC(sys.node_dof.m,
                                             sys.node_dof.n,
                                             sys.node_dof.colptr,
                                             sys.node_dof.rowval,
@@ -187,7 +188,7 @@ function Base.reshape(v::AbstractVector{Tu},sys::SparseSystem{Tv}) where {Tu,Tv}
                             )
 end
 
-Base.reshape(v::SparseSolutionArray{Tu},sys::SparseSystem{Tv}) where {Tu,Tv}=v
+Base.reshape(v::SparseSolutionArray,sys::SparseSystem)=v
 
 
 
@@ -217,12 +218,12 @@ $(TYPEDSIGNATURES)
 
 Create a copy of solution array
 """
-Base.copy(this::SparseSolutionArray{Tv}) where Tv = SparseSolutionArray{Tv}(SparseMatrixCSC(this.node_dof.m,
-                                                                                            this.node_dof.n,
-                                                                                            this.node_dof.colptr,
-                                                                                            this.node_dof.rowval,
-                                                                                            Base.copy(this.node_dof.nzval)
-                                                                                            )
+Base.copy(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{Tv,Ti}(SparseMatrixCSC(this.node_dof.m,
+                                                                                                       this.node_dof.n,
+                                                                                                       this.node_dof.colptr,
+                                                                                                       this.node_dof.rowval,
+                                                                                                       Base.copy(this.node_dof.nzval)
+                                                                                                       )
                                                                             )
 ##################################################################
 """
@@ -230,7 +231,7 @@ $(TYPEDSIGNATURES)
 
 Get number of degree of freedom. Return 0 if species is not defined in node.
 """
-@inline function dof(a::SparseSolutionArray{Tv},i::Integer, j::Integer) where Tv
+@inline function dof(a::SparseSolutionArray{Tv,Ti},i::Integer, j::Integer) where {Tv,Ti}
     A=a.node_dof
     coljfirstk = Int(A.colptr[j])
     coljlastk = Int(A.colptr[j+1] - 1)
@@ -315,9 +316,9 @@ end
 #
 # Accessors for node-dof based loops
 #
-_firstnodedof(U::SparseSolutionArray{Tv},K) where Tv =U.node_dof.colptr[K]
-_lastnodedof(U::SparseSolutionArray{Tv},K) where Tv=U.node_dof.colptr[K+1]-1
-_spec(U::SparseSolutionArray{Tv},idof,K) where Tv=U.node_dof.rowval[idof]
-_add(U::SparseSolutionArray{Tv},idof,val) where Tv=U.node_dof.nzval[idof]+=val
+_firstnodedof(U::SparseSolutionArray,K) =U.node_dof.colptr[K]
+_lastnodedof(U::SparseSolutionArray,K) =U.node_dof.colptr[K+1]-1
+_spec(U::SparseSolutionArray,idof,K) =U.node_dof.rowval[idof]
+_add(U::SparseSolutionArray,idof,val)=U.node_dof.nzval[idof]+=val
 
 

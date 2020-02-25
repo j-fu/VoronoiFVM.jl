@@ -96,7 +96,7 @@ export TokenStream,gettoken, expecttoken,trytoken
 
 # deprecated
 export edgelength
-export viewK,viewL
+export viewK,viewL,data
 
 
 end

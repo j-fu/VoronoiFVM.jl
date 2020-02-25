@@ -1,4 +1,4 @@
-abstract type AbstractGeometryItem end
+abstract type AbstractGeometryItem{Tv<:Number, Ti <:Integer} end
 
 ##################################################################
 """
@@ -8,27 +8,27 @@ Structure holding local boundary  node information.
 
 $(TYPEDFIELDS)
 """
-mutable struct BNode{Tv} <: AbstractGeometryItem 
+mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
 
     """
     Index in grid
     """
-    index::Int32
+    index::Ti
 
     """
     Boundary region number
     """
-    region::Int32
+    region::Ti
 
     """
     Number of species defined in node
     """
-    nspec::Int64
+    nspec::Ti
 
     """
     Grid
     """
-    grid
+    grid::Grid{Tv, Ti}
     
     """
     Physics data
@@ -41,10 +41,10 @@ mutable struct BNode{Tv} <: AbstractGeometryItem
     coord::Array{Tv,1}
 
     
-    BNode{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,num_species(sys),sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
+    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,num_species(sys),sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
 end
 
-function _fill!(node::BNode{Tv},grid::Grid{Tv},ibnode,ibface) where Tv
+function _fill!(node::BNode,grid::Grid,ibnode,ibface)
     K=grid.bfacenodes[ibnode,ibface]
     node.region=grid.bfaceregions[ibface]
     node.index=K
@@ -62,32 +62,32 @@ Structure holding local node information.
 
 $(TYPEDFIELDS)
 """
-mutable struct Node{Tv} <: AbstractGeometryItem 
+mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti} 
 
     """
     Index in grid
 
     """
-    index::Int32
+    index::Ti
     """
     Inner region number
     """
-    region::Int32
+    region::Ti
 
     """
     Number of species defined in node
     """
-    nspec::Int64
+    nspec::Ti
 
     """
     Number of discretization cell the node is invoked from
     """
-    icell::Int64
+    icell::Ti
 
     """
     Grid
     """
-    grid
+    grid::Grid{Tv,Ti}
     
     """
     Physics data
@@ -100,17 +100,20 @@ mutable struct Node{Tv} <: AbstractGeometryItem
     """
     coord::Array{Tv,1}
     
-    Node{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,0,num_species(sys),0, sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
+    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
 end
 
-function _fill!(node::Node{Tv},grid::Grid{Tv},inode,icell) where Tv
+function _fill!(node::Node,grid::Grid,inode,icell)
     K=cellnode(grid,inode,icell)
     node.region=grid.cellregions[icell]
     node.index=K
     node.icell=icell
 end
 
-nodecoord(node::Node)=@views node.grid.coord[:,node.index]
+
+Base.size(node::Node)=(size(node.grid.coord)[1],)
+
+Base.getindex(node::Node, idim)= node.grid.coord[idim,node.index]
 
 ##################################################################
 """
@@ -120,37 +123,37 @@ Structure holding local edge information.
 
 $(TYPEDFIELDS)
 """
-mutable struct Edge{Tv}  <: AbstractGeometryItem
+mutable struct Edge{Tv,Ti}  <: AbstractGeometryItem{Tv, Ti}
 
     """
     Index in grid
     """
-    index::Int32
+    index::Ti
 
     """
     Index 
     """
-    node::Vector{Int32}
+    node::Vector{Ti}
 
     """
     Inner region number corresponding to edge
     """
-    region::Int32
+    region::Ti
 
     """
     Number of species defined in edge
     """
-    nspec::Int64
+    nspec::Ti
 
     """
     Number of discretization cell the edge is invoked from
     """
-    icell::Int64
+    icell::Ti
     
     """
     Grid
     """
-    grid
+    grid::Grid{Tv, Ti}
 
     """
     Physics data
@@ -168,35 +171,31 @@ mutable struct Edge{Tv}  <: AbstractGeometryItem
     coordL::Array{Tv,1}
 
     
-    Edge{Tv}(sys::AbstractSystem{Tv}) where Tv  =new(0,[0,0],0,num_species(sys),0,sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)))
+    Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,[0,0],0,num_species(sys),0,sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)))
 end
 
 
-function _fill!(edge::Edge{Tv},grid::Grid{Tv},iedge,icell) where Tv
-    K=0
-    L=0
-    # If we work with projections of fluxes onto edges,
-    # we need to ensure that the edges are accessed with the
-    # same orientation without regard of the orientation induced
-    # by local cell numbering
+function _fill!(edge::Edge,grid::Grid,iedge,icell) where Tv
     if num_edges(grid)>0
+        # If we work with projections of fluxes onto edges,
+        # we need to ensure that the edges are accessed with the
+        # same orientation without regard of the orientation induced
+        # by local cell numbering
         edge.index=celledge(grid,iedge,icell)
-        K=grid.edgenodes[1,edge.index]
-        L=grid.edgenodes[2,edge.index]
+        edge.node[1]=grid.edgenodes[1,edge.index]
+        edge.node[2]=grid.edgenodes[2,edge.index]
     else
         edge.index=0
-        K=celledgenode(grid,1,iedge,icell)
-        L=celledgenode(grid,2,iedge,icell)
+        edge.node[1]=celledgenode(grid,1,iedge,icell)
+        edge.node[2]=celledgenode(grid,2,iedge,icell)
     end
     edge.region=grid.cellregions[icell]
-    edge.node[1]=K
-    edge.node[2]=L
     edge.icell=icell
 end
 
 
-
-nodecoord(edge::Edge,i)=@views edge.grid.coord[:,node.index[i]]
+Base.size(edge::Edge)=(size(edge.grid.coord)[1],2)
+Base.getindex(edge::Edge, idim,inode)= edge.grid.coord[idim,edge.node[inode]]
 
 ##################################################################
 """
@@ -204,7 +203,7 @@ $(TYPEDSIGNATURES)
 
 Return number of species for edge
 """
-num_species(edge::Edge{Tv}) where Tv=edge.nspec
+num_species(edge::Edge)=edge.nspec
 
 
 ##################################################################
@@ -213,8 +212,8 @@ $(TYPEDSIGNATURES)
    
 Calculate the length of an edge. 
 """
-function meas(edge::Edge{Tv}) where Tv
-    l::Tv=0.0
+function meas(edge::Edge)
+    l=0.0
     for i=1:dim_space(edge.grid)
         d=edge.grid.coord[i,edge.node[1]]-edge.grid.coord[i,edge.node[2]]
         l=l+d*d

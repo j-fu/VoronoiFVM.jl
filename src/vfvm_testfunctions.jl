@@ -91,7 +91,7 @@ $(TYPEDSIGNATURES)
 
 Calculate test function integral for transient solution.
 """
-function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where Tv
+function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv,Ti}
     if this.oldapi
         return _integrate_oldapi(this,tf,U,Uold,tstep)
     end
@@ -102,8 +102,8 @@ function integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}
     stor=zeros(Tv,nspecies)
     storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
-    node=Node{Tv}(this)
-    edge=Edge{Tv}(this)
+    node=Node{Tv,Ti}(this)
+    edge=Edge{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -158,7 +158,7 @@ $(TYPEDSIGNATURES)
 
 Calculate test function integral for steady state solution.
 """
-integrate(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractMatrix{Tv}) where Tv=integrate(this,tf,U,U,Inf)
+integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}) where {Tv,Ti} =integrate(this,tf,U,U,Inf)
 
 
 
@@ -168,7 +168,7 @@ $(SIGNATURES)
 
 Steady state part of test function integral.
 """
-function integrate_stdy(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
     if this.oldapi
         return _integrate_stdy_oldapi(this,tf,U)
     end
@@ -177,8 +177,8 @@ function integrate_stdy(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     stor=zeros(Tu,nspecies)
-    node=Node{Tv}(this)
-    edge=Edge{Tv}(this)
+    node=Node{Tv,Ti}(this)
+    edge=Edge{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12
@@ -230,7 +230,7 @@ $(SIGNATURES)
 
 Calculate transient part of test function integral.
 """
-function integrate_tran(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
+function integrate_tran(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
     if this.oldapi
         return _integrate_tran_oldapi(this,tf,U)
     end
@@ -239,8 +239,8 @@ function integrate_tran(this::AbstractSystem{Tv},tf::Vector{Tv},U::AbstractArray
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     stor=zeros(Tu,nspecies)
-    node=Node{Tv}(this)
-    edge=Edge{Tv}(this)
+    node=Node{Tv,Ti}(this)
+    edge=Edge{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
     edge_cutoff=1.0e-12

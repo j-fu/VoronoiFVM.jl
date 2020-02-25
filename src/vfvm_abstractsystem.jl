@@ -4,7 +4,7 @@ $(TYPEDEF)
     
 Abstract type for finite volume system structure
 """
-abstract type AbstractSystem{Tv<:Number} end
+abstract type AbstractSystem{Tv<:Number, Ti <:Integer} end
 
 
 
@@ -126,11 +126,11 @@ end
 
 # Create matrix in system and figure out if species
 # distribution is homgeneous
-function _complete!(this::AbstractSystem{Tv};create_newtonvectors=false) where Tv
+function _complete!(this::AbstractSystem{Tv,Ti};create_newtonvectors=false) where {Tv,Ti}
     if isdefined(this,:matrix)
         return
     end
-    this.matrix=ExtendableSparseMatrix{Tv,Int64}(num_dof(this), num_dof(this))
+    this.matrix=ExtendableSparseMatrix{Tv,Ti}(num_dof(this), num_dof(this))
     this.species_homogeneous=true
     species_added=false
     for inode=1:size(this.node_dof,2)
@@ -167,7 +167,7 @@ $(TYPEDSIGNATURES)
 
 Number of species in system
 """
-num_species(this::AbstractSystem{Tv}) where Tv = this.physics.num_species
+num_species(this::AbstractSystem) = this.physics.num_species
 
 
 
@@ -177,7 +177,7 @@ $(TYPEDSIGNATURES)
 
 Retrieve user data record.
 """
-data(this::AbstractSystem{Tv}) where Tv = this.physics.data
+data(this::AbstractSystem) = this.physics.data
 
 
 ##################################################################
@@ -186,7 +186,7 @@ $(TYPEDSIGNATURES)
 
 Set Dirichlet boundary conditon for species ispec at boundary ibc.
 """
-function boundary_dirichlet!(this::AbstractSystem{Tv}, ispec::Integer, ibc::Integer, val::Real) where Tv
+function boundary_dirichlet!(this::AbstractSystem, ispec::Integer, ibc::Integer, val)
     this.boundary_factors[ispec,ibc]=Dirichlet
     this.boundary_values[ispec,ibc]=val
 end
@@ -198,7 +198,7 @@ $(TYPEDSIGNATURES)
 
 Set Neumann boundary conditon for species ispec at boundary ibc.
 """
-function boundary_neumann!(this::AbstractSystem{Tv}, ispec::Integer, ibc::Integer, val::Real) where Tv
+function boundary_neumann!(this::AbstractSystem, ispec::Integer, ibc::Integer, val)
     this.boundary_factors[ispec,ibc]=0.0
     this.boundary_values[ispec,ibc]=val
 end
@@ -210,7 +210,7 @@ $(TYPEDSIGNATURES)
 
 Set Robin boundary conditon for species ispec at boundary ibc.
 """
-function boundary_robin!(this::AbstractSystem{Tv}, ispec::Integer, ibc::Integer,fac::Real, val::Real) where Tv
+function boundary_robin!(this::AbstractSystem, ispec::Integer, ibc::Integer,fac, val)
     this.boundary_factors[ispec,ibc]=fac
     this.boundary_values[ispec,ibc]=val
 end
@@ -240,7 +240,7 @@ num_species(a::AbstractArray)=size(a,1)
 #
 # Initialize Dirichlet BC
 #
-function _initialize_dirichlet!(U::AbstractMatrix{Tv},this::AbstractSystem{Tv}) where {Tv}
+function _initialize_dirichlet!(U::AbstractMatrix,this::AbstractSystem)
     for ibface=1:num_bfaces(this.grid)
         ibreg=this.grid.bfaceregions[ibface]
         for ispec=1:num_species(this)
@@ -256,7 +256,7 @@ end
 
 
 
-function _initialize!(U::AbstractMatrix{Tv},this::AbstractSystem{Tv}) where {Tv}
+function _initialize!(U::AbstractMatrix,this::AbstractSystem)
     _initialize_dirichlet!(U,this)
     _initialize_inactive_dof!(U,this)
 end
@@ -264,7 +264,7 @@ end
 
 
 
-function Base.show(io::IO,sys::AbstractSystem) where Tc
+function Base.show(io::IO,sys::AbstractSystem)
     str=@sprintf("%s(num_species=%d)",typeof(sys),sys.physics.num_species)
     println(io,str)
 end

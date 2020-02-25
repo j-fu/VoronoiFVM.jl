@@ -19,7 +19,7 @@ const value=ForwardDiff.value
 end
 
 # Main assembly loop
-function _eval_and_assemble(this::AbstractSystem{Tv},
+function _eval_and_assemble(this::AbstractSystem{Tv,Ti},
                             U::AbstractMatrix{Tv}, # Actual solution iteration
                             UOld::AbstractMatrix{Tv}, # Old timestep solution
                             F::AbstractMatrix{Tv},# Right hand side
@@ -27,16 +27,16 @@ function _eval_and_assemble(this::AbstractSystem{Tv},
                             xstorage::FSTOR, # ensure type stability
                             xbstorage::FBSTOR, # ensure type stability
                             xsource::FSRC,  # ensure type stability
-                           ) where {Tv,FSRC,FSTOR, FBSTOR}
+                           ) where {Tv,Ti,FSRC,FSTOR, FBSTOR}
 
     _complete!(this) # needed here as well for test function system which does not use newton
     
     grid=this.grid
 
     physics::Physics=this.physics
-    node::Node{Tv}=Node{Tv}(this)
-    bnode::BNode{Tv}=BNode{Tv}(this)
-    edge::Edge{Tv}=Edge{Tv}(this)
+    node::Node=Node{Tv,Ti}(this)
+    bnode::BNode=BNode{Tv,Ti}(this)
+    edge::Edge=Edge{Tv,Ti}(this)
     edge_cutoff=1.0e-12
     nspecies::Int32=num_species(this)
     
@@ -700,13 +700,13 @@ $(SIGNATURES)
 Integrate function `F` of  solution vector over domain. 
 The result contains the integral for each species separately.
 """
-function integrate(this::AbstractSystem{Tv},F::Function,U::AbstractMatrix{Tu}) where {Tu,Tv}
+function integrate(this::AbstractSystem{Tv,Ti},F::Function,U::AbstractMatrix{Tu}) where {Tu,Tv,Ti}
     grid=this.grid
     data=this.physics.data
     nspecies=num_species(this)
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
-    node=Node{Tv}(this)
+    node=Node{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
 
