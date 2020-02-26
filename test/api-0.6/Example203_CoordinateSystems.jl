@@ -28,13 +28,13 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
         end
     end
 
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         uk=viewK(edge,u)  
         ul=viewL(edge,u)
         f[1]=uk[1]-ul[1]
     end
     
-    function source!(f,node,data)
+    function source!(f,node)
         if r1≈0.0
             f[1]=1.0
         else

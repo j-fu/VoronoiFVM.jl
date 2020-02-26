@@ -16,12 +16,12 @@ function main(;n=100,Plotter=nothing,verbose=false,dense=false)
 
     physics=VoronoiFVM.Physics(
          num_species=2,
-    reaction=function(f,u,node,data)
+    reaction=function(f,u,node)
         f[1]=10*(u[1]-u[2])
         f[2]=10*(u[2]-u[1])
     end,
 
-    flux=function(f,u,edge,data)   
+    flux=function(f,u,edge)   
         uk=viewK(edge,u)
         ul=viewL(edge,u)
         f[1]=eps[1]*(uk[1]-ul[1])
@@ -29,7 +29,7 @@ function main(;n=100,Plotter=nothing,verbose=false,dense=false)
     end,
     
     
-    storage=function(f,u,node,data)
+    storage=function(f,u,node)
         f[1]=u[1]
         f[2]=u[2]
     end

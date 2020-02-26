@@ -20,21 +20,21 @@ function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     
     physics=VoronoiFVM.Physics(
         num_species=1,
-        reaction=function(f,u,node,data)
+        reaction=function(f,u,node)
         f[1]=u[1]^2
         end,
         
-        flux=function(f,u,edge,data)
+        flux=function(f,u,edge)
         f[1]=eps*(u[1]^2-u[2]^2)
         end,
         
-        source=function(f,node,data)
-        x1=node.coord[1]-0.5
-        x2=node.coord[2]-0.5
+        source=function(f,node)
+        x1=node[1]-0.5
+        x2=node[2]-0.5
         f[1]=exp(-20.0*(x1^2+x2^2))
         end,
         
-        storage=function(f,u,node,data)
+        storage=function(f,u,node)
         f[1]=u[1]
         end)
     

@@ -43,14 +43,14 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, dense=false,tend=0.01,tst
 
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         uk=viewK(edge,u)  
         ul=viewL(edge,u)
         f[1]=uk[1]^m-ul[1]^m
     end
 
     ## Storage term
-    function storage!(f,u,node,data)
+    function storage!(f,u,node)
         f[1]=u[1]
     end
     

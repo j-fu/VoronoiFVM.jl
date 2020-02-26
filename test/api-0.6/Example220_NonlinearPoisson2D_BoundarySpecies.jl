@@ -23,7 +23,7 @@ function main(;n=10,Plotter=nothing,verbose=false,dense=false)
     eps=1.0
     physics=VoronoiFVM.Physics(
     num_species=3,
-    breaction=function(f,u,node,data)
+    breaction=function(f,u,node)
         if  node.region==2
             f[1]=k*(u[1]-u[3])
             f[3]=k*(u[3]-u[1])+ k*(u[3]-u[2])
@@ -31,27 +31,27 @@ function main(;n=10,Plotter=nothing,verbose=false,dense=false)
         end
     end,
     
-    bstorage=function(f,u,node,data)
+    bstorage=function(f,u,node)
         if  node.region==2
             f[3]=u[3]
         end
     end,
     
     
-    flux=function(f,u,edge,data)
+    flux=function(f,u,edge)
         uk=viewK(edge,u)
         ul=viewL(edge,u)
         f[1]=eps*(uk[1]-ul[1])
         f[2]=eps*(uk[2]-ul[2])
     end,
     
-    source=function(f,node,physics)
-        x1=node.coord[1]-0.5
-        x2=node.coord[2]-0.5
+    source=function(f,node)
+        x1=node[1]-0.5
+        x2=node[2]-0.5
         f[1]=exp(-20.0*(x1^2+x2^2))
     end,
     
-    storage=function(f,u,node,data)
+    storage=function(f,u,node)
         f[1]=u[1]
         f[2]=u[2]
     end

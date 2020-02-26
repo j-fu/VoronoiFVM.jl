@@ -12,13 +12,13 @@ using LinearAlgebra
 
 # Flux function which describes the flux
 # between neigboring control volumes $\omega_k$ and $\omega_l$
-function flux!(f,u,edge,data)
+function flux!(f,u,edge)
     uk=viewK(edge,u)  
     ul=viewL(edge,u)
     f[1]=uk[1]-ul[1]
 end
 
-function source!(f,edge,data)
+function source!(f,edge)
     f[1]=1
 end
 

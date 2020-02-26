@@ -39,8 +39,8 @@ function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     end
     
     function source!(f,node,data)
-        x1=node.coord[1]-0.5
-        x2=node.coord[2]-0.5
+        x1=node[1]-0.5
+        x2=node[2]-0.5
         f[1]=exp(-20*(x1^2+x2^2))
     end
     

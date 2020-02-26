@@ -38,16 +38,16 @@ function main(;nref=0,Plotter=nothing, verbose=false, dense=false, brea=false)
 
     Q=0.0
 
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         f[1]=u[1]-u[2]
     end
-    function storage!(f,u,node,data)
+    function storage!(f,u,node)
         f[1]=u[1]
     end
 
     ## Define boundary reaction defining charge
     ## Note that the term  is written on  the left hand side, therefore the - sign
-    function breaction!(f,u,node,data)
+    function breaction!(f,u,node)
         if node.region==3
             f[1]=-Q
         end

@@ -50,15 +50,15 @@ function main(;n=10,Plotter=nothing,verbose=false, dense=false)
 
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    function flux!(f,u,edge,data)
+    function flux!(f,u,edge)
         uk=viewK(edge,u)  
         ul=viewL(edge,u)
         f[1]=ϵ*(uk[1]-ul[1])
     end
 
     ## Source term
-    function source!(f,node,data)
-        if node.coord[1]<=0.5
+    function source!(f,node)
+        if node[1]<=0.5
             f[1]=1
         else
             f[1]=-1
@@ -66,7 +66,7 @@ function main(;n=10,Plotter=nothing,verbose=false, dense=false)
     end
     
     ## Reaction term
-    function reaction!(f,u,node,data)
+    function reaction!(f,u,node)
         f[1]=exp(u[1]) - exp(-u[1]) 
     end
     
