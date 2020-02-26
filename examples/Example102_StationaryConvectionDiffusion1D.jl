@@ -42,8 +42,7 @@ number $\frac{vh}{D}>1$, the monotonicity property is lost.  Grid refinement
 can fix this situation by decreasing $h$.
 =#
 
-function central_flux!(f,u,edge)
-    data=physics_data(edge)
+function central_flux!(f,u,edge,data)
     h=meas(edge)
     f_diff=data.D*(u[1,1]-u[1,2])
     f[1]=f_diff+data.v*h*(u[1,1]+u[1,2])/2
@@ -54,8 +53,7 @@ The simple upwind flux corrects the monotonicity properties essentially
 via brute force and loses one order of convergence for small $h$ compared
 to the central flux.
 =#
-function upwind_flux!(f,u,edge)
-    data=physics_data(edge)
+function upwind_flux!(f,u,edge,data)
     h=meas(edge)
     fdiff=data.D*(u[1,]-u[1,2])
     if data.v>0
@@ -81,8 +79,7 @@ function bernoulli(x)
     return x/(exp(x)-1)
 end
 
-function exponential_flux!(f,u,edge)
-    data=physics_data(edge)
+function exponential_flux!(f,u,edge,data)
     h=meas(edge)
     Bplus= data.D*bernoulli(data.v*h/data.D)
     Bminus=data.D*bernoulli(-data.v*h/data.D)
@@ -93,7 +90,7 @@ end
 
 
 function calculate(grid,data,flux,verbose)
-    sys=FVMSystem(grid,FVMPhysics(flux=flux, data=data),unknown_storage=:dense)
+    sys=VoronoiFVM.System(grid,VoronoiFVM.Physics(flux=flux, data=data),unknown_storage=:dense)
     
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])

@@ -40,10 +40,10 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
 
     
     # Create a physics structure
-    physics=FVMPhysics(num_species=nspecies,flux=flux!,source=source!)
+    physics=VoronoiFVM.Physics(num_species=nspecies,flux=flux!,source=source!)
 
     # Create a finite volume system with dense storage of unknowns
-    sys=FVMSystem(grid,physics,unknown_storage=:dense)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=:dense)
 
     # Enable species 1 in region 1
     enable_species!(sys,ispec,[1])

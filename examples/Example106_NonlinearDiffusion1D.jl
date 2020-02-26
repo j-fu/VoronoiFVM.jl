@@ -53,7 +53,7 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
     end
     
     ## Create a physics structure
-    physics=FVMPhysics(
+    physics=VoronoiFVM.Physics(
         flux=flux!,
         storage=storage!)
     
@@ -62,7 +62,7 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
     ## in the dense or  the sparse version.
     ## The difference is in the way the solution object
     ## is stored - as dense or as sparse matrix
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])

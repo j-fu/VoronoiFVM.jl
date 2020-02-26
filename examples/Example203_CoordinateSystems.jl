@@ -41,8 +41,8 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     end
     
     # Create a physics structure
-    physics=FVMPhysics(num_species=1,flux=flux!,source=source!)
-    sys=FVMSystem(grid,physics,unknown_storage=:dense)
+    physics=VoronoiFVM.Physics(num_species=1,flux=flux!,source=source!)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=:dense)
     ispec=1
     enable_species!(sys,ispec,[1])
     ileft=1

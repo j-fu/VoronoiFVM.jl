@@ -31,7 +31,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     eps=[1,1,1]
     k=[1,1,1]
 
-    physics=FVMPhysics(
+    physics=VoronoiFVM.Physics(
     num_species=3,
     reaction=function(f,u,node)
         if node.region==1
@@ -68,7 +68,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     end
     )
 
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1,2,3])

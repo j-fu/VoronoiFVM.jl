@@ -19,7 +19,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     
     eps=1.0e-2
     k=1.0
-    physics=FVMPhysics(
+    physics=VoronoiFVM.Physics(
         num_species=2,
         breaction=function(f,u,node)
         if  node.region==2
@@ -47,7 +47,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         f[2]=u[2]
     end)
 
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 

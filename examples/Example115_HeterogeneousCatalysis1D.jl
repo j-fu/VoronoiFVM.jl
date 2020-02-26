@@ -125,7 +125,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
         end
     end
     
-    physics=FVMPhysics(
+    physics=VoronoiFVM.Physics(
         num_species=3,
         breaction=breaction!,
         bstorage=bstorage!,
@@ -134,7 +134,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
         source=source!
     )
     
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
     ## Enable species in bulk resp
     enable_species!(sys,iA,[1])

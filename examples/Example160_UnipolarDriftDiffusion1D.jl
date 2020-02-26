@@ -31,8 +31,7 @@ end
 
 
 
-function classflux!(f,u,edge)
-    data=physics_data(edge)
+function classflux!(f,u,edge,data)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=data.eps*(u[iphi,1]-u[iphi,2])
@@ -41,24 +40,21 @@ function classflux!(f,u,edge)
 end 
 
 
-function storage!(f,u,node)
-    data=physics_data(node)
+function storage!(f,u,node,data)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=0
     f[ic]=u[ic]
 end
 
-function reaction!(f,u,node)
-    data=physics_data(node)
+function reaction!(f,u,node,data)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=data.z*(1-2*u[ic])
     f[ic]=0
 end
 
-function sedanflux!(f,u,edge)
-    data=physics_data(edge)
+function sedanflux!(f,u,edge,data)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=data.eps*(u[iphi,1]-u[iphi,2])
@@ -84,13 +80,13 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
     iphi=data.iphi
 
     
-    physics=FVMPhysics(data=data,
+    physics=VoronoiFVM.Physics(data=data,
                                num_species=2,
                                flux=sedanflux!,
                                reaction=reaction!,
                                storage=storage!
                                )
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 

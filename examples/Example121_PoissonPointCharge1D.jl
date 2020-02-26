@@ -54,14 +54,14 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
     end
 
    ## Create physics
-    physics=FVMPhysics(
+    physics=VoronoiFVM.Physics(
         flux=flux!,
         storage=storage!,
         breaction=breaction!
     )
 
     ## Create system
-    sys=FVMSystem(grid,physics,unknown_storage=:dense)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=:dense)
 
 
     ##  put potential into both regions

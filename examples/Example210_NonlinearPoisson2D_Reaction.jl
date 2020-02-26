@@ -26,29 +26,29 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     grid=VoronoiFVM.Grid(X,Y)
     data=MyData()
     
-    function reaction!(f,u,node)
+    function reaction!(f,u,node,data)
         f[1]=data.k*(u[1]-u[2])
         f[2]=data.k*(u[2]-u[1])
     end
     
-    function flux!(f,u,edge)
+    function flux!(f,u,edge,data)
         f[1]=data.eps*(u[1,1]-u[1,2])
         f[2]=data.eps*(u[2,1]-u[2,2])
     end
     
-    function source!(f,node)
+    function source!(f,node,data)
         x1=node[1]-0.5
         x2=node[2]-0.5
         f[1]=exp(-20*(x1^2+x2^2))
     end
     
-    function storage!(f,u,node)
+    function storage!(f,u,node,data)
         f[1]=u[1]
         f[2]=u[2]
     end
     
     
-    physics=FVMPhysics(num_species=2,
+    physics=VoronoiFVM.Physics(num_species=2,
                                data=data,
                                flux=flux!,
                                storage=storage!,
@@ -59,7 +59,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     data.k=1.0
 
     
-    sys=FVMSystem(grid,physics,unknown_storage=unknown_storage)
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
