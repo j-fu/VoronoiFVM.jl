@@ -32,53 +32,69 @@ function _eval_and_assemble(this::AbstractSystem{Tv,Ti},
     _complete!(this) # needed here as well for test function system which does not use newton
     
     grid=this.grid
-
     physics::Physics=this.physics
+    data=physics.data
     node::Node=Node{Tv,Ti}(this)
     bnode::BNode=BNode{Tv,Ti}(this)
     edge::Edge=Edge{Tv,Ti}(this)
     edge_cutoff=1.0e-12
     nspecies::Int32=num_species(this)
-    
     matrix=this.matrix
+
     issource=(physics.source!=nofunc2)
     isreaction=(physics.reaction!=nofunc2)
     isbreaction=(physics.breaction!=nofunc2)
     isbstorage=(physics.bstorage!=nofunc2)
-
     
-    function fluxwrap(y::AbstractVector, u::AbstractMatrix)
-        y.=0
-        physics.flux(y,u,edge)
+    nodeparams=(node,)
+    bnodeparams=(bnode,)
+    edgeparams=(edge,)
+
+    if isdata(data)
+        issource=(physics.source!=nofunc)
+        isreaction=(physics.reaction!=nofunc)
+        isbreaction=(physics.breaction!=nofunc)
+        isbstorage=(physics.bstorage!=nofunc)
+
+        nodeparams=(node,data,)
+        bnodeparams=(bnode,data,)
+        edgeparams=(edge,data,)
     end
 
 
-    function reactionwrap(y::AbstractVector, u::AbstractVector)
+    fluxwrap=function(y::AbstractVector, u::AbstractMatrix)
+        y.=0
+        physics.flux(y,u,edgeparams...)
+    end
+
+
+    reactionwrap=function(y::AbstractVector, u::AbstractVector)
         y.=0
         ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-        physics.reaction(y,u,node)
+        physics.reaction(y,u,nodeparams...)
         ## for ii in .. y[ii]=y[node.speclist[ii]]
     end
 
-    function storagewrap(y::AbstractVector, u::AbstractVector)
+    storagewrap=function(y::AbstractVector, u::AbstractVector)
         y.=0
-        xstorage(y,u,node)
+        xstorage(y,u,nodeparams...)
     end
 
-    function sourcewrap(y)
+    sourcewrap=function(y)
         y.=0
-        xsource(y,node)
+        xsource(y,nodeparams...)
     end
 
-    @inline function breactionwrap(y::AbstractVector, u::AbstractVector)
+    breactionwrap=function(y::AbstractVector, u::AbstractVector)
         y.=0
-        physics.breaction(y,u,bnode)
+        physics.breaction(y,u,bnodeparams...)
     end
 
-    @inline function bstoragewrap(y::AbstractVector, u::AbstractVector)
+    bstoragewrap=function(y::AbstractVector, u::AbstractVector)
         y.=0
-        xbstorage(y,u,bnode)
+        xbstorage(y,u,bnodeparams...)
     end
+
     
     # Reset matrix + rhs
     nzv=nonzeros(matrix)
@@ -431,17 +447,10 @@ function _solve!(
 
     for ii=1:control.max_iterations
         try
-            if this.oldapi
-                _eval_and_assemble_oldapi(this,solution,oldsol,residual,tstep,
-                                   this.physics.storage,
-                                   this.physics.bstorage,
-                                   this.physics.source)
-            else
-                _eval_and_assemble(this,solution,oldsol,residual,tstep,
-                                   this.physics.storage,
-                                   this.physics.bstorage,
-                                   this.physics.source)
-            end                
+            _eval_and_assemble(this,solution,oldsol,residual,tstep,
+                               this.physics.storage,
+                               this.physics.bstorage,
+                               this.physics.source)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -551,39 +560,28 @@ end
 
 ################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Wrapper for main assembly method.
 
 Evaluate solution with result in right hand side F and 
 assemble matrix into system.matrix.
 """
-function eval_and_assemble(system::AbstractSystem{Tv},
+function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
                            tstep::Tv, # time step size. Inf means stationary solution
-                           ) where {Tv}
-
-    if system.oldapi
-        _eval_and_assemble_oldapi(system,
-                                  solution,
-                                  oldsol,
-                                  residual,
-                                  tstep,
-                                  system.physics.storage,
-                                  system.physics.bstorage,
-                                  system.physics.source)
-    else
-        _eval_and_assemble(system,
-                           solution,
-                           oldsol,
-                           residual,
-                           tstep,
-                           system.physics.storage,
-                           system.physics.bstorage,
-                           system.physics.source)
-    end        
+                           ) where {Tv, Ti}
+    
+    _eval_and_assemble(system,
+                       solution,
+                       oldsol,
+                       residual,
+                       tstep,
+                       system.physics.storage,
+                       system.physics.bstorage,
+                       system.physics.source)
 end
 
 ################################################################
@@ -709,34 +707,22 @@ function integrate(this::AbstractSystem{Tv,Ti},F::Function,U::AbstractMatrix{Tu}
     node=Node{Tv,Ti}(this)
     node_factors=zeros(Tv,num_nodes_per_cell(grid))
     edge_factors=zeros(Tv,num_edges_per_cell(grid))
-
-    if this.oldapi
-        for icell=1:num_cells(grid)
-            cellfactors!(grid,icell,node_factors,edge_factors)
-            for inode=1:num_nodes_per_cell(grid)
-                _fill!(node,grid,inode,icell)
-                F(res,U[:,node.index],node,data)
-                for ispec=1:nspecies
-                    if this.node_dof[ispec,node.index]==ispec
-                        integral[ispec]+=node_factors[inode]*res[ispec]
-                    end
+    nodeparams=(node,)
+    if isdata(data)
+        nodeparams=(node,data,)
+    end
+    for icell=1:num_cells(grid)
+        cellfactors!(grid,icell,node_factors,edge_factors)
+        for inode=1:num_nodes_per_cell(grid)
+            _fill!(node,grid,inode,icell)
+            F(res,U[:,node.index],nodeparams...)
+            for ispec=1:nspecies
+                if this.node_dof[ispec,node.index]==ispec
+                    integral[ispec]+=node_factors[inode]*res[ispec]
                 end
             end
         end
-    else
-        for icell=1:num_cells(grid)
-            cellfactors!(grid,icell,node_factors,edge_factors)
-            for inode=1:num_nodes_per_cell(grid)
-                _fill!(node,grid,inode,icell)
-                F(res,U[:,node.index],node)
-                for ispec=1:nspecies
-                    if this.node_dof[ispec,node.index]==ispec
-                        integral[ispec]+=node_factors[inode]*res[ispec]
-                    end
-                end
-            end
-        end
-    end        
+    end
     return integral
 end
 

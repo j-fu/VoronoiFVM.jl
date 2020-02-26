@@ -30,18 +30,7 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     grid::Grid{Tv, Ti}
     
-    """
-    Physics data
-    """
-    physics_data
-
-    """
-    (deprecated) Coordinates
-    """
-    coord::Array{Tv,1}
-
-    
-    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,num_species(sys),sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
+    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,num_species(sys),sys.grid)
 end
 
 function _fill!(node::BNode,grid::Grid,ibnode,ibface)
@@ -89,18 +78,8 @@ mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     grid::Grid{Tv,Ti}
     
-    """
-    Physics data
-    """
-    physics_data
 
-
-    """
-    (deprecated) Coordinates
-    """
-    coord::Array{Tv,1}
-    
-    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)))
+    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, sys.grid)
 end
 
 function _fill!(node::Node,grid::Grid,inode,icell)
@@ -155,23 +134,8 @@ mutable struct Edge{Tv,Ti}  <: AbstractGeometryItem{Tv, Ti}
     """
     grid::Grid{Tv, Ti}
 
-    """
-    Physics data
-    """
-    physics_data
-
-
-    """
-    (deprecated) Coordinates
-    """
-    coordK::Array{Tv,1}
-    """
-    (deprecated) Coordinates
-    """
-    coordL::Array{Tv,1}
-
     
-    Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,[0,0],0,num_species(sys),0,sys.grid,sys.physics.data,zeros(Tv,dim_space(sys.grid)),zeros(Tv,dim_space(sys.grid)))
+    Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,[0,0],0,num_species(sys),0,sys.grid)
 end
 
 
@@ -221,9 +185,35 @@ function meas(edge::Edge)
     return sqrt(l)
 end
 
+edgelength(edge::Edge)=meas(edge)
 
 
+"""
+$(TYPEDSIGNATURES)
 
-physics_data(item::AbstractGeometryItem)=item.physics_data
-####################################################################################
+Solution view on first edge node
+"""
+@inline viewK(edge::Edge,u::AbstractArray)=@views u[1:edge.nspec]
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on second edge node
+"""
+@inline viewL(edge::Edge,u::AbstractArray)=@views u[edge.nspec+1:2*edge.nspec]
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on first edge node
+"""
+@inline viewK(nspec,u::AbstractArray)=@views u[1:nspec]
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Solution view on second edge node
+"""
+@inline viewL(nspec,u::AbstractArray)=@views u[nspec+1:2*nspec]

@@ -14,12 +14,11 @@ $(TYPEDSIGNATURES)
 
 Create Finite Volume System.
 """
-function FVMSystem(grid::Grid,physics::Physics; unknown_storage=:sparse, apiversion="0.7")
-    oldapi=vparse(apiversion)<vparse("0.7")
+function System(grid::Grid,physics::Physics; unknown_storage=:sparse)
     if Symbol(unknown_storage)==:dense
-        return DenseSystem(grid,physics,oldapi=oldapi)
+        return DenseSystem(grid,physics)
     elseif Symbol(unknown_storage)==:sparse
-        return SparseSystem(grid,physics,oldapi=oldapi)
+        return SparseSystem(grid,physics)
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end

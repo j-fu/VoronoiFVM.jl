@@ -17,13 +17,16 @@ Abstract type for user data.
 """
 abstract type AbstractData end
 
-#
-# Dummy data 
-#
-mutable struct NoData <: AbstractData
+struct NoData <: AbstractData
     NoData()=new() 
 end
-const nodata=NoData()
+
+struct DummyData <: AbstractData
+    DummyData()=new() 
+end
+
+isdata(::NoData)=false
+isdata(::AbstractData)=true
 
 #
 # Dummy callbacks
@@ -97,6 +100,7 @@ struct Physics{Flux<:Function,
     Number of species
     """
     num_species::Int8
+
 end
 
 ##########################################################
@@ -106,7 +110,7 @@ $(TYPEDSIGNATURES)
 Constructor for physics data with default values.
 """
 function Physics(;num_species=1,
-                 data=nodata,
+                 data=NoData(),
                  flux::Function=nofunc,
                  reaction::Function=nofunc,
                  storage::Function=default_storage,
@@ -114,7 +118,14 @@ function Physics(;num_species=1,
                  breaction::Function=nofunc,
                  bstorage::Function=nofunc
                  )
-    
+    if !isdata(data)
+        flux==nofunc ? flux=nofunc2 : true
+        reaction==nofunc ? reaction=nofunc2 : true
+        storage==default_storage ? storage=default_storage2 : true
+        source==nofunc ? source=nofunc2 : true
+        breaction==nofunc ? breaction=nofunc2 : true
+        bstorage==nofunc ? bstorage=nofunc2 : true
+    end
     return Physics(flux,
                    storage,
                    reaction,
@@ -126,41 +137,12 @@ function Physics(;num_species=1,
                    )
 end
 
-
-##########################################################
-"""
-$(TYPEDSIGNATURES)
-
-Constructor for physics data with default values.
-"""
-function FVMPhysics(;num_species=1,
-                    data=nodata,
-                    flux::Function=nofunc2,
-                    reaction::Function=nofunc2,
-                    storage::Function=default_storage2,
-                    source::Function=nofunc2,
-                    breaction::Function=nofunc2,
-                    bstorage::Function=nofunc2
-                    )
-    
-    return Physics(flux,
-                   storage,
-                   reaction,
-                   source,
-                   breaction,
-                   bstorage,
-                   data,
-                   Int8(num_species)
-                   )
-end
-
-
-
-
+hasdata(physics::Physics)=isdata(physics.data)
+   
 
 function Base.show(io::IO,physics::AbstractPhysics)
     str=@sprintf("VoronoiFVM.Physics(num_species=%d",physics.num_species)
-    if physics.data!=nodata
+    if isdata(physics.data)
         str=str*", data=$(typeof(physics.data))"
     end
     function addfunc(func,name)

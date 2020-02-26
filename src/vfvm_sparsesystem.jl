@@ -92,11 +92,6 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
     residual::SparseSolutionArray{Tv,Ti}
 
-    """
-    API version
-    """
-    oldapi::Bool
-
     SparseSystem{Tv,Ti}() where {Tv,Ti} = new()
 end
 
@@ -107,7 +102,8 @@ $(TYPEDSIGNATURES)
 Constructor for SparseSystem. `physics` provides some user data, `maxspec`
 is the maximum number of species.
 """
-function  SparseSystem(grid::Grid,physics::Physics; oldapi=true)
+
+function  SparseSystem(grid::Grid,physics::Physics)
     Tv=Base.eltype(grid)
     Ti=eltype(grid.cellnodes)
     this=SparseSystem{Tv,Ti}()
@@ -120,7 +116,6 @@ function  SparseSystem(grid::Grid,physics::Physics; oldapi=true)
     this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.species_homogeneous=false
-    this.oldapi=oldapi
     return this
 end
 

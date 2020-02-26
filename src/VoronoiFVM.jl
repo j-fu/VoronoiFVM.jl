@@ -7,7 +7,7 @@ using Triangulate
 using ForwardDiff, DiffResults
 using IterativeSolvers
 using DocStringExtensions
-using VersionParsing
+
 
 
 # These are in the standard distro
@@ -32,7 +32,6 @@ include("vfvm_geometryitems.jl")
 include("vfvm_subgridview.jl")
 
 include("vfvm_solver.jl")
-include("vfvm_oldapi.jl")
 include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
 include("vfvm_plot.jl")

@@ -1,4 +1,17 @@
 # Changes
+
+## devel
+   API modification:
+    - Breaking:
+      - Data parameter passed to physics callbacks only if Physics has been created with data parameter
+      - node.coord[i] -> node[i]
+    - Backward compatible:  
+      - No need for viewK and viewL in edge callbacks:
+        `uk[i]` -> `u[i,1]`
+        `ul[i]` -> `u[i,2]`
+      - VoronoiFVM.DenseSystem -> `VoronoiFVM.System(..., unknown_storage=:dense)`
+      - VoronoiFVM.SparseSystem -> `VoronoiFVM.System(..., unknown_storage=:sparse)`
+   
 ## v0.6.5 Jan 25 2019
 - use updateindex! for matrix, depend on ExtendableSparse 0.2.6
 
