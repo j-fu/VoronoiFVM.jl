@@ -6,7 +6,7 @@ using VoronoiFVM
 
 
 
-function main(;n=10,Plotter=nothing,verbose=false, dense=false)
+function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -18,29 +18,24 @@ function main(;n=10,Plotter=nothing,verbose=false, dense=false)
 
     physics=VoronoiFVM.Physics(
         num_species=1,
-        reaction=function(f,u,node,data)
+        reaction=function(f,u,node)
         f[1]=u[1]^2
         end,
 
-        flux=function(f,u,edge,data)
-        f[1]=eps*(u[1]^2-u[2]^2)
+        flux=function(f,u,edge)
+        f[1]=eps*(u[1,1]^2-u[1,2]^2)
         end,
 
-        source=function(f,node,data)
-        x1=node.coord[1]-0.5
-        x2=node.coord[2]-0.5
+        source=function(f,node)
+        x1=node[1]-0.5
+        x2=node[2]-0.5
         f[1]=exp(-20.0*(x1^2+x2^2))
         end,
 
-        storage=function(f,u,node,data)
+        storage=function(f,u,node)
         f[1]=u[1]
         end)
-
-    if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics)
-    else
-        sys=VoronoiFVM.SparseSystem(grid,physics)
-    end
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
     enable_species!(sys,1,[1])
 
     boundary_dirichlet!(sys,1,2,0.1)
@@ -78,7 +73,7 @@ function main(;n=10,Plotter=nothing,verbose=false, dense=false)
 end
 
 function test()
-    main(dense=false) ≈ 0.3554284760906605 &amp;&amp;
-        main(dense=true) ≈ 0.3554284760906605
+    main(unknown_storage=:sparse) ≈ 0.3554284760906605 &amp;&amp;
+        main(unknown_storage=:dense) ≈ 0.3554284760906605
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example203_CoordinateSystems/">« 203: Various coordinate systems</a><a class="docs-footer-nextpage" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 11 February 2020 15:57">Tuesday 11 February 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example203_CoordinateSystems/">« 203: Various coordinate systems</a><a class="docs-footer-nextpage" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 28 February 2020 11:10">Friday 28 February 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

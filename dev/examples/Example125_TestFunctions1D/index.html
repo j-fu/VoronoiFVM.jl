@@ -5,7 +5,7 @@ using VoronoiFVM
 
 
 
-function main(;n=100,Plotter=nothing,verbose=false,dense=false)
+function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
 
@@ -14,30 +14,23 @@ function main(;n=100,Plotter=nothing,verbose=false,dense=false)
 
     physics=VoronoiFVM.Physics(
          num_species=2,
-    reaction=function(f,u,node,data)
+    reaction=function(f,u,node)
         f[1]=10*(u[1]-u[2])
         f[2]=10*(u[2]-u[1])
     end,
 
-    flux=function(f,u,edge,data)
-        uk=viewK(edge,u)
-        ul=viewL(edge,u)
-        f[1]=eps[1]*(uk[1]-ul[1])
-        f[2]=eps[2]*(uk[2]-ul[2])
+    flux=function(f,u,edge)
+        f[1]=eps[1]*(u[1,1]-u[1,2])
+        f[2]=eps[2]*(u[2,1]-u[2,2])
     end,
 
 
-    storage=function(f,u,node,data)
+    storage=function(f,u,node)
         f[1]=u[1]
         f[2]=u[2]
     end
     )
-
-    if dense
-        sys=VoronoiFVM.DenseSystem(grid,physics)
-    else
-        sys=VoronoiFVM.SparseSystem(grid,physics)
-    end
+    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
@@ -77,7 +70,7 @@ function main(;n=100,Plotter=nothing,verbose=false,dense=false)
 end
 
 function test()
-    main(dense=false) ≈ 0.01 &amp;&amp;
-        main(dense=true) ≈ 0.01
+    main(unknown_storage=:sparse) ≈ 0.01 &amp;&amp;
+        main(unknown_storage=:dense) ≈ 0.01
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example121_PoissonPointCharge1D/">« 121: 1D Poisson with point charge</a><a class="docs-footer-nextpage" href="../Example150_Impedance1D/">150: Impedance calculation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 11 February 2020 15:57">Tuesday 11 February 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example121_PoissonPointCharge1D/">« 121: 1D Poisson with point charge</a><a class="docs-footer-nextpage" href="../Example150_Impedance1D/">150: Impedance calculation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 28 February 2020 11:10">Friday 28 February 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
