@@ -1,6 +1,7 @@
 # Changes
 
-## devel
+
+## ## v0.7 Feb 28 2019
 - API modification:
   - __Breaking__:
     - `data` parameter passed to physics callbacks only if `Physics` object is created with `data` parameter.
