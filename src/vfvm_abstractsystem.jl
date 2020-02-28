@@ -12,7 +12,14 @@ abstract type AbstractSystem{Tv<:Number, Ti <:Integer} end
 """
 $(TYPEDSIGNATURES)
 
-Create Finite Volume System.
+Create Finite Volume System. 
+
+- `grid`: 1D/2D/3D discretization grid
+- `physics`: Physics struct containing node and edge callbacks
+- `unknown_storage`: string or symbol:
+     - `:dense` :  solution vector is an  `nspecies` x `nnodes`  dense matrix
+     - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
+
 """
 function System(grid::Grid,physics::Physics; unknown_storage=:sparse)
     if Symbol(unknown_storage)==:dense

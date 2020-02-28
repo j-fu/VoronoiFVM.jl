@@ -99,8 +99,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Constructor for SparseSystem. `physics` provides some user data, `maxspec`
-is the maximum number of species.
+Constructor for SparseSystem.
 """
 
 function  SparseSystem(grid::Grid,physics::Physics)
