@@ -12,19 +12,20 @@ cellfactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) 
 
 
 function cellfactors!(::Type{<:Cartesian1D},grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
-    K=cellnode(grid,1,icell)
-    L=cellnode(grid,2,icell)
+    K::Int=cellnode(grid,1,icell)
+    L::Int=cellnode(grid,2,icell)
     xK=nodecoord(grid,K)
     xL=nodecoord(grid,L)
     d=abs(xL[1]-xK[1])
     nodefac[1]=d/2
     nodefac[2]=d/2
     edgefac[1]=1/d
+    nothing
 end
 
 function cellfactors!(::Type{<:CircularSymmetric1D}, grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
-    K=cellnode(grid,1,icell)
-    L=cellnode(grid,2,icell)
+    K::Int=cellnode(grid,1,icell)
+    L::Int=cellnode(grid,2,icell)
     xK=nodecoord(grid,K)
     xL=nodecoord(grid,L)
     r0=xK[1]
@@ -39,26 +40,25 @@ function cellfactors!(::Type{<:CircularSymmetric1D}, grid::Grid{Tv},icell::Int,n
     nodefac[1]= πv*(rhalf*rhalf-r0*r0);   # circular volume between midline and boundary
     nodefac[2]= πv*(r1*r1-rhalf*rhalf);   # circular volume between midline and boundary
     edgefac[1]= 2.0*πv*rhalf/(r1-r0);     # circular surface / width
+    nothing
 end
     
     
-function cellfactors!(::Type{<:Cartesian2D},grid::Grid{Tv},icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
-    i1=cellnode(grid,1,icell)
-    i2=cellnode(grid,2,icell)
-    i3=cellnode(grid,3,icell)
-    
+function cellfactors!(::Type{<:Cartesian2D},grid::Grid,icell,npar,epar)
+    i1::Int=cellnode(grid,1,icell)
+    i2::Int=cellnode(grid,2,icell)
+    i3::Int=cellnode(grid,3,icell)
     coord=grid.coord
-    
+
     # Fill matrix of edge vectors
-    V11= grid.coord[1,i2]- grid.coord[1,i1]
-    V21= grid.coord[2,i2]- grid.coord[2,i1]
+    V11= coord[1,i2]- coord[1,i1]
+    V21= coord[2,i2]- coord[2,i1]
     
-    V12= grid.coord[1,i3]- grid.coord[1,i1]
-    V22= grid.coord[2,i3]- grid.coord[2,i1]
+    V12= coord[1,i3]- coord[1,i1]
+    V22= coord[2,i3]- coord[2,i1]
     
-    V13= grid.coord[1,i3]- grid.coord[1,i2]
-    V23= grid.coord[2,i3]- grid.coord[2,i2]
-    
+    V13= coord[1,i3]- coord[1,i2]
+    V23= coord[2,i3]- coord[2,i2]
     
     
     # Compute determinant 
@@ -83,6 +83,7 @@ function cellfactors!(::Type{<:Cartesian2D},grid::Grid{Tv},icell::Int,npar::Vect
     npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
     npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
     npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
+    nothing
 end                              
 
 
@@ -104,9 +105,9 @@ function cellfactors!(::Type{<:CircularSymmetric2D},grid::Grid{Tv},icell::Int,np
         
 
     πv::Tv=π
-    i1=cellnode(grid,1,icell)
-    i2=cellnode(grid,2,icell)
-    i3=cellnode(grid,3,icell)
+    i1::Int=cellnode(grid,1,icell)
+    i2::Int=cellnode(grid,2,icell)
+    i3::Int=cellnode(grid,3,icell)
     
     coord=grid.coord
     
@@ -155,6 +156,7 @@ function cellfactors!(::Type{<:CircularSymmetric2D},grid::Grid{Tv},icell::Int,np
     npar[1]=rintegrate(coord[:,i1],cc,emid13)+rintegrate(coord[:,i1],cc,emid12)
     npar[2]=rintegrate(coord[:,i2],cc,emid23)+rintegrate(coord[:,i2],cc,emid12)
     npar[3]=rintegrate(coord[:,i3],cc,emid13)+rintegrate(coord[:,i3],cc,emid23)
+    nothing
 end                              
 
 
@@ -168,29 +170,32 @@ bfacefactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv}) where Tv=bfacefacto
 
 function bfacefactors!(::Type{<:Cartesian1D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
     nodefac[1]=1.0
+    nothing
 end
 
 function bfacefactors!(::Type{<:CircularSymmetric1D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    inode=bfacenode(grid,1,ibface)
+    inode::Int=bfacenode(grid,1,ibface)
     r=grid.coord[1,i]
     nodefac[1]=2*pi*r
+    nothing
 end
 
 # TODO: Test
 function bfacefactors!(::Type{<:Cartesian2D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    i1=bfacenode(grid,1,ibface)
-    i2=bfacenode(grid,2,ibface)
+    i1::Int=bfacenode(grid,1,ibface)
+    i2::Int=bfacenode(grid,2,ibface)
     dx=grid.coord[1,i1]-grid.coord[1,i2]
     dy=grid.coord[2,i1]-grid.coord[2,i2]
     d=0.5*sqrt(dx*dx+dy*dy)
     nodefac[1]=d
     nodefac[2]=d
+    nothing
 end
 
 # TODO: Test
 function bfacefactors!(::Type{<:CircularSymmetric2D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    i1=bfacenode(grid,1,ibface)
-    i2=bfacenode(grid,2,ibface)
+    i1::Int=bfacenode(grid,1,ibface)
+    i2::Int=bfacenode(grid,2,ibface)
     r1=grid.coord[1,i1]
     r2=grid.coord[1,i2]
     z1=grid.coord[2,i1]
@@ -201,4 +206,5 @@ function bfacefactors!(::Type{<:CircularSymmetric2D},grid::Grid,ibface::Int,node
     l=sqrt(dr*dr+dz*dz)
     nodefac[1]=pi*(r1+rmid)*l/2
     nodefac[2]=pi*(r2+rmid)*l/2
+    nothing
 end

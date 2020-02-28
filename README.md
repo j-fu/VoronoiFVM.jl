@@ -15,3 +15,8 @@ This Julia package merges the ideas behind [pdelib](http://www.wias-berlin.de/so
 
 It requires Julia 1.x
 
+API changes:
+
+- [v0.7](https://j-fu.github.io/VoronoiFVM.jl/v0.7/changes/) (some are breaking)
+
+

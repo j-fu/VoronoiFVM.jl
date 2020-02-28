@@ -62,6 +62,8 @@ function bfacemask!(grid::Grid,
         end
     end
     if dim_space(grid)==1
+        Ti=eltype(grid.bfacenodes)
+        bfacenodes=ElasticArray{Ti,2}(grid.bfacenodes)
         for inode=1:num_nodes(grid)
             x=grid.coord[1,inode]
             if x>xmaskmin[1] && x<xmaskmax[1]
@@ -71,10 +73,11 @@ function bfacemask!(grid::Grid,
                 else
                     ibface=length(grid.bfaceregions)+1
                     push!(grid.bfaceregions,ireg)
-                    append!(grid.bfacenodes,[inode])
+                    append!(bfacenodes,[inode])
                 end
             end
         end
+        grid.bfacenodes=Array{Ti,2}(bfacenodes)
     else
         for ibface=1:num_bfaces(grid)
             in_region=true

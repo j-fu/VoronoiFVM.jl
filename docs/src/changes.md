@@ -1,17 +1,24 @@
 # Changes
 
 ## devel
-   API modification:
-    - Breaking:
-      - Data parameter passed to physics callbacks only if Physics has been created with data parameter
-      - node.coord[i] -> node[i]
-    - Backward compatible:  
-      - No need for viewK and viewL in edge callbacks:
-        `uk[i]` -> `u[i,1]`
-        `ul[i]` -> `u[i,2]`
-      - VoronoiFVM.DenseSystem -> `VoronoiFVM.System(..., unknown_storage=:dense)`
-      - VoronoiFVM.SparseSystem -> `VoronoiFVM.System(..., unknown_storage=:sparse)`
-   
+- API modification:
+  - Breaking:
+    - `data` parameter passed to physics callbacks only if `Physics` object is created with `data` parameter  
+      This makes the API more consistent in the case that parameters are just taken from the closure (the scope where the physics functions are defined)
+    - Replace `node.coord[i]` by  `node[i]`  
+      This now directly accesses the coordinate field of the grid and avoids copying of the coordinates
+  - Backward compatible:  
+    - No need for viewK and viewL in edge callbacks (they also make trouble with allocations...)
+        - Replace `uk[i]` by `u[i,1]`
+        - Replace `ul[i]` by `u[i,2]`
+     - Replace `VoronoiFVM.DenseSystem(...)`  by `VoronoiFVM.System(..., unknown_storage=:dense)`
+     - Replace `VoronoiFVM.SparseSystem(...)` by `VoronoiFVM.System(..., unknown_storage=:sparse)`
+
+- No allocations anymore in assembly loop:
+  - Replaced ElasticArray in grid by normal one - this was the largest regression
+  - Return nothing to avoid some allocations 
+  - Indexing in formfactors with Int
+
 ## v0.6.5 Jan 25 2019
 - use updateindex! for matrix, depend on ExtendableSparse 0.2.6
 
