@@ -1,13 +1,13 @@
-# # 110: 1D Nonlinear Poisson equation with two species
+# # 110: 1D Reaction Diffusion equation with two species
 # ([source code](SOURCE_URL))
-# Solve the nonlinear Poisson equation
+# Solve the nonlinear coupled reaction diffusion problem
 # 
 # ```math
 # -\nabla (0.01+2u_2)\nabla u_1 + u_1u_2= 0.0001(0.01+x)
 # ```
 # 
 # ```math
-# -\nabla (0.01+2u_1)\nabla u_2 -+ u_1u_2 = 0.0001(1.01-x)
+# -\nabla (0.01+2u_1)\nabla u_2 - u_1u_2 = 0.0001(1.01-x)
 # ```
 # 
 # 
@@ -15,12 +15,10 @@
 # 
 
 
-module Example110_NonlinearPoisson1D_TwoSpecies
+module Example110_ReactionDiffusion1D_TwoSpecies
 
 using Printf
 using VoronoiFVM
-
-
 
 
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
