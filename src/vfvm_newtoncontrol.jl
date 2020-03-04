@@ -79,6 +79,13 @@ mutable struct NewtonControl
     """
     Δp_min::Float64
 
+
+    """
+    Edge cutoff for rectangular triangles
+    """
+    edge_cutoff::Float64
+
+    
     NewtonControl()=NewtonControl(new())
 end
 
@@ -103,6 +110,7 @@ function NewtonControl(this)
     this.Δp_max=1
     this.Δp_min=1.0e-3
     this.handle_exceptions=false
+    this.edge_cutoff=0.0
     
     return this
 end

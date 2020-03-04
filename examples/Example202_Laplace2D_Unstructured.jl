@@ -74,7 +74,7 @@ end
 # Called by unit test
 #
 function test()
-    main() ≈ 0.22723115735932964
+    main() ≈ 0.23422190956113936
 end
 
 end

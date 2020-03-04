@@ -103,7 +103,7 @@ function _solve!(
 
     for ii=1:control.max_iterations
         try
-            eval_and_assemble(this,solution,oldsol,residual,tstep)
+            eval_and_assemble(this,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -224,7 +224,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
-                           tstep::Tv, # time step size. Inf means stationary solution
+                           tstep::Tv; # time step size. Inf means stationary solution
+                           edge_cutoff=0.0
                            ) where {Tv, Ti}
     
 
@@ -236,7 +237,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     node::Node=Node{Tv,Ti}(system)
     bnode::BNode=BNode{Tv,Ti}(system)
     edge::Edge=Edge{Tv,Ti}(system)
-    edge_cutoff=1.0e-12
     nspecies::Int32=num_species(system)
     matrix=system.matrix
 
@@ -382,9 +382,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     # Main cell loop
     for icell=1:num_cells(grid)
         # set up form factors
-        cellfactors!(grid,icell,node_factors,edge_factors) # alloc!!!
-        # set up data for callbacks
+        cellfactors!(grid,icell,node_factors,edge_factors)
 
+        # set up data for callbacks
         node.region=reg_cell(grid,icell)
         edge.region=reg_cell(grid,icell)
 
@@ -437,7 +437,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             end
         end
         for iedge=1:num_edges_per_cell(grid)
-            if edge_factors[iedge]<edge_cutoff
+            if abs(edge_factors[iedge])<edge_cutoff
                 continue
             end
 
@@ -607,7 +607,7 @@ function solve!(
     inival::AbstractMatrix{Tv},   # Initial value 
     this::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
-    tstep::Tv=Inf                 # Time step size. Inf means  stationary solution
+    tstep::Tv=Inf                # Time step size. Inf means  stationary solution
 ) where Tv
     if control.verbose
         @time begin

@@ -31,9 +31,12 @@ function run_tests_from_directory(testdir,prefix)
 end
 
 
-@time begin
-    run_tests_from_directory(@__DIR__,"test_")
-    run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example")
-    run_tests_from_directory(joinpath(@__DIR__,"..","test/api-0.6"),"Example")
+function run_all_tests()
+    @time begin
+        run_tests_from_directory(@__DIR__,"test_")
+        run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example")
+        run_tests_from_directory(joinpath(@__DIR__,"..","test/api-0.6"),"Example")
+    end
 end
 
+run_all_tests()
