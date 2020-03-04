@@ -20,24 +20,55 @@ u&#39;(1)- u&#39;(\sigma_{n,n+1})&amp;k=n
 \end{cases}
 \end{aligned}\]</div><p>In the last equation, we wrote <span>$u_k=u(x_k)$</span> and <span>$g(u_k,u_l)=u_k-u_l$</span>. For the interior interfaces between control volumes, we replaced <span>$u&#39;$</span> by a difference quotient. In the boundary control volumes, we replaced <span>$u&#39;$</span>  by the boundary conditions.</p><p>In the example below, we fix a number of species and  write a Julia function describing <span>$g$</span>, we create a physics record, and a finite volume system with one unknown species and a dense matrix to describe it&#39;s degrees of freedom (the matrix used  to calculate the solution is sparse). We give the species the number 1 and enable it for grid region number one 1. Then, we set boundary conditions for species 1 at <span>$\gamma_1, \gamma_2$</span>.</p><p>We create a zero initial value and a solution vector and initialize them.</p><p>With these data, we solve the system.</p><p>We wrap this example and all later ones into a module structure. This allows to load all of them at once into the REPL without name clashes. We shouldn&#39;t forget the corresponding end statement.</p><pre><code class="language-julia">module Example101_Laplace1D
 
-using VoronoiFVM</code></pre><p>Flux function which describes the flux between neigboring control volumes <span>$\omega_k$</span> and <span>$\omega_l$</span></p><pre><code class="language-julia">function g!(f,u,edge)
-    k=1
-    l=2
-    f[1]=u[1,k]-u[1,l]
+using VoronoiFVM
+
+
+# Flux function which describes the flux
+# between neigboring control volumes
+function g!(f,u,edge)
+    f[1]=u[1,1]-u[1,2]
 end
 
 
 function main()
 
-    nspecies=1
-    ispec=1</code></pre><p>Create a one dimensional discretization object</p><pre><code class="language-julia">    X=collect(0:0.2:1)
-    grid=VoronoiFVM.Grid(X)</code></pre><p>Create a physics structure</p><pre><code class="language-julia">    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)</code></pre><p>Create a finite volume system with dense storage of unknowns</p><pre><code class="language-julia">    sys=VoronoiFVM.System(grid,physics,unknown_storage=:dense)</code></pre><p>Enable species 1 in region 1</p><pre><code class="language-julia">    enable_species!(sys,ispec,[1])</code></pre><p>Set boundary conditions</p><pre><code class="language-julia">    boundary_dirichlet!(sys,ispec,1,0.0)
-    boundary_dirichlet!(sys,ispec,2,1.0)</code></pre><p>Create &amp; initialize array for solution and initial value</p><pre><code class="language-julia">    inival=unknowns(sys)
+    nspecies=1 ## Number of species
+    ispec=1    ## Index of species we are working with
+
+    # Create a one dimensional discretization grid
+    # Each grid cell belongs to a region marked by a region number
+    # By default, there is only one region numbered with 1
+    X=collect(0:0.2:1)
+    grid=VoronoiFVM.Grid(X)
+
+    # Create a physics structure
+    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
+
+    # Create a finite volume system
+    sys=VoronoiFVM.System(grid,physics)
+
+    # Enable species 1 in region 1
+    enable_species!(sys,ispec,[1])
+
+    # Set boundary conditions at boundary regions 1 and 2
+    boundary_dirichlet!(sys,ispec,1,0.0)
+    boundary_dirichlet!(sys,ispec,2,1.0)
+
+    # Create &amp; initialize array for solution and initial value
+    inival=unknowns(sys,inival=0)
     solution=unknowns(sys)
-    inival.=0
-    solution.=0</code></pre><p>Solve stationary problem</p><pre><code class="language-julia">    solve!(solution,inival,sys)</code></pre><p>Return test value</p><pre><code class="language-julia">    return solution[3]
-end</code></pre><p>Called by unit test</p><pre><code class="language-julia">function test()
+
+    # Solve stationary problem
+    solve!(solution,inival,sys)
+
+    # Return test value
+    return solution[3]
+end
+
+# Called by unit test
+
+function test()
     main() ≈ 0.4
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../allindex/">« Index</a><a class="docs-footer-nextpage" href="../Example102_StationaryConvectionDiffusion1D/">102: 1D Stationary convection-diffusion equation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 2 March 2020 12:57">Monday 2 March 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../allindex/">« Index</a><a class="docs-footer-nextpage" href="../Example102_StationaryConvectionDiffusion1D/">102: 1D Stationary convection-diffusion equation »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 4 March 2020 23:13">Wednesday 4 March 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
