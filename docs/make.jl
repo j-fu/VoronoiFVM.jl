@@ -51,22 +51,22 @@ function make_all()
     #
     # Generate Markdown pages from examples
     #
-    output_dir  = joinpath(@__DIR__,"src","examples")
-    example_dir = joinpath(@__DIR__,"..","examples")
+    example_jl_dir = joinpath(@__DIR__,"..","examples")
+    example_md_dir  = joinpath(@__DIR__,"src","examples")
     
-    for example_source in readdir(example_dir)
+    for example_source in readdir(example_jl_dir)
         base,ext=splitext(example_source)
         if ext==".jl"
             source_url="https://github.com/j-fu/VoronoiFVM.jl/raw/master/examples/"*example_source
             preprocess(buffer)=replace_source_url(buffer,source_url)|>hashify_block_comments
             Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
-                              output_dir,
+                              example_md_dir,
                               documenter=false,
                               info=false,
                               preprocess=preprocess)
         end
     end
-    generated_examples=joinpath.("examples",readdir(output_dir))
+    generated_examples=joinpath.("examples",readdir(example_md_dir))
     
     makedocs(
         sitename="VoronoiFVM.jl",
@@ -89,6 +89,8 @@ function make_all()
             "Examples" => generated_examples
         ]
     )
+    
+    rm(example_md_dir,recursive=true)
     
     if !isinteractive()
         deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
