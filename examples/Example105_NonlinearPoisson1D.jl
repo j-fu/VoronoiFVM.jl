@@ -21,23 +21,10 @@ Such equation occur e.g. in simulations of electrochemical systems and semicondu
  
 =# 
 
-# 
-#  Start the module
-# 
 module Example105_NonlinearPoisson1D
-
-
-# This gives us he @printf macro (c-like output)
 using Printf
-
-# That's the thing we want to do
 using VoronoiFVM
 
-
-
-# Main function for user interaction from REPL and
-# for testing. Default physics need to generate correct
-# test value.
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     
     ## Create a one-dimensional discretization
@@ -46,7 +33,6 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
     ## A parameter which is "passed" to the flux function via scope
     ϵ=1.0e-3
-   
 
     ## Flux function which describes the flux
     ## between neigboring control volumes
@@ -90,11 +76,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     boundary_dirichlet!(sys,1,2,1.0)
 
     ## Create a solution array
-    inival=unknowns(sys)
+    inival=unknowns(sys,inival=0.5)
     solution=unknowns(sys)
-
-    ## Broadcast the initial value
-    inival.=0.5
 
     ## Create solver control info
     control=VoronoiFVM.NewtonControl()
@@ -113,12 +96,10 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     return sum(solution)
 end
 
-
 function test()
     testval=1.5247901344230088
     main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
 end
 
-# End of module
 end 
 

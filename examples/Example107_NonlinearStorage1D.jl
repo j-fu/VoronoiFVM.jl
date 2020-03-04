@@ -36,6 +36,7 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     h=1.0/convert(Float64,n/2)
     X=collect(-1:h:1)
     grid=VoronoiFVM.Grid(X)
+
     ## Flux function which describes the flux
     ## between neigboring control volumes
     function flux!(f,u,edge)
@@ -43,6 +44,7 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     end
 
     ϵ=1.0e-10
+
     ## Storage term
     ## This needs to be regularized as its derivative
     ## at 0 is infinity
@@ -69,6 +71,7 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     inival=unknowns(sys)
     solution=unknowns(sys)
     t0=0.001
+
     ## Broadcast the initial value
     inival[1,:].=map(x->barenblatt(x,t0,m)^m,X)
     solution.=inival
@@ -105,6 +108,5 @@ function test()
     main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
 end
 
-# End of module
 end 
 

@@ -92,55 +92,50 @@ module Example101_Laplace1D
 using VoronoiFVM
 
 
-
-# Flux function which describes the flux
-# between neigboring control volumes $\omega_k$ and $\omega_l$
+## Flux function which describes the flux
+## between neigboring control volumes
 function g!(f,u,edge)
-    k=1
-    l=2
-    f[1]=u[1,k]-u[1,l]
+    f[1]=u[1,1]-u[1,2]
 end
 
 
 function main()
-    
-    nspecies=1
-    ispec=1
 
-    # Create a one dimensional discretization object
+    nspecies=1 ## Number of species
+    ispec=1    ## Index of species we are working with
+
+    ## Create a one dimensional discretization grid
+    ## Each grid cell belongs to a region marked by a region number
+    ## By default, there is only one region numbered with 1
     X=collect(0:0.2:1)
     grid=VoronoiFVM.Grid(X)
 
-
-    # Create a physics structure
+    ## Create a physics structure
     physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
 
-    # Create a finite volume system with dense storage of unknowns
-    sys=VoronoiFVM.System(grid,physics,unknown_storage=:dense)
+    ## Create a finite volume system 
+    sys=VoronoiFVM.System(grid,physics)
 
-    # Enable species 1 in region 1
+    ## Enable species 1 in region 1
     enable_species!(sys,ispec,[1])
 
-    # Set boundary conditions
+    ## Set boundary conditions at boundary regions 1 and 2
     boundary_dirichlet!(sys,ispec,1,0.0)
     boundary_dirichlet!(sys,ispec,2,1.0)
     
-    # Create & initialize array for solution and initial value
-    inival=unknowns(sys)
+    ## Create & initialize array for solution and initial value
+    inival=unknowns(sys,inival=0)
     solution=unknowns(sys)
-    inival.=0
-    solution.=0
 
-    # Solve stationary problem
+    ## Solve stationary problem
     solve!(solution,inival,sys)
 
-    # Return test value
+    ## Return test value
     return solution[3]
 end
 
-#
-# Called by unit test
-#
+## Called by unit test
+
 function test()
     main() ≈ 0.4
 end

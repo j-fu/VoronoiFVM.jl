@@ -52,13 +52,10 @@ R_{BC}(u_C, u_B)&=k_{BC}^+ u_B(1-u_C) - k_{BC}^-u_C\\
 ```
 
 =#
-
-# Module header
 module Example115_HeterogeneousCatalysis1D
 using Printf
 using VoronoiFVM
 
-# Main function
 function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
     
     h=1.0/convert(Float64,n)
@@ -183,11 +180,9 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     return U[iC,1]
 end
 
-# Test evaluation
 function test()
     testval=0.87544440641274
     main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
 end
 
-# Module end
 end

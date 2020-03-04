@@ -35,12 +35,10 @@ struct Data <: VoronoiFVM.AbstractData
     D
 end
 
-#=
-Central difference flux. The velocity term is discretized using the
-average of the solution in the endpoints of the grid. If the local Peclet
-number $\frac{vh}{D}>1$, the monotonicity property is lost.  Grid refinement
-can fix this situation by decreasing $h$.
-=#
+## Central difference flux. The velocity term is discretized using the
+## average of the solution in the endpoints of the grid. If the local Peclet
+## number v*h/D>1, the monotonicity property is lost.  Grid refinement
+## can fix this situation by decreasing $h$.
 
 function central_flux!(f,u,edge,data)
     h=meas(edge)
@@ -48,11 +46,10 @@ function central_flux!(f,u,edge,data)
     f[1]=f_diff+data.v*h*(u[1,1]+u[1,2])/2
 end
 
-#=
-The simple upwind flux corrects the monotonicity properties essentially
-via brute force and loses one order of convergence for small $h$ compared
-to the central flux.
-=#
+## The simple upwind flux corrects the monotonicity properties essentially
+## via brute force and loses one order of convergence for small $h$ compared
+## to the central flux.
+
 function upwind_flux!(f,u,edge,data)
     h=meas(edge)
     fdiff=data.D*(u[1,]-u[1,2])
@@ -63,13 +60,10 @@ function upwind_flux!(f,u,edge,data)
     end
 end
 
-
-#=
-The exponential fitting flux has the proper monotonicity properties and
-kind of interpolates in a clever way between central
-and upwind flux. It can be derived by solving the two-point boundary value problem
-at the grid interval analytically. 
-=#
+## The exponential fitting flux has the proper monotonicity properties and
+## kind of interpolates in a clever way between central
+## and upwind flux. It can be derived by solving the two-point boundary value problem
+## at the grid interval analytically. 
 
 ## Bernoulli function used in the exponential fitting discretization
 function bernoulli(x)
@@ -87,10 +81,9 @@ function exponential_flux!(f,u,edge,data)
 end
 
 
-
-
 function calculate(grid,data,flux,verbose)
-    sys=VoronoiFVM.System(grid,VoronoiFVM.Physics(flux=flux, data=data),unknown_storage=:dense)
+
+    sys=VoronoiFVM.System(grid,VoronoiFVM.Physics(flux=flux, data=data))
     
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
@@ -100,12 +93,9 @@ function calculate(grid,data,flux,verbose)
     boundary_dirichlet!(sys,1,2,1.0)
     
     ## Create a solution array
-    inival=unknowns(sys)
+    inival=unknowns(sys,inival=0.5)
     solution=unknowns(sys)
 
-    ## Broadcast the initial value
-    inival.=0.5
-    
     ## Create solver control info
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
@@ -126,6 +116,7 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
     solution_exponential=calculate(grid,data,exponential_flux!,verbose)
     solution_upwind=calculate(grid,data,upwind_flux!,verbose)
     solution_central=calculate(grid,data,central_flux!,verbose)
+
     if isplots(Plotter)
         Plots=Plotter
         p=Plots.plot(title="Convection-Diffusion",grid=true)
@@ -134,16 +125,15 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
         Plots.plot!(p,grid.coord[1,:],solution_central[1,:],label="central")
         Plots.plot!(p,show=true)
     end
-    
+
+    ## Return test value
     return sum(solution_exponential)+sum(solution_upwind)+sum(solution_central)
 end
-
 
 function test()
     testval=2.523569744561089
     main() ≈ testval
 end
 
-# End of module
 end 
 
