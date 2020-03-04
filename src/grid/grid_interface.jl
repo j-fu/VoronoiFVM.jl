@@ -150,15 +150,16 @@ num_bfaces(grid::Grid)= size(grid.bfacenodes,2)
 """
 $(TYPEDSIGNATURES)
 
-Number of cell regions in grid.
+Maximum  cell  region number
 """
 num_cellregions(grid::Grid)= grid.num_cellregions
+
 
 ################################################
 """
 $(TYPEDSIGNATURES)
 
-Number of boundary face regions in grid.
+Maximum  boundary face region number
 """
 num_bfaceregions(grid::Grid)=grid.num_bfaceregions
 

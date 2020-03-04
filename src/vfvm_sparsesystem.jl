@@ -133,34 +133,30 @@ num_dof(this::SparseSystem)= nnz(this.node_dof)
 """
 $(SIGNATURES)
 
-Create a solution vector for system. 
+Create a solution vector for sparse system. 
 The entries of the returned vector are undefined.
 """
-function unknowns(sys::SparseSystem{Tv,Ti}) where {Tv,Ti}
-    return SparseSolutionArray{Tv,Ti}(SparseMatrixCSC(sys.node_dof.m,
-                                                   sys.node_dof.n,
-                                                   sys.node_dof.colptr,
-                                                   sys.node_dof.rowval,
-                                                   Array{Tv}(undef,num_dof(sys))
-                                                   )
-                                   )
-end
+unknowns(sys::SparseSystem{Tv,Ti};inival=undef) where {Tv,Ti}=unknowns(Tv,sys,inival=inival)
 
 ##################################################################
 """
 $(SIGNATURES)
 
-Create a solution vector for system with given type
-The entries of the returned vector are undefined.
+Create a solution vector for sparse system with given type.
+If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu::Type, sys::SparseSystem{Tv, Ti}) where {Tv,Ti}
+function unknowns(Tu::Type, sys::SparseSystem{Tv, Ti};inival=undef) where {Tv,Ti}
+    a0=Array{Tu}(undef,num_dof(sys))
+    if inival!=undef
+        fill!(a0,inival)
+    end
     return SparseSolutionArray{Tu,Ti}(SparseMatrixCSC(sys.node_dof.m,
                                                       sys.node_dof.n,
                                                       sys.node_dof.colptr,
                                                       sys.node_dof.rowval,
-                                                      Array{Tu}(undef,num_dof(sys))
+                                                      a0
                                                       )
-                                   )
+                                      )
 end
 
 

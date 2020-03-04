@@ -114,22 +114,24 @@ num_dof(this::DenseSystem)= length(this.node_dof)
 """
 $(TYPEDSIGNATURES)
 
-Create a solution vector for system.
-The entries of the returned vector are undefined.
+Create a solution vector for dense system.
+If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(sys::DenseSystem{Tv}) where Tv
-    return Array{Tv}(undef,size(sys.node_dof,1), size(sys.node_dof,2))
-end
+unknowns(sys::DenseSystem{Tv};inival=undef) where Tv = unknowns(Tv,sys,inival=inival)
 
 ##################################################################
 """
 $(TYPEDSIGNATURES)
 
-Create a solution vector for system.
-The entries of the returned vector are undefined.
+Create a solution vector for dense system.
+If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu::Type,sys::DenseSystem{Tv}) where Tv
-    return Array{Tu}(undef,size(sys.node_dof,1), size(sys.node_dof,2))
+function unknowns(Tu::Type,sys::DenseSystem{Tv};inival=undef) where Tv
+    a=Array{Tu}(undef,size(sys.node_dof)...)
+    if inival!=undef
+        fill!(a,inival)
+    end
+    return a
 end
 
 

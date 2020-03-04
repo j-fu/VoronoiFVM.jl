@@ -13,8 +13,6 @@ abstract type AbstractGrid end
 
 
 
-
-
 ##########################################################
 
 ##########################################################
@@ -134,13 +132,13 @@ mutable struct Grid{Tc,Ti} <: AbstractGrid
 
     
     """
-    Number of inner cell regions.
+    Maximum  inner cell region number
     """
     num_cellregions::Ti
 
     
     """
-    Number of boundary face  regions.
+    Maximum  boundary region number
     """
     num_bfaceregions::Ti
 
