@@ -21,7 +21,7 @@ Create Finite Volume System.
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 
 """
-function System(grid::Grid,physics::Physics; unknown_storage=:sparse)
+function System(grid,physics::Physics; unknown_storage=:sparse)
     if Symbol(unknown_storage)==:dense
         return DenseSystem(grid,physics)
     elseif Symbol(unknown_storage)==:sparse
@@ -85,14 +85,15 @@ function enable_species!(this::AbstractSystem,ispec::Integer, regions::AbstractV
     if is_boundary_species(this,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
     end
-
+    _cellregions=cellregions(this.grid)
+    _cellnodes=cellnodes(this.grid)
     for i in eachindex(regions)
         ireg=regions[i]
         this.region_species[ispec,ireg]=ispec
         for icell=1:num_cells(this.grid)
-            if this.grid.cellregions[icell]==ireg
-                for iloc=1:size(this.grid.cellnodes,1)
-                    iglob=this.grid.cellnodes[iloc,icell]
+            if _cellregions[icell]==ireg
+                for iloc=1:size(_cellnodes,1)
+                    iglob=_cellnodes[iloc,icell]
                     this.node_dof[ispec,iglob]=ispec
                 end
             end
@@ -116,13 +117,16 @@ function enable_boundary_species!(this::AbstractSystem, ispec::Integer, bregions
     if is_bulk_species(this,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
+    _bfaceregions=bfaceregions(this.grid)
+    _bfacenodes=bfacenodes(this.grid)
+    
     for i in eachindex(bregions)
         ireg=bregions[i]
         this.bregion_species[ispec,ireg]=ispec
         for ibface=1:num_bfaces(this.grid)
-            if this.grid.bfaceregions[ibface]==ireg
-                for iloc=1:size(this.grid.bfacenodes,1)
-                    iglob=this.grid.bfacenodes[iloc,ibface]
+            if _bfaceregions[ibface]==ireg
+                for iloc=1:size(_bfacenodes,1)
+                    iglob=_bfacenodes[iloc,ibface]
                     this.node_dof[ispec,iglob]=ispec
                 end
             end
@@ -248,12 +252,14 @@ num_species(a::AbstractArray)=size(a,1)
 # Initialize Dirichlet BC
 #
 function _initialize_dirichlet!(U::AbstractMatrix,this::AbstractSystem)
+    _bfaceregions=bfaceregions(this.grid)
+    _bfacenodes=bfacenodes(this.grid)
     for ibface=1:num_bfaces(this.grid)
-        ibreg=this.grid.bfaceregions[ibface]
+        ibreg=_bfaceregions[ibface]
         for ispec=1:num_species(this)
             if this.boundary_factors[ispec,ibreg]≈ Dirichlet
                 for inode=1:dim_grid(this.grid)
-                    U[ispec,this.grid.bfacenodes[inode,ibface]]=this.boundary_values[ispec,ibreg]
+                    U[ispec,_bfacenodes[inode,ibface]]=this.boundary_values[ispec,ibreg]
                 end
             end
         end

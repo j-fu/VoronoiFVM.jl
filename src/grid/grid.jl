@@ -15,58 +15,6 @@ abstract type AbstractGrid end
 
 ##########################################################
 
-##########################################################
-"""
-$(TYPEDEF)
-
-Type for dispatching formfactor calculations.
-Intepret 1D coordinates as cartesian.
-"""
-struct Cartesian1D end
-
-"""
-$(TYPEDEF)
-
-Type for dispatching formfactor calculations.
-Intepret 2D coordinates as cartesian.
-"""
-struct Cartesian2D end
-
-"""
-$(TYPEDEF)
-
-Type for dispatching formfactor calculations.
-Intepret 3D coordinates as cartesian.
-"""
-struct Cartesian3D end
-
-"""
-$(TYPEDEF)
-
-Type for dispatching formfactor calculations.
-Intepret 1D coordinates as radial coordinate  r
-assuming circular symmetry around origin 0.
-"""
-struct CircularSymmetric1D end
-
-"""
-$(TYPEDEF)
-
-Type for dispatching formfactor calculations.
-Intepret 2D coordinates as radial coordinate r
-and eight coordinate z assuming circular symmetry 
-around axis r=0.
-"""
-struct CircularSymmetric2D end
-
-"""
-$(TYPEDEF)
-
-Type for dispatching formfactor calculations.
-Intepret 1D coordinates as radial coordinate  r
-assuming spehrical symmetry around point r=0.
-"""
-struct SphericalSymmetric1D end
 
 
 ##########################################################
@@ -152,6 +100,12 @@ mutable struct Grid{Tc,Ti} <: AbstractGrid
     Type of coordinate system
     """
     coord_type::DataType
+
+    """
+    Type of elements
+    """
+    cell_type::DataType
+    bface_type::DataType
 end
 
 function Base.show(io::IO,grid::Grid{Tc}) where Tc
@@ -185,6 +139,8 @@ function Grid(coord::Array{Tc,2},
     if dim==1
         local_celledgenodes=reshape(Ti[1 2],:,1)
         coord_type=Cartesian1D
+        celltype=Simplex1D
+        bfacetype=Simplex0D
     else
         # see grid/simplex.h in pdelib
         local_celledgenodes=zeros(Ti,2,3)
@@ -198,6 +154,8 @@ function Grid(coord::Array{Tc,2},
         local_celledgenodes[2,3]=2
 
         coord_type=Cartesian2D
+        celltype=Simplex2D
+        bfacetype=Simplex1D
     end
         
     return Grid(coord,
@@ -211,7 +169,9 @@ function Grid(coord::Array{Tc,2},
                 num_cellregions,
                 num_bfaceregions,
                 local_celledgenodes,
-                coord_type)
+                coord_type,
+                celltype,
+                bfacetype)
 end
 
 """
@@ -237,9 +197,9 @@ end
 """
 function circular_symmetric!(grid)
     if dim_space(grid)==1
-        grid.coord_type=CircularSymmetric1D
+        grid.coord_type=VoronoiFVM.Polar1D
     elseif dim_space(grid)==2
-        grid.coord_type=CircularSymmetric2D
+        grid.coord_type=VoronoiFVM.Cylindrical2D
     else
         throw(DomainError(3,"Unable to handle circular symmetry for 3D grid"))
     end

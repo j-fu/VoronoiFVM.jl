@@ -1,5 +1,6 @@
 module VoronoiFVM
 
+
 # Packages for meshing
 using Triangulate
 
@@ -8,6 +9,12 @@ using ForwardDiff, DiffResults
 using IterativeSolvers
 using DocStringExtensions
 
+
+
+#using XGrid
+#include("grid/xgrid.jl")
+
+include("grid/coord_types.jl")
 
 
 # These are in the standard distro
@@ -19,9 +26,9 @@ using LinearAlgebra
 
 using Printf
 
+include("vfvm_grid.jl")
 
 include("vfvm_physics.jl")
-include("vfvm_grid.jl")
 include("vfvm_functions.jl")
 include("vfvm_newtoncontrol.jl")
 
@@ -29,6 +36,7 @@ include("vfvm_abstractsystem.jl")
 include("vfvm_densesystem.jl")
 include("vfvm_sparsesystem.jl")
 include("vfvm_geometryitems.jl")
+
 include("vfvm_subgridview.jl")
 
 include("vfvm_solver.jl")

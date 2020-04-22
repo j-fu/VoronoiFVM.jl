@@ -68,7 +68,16 @@ $(TYPEDSIGNATURES)
 
 Return element type of grid coordinates.
 """
-Base.eltype(grid::Grid)=Base.eltype(grid.coord)
+coord_type(grid::Grid)=Base.eltype(grid.coord)
+
+
+##########################################################
+"""
+$(TYPEDSIGNATURES)
+
+Return element type of grid coordinates.
+"""
+index_type(grid::Grid)=Base.eltype(grid.cellnodes)
 
 
 ################################################
@@ -155,6 +164,7 @@ Maximum  cell  region number
 num_cellregions(grid::Grid)= grid.num_cellregions
 
 
+
 ################################################
 """
 $(TYPEDSIGNATURES)
@@ -162,6 +172,13 @@ $(TYPEDSIGNATURES)
 Maximum  boundary face region number
 """
 num_bfaceregions(grid::Grid)=grid.num_bfaceregions
+
+
+cellregions(grid::Grid)=grid.cellregions
+bfaceregions(grid::Grid)=grid.bfaceregions
+cellnodes(grid::Grid)=grid.cellnodes
+bfacenodes(grid::Grid)=grid.bfacenodes
+
 
 ################################################
 """
@@ -173,7 +190,7 @@ Needs to be splatted. Use it e.g. like
     PyPlot.trisurf(tridata(g)...,U)
 ```
 """
-tridata(g)=g.coord[1,:], g.coord[2,:],transpose(g.cellnodes.-1)
+tridata(g::Grid)=g.coord[1,:], g.coord[2,:],transpose(g.cellnodes.-1)
 
 
 

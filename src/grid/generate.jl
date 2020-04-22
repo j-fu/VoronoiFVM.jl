@@ -34,7 +34,6 @@ end
 
 
 """
-$(TYPEDSIGNATURES)
 
 Create Grid from a number of input arrays.
 The 2D input arrays are transposed if necessary and converted to

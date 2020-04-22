@@ -39,7 +39,7 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
     Grid
     """
-    grid::Grid{Tv, Ti}
+    grid
 
     """
     Physics data
@@ -96,15 +96,15 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
 end
 
 ##################################################################
+
 """
 $(TYPEDSIGNATURES)
 
 Constructor for SparseSystem.
 """
-
-function  SparseSystem(grid::Grid,physics::Physics)
-    Tv=Base.eltype(grid)
-    Ti=eltype(grid.cellnodes)
+function  SparseSystem(grid,physics::Physics)
+    Tv=coord_type(grid)
+    Ti=index_type(grid)
     this=SparseSystem{Tv,Ti}()
     maxspec=physics.num_species
     this.grid=grid

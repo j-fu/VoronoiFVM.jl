@@ -65,7 +65,7 @@ function subgrid(parent::Grid,
                  subregions::AbstractArray;
                  transform::Function=_copytransform!,
                  boundary=false)
-    Tc=Base.eltype(parent)
+    Tc=coord_type(parent)
     
     @inline function insubregions(xreg)
         for i in eachindex(subregions)

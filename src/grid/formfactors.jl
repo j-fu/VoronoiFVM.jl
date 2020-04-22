@@ -8,14 +8,14 @@ $(SIGNATURES)
 
 Calculate node volume  and voronoi surface contributions for cell.
 """ 
-cellfactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv=cellfactors!(grid.coord_type,grid, icell, nodefac,edgefac)
+cellfactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv=cellfactors!(grid.cell_type,grid.coord_type,grid.coord,grid.cellnodes, icell, nodefac,edgefac)
 
 
-function cellfactors!(::Type{<:Cartesian1D},grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
-    K::Int=cellnode(grid,1,icell)
-    L::Int=cellnode(grid,2,icell)
-    xK=nodecoord(grid,K)
-    xL=nodecoord(grid,L)
+function cellfactors!(::Type{Simplex1D},::Type{Cartesian1D},coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+    K=cellnodes[1,icell]
+    L=cellnodes[2,icell]
+    xK=coord[1,K]
+    xL=coord[1,L]
     d=abs(xL[1]-xK[1])
     nodefac[1]=d/2
     nodefac[2]=d/2
@@ -23,11 +23,11 @@ function cellfactors!(::Type{<:Cartesian1D},grid::Grid{Tv},icell::Int,nodefac::V
     nothing
 end
 
-function cellfactors!(::Type{<:CircularSymmetric1D}, grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
-    K::Int=cellnode(grid,1,icell)
-    L::Int=cellnode(grid,2,icell)
-    xK=nodecoord(grid,K)
-    xL=nodecoord(grid,L)
+function cellfactors!(::Type{Simplex1D},::Type{<:Polar1D}, coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+    K=cellnodes[1,icell]
+    L=cellnodes[2,icell]
+    xK=coord[1,K]
+    xL=coord[1,L]
     r0=xK[1]
     r1=xL[1]
     if r1<r0
@@ -44,11 +44,10 @@ function cellfactors!(::Type{<:CircularSymmetric1D}, grid::Grid{Tv},icell::Int,n
 end
     
     
-function cellfactors!(::Type{<:Cartesian2D},grid::Grid,icell,npar,epar)
-    i1::Int=cellnode(grid,1,icell)
-    i2::Int=cellnode(grid,2,icell)
-    i3::Int=cellnode(grid,3,icell)
-    coord=grid.coord
+function cellfactors!(::Type{Simplex2D},::Type{<:Cartesian2D},coord,cellnodes,icell,npar,epar)
+    i1=cellnodes[1,icell]
+    i2=cellnodes[2,icell]
+    i3=cellnodes[3,icell]
 
     # Fill matrix of edge vectors
     V11= coord[1,i2]- coord[1,i1]
@@ -87,7 +86,7 @@ function cellfactors!(::Type{<:Cartesian2D},grid::Grid,icell,npar,epar)
 end                              
 
 
-function cellfactors!(::Type{<:CircularSymmetric2D},grid::Grid{Tv},icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
+function cellfactors!(::Type{Simplex2D},::Type{<:Cylindrical2D},coord,cellnodes,icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
     function area2d(coord1, coord2, coord3)
         V11= coord2[1]- coord1[1]
         V21= coord2[2]- coord1[2]
@@ -105,21 +104,20 @@ function cellfactors!(::Type{<:CircularSymmetric2D},grid::Grid{Tv},icell::Int,np
         
 
     πv::Tv=π
-    i1::Int=cellnode(grid,1,icell)
-    i2::Int=cellnode(grid,2,icell)
-    i3::Int=cellnode(grid,3,icell)
+    i1=cellnodes[1,icell]
+    i2=cellnodes[2,icell]
+    i3=cellnodes[3,icell]
     
-    coord=grid.coord
     
     # Fill matrix of edge vectors
-    V11= grid.coord[1,i2]- grid.coord[1,i1]
-    V21= grid.coord[2,i2]- grid.coord[2,i1]
+    V11= coord[1,i2]- coord[1,i1]
+    V21= coord[2,i2]- coord[2,i1]
     
-    V12= grid.coord[1,i3]- grid.coord[1,i1]
-    V22= grid.coord[2,i3]- grid.coord[2,i1]
+    V12= coord[1,i3]- coord[1,i1]
+    V22= coord[2,i3]- coord[2,i1]
     
-    V13= grid.coord[1,i3]- grid.coord[1,i2]
-    V23= grid.coord[2,i3]- grid.coord[2,i2]
+    V13= coord[1,i3]- coord[1,i2]
+    V23= coord[2,i3]- coord[2,i2]
     
     # Compute determinant 
     det=V11*V22 - V12*V21
@@ -133,14 +131,14 @@ function cellfactors!(::Type{<:CircularSymmetric2D},grid::Grid{Tv},icell::Int,np
     dd2=V12*V12+V22*V22 # l31
     dd3=V11*V11+V21*V21 # l21
     
-    emid23=[0.5*(grid.coord[1,i3]+grid.coord[1,i2]),
-            0.5*(grid.coord[2,i3]+grid.coord[2,i2])]
+    emid23=[0.5*(coord[1,i3]+coord[1,i2]),
+            0.5*(coord[2,i3]+coord[2,i2])]
     
-    emid13=[0.5*(grid.coord[1,i1]+grid.coord[1,i3]),
-            0.5*(grid.coord[2,i1]+grid.coord[2,i3])]
+    emid13=[0.5*(coord[1,i1]+coord[1,i3]),
+            0.5*(coord[2,i1]+coord[2,i3])]
     
-    emid12=[0.5*(grid.coord[1,i1]+grid.coord[1,i2]),
-            0.5*(grid.coord[2,i1]+grid.coord[2,i2])]
+    emid12=[0.5*(coord[1,i1]+coord[1,i2]),
+            0.5*(coord[2,i1]+coord[2,i2])]
     
     cc=Vector{Float64}(undef,2) # TODO: replace this allocation + views
     tricircumcenter!(cc,coord[:,i1],coord[:,i2],coord[:,i3])
@@ -166,26 +164,26 @@ $(SIGNATURES)
 
 Calculate node volume  contributions for boundary face.
 """ 
-bfacefactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv}) where Tv=bfacefactors!(grid.coord_type,grid,icell,nodefac)
+bfacefactors!(grid::Grid,icell::Int,nodefac::Vector{Tv}) where Tv=bfacefactors!(grid.bface_type,grid.coord_type,grid.coord,grid.cellnodes,icell,nodefac)
 
-function bfacefactors!(::Type{<:Cartesian1D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Simplex0D},::Type{Cartesian1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
     nodefac[1]=1.0
     nothing
 end
 
-function bfacefactors!(::Type{<:CircularSymmetric1D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    inode::Int=bfacenode(grid,1,ibface)
-    r=grid.coord[1,i]
+function bfacefactors!(::Type{Simplex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+    inode::Int=bfacenods[1,ibface]
+    r=coord[1,i]
     nodefac[1]=2*pi*r
     nothing
 end
 
 # TODO: Test
-function bfacefactors!(::Type{<:Cartesian2D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    i1::Int=bfacenode(grid,1,ibface)
-    i2::Int=bfacenode(grid,2,ibface)
-    dx=grid.coord[1,i1]-grid.coord[1,i2]
-    dy=grid.coord[2,i1]-grid.coord[2,i2]
+function bfacefactors!(::Type{Simplex1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+    i1=bfacenodes[1,ibface]
+    i2=bfacenodes[2,ibface]
+    dx=coord[1,i1]-coord[1,i2]
+    dy=coord[2,i1]-coord[2,i2]
     d=0.5*sqrt(dx*dx+dy*dy)
     nodefac[1]=d
     nodefac[2]=d
@@ -193,13 +191,13 @@ function bfacefactors!(::Type{<:Cartesian2D},grid::Grid,ibface::Int,nodefac::Vec
 end
 
 # TODO: Test
-function bfacefactors!(::Type{<:CircularSymmetric2D},grid::Grid,ibface::Int,nodefac::Vector{Tv}) where Tv
-    i1::Int=bfacenode(grid,1,ibface)
-    i2::Int=bfacenode(grid,2,ibface)
-    r1=grid.coord[1,i1]
-    r2=grid.coord[1,i2]
-    z1=grid.coord[2,i1]
-    z2=grid.coord[2,i2]
+function bfacefactors!(::Type{Simplex1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+    i1=bfacenodes[1,ibface]
+    i2=bfacenodes[2,ibface]
+    r1=coord[1,i1]
+    r2=coord[1,i2]
+    z1=coord[2,i1]
+    z2=coord[2,i2]
     dr=r1-r2
     rmid=(r1+r2)/2
     dz=z1-z2

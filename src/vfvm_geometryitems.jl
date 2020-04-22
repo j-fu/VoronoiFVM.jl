@@ -28,14 +28,14 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     Grid
     """
-    grid::Grid{Tv, Ti}
+    grid
     
     BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,num_species(sys),sys.grid)
 end
 
-function _fill!(node::BNode,grid::Grid,ibnode,ibface)
-    K=grid.bfacenodes[ibnode,ibface]
-    node.region=grid.bfaceregions[ibface]
+function _fill!(node::BNode,grid,ibnode,ibface)
+    K=bfacenode(grid,ibnode,ibface)
+    node.region=reg_bface(grid,ibface)
     node.index=K
 end
 
@@ -76,15 +76,15 @@ mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     Grid
     """
-    grid::Grid{Tv,Ti}
+    grid
     
 
     Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, sys.grid)
 end
 
-function _fill!(node::Node,grid::Grid,inode,icell)
+function _fill!(node::Node,grid,inode,icell)
     K=cellnode(grid,inode,icell)
-    node.region=grid.cellregions[icell]
+    node.region=reg_cell(grid,icell)
     node.index=K
     node.icell=icell
 end
@@ -132,14 +132,14 @@ mutable struct Edge{Tv,Ti}  <: AbstractGeometryItem{Tv, Ti}
     """
     Grid
     """
-    grid::Grid{Tv, Ti}
+    grid
 
     
     Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,[0,0],0,num_species(sys),0,sys.grid)
 end
 
 
-function _fill!(edge::Edge,grid::Grid,iedge,icell) where Tv
+function _fill!(edge::Edge,grid,iedge,icell) where Tv
     if num_edges(grid)>0
         # If we work with projections of fluxes onto edges,
         # we need to ensure that the edges are accessed with the
@@ -153,7 +153,7 @@ function _fill!(edge::Edge,grid::Grid,iedge,icell) where Tv
         edge.node[1]=celledgenode(grid,1,iedge,icell)
         edge.node[2]=celledgenode(grid,2,iedge,icell)
     end
-    edge.region=grid.cellregions[icell]
+    edge.region=reg_cell(grid,icell)
     edge.icell=icell
 end
 

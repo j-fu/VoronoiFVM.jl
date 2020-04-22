@@ -20,9 +20,9 @@ $(TYPEDFIELDS)
 """
 mutable struct DenseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
-    Grid{Tv,Ti}
+    Grid
     """
-    grid::Grid
+    grid
 
     """
     Physics data
@@ -82,9 +82,9 @@ $(TYPEDSIGNATURES)
 
 Constructor for DenseSystem.
 """
-function  DenseSystem(grid::Grid,physics::Physics)
-    Tv=Base.eltype(grid)
-    Ti=eltype(grid.cellnodes)
+function  DenseSystem(grid,physics::Physics)
+    Tv=coord_type(grid)
+    Ti=index_type(grid)
     this=DenseSystem{Tv,Ti}()
     maxspec=physics.num_species
     this.grid=grid

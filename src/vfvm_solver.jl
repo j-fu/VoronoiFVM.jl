@@ -490,7 +490,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         bfacefactors!(grid,ibface,bnode_factors)
 
         # Obtain boundary region number
-        ibreg=grid.bfaceregions[ibface]
+        ibreg=reg_bface(grid,ibface)
 
         # Loop over nodes of boundary face
         for ibnode=1:num_nodes_per_bface(grid)
