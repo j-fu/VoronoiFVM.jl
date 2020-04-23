@@ -178,7 +178,7 @@ cellregions(grid::Grid)=grid.cellregions
 bfaceregions(grid::Grid)=grid.bfaceregions
 cellnodes(grid::Grid)=grid.cellnodes
 bfacenodes(grid::Grid)=grid.bfacenodes
-
+coordinates(grid::Grid)=grid.coord
 
 ################################################
 """

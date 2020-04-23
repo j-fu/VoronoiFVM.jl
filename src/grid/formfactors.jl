@@ -11,7 +11,7 @@ Calculate node volume  and voronoi surface contributions for cell.
 cellfactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv=cellfactors!(grid.cell_type,grid.coord_type,grid.coord,grid.cellnodes, icell, nodefac,edgefac)
 
 
-function cellfactors!(::Type{Simplex1D},::Type{Cartesian1D},coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
     K=cellnodes[1,icell]
     L=cellnodes[2,icell]
     xK=coord[1,K]
@@ -23,7 +23,7 @@ function cellfactors!(::Type{Simplex1D},::Type{Cartesian1D},coord,cellnodes,icel
     nothing
 end
 
-function cellfactors!(::Type{Simplex1D},::Type{<:Polar1D}, coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
     K=cellnodes[1,icell]
     L=cellnodes[2,icell]
     xK=coord[1,K]
@@ -44,7 +44,7 @@ function cellfactors!(::Type{Simplex1D},::Type{<:Polar1D}, coord,cellnodes,icell
 end
     
     
-function cellfactors!(::Type{Simplex2D},::Type{<:Cartesian2D},coord,cellnodes,icell,npar,epar)
+function cellfactors!(::Type{Triangle2D},::Type{<:Cartesian2D},coord,cellnodes,icell,npar,epar)
     i1=cellnodes[1,icell]
     i2=cellnodes[2,icell]
     i3=cellnodes[3,icell]
@@ -86,7 +86,7 @@ function cellfactors!(::Type{Simplex2D},::Type{<:Cartesian2D},coord,cellnodes,ic
 end                              
 
 
-function cellfactors!(::Type{Simplex2D},::Type{<:Cylindrical2D},coord,cellnodes,icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
+function cellfactors!(::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes,icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
     function area2d(coord1, coord2, coord3)
         V11= coord2[1]- coord1[1]
         V21= coord2[2]- coord1[2]
@@ -166,12 +166,12 @@ Calculate node volume  contributions for boundary face.
 """ 
 bfacefactors!(grid::Grid,icell::Int,nodefac::Vector{Tv}) where Tv=bfacefactors!(grid.bface_type,grid.coord_type,grid.coord,grid.cellnodes,icell,nodefac)
 
-function bfacefactors!(::Type{Simplex0D},::Type{Cartesian1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
     nodefac[1]=1.0
     nothing
 end
 
-function bfacefactors!(::Type{Simplex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
     inode::Int=bfacenods[1,ibface]
     r=coord[1,i]
     nodefac[1]=2*pi*r
@@ -179,7 +179,7 @@ function bfacefactors!(::Type{Simplex0D},::Type{<:Polar1D},coord,bfacenodes,ibfa
 end
 
 # TODO: Test
-function bfacefactors!(::Type{Simplex1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     dx=coord[1,i1]-coord[1,i2]
@@ -191,7 +191,7 @@ function bfacefactors!(::Type{Simplex1D},::Type{<:Cartesian2D},coord,bfacenodes,
 end
 
 # TODO: Test
-function bfacefactors!(::Type{Simplex1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     r1=coord[1,i1]

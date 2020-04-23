@@ -11,10 +11,10 @@ using DocStringExtensions
 
 
 
-#using XGrid
-#include("grid/xgrid.jl")
-
+# using XGrid
+# include("grid/xgrid.jl")
 include("grid/coord_types.jl")
+
 
 
 # These are in the standard distro
@@ -27,6 +27,7 @@ using LinearAlgebra
 using Printf
 
 include("vfvm_grid.jl")
+export coordinates
 
 include("vfvm_physics.jl")
 include("vfvm_functions.jl")

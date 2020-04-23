@@ -182,7 +182,7 @@ function plot(Plotter,subgrid::VoronoiFVM.SubGrid;
         end
         
         if dim_space(subgrid.parent)==1
-        xmin=minimum(subgrid.coord)
+            xmin=minimum(subgrid.coord)
             xmax=maximum(subgrid.coord)
             h=(xmax-xmin)/20.0
             Plotter.xlim(xmin-h,xmax+h)

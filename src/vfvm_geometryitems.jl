@@ -77,9 +77,9 @@ mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti}
     Grid
     """
     grid
-    
 
-    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, sys.grid)
+
+    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, sys.grid, )
 end
 
 function _fill!(node::Node,grid,inode,icell)
@@ -90,9 +90,9 @@ function _fill!(node::Node,grid,inode,icell)
 end
 
 
-Base.size(node::Node)=(size(node.grid.coord)[1],)
+Base.size(node::Node)=(size(coordinates(node.grid))[1],)
 
-Base.getindex(node::Node, idim)= node.grid.coord[idim,node.index]
+Base.getindex(node::Node, idim)= coordinates(node.grid)[idim,node.index]
 
 ##################################################################
 """
@@ -158,8 +158,8 @@ function _fill!(edge::Edge,grid,iedge,icell) where Tv
 end
 
 
-Base.size(edge::Edge)=(size(edge.grid.coord)[1],2)
-Base.getindex(edge::Edge, idim,inode)= edge.grid.coord[idim,edge.node[inode]]
+Base.size(edge::Edge)=(size(coordinates(edge.grid))[1],2)
+Base.getindex(edge::Edge, idim,inode)= coordinates(edge.grid)[idim,edge.node[inode]]
 
 ##################################################################
 """
@@ -179,7 +179,7 @@ Calculate the length of an edge.
 function meas(edge::Edge)
     l=0.0
     for i=1:dim_space(edge.grid)
-        d=edge.grid.coord[i,edge.node[1]]-edge.grid.coord[i,edge.node[2]]
+        d=coordinates(edge.grid)[i,edge.node[1]]-coordinates(edge.grid)[i,edge.node[2]]
         l=l+d*d
     end
     return sqrt(l)

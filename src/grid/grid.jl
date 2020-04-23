@@ -139,8 +139,8 @@ function Grid(coord::Array{Tc,2},
     if dim==1
         local_celledgenodes=reshape(Ti[1 2],:,1)
         coord_type=Cartesian1D
-        celltype=Simplex1D
-        bfacetype=Simplex0D
+        celltype=Edge1D
+        bfacetype=Vertex0D
     else
         # see grid/simplex.h in pdelib
         local_celledgenodes=zeros(Ti,2,3)
@@ -154,8 +154,8 @@ function Grid(coord::Array{Tc,2},
         local_celledgenodes[2,3]=2
 
         coord_type=Cartesian2D
-        celltype=Simplex2D
-        bfacetype=Simplex1D
+        celltype=Triangle2D
+        bfacetype=Edge1D
     end
         
     return Grid(coord,

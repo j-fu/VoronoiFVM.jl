@@ -1,5 +1,8 @@
+
 coord_type(grid::ExtendableGrid)=Base.eltype(grid[Coordinates])
 index_type(grid::ExtendableGrid)=Base.eltype(grid[CellNodes])
+dim_grid(grid::ExtendableGrid)=  dim_element(grid[CellTypes][1])
+dim_space(grid::ExtendableGrid)= size(grid[Coordinates],1)
 
 num_cellregions(grid::ExtendableGrid)=grid[NumCellRegions]
 num_bfaceregions(grid::ExtendableGrid)=grid[NumBFaceRegions]
@@ -10,8 +13,7 @@ cellregions(grid::ExtendableGrid)= grid[CellRegions]
 bfaceregions(grid::ExtendableGrid)= grid[BFaceRegions]
 cellnodes(grid::ExtendableGrid)= grid[CellNodes]
 bfacenodes(grid::ExtendableGrid)= grid[BFaceNodes]
-dim_grid(grid::ExtendableGrid)= dim_space(grid)-1
-dim_space(grid::ExtendableGrid)= size(grid[Coordinates],1)
+coordinates(grid::ExtendableGrid)= grid[Coordinates]
 num_nodes_per_cell(grid::ExtendableGrid)=num_targets(grid[CellNodes],1)
 num_edges(grid::ExtendableGrid)=0 # !!!
 

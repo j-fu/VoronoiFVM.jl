@@ -9,7 +9,7 @@ abstract type AbstractImpedanceSystem{Tv <: Number} end
 
 mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
     sysnzval::AbstractVector{Complex{Tv}}
-    grid::Grid
+    grid
     storderiv::AbstractMatrix{Tv}
     matrix::AbstractMatrix{Complex{Tv}}
     F::AbstractMatrix{Complex{Tv}}
@@ -111,10 +111,11 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
         end
         
     end
-    
+
+    bfacereg=bfaceregions(grid)
     for ibface=1:num_bfaces(grid)
         bfacefactors!(grid,ibface,bnode_factors)
-        ibreg=grid.bfaceregions[ibface]
+        ibreg=bfacereg[ibface]
         bnode.region=ibreg
         for ibnode=1:num_nodes_per_bface(grid)
             @views begin
