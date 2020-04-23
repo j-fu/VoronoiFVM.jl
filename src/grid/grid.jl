@@ -179,7 +179,7 @@ end
         
   Set cartesian coordinates for grid.
 """
-function cartesian!(grid)
+function cartesian!(grid::Grid)
     if dim_space(grid)==1
         grid.coord_type=Cartesian1D
     elseif dim_space(grid)==2
@@ -195,7 +195,7 @@ end
         
   Set circular coordinates for grid (1D or 2D).
 """
-function circular_symmetric!(grid)
+function circular_symmetric!(grid::Grid)
     if dim_space(grid)==1
         grid.coord_type=VoronoiFVM.Polar1D
     elseif dim_space(grid)==2
@@ -211,7 +211,7 @@ end
         
   Set spherical coordinates for grid (1D).
 """
-function spherical_symmetric!(grid)
+function spherical_symmetric!(grid::Grid)
     d=dim_space(grid)
     if d==1
         grid.coord_type=Spherical1D

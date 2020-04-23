@@ -172,8 +172,8 @@ function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibf
 end
 
 function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
-    inode::Int=bfacenods[1,ibface]
-    r=coord[1,i]
+    inode=bfacenodes[1,ibface]
+    r=coord[1,inode]
     nodefac[1]=2*pi*r
     nothing
 end

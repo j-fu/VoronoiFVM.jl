@@ -11,9 +11,9 @@ using DocStringExtensions
 
 
 
-# using XGrid
-# include("grid/xgrid.jl")
-include("grid/coord_types.jl")
+using XGrid
+include("grid/xgrid.jl")
+#include("grid/coord_types.jl")
 
 
 
