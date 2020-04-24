@@ -221,6 +221,9 @@ function spherical_symmetric!(grid::Grid)
     return grid
 end
 
+cellfactors!(grid::Grid{Tv},icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv=cellfactors!(grid.cell_type,grid.coord_type,grid.coord,grid.cellnodes, icell, nodefac,edgefac)
+bfacefactors!(grid::Grid,icell::Int,nodefac::Vector{Tv}) where Tv=bfacefactors!(grid.bface_type,grid.coord_type,grid.coord,grid.cellnodes,icell,nodefac)
+
 
 
 ################################################

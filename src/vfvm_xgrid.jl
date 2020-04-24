@@ -1,19 +1,39 @@
+Grid(X)=simplexgrid(X)
+Grid(X,Y)=simplexgrid(X,Y)
+function Grid(;flags::String="pAaqDQ",
+              points=Array{Cdouble,2}(undef,0,0),
+              bfaces=Array{Cint,2}(undef,0,0),
+              bfaceregions=Array{Cint,1}(undef,0),
+              regionpoints=Array{Cdouble,2}(undef,0,0),
+              regionnumbers=Array{Cint,1}(undef,0),
+              regionvolumes=Array{Cdouble,1}(undef,0)
+              )
+    simplexgrid(flags=flags,
+                points=points,
+                bfaces=bfaces,
+                bfaceregions=bfaceregions,
+                regionpoints=regionpoints,
+                regionnumbers=regionnumbers,
+                regionvolumes=regionvolumes)
+end
 
-coord_type(grid::ExtendableGrid)=Base.eltype(grid[Coordinates])
-index_type(grid::ExtendableGrid)=Base.eltype(grid[CellNodes])
-dim_grid(grid::ExtendableGrid)=  dim_element(grid[CellTypes][1])
-dim_space(grid::ExtendableGrid)= size(grid[Coordinates],1)
+
+
+cellfactors!(grid::ExtendableGrid,icell,nodefac,edgefac)=cellfactors!(grid[CellTypes][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes], icell, nodefac,edgefac)
+bfacefactors!(grid::ExtendableGrid,icell,nodefac)=bfacefactors!(grid[BFaceTypes][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes],icell,nodefac)
+
+
 
 num_cellregions(grid::ExtendableGrid)=grid[NumCellRegions]
 num_bfaceregions(grid::ExtendableGrid)=grid[NumBFaceRegions]
-num_nodes(grid::ExtendableGrid)= size(grid[Coordinates],2)
-num_cells(grid::ExtendableGrid)= num_sources(grid[CellNodes])
-num_bfaces(grid::ExtendableGrid)= num_sources(grid[BFaceNodes])
+
+
 cellregions(grid::ExtendableGrid)= grid[CellRegions]
 bfaceregions(grid::ExtendableGrid)= grid[BFaceRegions]
 cellnodes(grid::ExtendableGrid)= grid[CellNodes]
 bfacenodes(grid::ExtendableGrid)= grid[BFaceNodes]
 coordinates(grid::ExtendableGrid)= grid[Coordinates]
+
 num_nodes_per_cell(grid::ExtendableGrid)=num_targets(grid[CellNodes],1)
 num_edges(grid::ExtendableGrid)=0 # !!!
 
@@ -23,8 +43,6 @@ function num_edges_per_cell(grid::ExtendableGrid)
     nedges[dim_space(grid)]
 end
 
-cellfactors!(grid::ExtendableGrid,icell,nodefac,edgefac)=cellfactors!(grid[CellTypes][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes], icell, nodefac,edgefac)
-bfacefactors!(grid::ExtendableGrid,icell,nodefac)=bfacefactors!(grid[BFaceTypes][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes],icell,nodefac)
                    
 reg_cell(grid::ExtendableGrid,i)=grid[CellRegions][i]
 reg_bface(grid::ExtendableGrid,i)=grid[BFaceRegions][i]

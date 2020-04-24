@@ -9,11 +9,7 @@ using ForwardDiff, DiffResults
 using IterativeSolvers
 using DocStringExtensions
 
-
-
-using XGrid
-include("grid/xgrid.jl")
-#include("grid/coord_types.jl")
+const use_xgrid=false
 
 
 
@@ -26,7 +22,12 @@ using LinearAlgebra
 
 using Printf
 
+
+#using XGrid
+#include("vfvm_xgrid.jl")
 include("vfvm_grid.jl")
+
+
 export coordinates
 
 include("vfvm_physics.jl")
@@ -37,13 +38,13 @@ include("vfvm_abstractsystem.jl")
 include("vfvm_densesystem.jl")
 include("vfvm_sparsesystem.jl")
 include("vfvm_geometryitems.jl")
+include("vfvm_formfactors.jl")
 
-include("vfvm_subgridview.jl")
+
 
 include("vfvm_solver.jl")
 include("vfvm_testfunctions.jl")
 include("vfvm_impedance.jl")
-include("vfvm_plot.jl")
 
 
 

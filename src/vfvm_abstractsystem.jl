@@ -231,14 +231,6 @@ end
 ##################################################################
 """
 $(TYPEDSIGNATURES)
-                        
-Number of nodes (size of second dimension) of solution array.
-"""
-num_nodes(a::AbstractArray)=size(a,2)
-
-##################################################################
-"""
-$(TYPEDSIGNATURES)
 
 Number of species (size of first dimension) of solution array.
 """
