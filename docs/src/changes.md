@@ -1,6 +1,14 @@
 # Changes
 
-
+## ## v0.8 (planned)
+- Replaced VoronoiFVM grid module by ExtendableGrid  from the corresponding package
+- Moved grid generation, plotting etc over there
+- Changes in examples:
+  - Replace `grid.coord` by `coordinates(grid)` or better `grid[Coordinates]` after importing XGrid
+  - Replace `VoronoiFVM.plot` by `plot`,after importing XGrid,  Plotter is now a keyword argument 
+  - Replace `VoronoiFVM.Grid()` by `simplexgrid` after importing XGrid 
+  - Subgrid views are now defined for vectors only.
+  
 ## ## v0.7 Feb 28 2019
 - API modification:
   - __Breaking__:

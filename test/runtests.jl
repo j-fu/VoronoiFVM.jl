@@ -46,4 +46,4 @@ function run_xex()
     run_tests_from_directory(joinpath(@__DIR__,"..","test/xgrid"),"Example")
 end
 
-#run_all_tests()
+run_all_tests()
