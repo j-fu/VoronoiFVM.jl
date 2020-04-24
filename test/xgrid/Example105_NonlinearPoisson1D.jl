@@ -24,12 +24,12 @@ Such equation occur e.g. in simulations of electrochemical systems and semicondu
 module Example105_NonlinearPoisson1D
 using Printf
 using VoronoiFVM
-using XGrid
+
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)
-    grid=simplexgrid(collect(0:h:1))
+    grid=VoronoiFVM.Grid(collect(0:h:1))
 
     ## A parameter which is "passed" to the flux function via scope
     ϵ=1.0e-3

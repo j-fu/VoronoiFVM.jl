@@ -5,7 +5,7 @@ module Example205_NonlinearPoisson2D
 
 using Printf
 using VoronoiFVM
-using XGrid
+
 
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
@@ -14,7 +14,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     Y=collect(0.0:h:1.0)
 
 
-    grid=simplexgrid(X,Y)
+    grid=VoronoiFVM.Grid(X,Y)
     
     eps=1.0e-2
     

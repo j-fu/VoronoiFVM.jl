@@ -28,7 +28,6 @@ the impact on the qualitative properties of the solution.
 module Example102_StationaryConvectionDiffusion1D
 using Printf
 using VoronoiFVM
-using XGrid
 
 ## Data  passed to the different functions
 struct Data <: VoronoiFVM.AbstractData
@@ -110,7 +109,7 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)
-    grid=simplexgrid(collect(0:h:1))
+    grid=VoronoiFVM.Grid(collect(0:h:1))
     
     data=Data(v,D)
     

@@ -19,11 +19,11 @@ module Example110_ReactionDiffusion1D_TwoSpecies
 
 using Printf
 using VoronoiFVM
-using XGrid
+
 
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     h=1/n
-    grid=simplexgrid(collect(0:h:1))
+    grid=VoronoiFVM.Grid(collect(0:h:1))
     
     
     eps=[1.0,1.0]

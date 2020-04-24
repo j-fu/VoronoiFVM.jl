@@ -8,7 +8,7 @@ module Example202_Laplace2D_Unstructured
 
 using VoronoiFVM
 using LinearAlgebra
-using XGrid
+
 
 # Flux function which describes the flux
 # between neigboring control volumes $\omega_k$ and $\omega_l$
@@ -26,7 +26,7 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
     nspecies=1
     ispec=1
     nrad=10*2^nref
-    grid=simplexgrid(points=reduce(hcat,[ [cos(2*pi*i/nrad), sin(2*pi*i/nrad)] for i=1:nrad]),
+    grid=VoronoiFVM.Grid(points=reduce(hcat,[ [cos(2*pi*i/nrad), sin(2*pi*i/nrad)] for i=1:nrad]),
                      bfaces=reduce(hcat,vcat([ [i,i+1] for i=1:nrad-1],[[nrad,1]])),                  
                      bfaceregions=ones(nrad),
                      regionpoints=[0.0 0.0;],

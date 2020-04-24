@@ -90,7 +90,7 @@ statement.
 module Example101_Laplace1D
 
 using VoronoiFVM
-using XGrid
+
 
 ## Flux function which describes the flux
 ## between neigboring control volumes
@@ -108,7 +108,7 @@ function main()
     ## Each grid cell belongs to a region marked by a region number
     ## By default, there is only one region numbered with 1
     X=collect(0:0.2:1)
-    grid=simplexgrid(X)
+    grid=VoronoiFVM.Grid(X)
 
     ## Create a physics structure
     physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)

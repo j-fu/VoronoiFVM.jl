@@ -5,7 +5,7 @@ module Example220_NonlinearPoisson2D_BoundarySpecies
 
 using Printf
 using VoronoiFVM
-using XGrid
+
 
 function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     
@@ -16,7 +16,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     
 
 
-    grid=simplexgrid(X,Y)
+    grid=VoronoiFVM.Grid(X,Y)
     
     
     k=1.0
@@ -66,7 +66,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         a[1]=b[2]
     end
     
-    bgrid2=XGrid.subgrid(grid,[2],boundary=true,transform=tran32!)
+    bgrid2=subgrid(grid,[2],boundary=true,transform=tran32!)
    
     inival=unknowns(sys)
     inival.=0.0

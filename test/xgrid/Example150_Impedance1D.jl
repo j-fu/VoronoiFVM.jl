@@ -28,7 +28,6 @@ module Example150_Impedance1D
 
 using Printf
 using VoronoiFVM
-using XGrid
 
 # Structure containing  userdata information
 mutable struct Data  <: VoronoiFVM.AbstractData
@@ -49,7 +48,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     X=VoronoiFVM.geomspace(0.0,L,h0,h1)
 
     # Create discretitzation grid
-    grid=simplexgrid(X)
+    grid=VoronoiFVM.Grid(X)
 
     # Create and fill data 
     data=Data()

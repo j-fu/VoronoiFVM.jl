@@ -5,7 +5,7 @@ module Example160_UnipolarDriftDiffusion1D
 using Printf
 
 using VoronoiFVM
-using XGrid
+
 
 mutable struct Data <: VoronoiFVM.AbstractData
     eps::Float64 
@@ -69,7 +69,7 @@ end
 function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:sparse)
     
     h=1.0/convert(Float64,n)
-    grid=simplexgrid(collect(0:h:1))
+    grid=VoronoiFVM.Grid(collect(0:h:1))
 
     data=Data()
     data.eps=1.0e-4

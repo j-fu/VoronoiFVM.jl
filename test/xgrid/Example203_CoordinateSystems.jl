@@ -8,15 +8,15 @@ module Example203_CoordinateSystems
 
 using VoronoiFVM
 using LinearAlgebra
-using XGrid
+
 
 function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     h=0.1*2.0^(-nref)
     R=collect(r1:h:r2)
     Z=collect(0:h:2)
-    grid=simplexgrid(R)
+    grid=VoronoiFVM.Grid(R)
     if dim==2
-        grid=simplexgrid(R,Z)
+        grid=VoronoiFVM.Grid(R,Z)
     end
     circular_symmetric!(grid)
     
@@ -67,7 +67,7 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
         Plotter.gui(p)
     end
 
-    exact=symlapcyl.(grid[Coordinates][1,:])
+    exact=symlapcyl.(coordinates(grid)[1,:])
     err=norm(solution[1,:]-exact,Inf)
 end
 

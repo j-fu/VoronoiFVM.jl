@@ -5,7 +5,7 @@ module Example210_NonlinearPoisson2D_Reaction
 
 using Printf
 using VoronoiFVM
-using XGrid
+
 
 
 
@@ -23,7 +23,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
 
-    grid=simplexgrid(X,Y)
+    grid=VoronoiFVM.Grid(X,Y)
     data=MyData()
     
     function reaction!(f,u,node,data)

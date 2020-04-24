@@ -17,6 +17,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
+XGrid = "1015158d-cf91-42d0-8ede-00fb4817e22a"
 
 [compat]
 BinDeps = "^0.8.0"

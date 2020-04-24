@@ -22,8 +22,8 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
     ## Create grid in (-1,1) refined around 0
     hmax=0.2/2.0^nref
     hmin=0.05/2.0^nref
-    X1=VoronoiFVM.geomspace(-1.0,0.0, hmax,hmin)
-    X2=VoronoiFVM.geomspace(0.0,1.0, hmin,hmax)
+    X1=geomspace(-1.0,0.0, hmax,hmin)
+    X2=geomspace(0.0,1.0, hmin,hmax)
     X=glue(X1,X2)
     grid=VoronoiFVM.Grid(X)
 
@@ -99,7 +99,8 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
         ## Plot data
         if ispyplot(Plotter)
             Plotter.grid()
-            Plotter.plot(grid.coord[1,:],U[1,:],label=@sprintf("Q=%.2f",q))
+            coord=grid[Coordinates]
+            Plotter.plot(coord[1,:],U[1,:],label=@sprintf("Q=%.2f",q))
             Plotter.xlabel("x")
             Plotter.ylabel("\$\\phi\$")
             Plotter.legend(loc="upper right")

@@ -16,7 +16,7 @@ example.
 module Example107_NonlinearStorage1D
 using Printf
 using VoronoiFVM
-using XGrid
+
 
 function barenblatt(x,t,m)
     tx=t^(-1.0/(m+1.0))
@@ -35,7 +35,7 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)
     X=collect(-1:h:1)
-    grid=simplexgrid(X)
+    grid=VoronoiFVM.Grid(X)
 
     ## Flux function which describes the flux
     ## between neigboring control volumes

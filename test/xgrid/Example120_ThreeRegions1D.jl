@@ -5,22 +5,21 @@ module Example120_ThreeRegions1D
 
 using Printf
 using VoronoiFVM
-using XGrid
+
 
 
 
 function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
-    grid=simplexgrid(X)
+    grid=VoronoiFVM.Grid(X)
+    cellmask!(grid,[0.0],[1.0],1)
+    cellmask!(grid,[1.0],[2.1],2)
+    cellmask!(grid,[1.9],[3.0],3)
 
-    XGrid.cellmask!(grid,[0.0],[1.0],1)
-    XGrid.cellmask!(grid,[1.0],[2.1],2)
-    XGrid.cellmask!(grid,[1.9],[3.0],3)
-
-    subgrid1=XGrid.subgrid(grid,[1])   
-    subgrid2=XGrid.subgrid(grid,[1,2,3])
-    subgrid3=XGrid.subgrid(grid,[3])
+    subgrid1=subgrid(grid,[1])   
+    subgrid2=subgrid(grid,[1,2,3])
+    subgrid3=subgrid(grid,[3])
     
     if isplots(Plotter)&&plot_grid
         p=Plotter.plot()

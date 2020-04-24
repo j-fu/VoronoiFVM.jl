@@ -20,7 +20,7 @@ We initialize this problem with the exact solution for $t=t_0=0.001$.
 module Example106_NonlinearDiffusion1D
 using Printf
 using VoronoiFVM
-using XGrid
+
 
 function barenblatt(x,t,m)
     tx=t^(-1.0/(m+1.0))
@@ -39,7 +39,7 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)
     X=collect(-1:h:1)
-    grid=simplexgrid(X)
+    grid=VoronoiFVM.Grid(X)
 
     ## Flux function which describes the flux
     ## between neigboring control volumes

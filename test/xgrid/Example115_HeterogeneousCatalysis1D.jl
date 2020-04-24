@@ -55,7 +55,6 @@ R_{BC}(u_C, u_B)&=k_{BC}^+ u_B(1-u_C) - k_{BC}^-u_C\\
 module Example115_HeterogeneousCatalysis1D
 using Printf
 using VoronoiFVM
-using XGrid
 
 function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
     
@@ -63,7 +62,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     X=collect(0.0:h:1.0)
     N=length(X)
     
-    grid=simplexgrid(X)
+    grid=VoronoiFVM.Grid(X)
     ## By default, \Gamma_1 at X[1] and \Gamma_2 is at X[end]
     
     ## Species numbers

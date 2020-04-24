@@ -5,14 +5,13 @@ module Example215_NonlinearPoisson2D_BoundaryReaction
 
 using Printf
 using VoronoiFVM
-using XGrid
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
     
-    grid=simplexgrid(X,Y)
+    grid=VoronoiFVM.Grid(X,Y)
 
     
     eps=1.0e-2
