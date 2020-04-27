@@ -291,17 +291,18 @@ function edgevelocities(grid,velofunc)
     @assert num_edges(grid)>0
     @assert dim_space(grid)<3
 
-    cn=grid.cellnodes
-    ec=grid.edgecells
-    en=grid.edgenodes
-
+    cn=grid[CellNodes]
+    ec=grid[EdgeCells]
+    en=grid[EdgeNodes]
+    coord=grid[Coordinates]
+    
     velovec=zeros(Float64,num_edges(grid))
-    if VoronoiFVM.dim_space(grid)==1
+    if dim_space(grid)==1
         for iedge=1:num_edges(grid)
             K=en[1,iedge]
             L=en[2,iedge]
-            elen=grid.coord[1,L]-grid.coord[1,K]
-            vx,vy=velofunc((grid.coord[1,K]+grid.coord[1,L])/2,0)
+            elen=coord[1,L]-coord[1,K]
+            vx,vy=velofunc((coord[1,K]+coord[1,L])/2,0)
             velovec[iedge]=-elen*vx
         end
     else
@@ -311,18 +312,18 @@ function edgevelocities(grid,velofunc)
             p1=Vector{Float64}(undef,2)
             p2=Vector{Float64}(undef,2)
             tricircumcenter!(p1,
-                             grid.coord[:,cn[1,ec[1,iedge]]],
-                             grid.coord[:,cn[2,ec[1,iedge]]],
-                             grid.coord[:,cn[3,ec[1,iedge]]])
+                             coord[:,cn[1,ec[1,iedge]]],
+                             coord[:,cn[2,ec[1,iedge]]],
+                             coord[:,cn[3,ec[1,iedge]]])
             if ec[2,iedge]>0
                 tricircumcenter!(p2,
-                                 grid.coord[:,cn[1,ec[2,iedge]]],
-                                 grid.coord[:,cn[2,ec[2,iedge]]],
-                                 grid.coord[:,cn[3,ec[2,iedge]]])
+                                 coord[:,cn[1,ec[2,iedge]]],
+                                 coord[:,cn[2,ec[2,iedge]]],
+                                 coord[:,cn[3,ec[2,iedge]]])
             else
-                p2.=0.5*(grid.coord[:,K]+grid.coord[:,L])
+                p2.=0.5*(coord[:,K]+coord[:,L])
             end    
-            hnormal=grid.coord[:,K]-grid.coord[:,L]
+            hnormal=coord[:,K]-coord[:,L]
             velovec[iedge]=integrate(p1,p2,hnormal,velofunc)
         end
     end

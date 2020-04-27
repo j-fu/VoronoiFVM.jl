@@ -140,14 +140,14 @@ end
 
 
 function _fill!(edge::Edge,grid,iedge,icell) where Tv
-    if num_edges(grid)>0
+    if haskey(grid,CellEdges)
         # If we work with projections of fluxes onto edges,
         # we need to ensure that the edges are accessed with the
         # same orientation without regard of the orientation induced
         # by local cell numbering
         edge.index=celledge(grid,iedge,icell)
-        edge.node[1]=grid.edgenodes[1,edge.index]
-        edge.node[2]=grid.edgenodes[2,edge.index]
+        edge.node[1]=grid[EdgeNodes][1,edge.index]
+        edge.node[2]=grid[EdgeNodes][2,edge.index]
     else
         edge.index=0
         edge.node[1]=celledgenode(grid,1,iedge,icell)
