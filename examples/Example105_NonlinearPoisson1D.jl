@@ -87,7 +87,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     solve!(solution,inival,sys, control=control)
 
     if isplots(Plotter)
-        Plotter.plot(grid.coord[1,:],solution[1,:],
+        coord=coordinates(grid)
+        Plotter.plot(coord[1,:],solution[1,:],
                    label="",
                    title="Nonlinear Poisson",
                    grid=true,show=true)

@@ -8,6 +8,7 @@ module Example202_Laplace2D_Unstructured
 
 using VoronoiFVM
 using LinearAlgebra
+using ExtendableGrids
 
 
 # Flux function which describes the flux
@@ -27,14 +28,14 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
     ispec=1
     nrad=10*2^nref
     grid=VoronoiFVM.Grid(points=reduce(hcat,[ [cos(2*pi*i/nrad), sin(2*pi*i/nrad)] for i=1:nrad]),
-                         bfaces=reduce(hcat,vcat([ [i,i+1] for i=1:nrad-1],[[nrad,1]])),                  
-                         bfaceregions=ones(nrad),
-                         regionpoints=[0.0 0.0;],
-                         regionnumbers=[1],
-                         regionvolumes=[0.1*2.0^(-2*nref)])
+                     bfaces=reduce(hcat,vcat([ [i,i+1] for i=1:nrad-1],[[nrad,1]])),                  
+                     bfaceregions=ones(nrad),
+                     regionpoints=[0.0 0.0;],
+                     regionnumbers=[1],
+                     regionvolumes=[0.1*2.0^(-2*nref)])
 
     if plot_grid
-        p=VoronoiFVM.plot(Plotter,grid)
+        p=plot(Plotter=Plotter,grid)
         return
     end
 
@@ -63,8 +64,10 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
 
     # Solve stationary problem
     solve!(solution,inival,sys)
-    
-    VoronoiFVM.plot(Plotter,grid, solution[1,:])
+
+    if Plotter!=nothing
+        plot(grid, solution[1,:], Plotter=Plotter)
+    end
     
     # Return test value
     return norm(solution,Inf)

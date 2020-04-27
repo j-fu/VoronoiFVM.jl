@@ -168,8 +168,9 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
 
         if isplots(Plotter)
             Plots=Plotter
-            p1=Plots.plot(grid.coord[1,:],U[iA,:], grid=true, label="[A]")
-            Plots.plot!(p1,grid.coord[1,:],U[iB,:], label="[B]",
+            coord=coordinates(grid)
+            p1=Plots.plot(coord[1,:],U[iA,:], grid=true, label="[A]")
+            Plots.plot!(p1,coord[1,:],U[iB,:], label="[B]",
                         title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f\n",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),
                         ylabel="[A], [B]", xlabel="x",legend=:topright,framestyle=:full)
             p2=Plots.plot(T,u_C,ylabel="[C]",xlabel="t",framestyle=:full, label="[C]")

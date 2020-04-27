@@ -66,8 +66,8 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
         p=Plotter.contourf(R,Z,transpose(reshape(values(solution),length(R),length(Z))),colorbar=:right)
         Plotter.gui(p)
     end
-    
-    exact=symlapcyl.(grid.coord[1,:])
+
+    exact=symlapcyl.(coordinates(grid)[1,:])
     err=norm(solution[1,:]-exact,Inf)
 end
 

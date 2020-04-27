@@ -100,9 +100,12 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         if isplots(Plotter)
             Plots=Plotter
             p=Plots.plot()
-            VoronoiFVM.plot(Plots,subgrid1, U[1,:],label="spec1", color=(0.5,0,0),p=p,show=false)
-            VoronoiFVM.plot(Plots,subgrid2, U[2,:],label="spec2", color=(0.0,0.5,0),p=p,show=false)
-            VoronoiFVM.plot(Plots,subgrid3, U[3,:],label="spec3", color=(0.0,0.0,0.5),p=p,show=false)
+            U1=view(U[1,:],subgrid1)
+            U2=view(U[2,:],subgrid2)
+            U3=view(U[3,:],subgrid3)
+            plot(subgrid1, U1,label="spec1", color=(0.5,0,0),p=p,show=false, Plotter=Plots)
+            plot(subgrid2, U2,label="spec2", color=(0.0,0.5,0),p=p,show=false, Plotter=Plots)
+            plot(subgrid3, U3,label="spec3", color=(0.0,0.0,0.5),p=p,show=false, Plotter=Plots)
             Plots.gui(p)
         end
     end

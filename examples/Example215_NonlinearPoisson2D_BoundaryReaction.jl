@@ -5,9 +5,6 @@ module Example215_NonlinearPoisson2D_BoundaryReaction
 
 using Printf
 using VoronoiFVM
-const Node=VoronoiFVM.Node
-const Edge=VoronoiFVM.Edge
-
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     h=1.0/convert(Float64,n)

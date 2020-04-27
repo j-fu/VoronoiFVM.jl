@@ -119,10 +119,11 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
 
     if isplots(Plotter)
         Plots=Plotter
+        coord=coordinates(grid)
         p=Plots.plot(title="Convection-Diffusion",grid=true)
-        Plots.plot!(p,grid.coord[1,:],solution_exponential[1,:],label="exponential")
-        Plots.plot!(p,grid.coord[1,:],solution_upwind[1,:],label="upwind")
-        Plots.plot!(p,grid.coord[1,:],solution_central[1,:],label="central")
+        Plots.plot!(p,coord[1,:],solution_exponential[1,:],label="exponential")
+        Plots.plot!(p,coord[1,:],solution_upwind[1,:],label="upwind")
+        Plots.plot!(p,coord[1,:],solution_central[1,:],label="central")
         Plots.plot!(p,show=true)
     end
 

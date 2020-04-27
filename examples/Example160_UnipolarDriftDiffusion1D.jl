@@ -21,9 +21,10 @@ function plot_solution(Plots,sys,U0)
     iphi=ildata.iphi
     ic=ildata.ic
     p=Plots.plot(grid=true)
+    coord=coordinates(sys.grid)
     @views begin
-        Plots.plot!(p,sys.grid.coord[1,:],U0[iphi,:], label="Potential", color=:green)
-        Plots.plot!(p,sys.grid.coord[1,:],U0[ic,:], label="c-", color=:blue)
+        Plots.plot!(p,coord[1,:],U0[iphi,:], label="Potential", color=:green)
+        Plots.plot!(p,coord[1,:],U0[ic,:], label="c-", color=:blue)
     end
     Plots.gui(p)
 end

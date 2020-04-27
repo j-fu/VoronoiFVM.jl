@@ -58,12 +58,12 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         eps=[xeps,xeps]
         solve!(U,inival,sys,control=control)
         I1=integrate(sys,tf1,U)
-        
+        coord=coordinates(grid)
         inival.=U
         if isplots(Plotter)
             p=Plotter.plot()
-            Plotter.plot!(p,grid.coord[1,:],U[1,:])
-            Plotter.plot!(p,grid.coord[1,:],U[2,:])
+            Plotter.plot!(p,coord[1,:],U[1,:])
+            Plotter.plot!(p,coord[1,:],U[2,:])
             Plotter.gui(p)
         end
         u5=U[5]

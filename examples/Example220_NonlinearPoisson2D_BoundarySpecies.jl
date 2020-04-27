@@ -5,7 +5,7 @@ module Example220_NonlinearPoisson2D_BoundarySpecies
 
 using Printf
 using VoronoiFVM
-
+using ExtendableGrids
 
 function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     
@@ -92,13 +92,13 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         end
         tstep*=1.0
         istep=istep+1
-        U_bound=view(U,bgrid2)
-        u5=U_bound[3,5]
+        U_bound=view(U[3,:],bgrid2)
+        u5=U_bound[5]
         if isplots(Plotter)
             p1=Plotter.contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound[3,:])))
             p2=Plotter.contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.0001:0.002),clim=(0,0.002), colorbar=:right,color=:viridis)
             p3=Plotter.plot(grid=true,ylims=(0,0.0025))
-            VoronoiFVM.plot(Plotter,bgrid2,U[3,:],p=p3,show=false)
+            ExtendableGrids.plot(bgrid2,U_bound,p=p3,show=false,Plotter=Plotter)
             p=Plotter.plot(p1,p2,p3,layout=(3,1) )
             Plotter.gui(p)
         end

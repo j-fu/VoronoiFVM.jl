@@ -1,31 +1,27 @@
 module VoronoiFVM
 
 
-# Packages for meshing
-using Triangulate
 
 # Packages for Autodiff magic
 using ForwardDiff, DiffResults
 using IterativeSolvers
 using DocStringExtensions
 
-const use_xgrid=false
-
-
 
 # These are in the standard distro
 using SparseArrays
-using ElasticArrays
 using ExtendableSparse
 using LinearAlgebra
 
 
 using Printf
 
+# Packages for meshing -> remove from here!
+# using Triangulate
 
-#using XGrid
-#include("vfvm_xgrid.jl")
-include("vfvm_grid.jl")
+using ExtendableGrids
+include("vfvm_xgrid.jl")
+#include("vfvm_grid.jl")
 
 
 export coordinates
@@ -106,7 +102,6 @@ export TokenStream,gettoken, expecttoken,trytoken
 # deprecated
 export edgelength
 export viewK,viewL,data
-
 
 end
 

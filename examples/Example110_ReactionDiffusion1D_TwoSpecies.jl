@@ -76,8 +76,9 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         solve!(U,inival,sys,control=control)
         inival.=U
         if isplots(Plotter)
-            p=Plotter.plot(grid.coord[1,:],U[1,:], grid=true)
-            Plotter.plot!(p,grid.coord[1,:],U[2,:],show=true, title=@sprintf("\$\\varepsilon=%8.3f\$",xeps)),
+            coord=coordinates(grid)
+            p=Plotter.plot(coord[1,:],U[1,:], grid=true)
+            Plotter.plot!(p,coord[1,:],U[2,:],show=true, title=@sprintf("\$\\varepsilon=%8.3f\$",xeps)),
             Plotter.sleep(0.2)
         end
         u5=U[5]

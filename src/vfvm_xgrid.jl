@@ -19,8 +19,8 @@ end
 
 
 
-cellfactors!(grid::ExtendableGrid,icell,nodefac,edgefac)=cellfactors!(grid[CellTypes][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes], icell, nodefac,edgefac)
-bfacefactors!(grid::ExtendableGrid,icell,nodefac)=bfacefactors!(grid[BFaceTypes][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes],icell,nodefac)
+cellfactors!(grid::ExtendableGrid,icell,nodefac,edgefac)=cellfactors!(grid[CellGeometries][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes], icell, nodefac,edgefac)
+bfacefactors!(grid::ExtendableGrid,icell,nodefac)=bfacefactors!(grid[BFaceGeometries][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes],icell,nodefac)
 
 
 
