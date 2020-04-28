@@ -1,13 +1,16 @@
 # Changes
 
 ## v0.8
-- Replaced VoronoiFVM grid module by dependency on  [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl) package
-- Moved grid generation, modification, plotting etc. over to ExtendableGrids
-- Changes in examples:
-  - Replace `grid.coord` by `coordinates(grid)` or better `grid[Coordinates]` after importing ExtendableGrids
-  - Replace `VoronoiFVM.plot` by `ExtendableGrids.plot`,Plotter is now a keyword argument 
-  - Replace `VoronoiFVM.Grid()` now returns a ExtendableGrids.ExtendableGrid, for using any methods on grids import ExtendableGrids
-  - Subgrid views are currently defined for vectors only.
+- Replaced VoronoiFVM grid module by  [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)
+- Moved grid generation, modification, plotting  over to ExtendableGrids
+- Necessary changes in codes using VoronoiFVM:
+  - Replace `grid.coord` by `coord` obtained via `coord=coordinates(grid)` or  `coord=grid[Coordinates]` after importing ExtendableGrids
+  - Replace `VoronoiFVM.plot` by `ExtendableGrids.plot`.
+  - In the plot method, Plotter is now a keyword argument
+  - `VoronoiFVM.Grid()` now returns a ExtendableGrids.ExtendableGrid, 
+    in fact it is just an alias to [ExtendableGrids.simplexgrid](https://j-fu.github.io/ExtendableGrids.jl/stable/search/?q=simplexgrid)
+  - For using any methods on grids like cellmask! one nees to use `ExtendableGrids`
+  - Subgrids now are of the same type `ExtendableGrids`,  views are currently defined for vectors only.
   
 ## v0.7 Feb 28 2019
 - API modification:
