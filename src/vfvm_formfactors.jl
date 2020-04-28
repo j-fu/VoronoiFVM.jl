@@ -98,8 +98,7 @@ function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell::I
     nothing
 end
     
-    
-function cellfactors!(::Type{Triangle2D},::Type{<:Cartesian2D},coord,cellnodes,icell,npar,epar)
+function cellfactors!(::Type{Triangle2D},::Type{Cartesian2D},coord,cellnodes,icell,npar,epar)
     i1=cellnodes[1,icell]
     i2=cellnodes[2,icell]
     i3=cellnodes[3,icell]
@@ -262,7 +261,18 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,i
 end
 
 
+ExtendableGrids.num_nodes(::Type{Vertex0D})=1
+num_edges(::Type{Vertex0D})=0
 
+const cen_Edge1D=reshape([1 2],:,1)
+local_celledgenodes(::Type{Edge1D})=cen_Edge1D
+ExtendableGrids.num_nodes(::Type{Edge1D})=2
+num_edges(::Type{Edge1D})=1
+
+const cen_Triangle2D=[ 2 3 1; 3 1 2]
+local_celledgenodes(::Type{Triangle2D})=cen_Triangle2D
+ExtendableGrids.num_nodes(::Type{Triangle2D})=3
+num_edges(::Type{Triangle2D})=3
 
 
 
@@ -288,7 +298,6 @@ function edgevelocities(grid,velofunc)
         return (wl*vxl +wm*vxm+wr*vxr)*hnormal[1] + (wl*vyl +wm*vym+wr*vyr)*hnormal[2]
     end
     
-    @assert num_edges(grid)>0
     @assert dim_space(grid)<3
 
     cn=grid[CellNodes]

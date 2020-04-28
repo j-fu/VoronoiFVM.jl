@@ -98,8 +98,6 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
     tstepinv=1.0/tstep
     node=Node{Tv,Ti}(this)
     edge=Edge{Tv,Ti}(this)
-    node_factors=zeros(Tv,num_nodes_per_cell(grid))
-    edge_factors=zeros(Tv,num_edges_per_cell(grid))
     data=this.physics.data
     UKL=Array{Tv,2}(undef,nspecies,2)
 
@@ -111,16 +109,29 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
         edgeparams=(edge,data,)
     end    
 
-    
+    geom=grid[CellGeometries][1]
+    csys=grid[CoordinateSystem]
+    coord=grid[Coordinates]
+    cellnodes=grid[CellNodes]
+    cellregions=grid[CellRegions]
+
+    node_factors=zeros(Tv,num_nodes(geom))
+    edge_factors=zeros(Tv,num_edges(geom))
+
+    if haskey(grid,CellEdges)
+        cellx=grid[CellEdges]
+        edgenodes=grid[EdgeNodes]
+        has_celledges=true
+    else
+        cellx=grid[CellNodes]
+        edgenodes=local_celledgenodes(geom)
+        has_celledges=false
+    end
     
     for icell=1:num_cells(grid)
-        cellfactors!(grid,icell,node_factors,edge_factors)
-        edge.region=reg_cell(grid,icell)
-        for iedge=1:num_edges_per_cell(grid)
-            # if edge_factors[iedge]<edge_cutoff
-            #     continue
-            # end
-            _fill!(edge,grid,iedge,icell)
+        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
+        for iedge=1:num_edges(geom)
+            _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
             for ispec=1:nspecies
                 UKL[ispec,1]=U[ispec,edge.node[1]]
@@ -135,8 +146,8 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
             end
         end
         
-        for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
+        for inode=1:num_nodes(geom)
+            _fill!(node,cellnodes,cellregions,inode,icell)
             @views begin
                 res.=0
                 stor.=0
@@ -180,8 +191,6 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
     stor=zeros(Tu,nspecies)
     node=Node{Tv,Ti}(this)
     edge=Edge{Tv,Ti}(this)
-    node_factors=zeros(Tv,num_nodes_per_cell(grid))
-    edge_factors=zeros(Tv,num_edges_per_cell(grid))
     UKL=Array{Tu,1}(undef,2*nspecies)
     UK=Array{Tu,1}(undef,nspecies)
     nodeparams=(node,)
@@ -190,15 +199,32 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
         nodeparams=(node,data,)
         edgeparams=(edge,data,)
     end
+    geom=grid[CellGeometries][1]
+    csys=grid[CoordinateSystem]
+    coord=grid[Coordinates]
+    cellnodes=grid[CellNodes]
+    cellregions=grid[CellRegions]
+
     
+    if haskey(grid,CellEdges)
+        cellx=grid[CellEdges]
+        edgenodes=grid[EdgeNodes]
+        has_celledges=true
+    else
+        cellx=grid[CellNodes]
+        edgenodes=local_celledgenodes(geom)
+        has_celledges=false
+    end
+        
+    # Arrays for holding for factor data
+    node_factors=zeros(Tv,num_nodes(geom))
+    edge_factors=zeros(Tv,num_edges(geom))
+
+   
     for icell=1:num_cells(grid)
-        cellfactors!(grid,icell,node_factors,edge_factors)
-        edge.region=reg_cell(grid,icell)
-        for iedge=1:num_edges_per_cell(grid)
-            # if abs(edge_factors[iedge])<edge_cutoff
-            #     continue
-            # end
-            _fill!(edge,grid,iedge,icell)
+        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
+        for iedge=1:num_edges(geom)
+            _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
             for ispec=1:nspecies
                 UKL[ispec]=U[ispec,edge.node[1]]
@@ -213,8 +239,8 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
             end
         end
         
-        for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
+        for inode=1:num_nodes(geom)
+            _fill!(node,cellnodes,cellregions,inode,icell)
             for ispec=1:nspecies
                 res[ispec]=0.0
                 UK[ispec]=U[ispec,node.index]
@@ -245,8 +271,6 @@ function integrate_tran(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
     stor=zeros(Tu,nspecies)
     node=Node{Tv,Ti}(this)
     edge=Edge{Tv,Ti}(this)
-    node_factors=zeros(Tv,num_nodes_per_cell(grid))
-    edge_factors=zeros(Tv,num_edges_per_cell(grid))
 
     nodeparams=(node,)
     edgeparams=(edge,)
@@ -256,11 +280,21 @@ function integrate_tran(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
     end
     
     UK=Array{Tu,1}(undef,nspecies)
+    geom=grid[CellGeometries][1]
+    csys=grid[CoordinateSystem]
+    coord=grid[Coordinates]
+    cellnodes=grid[CellNodes]
+    cellregions=grid[CellRegions]
+
+    # Arrays for holding for factor data
+    node_factors=zeros(Tv,num_nodes(geom))
+    edge_factors=zeros(Tv,num_edges(geom))
+
     
     for icell=1:num_cells(grid)
-        cellfactors!(grid,icell,node_factors,edge_factors)
-        for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
+        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
+        for inode=1:num_nodes(geom)
+            _fill!(node,cellnodes,cellregions,inode,icell)
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,node.index]
                 res[ispec]=0.0

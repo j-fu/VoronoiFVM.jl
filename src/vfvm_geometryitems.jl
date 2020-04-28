@@ -26,16 +26,16 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     nspec::Ti
 
     """
-    Grid
+    Grid coordinates
     """
-    grid
+    coord::Matrix{Tv}
     
-    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,num_species(sys),sys.grid)
+    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,num_species(sys),coordinates(sys.grid))
 end
 
-function _fill!(node::BNode,grid,ibnode,ibface)
-    K=bfacenode(grid,ibnode,ibface)
-    node.region=reg_bface(grid,ibface)
+function _fill!(node::BNode,bfacenodes,bfaceregions,ibnode,ibface)
+    K=bfacenodes[ibnode,ibface]
+    node.region=bfaceregions[ibface]
     node.index=K
 end
 
@@ -74,25 +74,24 @@ mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti}
     icell::Ti
 
     """
-    Grid
+    Grid coordinates
     """
-    grid
+    coord::Matrix{Tv}
 
-
-    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, sys.grid, )
+    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, coordinates(sys.grid))
 end
 
-function _fill!(node::Node,grid,inode,icell)
-    K=cellnode(grid,inode,icell)
-    node.region=reg_cell(grid,icell)
+function _fill!(node::Node,cellnodes,cellregions,inode,icell)
+    K=cellnodes[inode,icell]
+    node.region=cellregions[icell]
     node.index=K
     node.icell=icell
 end
 
 
-Base.size(node::Node)=(size(coordinates(node.grid))[1],)
+Base.size(node::Node)=(size(node.coord)[1],)
 
-Base.getindex(node::Node, idim)= coordinates(node.grid)[idim,node.index]
+Base.getindex(node::Node, idim)= node.coord[idim,node.index]
 
 ##################################################################
 """
@@ -130,36 +129,35 @@ mutable struct Edge{Tv,Ti}  <: AbstractGeometryItem{Tv, Ti}
     icell::Ti
     
     """
-    Grid
+    Grid coordinates
     """
-    grid
-
+    coord::Matrix{Tv}
     
-    Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,[0,0],0,num_species(sys),0,sys.grid)
+    Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,[0,0],0,num_species(sys),0,coordinates(sys.grid))
 end
 
 
-function _fill!(edge::Edge,grid,iedge,icell) where Tv
-    if haskey(grid,CellEdges)
+function _fill!(edge::Edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges) where Tv
+    if has_celledges #  cellx==celledges, edgenodes==global_edgenodes
         # If we work with projections of fluxes onto edges,
         # we need to ensure that the edges are accessed with the
         # same orientation without regard of the orientation induced
         # by local cell numbering
-        edge.index=celledge(grid,iedge,icell)
-        edge.node[1]=grid[EdgeNodes][1,edge.index]
-        edge.node[2]=grid[EdgeNodes][2,edge.index]
-    else
+        edge.index=cellx[iedge,icell]
+        edge.node[1]=edgenodes[1,edge.index]
+        edge.node[2]=edgenodes[2,edge.index]
+    else # cx==cellnodes, edgenodes== local_edgenodes
         edge.index=0
-        edge.node[1]=celledgenode(grid,1,iedge,icell)
-        edge.node[2]=celledgenode(grid,2,iedge,icell)
+        edge.node[1]=cellx[edgenodes[1,iedge],icell]
+        edge.node[2]=cellx[edgenodes[2,iedge],icell]
     end
-    edge.region=reg_cell(grid,icell)
+    edge.region=cellregions[icell]
     edge.icell=icell
 end
 
 
-Base.size(edge::Edge)=(size(coordinates(edge.grid))[1],2)
-Base.getindex(edge::Edge, idim,inode)= coordinates(edge.grid)[idim,edge.node[inode]]
+Base.size(edge::Edge)=(size(edge.coord)[1],2)
+Base.getindex(edge::Edge, idim,inode)= edge.coord[idim,edge.node[inode]]
 
 ##################################################################
 """
@@ -178,8 +176,8 @@ Calculate the length of an edge.
 """
 function meas(edge::Edge)
     l=0.0
-    for i=1:dim_space(edge.grid)
-        d=coordinates(edge.grid)[i,edge.node[1]]-coordinates(edge.grid)[i,edge.node[2]]
+    for i=1:size(edge.coord)[1]
+        d=edge.coord[i,edge.node[1]]-edge.coord[i,edge.node[2]]
         l=l+d*d
     end
     return sqrt(l)

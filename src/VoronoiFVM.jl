@@ -24,7 +24,6 @@ include("vfvm_xgrid.jl")
 #include("vfvm_grid.jl")
 
 
-export coordinates
 
 include("vfvm_physics.jl")
 include("vfvm_functions.jl")
@@ -58,35 +57,22 @@ export FVMSystem
 export FVMPhysics
 
 export glue
-export num_nodes
-export num_edges
-export num_bfaces
-export num_cells
-export num_bfaceregions
-export num_cellregions
+export coordinates
 export num_dof
 export physics_data
 export dim_space
 export cellnode
-export tridata
-export prepare_edges!
 export enable_species!
 export enable_boundary_species!
 export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!
-export cellmask!
-export bfacemask!
-export fvmplot
-export fvmplot!
-export bfacenode,nodecoord
 export dof
 export getdof
 export setdof!
 export value
 export solve!
 export embed!
-export subgrid
 export freqdomain_impedance
 export measurement_derivative
 export testfunction
@@ -95,9 +81,6 @@ export meas
 
 export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities
-export geomspace
-export TokenStream,gettoken, expecttoken,trytoken
-
 
 # deprecated
 export edgelength

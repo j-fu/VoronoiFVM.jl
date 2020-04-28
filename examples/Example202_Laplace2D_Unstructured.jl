@@ -26,13 +26,13 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
 
     nspecies=1
     ispec=1
-    nrad=10*2^nref
+    nrad=Int64(ceil(10*2^nref))
     grid=VoronoiFVM.Grid(points=reduce(hcat,[ [cos(2*pi*i/nrad), sin(2*pi*i/nrad)] for i=1:nrad]),
                      bfaces=reduce(hcat,vcat([ [i,i+1] for i=1:nrad-1],[[nrad,1]])),                  
                      bfaceregions=ones(nrad),
                      regionpoints=[0.0 0.0;],
                      regionnumbers=[1],
-                     regionvolumes=[0.1*2.0^(-2*nref)])
+                     regionvolumes=[0.1*2.0^(-2.0*nref)])
 
     if plot_grid
         p=plot(Plotter=Plotter,grid)
@@ -52,7 +52,7 @@ function main(;Plotter=nothing, plot_grid=false,nref=0)
     # Set boundary conditions
     # Dirichlet boundary conditions are marked by setting a corresponding value of the
     # boundary factor
-    for i=1:num_bfaceregions(grid)
+    for i=1:grid[NumBFaceRegions]
         boundary_dirichlet!(sys,ispec,i,0.0)
     end
     

@@ -16,6 +16,7 @@ module Example121_PoissonPointCharge1D
 using Printf
 
 using VoronoiFVM
+using ExtendableGrids
 
 function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, brea=false)
     

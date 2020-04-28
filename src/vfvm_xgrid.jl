@@ -19,13 +19,12 @@ end
 
 Grid(nodes,cells,cellmat,bfaces,bfacemat)=simplexgrid(nodes,cells,cellmat,bfaces,bfacemat)
 
-cellfactors!(grid::ExtendableGrid,icell,nodefac,edgefac)=cellfactors!(grid[CellGeometries][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes], icell, nodefac,edgefac)
-bfacefactors!(grid::ExtendableGrid,icell,nodefac)=bfacefactors!(grid[BFaceGeometries][1],grid[CoordinateSystem],grid[Coordinates],grid[CellNodes],icell,nodefac)
 
 
 
 num_cellregions(grid::ExtendableGrid)=grid[NumCellRegions]
 num_bfaceregions(grid::ExtendableGrid)=grid[NumBFaceRegions]
+num_edges(grid::ExtendableGrid)=haskey(grid,EdgeNodes) ?  num_sources(grid[EdgeNodes]) : 0
 
 
 cellregions(grid::ExtendableGrid)= grid[CellRegions]
@@ -33,45 +32,6 @@ bfaceregions(grid::ExtendableGrid)= grid[BFaceRegions]
 cellnodes(grid::ExtendableGrid)= grid[CellNodes]
 bfacenodes(grid::ExtendableGrid)= grid[BFaceNodes]
 coordinates(grid::ExtendableGrid)= grid[Coordinates]
-
-num_nodes_per_cell(grid::ExtendableGrid)=num_targets(grid[CellNodes],1)
-num_edges(grid::ExtendableGrid)=num_sources(grid[EdgeNodes])
-
-num_nodes_per_bface(grid::ExtendableGrid)=num_targets(grid[CellNodes],1)-1
-function num_edges_per_cell(grid::ExtendableGrid)
-    nedges=[1,3,6]
-    nedges[dim_space(grid)]
-end
-
-                   
-reg_cell(grid::ExtendableGrid,i)=grid[CellRegions][i]
-reg_bface(grid::ExtendableGrid,i)=grid[BFaceRegions][i]
-
-cellnode(grid::ExtendableGrid,i,j)=grid[CellNodes][i,j]
-bfacenode(grid::ExtendableGrid,i,j)=grid[BFaceNodes][i,j]
-celledge(grid::ExtendableGrid,iedge,icell)=grid[CellEdges][iedge,icell]
-
-
-function celledgenode(grid::ExtendableGrid,inode,iedge,icell)
-    cn=grid[CellNodes]
-
-    if size(cn,1)==2
-        local_celledgenodes=reshape([1 2],:,1)
-    else
-        # see grid/simplex.h in pdelib
-        local_celledgenodes=zeros(Int64,2,3)
-        local_celledgenodes[1,1]=2
-        local_celledgenodes[2,1]=3
-
-        local_celledgenodes[1,2]=3
-        local_celledgenodes[2,2]=1
-        
-        local_celledgenodes[1,3]=1
-        local_celledgenodes[2,3]=2
-    end
-    cn[local_celledgenodes[inode,iedge],icell]
-end
-
 
 
 
@@ -109,9 +69,6 @@ function spherical_symmetric!(grid::ExtendableGrid)
 end
 
 
-
-###############################################################
-################################################
 """
 $(SIGNATURES)
 
@@ -126,10 +83,11 @@ abstract type EdgeNodes <: AbstractGridAdjacency end
 function prepare_edges!(grid::ExtendableGrid)
     Ti=eltype(grid[CellNodes])
     cellnodes=grid[CellNodes]
+    geom=grid[CellGeometries][1]
     # Create cell-node incidence matrix
     ext_cellnode_adj=ExtendableSparseMatrix{Ti,Ti}(num_nodes(grid),num_cells(grid))
     for icell=1:num_cells(grid)
-        for inode=1:VoronoiFVM.num_nodes_per_cell(grid)
+        for inode=1:num_nodes(geom)
             ext_cellnode_adj[cellnodes[inode,icell],icell]=1
         end
     end
@@ -171,10 +129,12 @@ function prepare_edges!(grid::ExtendableGrid)
     # Calculate edge nodes and celledges
     edgenodes=zeros(Ti,2,nedges)
     celledges=zeros(Ti,3,num_cells(grid))
+    cen=local_celledgenodes(Triangle2D)
+    
     for icell=1:num_cells(grid)
-        for iedge=1:VoronoiFVM.num_edges_per_cell(grid)
-            n1=VoronoiFVM.celledgenode(grid,1,iedge,icell)
-            n2=VoronoiFVM.celledgenode(grid,2,iedge,icell)            
+        for iedge=1:num_edges(geom)
+            n1=cellnodes[cen[1,iedge],icell]
+            n2=cellnodes[cen[2,iedge],icell]
 
             # We need to look in nodenod_adj for upper triangular part entries
             # therefore, we need to swap accordingly before looking
@@ -201,7 +161,7 @@ function prepare_edges!(grid::ExtendableGrid)
     # Create sparse incidence matrix for the cell-edge adjacency
     ext_celledge_adj=ExtendableSparseMatrix{Ti,Ti}(nedges,num_cells(grid))
     for icell=1:num_cells(grid)
-        for iedge=1:VoronoiFVM.num_edges_per_cell(grid)
+        for iedge=1:num_edges(geom)
             ext_celledge_adj[celledges[iedge,icell],icell]=1
         end
     end

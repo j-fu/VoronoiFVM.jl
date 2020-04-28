@@ -51,9 +51,6 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
     bnode=BNode{Tv,Ti}(sys)
     nspecies=num_species(sys)
     
-    node_factors=zeros(Tv,num_nodes_per_cell(grid))
-    edge_factors=zeros(Tv,num_edges_per_cell(grid))
-    bnode_factors=zeros(Tv,num_nodes_per_bface(grid))
 
     nodeparams=(node,)
     bnodeparams=(bnode,)
@@ -79,17 +76,35 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
     
     # structs holding diff results for storage
     result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
+
+
+
+    
+    geom=grid[CellGeometries][1]
+    csys=grid[CoordinateSystem]
+    coord=grid[Coordinates]
+    cellnodes=grid[CellNodes]
+    cellregions=grid[CellRegions]
+
+    bgeom=grid[BFaceGeometries][1]
+    bfacenodes=grid[BFaceNodes]
+    bfaceregions=grid[BFaceRegions]
+
+
+
+    # Arrays for holding form factor data
+    node_factors=zeros(Tv,num_nodes(geom))
+    edge_factors=zeros(Tv,num_edges(geom))
+    bnode_factors=zeros(Tv,num_nodes(bgeom))
+
     
     # Main cell loop for building up storderiv
     for icell=1:num_cells(grid)
         # set up form factors
-        cellfactors!(grid,icell,node_factors,edge_factors)
+        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
         
-        # set up data for callbacks
-        node.region=reg_cell(grid,icell)
-        
-        for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid, inode,icell)
+        for inode=1:num_nodes(geom)
+            _fill!(node,cellnodes,cellregions,inode,icell)
             @views begin
                 UK[1:nspecies]=U0[:,node.index]
             end
@@ -112,14 +127,12 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
         
     end
 
-    bfacereg=bfaceregions(grid)
     for ibface=1:num_bfaces(grid)
-        bfacefactors!(grid,ibface,bnode_factors)
-        ibreg=bfacereg[ibface]
-        bnode.region=ibreg
-        for ibnode=1:num_nodes_per_bface(grid)
+        bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,bnode_factors)
+        ibreg=bfaceregions[ibface]
+        for ibnode=1:num_nodes(bgeom)
             @views begin
-                _fill!(bnode,grid,ibnode,ibface)
+                _fill!(bnode,bfacenodes,bfaceregions,ibnode,ibface)
                 
                 UK[1:nspecies]=U0[:,bnode.index]
             end

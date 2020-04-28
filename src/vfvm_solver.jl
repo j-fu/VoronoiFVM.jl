@@ -232,12 +232,12 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     _complete!(system) # needed here as well for test function system which does not use newton
     
     grid=system.grid
-    physics::Physics=system.physics
+    physics=system.physics
     data=physics.data
-    node::Node=Node{Tv,Ti}(system)
-    bnode::BNode=BNode{Tv,Ti}(system)
-    edge::Edge=Edge{Tv,Ti}(system)
-    nspecies::Int32=num_species(system)
+    node=Node{Tv,Ti}(system)
+    bnode=BNode{Tv,Ti}(system)
+    edge=Edge{Tv,Ti}(system)
+    nspecies=num_species(system)
     matrix=system.matrix
 
     # splatting would work but costs allocations
@@ -373,23 +373,49 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     tstepinv=1.0/tstep 
 
     
-    # Arrays holding for factor data
-    node_factors=zeros(Tv,num_nodes_per_cell(grid))
-    edge_factors=zeros(Tv,num_edges_per_cell(grid))
-    bnode_factors=zeros(Tv,num_nodes_per_bface(grid))
+    boundary_factors=system.boundary_factors
+    boundary_values=system.boundary_values
+    
+    geom=grid[CellGeometries][1]
+    csys=grid[CoordinateSystem]
+    coord=grid[Coordinates]
+    cellnodes=grid[CellNodes]
+    cellregions=grid[CellRegions]
+    bgeom=grid[BFaceGeometries][1]
+    bfacenodes=grid[BFaceNodes]
+    bfaceregions=grid[BFaceRegions]
+    nbfaces=num_bfaces(grid)
+    ncells=num_cells(grid)
+    
+    if haskey(grid,CellEdges)
+        cellx=grid[CellEdges]
+        edgenodes=grid[EdgeNodes]
+        has_celledges=true
+    else
+        cellx=grid[CellNodes]
+        edgenodes=local_celledgenodes(geom)
+        has_celledges=false
+    end
+
+    # Arrays for holding for factor data
+    node_factors=zeros(Tv,num_nodes(geom))
+    edge_factors=zeros(Tv,num_edges(geom))
+    bnode_factors=zeros(Tv,num_nodes(bgeom))
 
 
     # Main cell loop
-    for icell=1:num_cells(grid)
-        # set up form factors
-        cellfactors!(grid,icell,node_factors,edge_factors)
-
-        # set up data for callbacks
-        node.region=reg_cell(grid,icell)
-        edge.region=reg_cell(grid,icell)
-
-        for inode=1:num_nodes_per_cell(grid)
-          _fill!(node,grid, inode,icell)
+    for icell=1:ncells
+        # Set up form factors
+        # Here and  in subsequent calls in this loop, we observe a strange phenomenon:
+        # Up  icell=512, ther are no allocations.
+        # For icell>512, each call generates an allocation of 16B
+        # We have so far not been able to find  an MWE for this...
+        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
+        # The problem occurs even when we continue from here.
+        # continue
+        
+        for inode=1:num_nodes(geom)
+            _fill!(node,cellnodes,cellregions,inode,icell)
             for ispec=1:nspecies
                 # xx gather:
                 # ii=0
@@ -408,14 +434,14 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             if issource
                 sourcewrap(src)
             end
-
-           if isreaction
+            
+            if isreaction
                 # Evaluate & differentiate reaction term if present
                 ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
                 res_react=DiffResults.value(result_r)
                 jac_react=DiffResults.jacobian(result_r)
             end
-
+            
             # Evaluate & differentiate storage term
             ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
             res_stor=DiffResults.value(result_s)
@@ -436,12 +462,12 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 end
             end
         end
-        for iedge=1:num_edges_per_cell(grid)
+        for iedge=1:num_edges(geom)
             if abs(edge_factors[iedge])<edge_cutoff
                 continue
             end
 
-            _fill!(edge,grid,iedge,icell)
+            _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
             #Set up argument for fluxwrap
             for ispec=1:nspecies
@@ -483,20 +509,20 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     end
 
     # Assembly loop for boundary conditions
-    for ibface=1:num_bfaces(grid)
+    for ibface=1:nbfaces
 
         # Calculate measure of boundary face contribution
         # to the corresponding nodes
-        bfacefactors!(grid,ibface,bnode_factors)
+        bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,bnode_factors)
 
         # Obtain boundary region number
-        ibreg=reg_bface(grid,ibface)
+        ibreg=bfaceregions[ibface]
 
         # Loop over nodes of boundary face
-        for ibnode=1:num_nodes_per_bface(grid)
+        for ibnode=1:num_nodes(bgeom)
 
             # Fill bnode data shuttle with data from grid
-            _fill!(bnode,grid,ibnode,ibface)
+            _fill!(bnode,bfacenodes,bfaceregions,ibnode,ibface)
 
             # Copy unknown values from solution into dense array
             for ispec=1:nspecies
@@ -517,8 +543,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 # If species is present, assemble the boundary condition
                 if idof>0
                     # Get user specified data
-                    boundary_factor=system.boundary_factors[ispec,ibreg]
-                    boundary_value=system.boundary_values[ispec,ibreg]
+                    boundary_factor=boundary_factors[ispec,ibreg]
+                    boundary_value=boundary_values[ispec,ibreg]
                     
                     if boundary_factor==Dirichlet
                         # Dirichlet is encoded in the boundary condition factor
@@ -713,16 +739,25 @@ function integrate(this::AbstractSystem{Tv,Ti},F::Function,U::AbstractMatrix{Tu}
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     node=Node{Tv,Ti}(this)
-    node_factors=zeros(Tv,num_nodes_per_cell(grid))
-    edge_factors=zeros(Tv,num_edges_per_cell(grid))
     nodeparams=(node,)
     if isdata(data)
         nodeparams=(node,data,)
     end
+
+
+    geom=grid[CellGeometries][1]
+    csys=grid[CoordinateSystem]
+    coord=grid[Coordinates]
+    cellnodes=grid[CellNodes]
+    cellregions=grid[CellRegions]
+    node_factors=zeros(Tv,num_nodes(geom))
+    edge_factors=zeros(Tv,num_edges(geom))
+
+    
     for icell=1:num_cells(grid)
-        cellfactors!(grid,icell,node_factors,edge_factors)
-        for inode=1:num_nodes_per_cell(grid)
-            _fill!(node,grid,inode,icell)
+        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
+        for inode=1:num_nodes(geom)
+            _fill!(node,cellnodes,cellregions,inode,icell)
             F(res,U[:,node.index],nodeparams...)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
