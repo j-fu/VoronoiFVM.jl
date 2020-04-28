@@ -8,6 +8,7 @@
 Modules = [VoronoiFVM]
 Pages = [
     "vfvm_abstractsystem.jl",
+    "vfvm_xgrid.jl",
     "vfvm_densesystem.jl",
     "vfvm_sparsesystem.jl",
     "vfvm_geometryitems.jl",
@@ -21,6 +22,7 @@ Order = [:type]
 Modules = [VoronoiFVM]
 Pages = [
     "vfvm_abstractsystem.jl",
+    "vfvm_xgrid.jl",
     "vfvm_densesystem.jl",
     "vfvm_sparsesystem.jl",
     "vfvm_geometryitems.jl",
@@ -35,6 +37,7 @@ Order = [:constant]
 Modules = [VoronoiFVM]
 Pages = [
     "vfvm_abstractsystem.jl",
+    "vfvm_xgrid.jl",
     "vfvm_densesystem.jl",
     "vfvm_sparsesystem.jl",
     "vfvm_geometryitems.jl",

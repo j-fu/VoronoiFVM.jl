@@ -1,15 +1,15 @@
 # Changes
 
-## ## v0.8 (planned)
-- Replaced VoronoiFVM grid module by ExtendableGrid  from the corresponding package
-- Moved grid generation, plotting etc over there
+## v0.8
+- Replaced VoronoiFVM grid module by dependency on  [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl) package
+- Moved grid generation, modification, plotting etc. over to ExtendableGrids
 - Changes in examples:
-  - Replace `grid.coord` by `coordinates(grid)` or better `grid[Coordinates]` after importing XGrid
-  - Replace `VoronoiFVM.plot` by `plot`,after importing XGrid,  Plotter is now a keyword argument 
-  - Replace `VoronoiFVM.Grid()` by `simplexgrid` after importing XGrid 
-  - Subgrid views are now defined for vectors only.
+  - Replace `grid.coord` by `coordinates(grid)` or better `grid[Coordinates]` after importing ExtendableGrids
+  - Replace `VoronoiFVM.plot` by `ExtendableGrids.plot`,Plotter is now a keyword argument 
+  - Replace `VoronoiFVM.Grid()` now returns a ExtendableGrids.ExtendableGrid, for using any methods on grids import ExtendableGrids
+  - Subgrid views are currently defined for vectors only.
   
-## ## v0.7 Feb 28 2019
+## v0.7 Feb 28 2019
 - API modification:
   - __Breaking__:
     - `data` parameter passed to physics callbacks only if `Physics` object is created with `data` parameter.

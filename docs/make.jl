@@ -80,10 +80,8 @@ function make_all()
             "changes.md",
             "method.md",
             "API Documentation" => [
-                "grid.md",
                 "physics.md",
                 "system.md",
-                "plot.md",
                 "allindex.md",
             ],
             "Examples" => generated_examples

@@ -1,5 +1,19 @@
+"""
+$(TYPEDSIGNATURES)
+Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
+"""
 Grid(X)=simplexgrid(X)
+
+"""
+$(TYPEDSIGNATURES)
+Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
+"""
 Grid(X,Y)=simplexgrid(X,Y)
+
+"""
+$(TYPEDSIGNATURES)
+Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
+"""
 function Grid(;flags::String="pAaqDQ",
               points=Array{Cdouble,2}(undef,0,0),
               bfaces=Array{Cint,2}(undef,0,0),
@@ -17,8 +31,19 @@ function Grid(;flags::String="pAaqDQ",
                 regionvolumes=regionvolumes)
 end
 
+"""
+$(TYPEDSIGNATURES)
+Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
+"""
 Grid(nodes,cells,cellmat,bfaces,bfacemat)=simplexgrid(nodes,cells,cellmat,bfaces,bfacemat)
 
+######################################################
+"""
+$(TYPEDSIGNATURES)
+  
+Read grid from file. Currently for pdelib sg format only
+"""
+Grid(io::Type{<:IOStream};file::String="test.sg",format="")=simplexgrid(io,file=file,format=format)
 
 
 
