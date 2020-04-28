@@ -1,12 +1,12 @@
 language: julia
 
 os:
-  - osx
+#  - osx
   - linux
   - windows
 
 julia:
-  - 1.0
+#  - 1.0
   - 1.3
   - nightly
 
