@@ -1,6 +1,6 @@
 # Changes
 
-## v0.8
+## v0.8 Apr 28, 2019
 - Replaced VoronoiFVM grid module by  [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)
 - Moved grid generation, modification, plotting  over to ExtendableGrids
 - Necessary changes in codes using VoronoiFVM:
