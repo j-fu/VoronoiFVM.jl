@@ -4,7 +4,6 @@ authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
 version = "0.8.0"
 
 [deps]
-BinDeps = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
@@ -18,9 +17,9 @@ SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-BinDeps = "^0.8.0"
 DiffResults = "^1.0.0"
 DocStringExtensions = "^0.8.0"
+ExtendableGrids = "^0.2.0"
 ExtendableSparse = "^0.2.6"
 ForwardDiff = "^0.10.0"
 IterativeSolvers = "^0.8.0"
