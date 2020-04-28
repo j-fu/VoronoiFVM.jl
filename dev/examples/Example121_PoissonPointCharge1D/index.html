@@ -4,14 +4,15 @@
 using Printf
 
 using VoronoiFVM
+using ExtendableGrids
 
 function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, brea=false)
 
     # Create grid in (-1,1) refined around 0
     hmax=0.2/2.0^nref
     hmin=0.05/2.0^nref
-    X1=VoronoiFVM.geomspace(-1.0,0.0, hmax,hmin)
-    X2=VoronoiFVM.geomspace(0.0,1.0, hmin,hmax)
+    X1=geomspace(-1.0,0.0, hmax,hmin)
+    X2=geomspace(0.0,1.0, hmin,hmax)
     X=glue(X1,X2)
     grid=VoronoiFVM.Grid(X)
 
@@ -87,7 +88,8 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
         # Plot data
         if ispyplot(Plotter)
             Plotter.grid()
-            Plotter.plot(grid.coord[1,:],U[1,:],label=@sprintf(&quot;Q=%.2f&quot;,q))
+            coord=grid[Coordinates]
+            Plotter.plot(coord[1,:],U[1,:],label=@sprintf(&quot;Q=%.2f&quot;,q))
             Plotter.xlabel(&quot;x&quot;)
             Plotter.ylabel(&quot;\$\\phi\$&quot;)
             Plotter.legend(loc=&quot;upper right&quot;)
@@ -100,4 +102,4 @@ end
 function test()
     main()≈20.254591679579015
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example120_ThreeRegions1D/">« 120: Differing species sets in regions, 1D</a><a class="docs-footer-nextpage" href="../Example125_TestFunctions1D/">125: Terminal flux calculation via test functions »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 24 April 2020 18:47">Friday 24 April 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example120_ThreeRegions1D/">« 120: Differing species sets in regions, 1D</a><a class="docs-footer-nextpage" href="../Example125_TestFunctions1D/">125: Terminal flux calculation via test functions »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 28 April 2020 17:11">Tuesday 28 April 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -3,7 +3,7 @@
 
 using Printf
 using VoronoiFVM
-
+using ExtendableGrids
 
 
 
@@ -98,9 +98,12 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         if isplots(Plotter)
             Plots=Plotter
             p=Plots.plot()
-            VoronoiFVM.plot(Plots,subgrid1, U[1,:],label=&quot;spec1&quot;, color=(0.5,0,0),p=p,show=false)
-            VoronoiFVM.plot(Plots,subgrid2, U[2,:],label=&quot;spec2&quot;, color=(0.0,0.5,0),p=p,show=false)
-            VoronoiFVM.plot(Plots,subgrid3, U[3,:],label=&quot;spec3&quot;, color=(0.0,0.0,0.5),p=p,show=false)
+            U1=view(U[1,:],subgrid1)
+            U2=view(U[2,:],subgrid2)
+            U3=view(U[3,:],subgrid3)
+            plot(subgrid1, U1,label=&quot;spec1&quot;, color=(0.5,0,0),p=p,show=false, Plotter=Plots)
+            plot(subgrid2, U2,label=&quot;spec2&quot;, color=(0.0,0.5,0),p=p,show=false, Plotter=Plots)
+            plot(subgrid3, U3,label=&quot;spec3&quot;, color=(0.0,0.0,0.5),p=p,show=false, Plotter=Plots)
             Plots.gui(p)
         end
     end
@@ -112,4 +115,4 @@ function test()
         main(unknown_storage=:dense) ≈ 0.00039500514567080265
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 24 April 2020 18:47">Friday 24 April 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 28 April 2020 17:11">Tuesday 28 April 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
