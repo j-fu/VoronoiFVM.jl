@@ -723,6 +723,81 @@ function embed!(
     return solution
 end
 
+################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Time dependent solver for abstract system
+
+Use iimplicit Euler method with + damped   Newton's method  to 
+solve time dependent problem.
+"""
+function evolve!(
+    solution::AbstractMatrix{Tv}, # Solution
+    xinival::AbstractMatrix{Tv},   # Initial value 
+    this::AbstractSystem{Tv},    # Finite volume system
+    times::AbstractVector;
+    control=NewtonControl(),      # Newton solver control information
+    pre=function(sol,t) end,       # Function for preparing step
+    post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
+    delta=(u,v)->norm(u-v,Inf)
+) where Tv
+    inival=copy(xinival)
+    Δt=control.Δt
+    if control.verbose
+        @printf("  Evolution: start\n")
+    end
+    for i=1:length(times)-1
+        Δt=max(Δt,control.Δt_min)
+        tstart=times[i]
+        tend=times[i+1]
+        t=tstart
+        istep=0
+
+        while t<tend
+            solved=false
+            t0=t
+            while !solved
+                solved=true
+                try
+                    t=t0+Δt
+                    pre(solution,t)
+                    solve!(solution,inival, this ,control=control,tstep=Δt)
+                catch err
+                    if (control.handle_exceptions)
+                        _print_error(err,stacktrace(catch_backtrace()))
+                    else
+                        rethrow(err)
+                    end
+                    # here we reduce the embedding step and retry the solution
+                    Δt=Δt*0.5
+                    if tp<control.tp_min
+                        throw(EmbeddingError())
+                    end
+                    solved=false
+                    if control.verbose
+                        @printf("  Evolution: retry: Δt=%.3e\n",Δt)
+                    end
+                end
+            end
+            istep=istep+1
+            Δu=delta(solution, inival)
+            if control.verbose
+                @printf("  Evolution: istep=%d t=%.3e Δu=%.3e\n",istep,t,Δu)
+            end
+            post(solution,inival,t, Δt)
+            inival.=solution
+            if t<tend
+                Δt=min(control.Δt_max,Δt*control.Δt_grow,Δt*control.Δu_opt/(Δu+1.0e-14),tend-t)
+            end
+        end
+    end
+    if control.verbose
+        @printf("  Evolution: success\n")
+    end
+    return solution
+end
+
 
 
 ################################################################

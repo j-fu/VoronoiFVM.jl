@@ -1,6 +1,9 @@
 # Changes
 
-## v0.8 Apr 28, 2019
+## v0.8.1 May 2 2020
+- Introduce evolve! : time solver with automatic timestep control
+
+## v0.8 Apr 28, 2020
 - Replaced VoronoiFVM grid module by  [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)
 - Moved grid generation, modification, plotting  over to ExtendableGrids
 - Necessary changes in codes using VoronoiFVM:
@@ -12,7 +15,7 @@
   - For using any methods on grids like cellmask! one nees to use `ExtendableGrids`
   - Subgrids now are of the same type `ExtendableGrids`,  views are currently defined for vectors only.
   
-## v0.7 Feb 28 2019
+## v0.7 Feb 28 2020
 - API modification:
   - __Breaking__:
     - `data` parameter passed to physics callbacks only if `Physics` object is created with `data` parameter.
@@ -36,7 +39,7 @@
   - Return `nothing` from mutating methods to avoid some allocations 
   - Indexing in `formfactors.jl` with `Int`
 
-## v0.6.5 Jan 25 2019
+## v0.6.5 Jan 25 2020
 - use updateindex! for matrix, depend on ExtendableSparse 0.2.6
 
 ## v0.6.4 2020-01-20

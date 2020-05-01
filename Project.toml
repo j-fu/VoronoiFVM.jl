@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
-version = "0.8.0"
+version = "0.8.1"
 
 [deps]
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
@@ -19,7 +19,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [compat]
 DiffResults = "^1.0.0"
 DocStringExtensions = "^0.8.0"
-ExtendableGrids = "^0.2.0"
+ExtendableGrids = "^0.2.2"
 ExtendableSparse = "^0.2.6"
 ForwardDiff = "^0.10.0"
 IterativeSolvers = "^0.8.0"

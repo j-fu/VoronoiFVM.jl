@@ -1,3 +1,8 @@
+"""
+$(README)
+
+$(EXPORTS)
+"""
 module VoronoiFVM
 
 
@@ -72,6 +77,7 @@ export getdof
 export setdof!
 export value
 export solve!
+export evolve!
 export embed!
 export freqdomain_impedance
 export measurement_derivative

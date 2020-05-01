@@ -85,6 +85,11 @@ mutable struct NewtonControl
     """
     edge_cutoff::Float64
 
+    Δt::Float64
+    Δt_max::Float64
+    Δt_min::Float64
+    Δt_grow::Float64
+    Δu_opt::Float64
     
     NewtonControl()=NewtonControl(new())
 end
@@ -109,6 +114,11 @@ function NewtonControl(this)
     this.Δp=1
     this.Δp_max=1
     this.Δp_min=1.0e-3
+    this.Δt=0.1
+    this.Δt_max=1
+    this.Δt_min=1.0e-3
+    this.Δt_grow=1.2
+    this.Δu_opt=0.1
     this.handle_exceptions=false
     this.edge_cutoff=0.0
     
