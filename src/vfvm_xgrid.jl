@@ -1,56 +1,15 @@
 """
-$(TYPEDSIGNATURES)
-Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
+````
+Grid=ExtendableGrids.simplexgrid
+````
+Re-Export of ExtendableGrids.simplexgrid
 """
-Grid(X)=simplexgrid(X)
-
-"""
-$(TYPEDSIGNATURES)
-Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
-"""
-Grid(X,Y)=simplexgrid(X,Y)
-
-"""
-$(TYPEDSIGNATURES)
-Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
-"""
-function Grid(;flags::String="pAaqDQ",
-              points=Array{Cdouble,2}(undef,0,0),
-              bfaces=Array{Cint,2}(undef,0,0),
-              bfaceregions=Array{Cint,1}(undef,0),
-              regionpoints=Array{Cdouble,2}(undef,0,0),
-              regionnumbers=Array{Cint,1}(undef,0),
-              regionvolumes=Array{Cdouble,1}(undef,0)
-              )
-    simplexgrid(flags=flags,
-                points=points,
-                bfaces=bfaces,
-                bfaceregions=bfaceregions,
-                regionpoints=regionpoints,
-                regionnumbers=regionnumbers,
-                regionvolumes=regionvolumes)
-end
-
-"""
-$(TYPEDSIGNATURES)
-Delegating wrapper to simplexgrid method of [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl)    
-"""
-Grid(nodes,cells,cellmat,bfaces,bfacemat)=simplexgrid(nodes,cells,cellmat,bfaces,bfacemat)
-
-######################################################
-"""
-$(TYPEDSIGNATURES)
-  
-Read grid from file. Currently for pdelib sg format only
-"""
-Grid(io::Type{<:IOStream};file::String="test.sg",format="")=simplexgrid(io,file=file,format=format)
-
+const Grid = ExtendableGrids.simplexgrid
 
 
 num_cellregions(grid::ExtendableGrid)=grid[NumCellRegions]
 num_bfaceregions(grid::ExtendableGrid)=grid[NumBFaceRegions]
 num_edges(grid::ExtendableGrid)=haskey(grid,EdgeNodes) ?  num_sources(grid[EdgeNodes]) : 0
-
 
 cellregions(grid::ExtendableGrid)= grid[CellRegions]
 bfaceregions(grid::ExtendableGrid)= grid[BFaceRegions]
