@@ -1,5 +1,10 @@
 # Changes
 
+## v0.8.2 May 15 2020
+- Form factors are now pre-calculated and stored
+- Introduced update_grid! for triggering re-calculation
+  if coordinates have changed
+
 ## v0.8.1 May 2 2020
 - Introduce evolve! : time solver with automatic timestep control
 

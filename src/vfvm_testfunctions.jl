@@ -115,9 +115,6 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
     cellnodes=grid[CellNodes]
     cellregions=grid[CellRegions]
 
-    node_factors=zeros(Tv,num_nodes(geom))
-    edge_factors=zeros(Tv,num_edges(geom))
-
     if haskey(grid,CellEdges)
         cellx=grid[CellEdges]
         edgenodes=grid[EdgeNodes]
@@ -129,7 +126,6 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
     end
     
     for icell=1:num_cells(grid)
-        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
         for iedge=1:num_edges(geom)
             _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
@@ -141,7 +137,7 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
             @views this.physics.flux(res,UKL,edgeparams...)
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
-                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+                    integral[ispec]+=this.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
@@ -158,7 +154,7 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
             end
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=node_factors[inode]*(res[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
+                    integral[ispec]+=this.cellnodefactors[inode,icell]*(res[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
                 end
             end
         end
@@ -216,13 +212,9 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
         has_celledges=false
     end
         
-    # Arrays for holding for factor data
-    node_factors=zeros(Tv,num_nodes(geom))
-    edge_factors=zeros(Tv,num_edges(geom))
 
    
     for icell=1:num_cells(grid)
-        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
         for iedge=1:num_edges(geom)
             _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
@@ -234,7 +226,7 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
             this.physics.flux(res,UKL,edgeparams...)
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
-                    integral[ispec]+=edge_factors[iedge]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+                    integral[ispec]+=this.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
@@ -248,7 +240,7 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
             this.physics.reaction(res,UK,nodeparams...)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=node_factors[inode]*res[ispec]*tf[node.index]
+                    integral[ispec]+=this.cellnodefactors[inode,icell]*res[ispec]*tf[node.index]
                 end
             end
         end
@@ -286,13 +278,8 @@ function integrate_tran(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
     cellnodes=grid[CellNodes]
     cellregions=grid[CellRegions]
 
-    # Arrays for holding for factor data
-    node_factors=zeros(Tv,num_nodes(geom))
-    edge_factors=zeros(Tv,num_edges(geom))
-
     
     for icell=1:num_cells(grid)
-        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
         for inode=1:num_nodes(geom)
             _fill!(node,cellnodes,cellregions,inode,icell)
             for ispec=1:nspecies
@@ -303,7 +290,7 @@ function integrate_tran(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
             this.physics.storage(stor,U[:,node.index],nodeparams...)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=node_factors[inode]*stor[ispec]*tf[node.index]
+                    integral[ispec]+=this.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
                 end
             end
         end

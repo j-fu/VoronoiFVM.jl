@@ -138,6 +138,7 @@ end
 # Create matrix in system and figure out if species
 # distribution is homgeneous
 function _complete!(this::AbstractSystem{Tv,Ti};create_newtonvectors=false) where {Tv,Ti}
+
     if isdefined(this,:matrix)
         return
     end
@@ -160,6 +161,38 @@ function _complete!(this::AbstractSystem{Tv,Ti};create_newtonvectors=false) wher
     if create_newtonvectors
         this.residual=unknowns(this)
         this.update=unknowns(this)
+    end
+    update_grid!(this)
+end
+
+
+"""
+$(SIGNATURES)
+
+Update grid (e.g. after rescaling of coordinates).
+"""
+function update_grid!(this::AbstractSystem{Tv,Ti};grid=this.grid) where{Tv, Ti}
+    this.grid=grid
+    geom=grid[CellGeometries][1]
+    csys=grid[CoordinateSystem]
+    coord=grid[Coordinates]
+    cellnodes=grid[CellNodes]
+    cellregions=grid[CellRegions]
+    bgeom=grid[BFaceGeometries][1]
+    bfacenodes=grid[BFaceNodes]
+    nbfaces=num_bfaces(grid)
+    ncells=num_cells(grid)
+
+    this.cellnodefactors=zeros(Tv,num_nodes(geom),ncells)
+    this.celledgefactors=zeros(Tv,num_edges(geom),ncells)
+    this.bfacenodefactors=zeros(Tv,num_nodes(bgeom),nbfaces)
+
+    for icell=1:ncells
+        @views cellfactors!(geom,csys,coord,cellnodes,icell,this.cellnodefactors[:,icell],this.celledgefactors[:,icell])
+    end
+    
+    for ibface=1:nbfaces
+        @views bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,this.bfacenodefactors[:,ibface])
     end
 end
 

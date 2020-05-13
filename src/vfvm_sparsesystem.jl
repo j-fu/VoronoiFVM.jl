@@ -92,6 +92,10 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
     residual::SparseSolutionArray{Tv,Ti}
 
+    cellnodefactors::Array{Tv,2}
+    celledgefactors::Array{Tv,2}
+    bfacenodefactors::Array{Tv,2}
+    
     SparseSystem{Tv,Ti}() where {Tv,Ti} = new()
 end
 

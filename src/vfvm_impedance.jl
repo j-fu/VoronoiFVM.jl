@@ -92,16 +92,10 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
 
 
 
-    # Arrays for holding form factor data
-    node_factors=zeros(Tv,num_nodes(geom))
-    edge_factors=zeros(Tv,num_edges(geom))
-    bnode_factors=zeros(Tv,num_nodes(bgeom))
 
     
     # Main cell loop for building up storderiv
     for icell=1:num_cells(grid)
-        # set up form factors
-        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
         
         for inode=1:num_nodes(geom)
             _fill!(node,cellnodes,cellregions,inode,icell)
@@ -119,7 +113,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
                 ispec=_spec(F,idof,K)
                 for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                     jspec=_spec(F,jdof,K)
-                    _addnz(storderiv,idof,jdof,jac_stor[ispec,jspec],node_factors[inode])
+                    _addnz(storderiv,idof,jdof,jac_stor[ispec,jspec],sys.cellnodefactors[inode,icell])
                 end
             end
 
@@ -128,7 +122,6 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
     end
 
     for ibface=1:num_bfaces(grid)
-        bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,bnode_factors)
         ibreg=bfaceregions[ibface]
         for ibnode=1:num_nodes(bgeom)
             @views begin
@@ -148,7 +141,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
                         if fac==Dirichlet
                             F[ispec,bnode.index]+=fac
                         else
-                            F[ispec,bnode.index]+=fac*bnode_factors[ibnode]
+                            F[ispec,bnode.index]+=fac*sys.bfacenodefactors[ibnode,ibface]
                         end
                     end
                 end
@@ -166,7 +159,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
                     ispec=_spec(F,idof,K)
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
-                        _addnz(storderiv,idof,jdof,jac_bstor[ispec,jspec],bnode_factors[ibnode])
+                        _addnz(storderiv,idof,jdof,jac_bstor[ispec,jspec],sys.bfacenodefactors[ibnode,ibface])
                     end
                 end
             end

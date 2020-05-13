@@ -69,6 +69,7 @@ export dim_space
 export cellnode
 export enable_species!
 export enable_boundary_species!
+export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!

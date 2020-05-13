@@ -74,6 +74,11 @@ mutable struct DenseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
     residual::Matrix{Tv}
 
+    cellnodefactors::Array{Tv,2}
+    celledgefactors::Array{Tv,2}
+    bfacenodefactors::Array{Tv,2}
+
+    
     DenseSystem{Tv,Ti}() where {Tv,Ti} = new()
 end
 ##################################################################

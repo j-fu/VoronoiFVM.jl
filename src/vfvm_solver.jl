@@ -239,7 +239,11 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     edge=Edge{Tv,Ti}(system)
     nspecies=num_species(system)
     matrix=system.matrix
-
+    cellnodefactors=system.cellnodefactors
+    celledgefactors=system.celledgefactors
+    bfacenodefactors=system.bfacenodefactors
+    
+    
     # splatting would work but costs allocations
     if isdata(data)
         issource=(physics.source!=nofunc)
@@ -397,23 +401,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         has_celledges=false
     end
 
-    # Arrays for holding for factor data
-    node_factors=zeros(Tv,num_nodes(geom))
-    edge_factors=zeros(Tv,num_edges(geom))
-    bnode_factors=zeros(Tv,num_nodes(bgeom))
-
-
     # Main cell loop
     for icell=1:ncells
-        # Set up form factors
-        # Here and  in subsequent calls in this loop, we observe a strange phenomenon:
-        # Up  icell=512, ther are no allocations.
-        # For icell>512, each call generates an allocation of 16B
-        # We have so far not been able to find  an MWE for this...
-        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
-        # The problem occurs even when we continue from here.
-        # continue
-        
         for inode=1:num_nodes(geom)
             _fill!(node,cellnodes,cellregions,inode,icell)
             for ispec=1:nspecies
@@ -455,15 +444,15 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
             for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idof,K)
-                _add(F,idof,node_factors[inode]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
+                _add(F,idof,cellnodefactors[inode,icell]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
                 for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                     jspec=_spec(F,jdof,K)
-                    _addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,node_factors[inode])
+                    _addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,cellnodefactors[inode,icell])
                 end
             end
         end
         for iedge=1:num_edges(geom)
-            if abs(edge_factors[iedge])<edge_cutoff
+            if abs(celledgefactors[iedge,icell])<edge_cutoff
                 continue
             end
 
@@ -481,7 +470,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
             K=edge.node[1]
             L=edge.node[2]
-            fac=edge_factors[iedge]
+            fac=celledgefactors[iedge,icell]
             for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idofK,K)
                 idofL=dof(F,ispec,L)
@@ -510,11 +499,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     # Assembly loop for boundary conditions
     for ibface=1:nbfaces
-
-        # Calculate measure of boundary face contribution
-        # to the corresponding nodes
-        bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,bnode_factors)
-
         # Obtain boundary region number
         ibreg=bfaceregions[ibface]
 
@@ -530,7 +514,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             end
 
             # Measure of boundary face part assembled to node
-            bnode_factor=bnode_factors[ibnode]
+            bnode_factor=bfacenodefactors[ibnode,ibface]
 
             # Global index of node
             K=bnode.index
@@ -729,7 +713,7 @@ $(TYPEDSIGNATURES)
 
 Time dependent solver for abstract system
 
-Use iimplicit Euler method with + damped   Newton's method  to 
+Use implicit Euler method with + damped   Newton's method  to 
 solve time dependent problem.
 """
 function evolve!(
@@ -740,7 +724,7 @@ function evolve!(
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,t) end,       # Function for preparing step
     post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
-    delta=(u,v)->norm(u-v,Inf)
+    delta=(u,v,t, Δt)->norm(u-v,Inf) # Time step error estimator
 ) where Tv
     inival=copy(xinival)
     Δt=control.Δt
@@ -757,6 +741,7 @@ function evolve!(
         while t<tend
             solved=false
             t0=t
+            Δu=0.0
             while !solved
                 solved=true
                 try
@@ -769,26 +754,36 @@ function evolve!(
                     else
                         rethrow(err)
                     end
-                    # here we reduce the embedding step and retry the solution
+                    solved=false
+                end
+                if solved
+                    Δu=delta(solution, inival,t, Δt)
+                    if Δu>2.0*control.Δu_opt
+                        solved=false
+                    end
+                end
+                if !solved
+                    # reduce time step and retry  solution
                     Δt=Δt*0.5
-                    if tp<control.tp_min
+                    if Δt<control.Δt_min
                         throw(EmbeddingError())
                     end
-                    solved=false
                     if control.verbose
                         @printf("  Evolution: retry: Δt=%.3e\n",Δt)
                     end
                 end
             end
             istep=istep+1
-            Δu=delta(solution, inival)
             if control.verbose
                 @printf("  Evolution: istep=%d t=%.3e Δu=%.3e\n",istep,t,Δu)
             end
             post(solution,inival,t, Δt)
             inival.=solution
             if t<tend
-                Δt=min(control.Δt_max,Δt*control.Δt_grow,Δt*control.Δu_opt/(Δu+1.0e-14),tend-t)
+                Δt=min(control.Δt_max,
+                       Δt*control.Δt_grow,
+                       Δt*control.Δu_opt/(Δu+1.0e-14),
+                       tend-t)
             end
         end
     end
@@ -804,14 +799,13 @@ end
 """
 $(SIGNATURES)
 
-Integrate function `F` of  solution vector over domain. 
+Integrate function `F` of  solution vector over domain or boundary 
 The result contains the integral for each species separately.
 """
-function integrate(this::AbstractSystem{Tv,Ti},F::Function,U::AbstractMatrix{Tu}) where {Tu,Tv,Ti}
+function integrate(this::AbstractSystem{Tv,Ti},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti}
     grid=this.grid
     data=this.physics.data
     nspecies=num_species(this)
-    integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     node=Node{Tv,Ti}(this)
     nodeparams=(node,)
@@ -819,28 +813,54 @@ function integrate(this::AbstractSystem{Tv,Ti},F::Function,U::AbstractMatrix{Tu}
         nodeparams=(node,data,)
     end
 
+    
 
-    geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
     coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
-    node_factors=zeros(Tv,num_nodes(geom))
-    edge_factors=zeros(Tv,num_edges(geom))
 
-    
-    for icell=1:num_cells(grid)
-        cellfactors!(geom,csys,coord,cellnodes,icell,node_factors,edge_factors)
-        for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
-            F(res,U[:,node.index],nodeparams...)
-            for ispec=1:nspecies
-                if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=node_factors[inode]*res[ispec]
+
+    if boundary
+        
+        geom=grid[BFaceGeometries][1]
+        bfacenodes=grid[BFaceNodes]
+        bfaceregions=grid[BFaceRegions]
+        nbfaceregions=maximum(bfaceregions)
+        integral=zeros(Tu,nspecies,nbfaceregions)
+        
+        
+        for ibface=1:num_bfaces(grid)
+            for inode=1:num_nodes(geom)
+                _fill!(node,bfacenodes,bfaceregions,inode,ibface)
+                F(res,U[:,node.index],nodeparams...)
+                for ispec=1:nspecies
+                    if this.node_dof[ispec,node.index]==ispec
+                        integral[ispec,node.region]+this.bfacenodefactors[inode,ibface]*res[ispec]
+                    end
+                end
+            end
+        end
+    else
+        geom=grid[CellGeometries][1]
+        cellnodes=grid[CellNodes]
+        cellregions=grid[CellRegions]
+        ncellregions=maximum(cellregions)
+        integral=zeros(Tu,nspecies,ncellregions)
+        
+        
+        for icell=1:num_cells(grid)
+            for inode=1:num_nodes(geom)
+                _fill!(node,cellnodes,cellregions,inode,icell)
+                F(res,U[:,node.index],nodeparams...)
+                for ispec=1:nspecies
+                    if this.node_dof[ispec,node.index]==ispec
+                        integral[ispec,node.region]+=this.cellnodefactors[inode,icell]*res[ispec]
+                    end
                 end
             end
         end
     end
+    
+
     return integral
 end
 

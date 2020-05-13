@@ -66,7 +66,7 @@ $(SIGNATURES)
 Calculate node volume  and voronoi surface contributions for cell.
 """ 
 
-function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell::Int,nodefac,edgefac) where Tv
     K=cellnodes[1,icell]
     L=cellnodes[2,icell]
     xK=coord[1,K]
@@ -78,7 +78,7 @@ function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell::
     nothing
 end
 
-function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell::Int,nodefac::Vector{Tv},edgefac::Vector{Tv}) where Tv
+function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell::Int,nodefac,edgefac) where Tv
     K=cellnodes[1,icell]
     L=cellnodes[2,icell]
     xK=coord[1,K]
@@ -140,7 +140,7 @@ function cellfactors!(::Type{Triangle2D},::Type{Cartesian2D},coord,cellnodes,ice
 end                              
 
 
-function cellfactors!(::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes,icell::Int,npar::Vector{Tv},epar::Vector{Tv}) where Tv
+function cellfactors!(::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes,icell::Int,npar,epar)
     function area2d(coord1, coord2, coord3)
         V11= coord2[1]- coord1[1]
         V21= coord2[2]- coord1[2]
@@ -157,7 +157,6 @@ function cellfactors!(::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes
     end
         
 
-    πv::Tv=π
     i1=cellnodes[1,icell]
     i2=cellnodes[2,icell]
     i3=cellnodes[3,icell]
@@ -178,7 +177,7 @@ function cellfactors!(::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes
     area=0.5*det
     
     # Integrate R over triangle (via quadrature rule)
-    vol=2.0*πv*area*(coord[1,i1]+coord[1,i2]+coord[1,i3])/3.0
+    vol=2.0*π*area*(coord[1,i1]+coord[1,i2]+coord[1,i3])/3.0
     
     # squares of edge lengths
     dd1=V13*V13+V23*V23 # l32
@@ -200,11 +199,11 @@ function cellfactors!(::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes
     r(p)=p[1]
     z(p)=p[2]
     sq(x)=x*x
-    epar[1]= πv*(r(cc)+r(emid23))*sqrt(sq(r(cc)-r(emid23))+sq(z(cc)-z(emid23)))/sqrt(dd1);
-    epar[2]= πv*(r(cc)+r(emid13))*sqrt(sq(r(cc)-r(emid13))+sq(z(cc)-z(emid13)))/sqrt(dd2);
-    epar[3]= πv*(r(cc)+r(emid12))*sqrt(sq(r(cc)-r(emid12))+sq(z(cc)-z(emid12)))/sqrt(dd3);
+    epar[1]= π*(r(cc)+r(emid23))*sqrt(sq(r(cc)-r(emid23))+sq(z(cc)-z(emid23)))/sqrt(dd1);
+    epar[2]= π*(r(cc)+r(emid13))*sqrt(sq(r(cc)-r(emid13))+sq(z(cc)-z(emid13)))/sqrt(dd2);
+    epar[3]= π*(r(cc)+r(emid12))*sqrt(sq(r(cc)-r(emid12))+sq(z(cc)-z(emid12)))/sqrt(dd3);
     
-    rintegrate(coord1, coord2, coord3)=2.0*πv*area2d(coord1,coord2,coord3)*(coord1[1]+coord2[1]+coord3[1])/3.0
+    rintegrate(coord1, coord2, coord3)=2.0*π*area2d(coord1,coord2,coord3)*(coord1[1]+coord2[1]+coord3[1])/3.0
     npar[1]=rintegrate(coord[:,i1],cc,emid13)+rintegrate(coord[:,i1],cc,emid12)
     npar[2]=rintegrate(coord[:,i2],cc,emid23)+rintegrate(coord[:,i2],cc,emid12)
     npar[3]=rintegrate(coord[:,i3],cc,emid13)+rintegrate(coord[:,i3],cc,emid23)
@@ -219,12 +218,12 @@ $(SIGNATURES)
 Calculate node volume  contributions for boundary face.
 """ 
 
-function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface::Int,nodefac) where Tv
     nodefac[1]=1.0
     nothing
 end
 
-function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac) where Tv
     inode=bfacenodes[1,ibface]
     r=coord[1,inode]
     nodefac[1]=2*pi*r
@@ -232,7 +231,7 @@ function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibfac
 end
 
 # TODO: Test
-function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface::Int,nodefac) where Tv
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     dx=coord[1,i1]-coord[1,i2]
@@ -244,7 +243,7 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibf
 end
 
 # TODO: Test
-function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface::Int,nodefac::Vector{Tv}) where Tv
+function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface::Int,nodefac) where Tv
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     r1=coord[1,i1]
