@@ -172,7 +172,7 @@ $(SIGNATURES)
 Update grid (e.g. after rescaling of coordinates).
 """
 function update_grid!(this::AbstractSystem{Tv,Ti};grid=this.grid) where{Tv, Ti}
-    this.grid=grid
+
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
     coord=grid[Coordinates]
