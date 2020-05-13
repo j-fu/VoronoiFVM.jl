@@ -96,9 +96,12 @@ function fbernoulli_pm(x::Real)
         bm = 1.0 + 0.5*x + horder
         return bp,bm
     else
-        expx=exp(x)
-        bp=x/(expx-1.0)
-        bm=expx*bp
+        expmx=exp(-x)
+        bm=-x/(expmx-1.0)
+        bp=expmx*bm
+        # expx=exp(x)
+        # bp=x/(expx-1.0)
+        # bm=expx*bp
         return bp,bm
     end
 end
