@@ -100,14 +100,9 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
     edge=Edge{Tv,Ti}(this)
     data=this.physics.data
     UKL=Array{Tv,2}(undef,nspecies,2)
-
-    nodeparams=(node,)
-    edgeparams=(edge,)
-
-    if isdata(data)
-        nodeparams=(node,data,)
-        edgeparams=(edge,data,)
-    end    
+    UK=Array{Tv,1}(undef,nspecies)
+    UKold=Array{Tv,1}(undef,nspecies)
+    
 
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
@@ -134,7 +129,11 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
                 UKL[ispec,2]=U[ispec,edge.node[2]]
             end
             res.=0
-            @views this.physics.flux(res,UKL,edgeparams...)
+            if isdata(data)
+                this.physics.flux(res,UKL,edge,data)
+            else
+                this.physics.flux(res,UKL,edge)
+            end
             for ispec=1:nspecies
                 if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
                     integral[ispec]+=this.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
@@ -144,13 +143,23 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
         
         for inode=1:num_nodes(geom)
             _fill!(node,cellnodes,cellregions,inode,icell)
-            @views begin
+            begin
                 res.=0
                 stor.=0
                 storold.=0
-                this.physics.reaction(res,U[:,node.index],nodeparams...)
-                this.physics.storage(stor,U[:,node.index],nodeparams...)
-                this.physics.storage(storold,Uold[:,node.index],nodeparams...)
+                for ispec=1:nspecies
+                    UK[ispec]=U[ispec,node.index]
+                    UKold[ispec]=Uold[ispec,node.index]
+                end
+                if isdata(data)
+                    this.physics.reaction(res,UK,node,data)
+                    this.physics.storage(stor,UK,node,data)
+                    this.physics.storage(storold,UKold,node,data)
+                else
+                    this.physics.reaction(res,UK,node)
+                    this.physics.storage(stor,UK,node)
+                    this.physics.storage(storold,UKold,node)
+                end
             end
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
