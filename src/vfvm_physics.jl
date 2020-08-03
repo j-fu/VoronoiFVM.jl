@@ -1,7 +1,7 @@
 ##########################################################
 """
 $(TYPEDEF)
-    
+
 Abstract type for physics.
 """
 abstract type AbstractPhysics end
@@ -11,22 +11,23 @@ abstract type AbstractPhysics end
 ##########################################################
 """
 $(TYPEDEF)
-    
+
 Abstract type for user data.
 
+!!! Deprecate
+There is no benefit in inheriting from `AbstractData` and this type
+will be removed in a future release.
 """
 abstract type AbstractData end
 
 struct NoData <: AbstractData
-    NoData()=new() 
 end
 
 struct DummyData <: AbstractData
-    DummyData()=new() 
 end
 
 isdata(::NoData)=false
-isdata(::AbstractData)=true
+isdata(::Any)=true
 
 #
 # Dummy callbacks
@@ -49,10 +50,10 @@ end
 ##########################################################
 """
 $(TYPEDEF)
-    
+
 Physics data record.
 
-$(TYPEDFIELDS) 
+$(TYPEDFIELDS)
 """
 struct Physics{Flux<:Function,
                Reaction<:Function,
@@ -60,7 +61,7 @@ struct Physics{Flux<:Function,
                Source<:Function,
                BReaction<:Function,
                BStorage<:Function,
-               D<:AbstractData} <: AbstractPhysics
+               Data} <: AbstractPhysics
     """
     Flux between neigboring control volumes
     """
@@ -94,9 +95,9 @@ struct Physics{Flux<:Function,
     """
     User data (parameters)
     """
-    data::D
+    data::Data
 
-    """ 
+    """
     Number of species
     """
     num_species::Int8
@@ -138,7 +139,7 @@ function Physics(;num_species=1,
 end
 
 hasdata(physics::Physics)=isdata(physics.data)
-   
+
 
 function Base.show(io::IO,physics::AbstractPhysics)
     str=@sprintf("VoronoiFVM.Physics(num_species=%d",physics.num_species)

@@ -7,68 +7,55 @@ using Printf
 using VoronoiFVM
 
 
-
-
-mutable struct MyData <: VoronoiFVM.AbstractData
-    eps::Float64
-    k::Float64
-    MyData()=new() 
-end
-
-
-
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
-    
+
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
 
     grid=VoronoiFVM.Grid(X,Y)
-    data=MyData()
-    
+    data = (eps=1.0e-2, k=1.0)
+
     function reaction!(f,u,node,data)
         f[1]=data.k*(u[1]-u[2])
         f[2]=data.k*(u[2]-u[1])
     end
-    
+
     function flux!(f,u,edge,data)
         f[1]=data.eps*(u[1,1]-u[1,2])
         f[2]=data.eps*(u[2,1]-u[2,2])
     end
-    
+
     function source!(f,node,data)
         x1=node[1]-0.5
         x2=node[2]-0.5
         f[1]=exp(-20*(x1^2+x2^2))
     end
-    
+
     function storage!(f,u,node,data)
         f[1]=u[1]
         f[2]=u[2]
     end
-    
-    
+
+
     physics=VoronoiFVM.Physics(num_species=2,
                                data=data,
                                flux=flux!,
                                storage=storage!,
                                reaction=reaction!,
                                source=source!)
-    
-    data.eps=1.0e-2
-    data.k=1.0
 
-    
+
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
-    
+
     inival=unknowns(sys)
     U=unknowns(sys)
     inival.=0.0
-    
-    
+
+
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
@@ -87,7 +74,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         u15=U[15]
         tstep*=1.0
         istep=istep+1
-        
+
         if isplots(Plotter)
             p1=Plotter.contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g\n",maximum(U[1,:]),maximum(U[2,:])))
             p2=Plotter.contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6), colorbar=:right,color=:viridis)
