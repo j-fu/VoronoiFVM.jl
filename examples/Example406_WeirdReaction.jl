@@ -97,13 +97,13 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
             f[iB]-=R
         end
     end
-    
-    ## This general operator works on the full solution seen as linear vector, and indexing
+
+    ## This generic operator works on the full solution seen as linear vector, and indexing
     ## into it needs to be performed with the help of idx (defined below for a solution vector)
     ## Its sparsity is detected automatically using SparsityDetection.jl
     ## Here, we calculate the gradient of u_A at the boundary and store the value in u_C which
     ## is then used as a parameter in the boundary reaction
-    function general_operator!(f,u,sys)
+    function generic_operator!(f,u,sys)
         f.=0
         f[idx[iC,1]]=u[idx[iC,1]]  + 0.1*(u[idx[iA,1]]-u[idx[iA,2]])/(X[2]-X[1])
     end
@@ -111,7 +111,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     physics=VoronoiFVM.Physics(
         num_species=3,
         breaction=breaction!,
-        general=general_operator!,
+        generic=generic_operator!,
         flux=flux!,
         storage=storage!,
         source=source!

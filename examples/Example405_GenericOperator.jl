@@ -1,5 +1,5 @@
 #=
-# 405: General Operator: 1D Nonlinear Poisson equation 
+# 405: Generic Operator: 1D Nonlinear Poisson equation 
 ([source code](SOURCE_URL))
 
 Solve the nonlinear Poisson equation
@@ -21,7 +21,7 @@ Such equation occur e.g. in simulations of electrochemical systems and semicondu
  
 =# 
 
-module Example405_GeneralOperator
+module Example405_GenericOperator
 using Printf
 using VoronoiFVM
 
@@ -35,12 +35,12 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     ## A parameter which is "passed" to the flux function via scope
     ϵ=1.0e-3
 
-    ## This general operator works on the full solution seen as linear vector, and indexing
+    ## This generic operator works on the full solution seen as linear vector, and indexing
     ## into it needs to be performed with the help of idx (defined below for a solution vector)
-    ## Here, instead of the flux function we provide a "general operator"
+    ## Here, instead of the flux function we provide a "generic operator"
     ## which provides the stiffness part of the problem. Its sparsity is detected automatically
     ## using SparsityDetection.jl 
-    function general_operator!(f,u,sys)
+    function generic_operator!(f,u,sys)
         f.=0.0
         for i=1:length(X)-1
             du=ϵ*(u[idx[1,i]]-u[idx[1,i+1]])/(X[i+1]-X[i])
@@ -65,7 +65,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     
     ## Create a physics structure
     physics=VoronoiFVM.Physics(
-        general=general_operator!,
+        generic=generic_operator!,
         source=source!,
         reaction=reaction!)
     
