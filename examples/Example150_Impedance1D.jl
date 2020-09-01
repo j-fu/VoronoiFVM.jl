@@ -1,18 +1,18 @@
 # # 150: Impedance calculation
 # ([source code](SOURCE_URL))
 #
-#  Impedance calculation for 
+#  Impedance calculation for
 #
 #    C u_t - (D u_x)_x + Ru = 0   in (0,1)
 #      u(0,t)=1 + exp(iωt)
 #      u(1,t)=0
 #
 #    Measurement: I(t)= D u_x(1,t)
-#     
-#    Steady state: 
+#
+#    Steady state:
 #    - (D u0_x)_x + Ru0 = 0
-#    u0(0,t)=1 
-#    u0(1,t)=0 
+#    u0(0,t)=1
+#    u0(1,t)=0
 #
 #    Small signal ansatz for ω
 #
@@ -21,22 +21,13 @@
 #    iωC ua - (D ua_x)_x + R u_a =0
 #      ua(0)=1
 #      ua(1)=0
-# 
-#        
+#
+#
 
 module Example150_Impedance1D
 
 using Printf
 using VoronoiFVM
-
-# Structure containing  userdata information
-mutable struct Data  <: VoronoiFVM.AbstractData
-    D::Float64           
-    C::Float64
-    R::Float64
-    Data()=new()
-end
-
 
 function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
@@ -50,11 +41,8 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     # Create discretitzation grid
     grid=VoronoiFVM.Grid(X)
 
-    # Create and fill data 
-    data=Data()
-    data.R=1
-    data.D=1
-    data.C=2
+    # Create and fill data
+    data = (R=1, D=1, C=2)
 
     # Declare constitutive functions
     flux=function(f,u,edge,data)
@@ -92,8 +80,8 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
     boundary_dirichlet!(sys,excited_spec,excited_bc,excited_bcval)
     boundary_dirichlet!(sys,1,2,0.0)
-    
-    
+
+
     inival=unknowns(sys)
     steadystate=unknowns(sys)
     inival.=0.0
@@ -110,7 +98,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         meas[1]=VoronoiFVM.integrate_tran(sys,measurement_testfunction,u)[1]
         nothing
     end
-    
+
 
     dmeas_stdy=measurement_derivative(sys,meas_stdy,steadystate)
     dmeas_tran=measurement_derivative(sys,meas_tran,steadystate)
@@ -140,10 +128,10 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     testval=0.0
     UZ=unknowns(isys)
     while ω<ω1
-        
+
         iω=1im*ω
 
-        
+
         # solve impedance system
         solve!(UZ,isys,ω)
 
@@ -166,7 +154,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         ω=ω*1.2
 
     end
-    
+
     if isplots(Plotter)
         p=Plotter.plot(grid=true)
         Plotter.plot!(p,real(allIL),imag(allIL),label="calc")
