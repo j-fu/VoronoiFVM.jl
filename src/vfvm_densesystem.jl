@@ -78,7 +78,9 @@ mutable struct DenseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     celledgefactors::Array{Tv,2}
     bfacenodefactors::Array{Tv,2}
 
-    
+    generic_matrix::SparseMatrixCSC
+    generic_matrix_colors::Vector
+   
     DenseSystem{Tv,Ti}() where {Tv,Ti} = new()
 end
 ##################################################################
@@ -151,10 +153,9 @@ Reshape vector to fit as solution to system.
 """
 function Base.reshape(v::AbstractVector{Tu}, sys::DenseSystem{Tv}) where {Tu,Tv}
     @assert  length(v)==num_dof(sys)
-    reshape(v,Int64(num_species(sys)),num_nodes(sys.grid))
+    nspec=num_species(sys)
+    reshape(v,Int64(nspec),Int64(length(v)/nspec))
 end
-
-
 
 ##################################################################
 """
@@ -175,6 +176,7 @@ Get number of degree of freedom.
 """
 dof(a::Array{Tv,2}, ispec::Integer, K::Integer) where Tv = (K-1)*size(a,1)+ispec
 
+unknown_indices(a::Array{Tv,2}) where Tv=LinearIndices(a)
 
 #
 # Assemble dummy equations for inactive species

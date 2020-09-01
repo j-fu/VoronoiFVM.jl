@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
-version = "0.8.4"
+version = "0.8.5"
 
 [deps]
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
@@ -14,14 +14,16 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
+SparsityDetection = "684fba80-ace3-11e9-3d08-3bc7ed6f96df"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 DiffResults = "^1.0.0"
 DocStringExtensions = "^0.8.0"
 ExtendableGrids = "^0.2.3"
-ExtendableSparse = "^0.2.6"
+ExtendableSparse = "^0.3.0"
 ForwardDiff = "^0.10.0"
 IterativeSolvers = "^0.8.0"
 SparseDiffTools = "^1.0.0"
+SparsityDetection = "^0.3.3"
 julia = "^1.3"

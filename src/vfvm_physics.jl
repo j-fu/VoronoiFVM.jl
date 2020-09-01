@@ -45,6 +45,9 @@ function default_storage2(f,u,node)
     f.=u
 end
 
+function nofunc_generic(f,u,sys)
+end
+
 
 ##########################################################
 """
@@ -60,6 +63,7 @@ struct Physics{Flux<:Function,
                Source<:Function,
                BReaction<:Function,
                BStorage<:Function,
+               GenericOperator<:Function,
                D<:AbstractData} <: AbstractPhysics
     """
     Flux between neigboring control volumes
@@ -92,6 +96,12 @@ struct Physics{Flux<:Function,
     bstorage::BStorage
 
     """
+    Generic function
+    """
+    generic_operator::GenericOperator
+
+    
+    """
     User data (parameters)
     """
     data::D
@@ -116,7 +126,8 @@ function Physics(;num_species=1,
                  storage::Function=default_storage,
                  source::Function=nofunc,
                  breaction::Function=nofunc,
-                 bstorage::Function=nofunc
+                 bstorage::Function=nofunc,
+                 generic::Function=nofunc_generic
                  )
     if !isdata(data)
         flux==nofunc ? flux=nofunc2 : true
@@ -132,6 +143,7 @@ function Physics(;num_species=1,
                    source,
                    breaction,
                    bstorage,
+                   generic,
                    data,
                    Int8(num_species)
                    )

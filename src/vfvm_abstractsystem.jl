@@ -163,6 +163,18 @@ function _complete!(this::AbstractSystem{Tv,Ti};create_newtonvectors=false) wher
         this.update=unknowns(this)
     end
     update_grid!(this)
+    if has_generic_operator(this)
+        generic_operator(f,u)=this.physics.generic_operator(f,u,this)
+        input=vec(unknowns(this))
+        input.=rand()
+        output=similar(input)
+        tdetect=@elapsed begin
+            sparsity_pattern = jacobian_sparsity(generic_operator,output,input)
+            this.generic_matrix = Float64.(sparse(sparsity_pattern))
+            this.generic_matrix_colors = matrix_colors(this.generic_matrix)
+        end
+        println("sparsity detection for generic operator: $(tdetect) s")
+    end
 end
 
 
@@ -307,3 +319,5 @@ function Base.show(io::IO,sys::AbstractSystem)
     println(io,str)
 end
 
+#####################################################
+has_generic_operator(sys::AbstractSystem) = sys.physics.generic_operator!=nofunc_generic

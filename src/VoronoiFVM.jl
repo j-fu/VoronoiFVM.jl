@@ -18,6 +18,9 @@ using SparseArrays
 using ExtendableSparse
 using LinearAlgebra
 
+using SparseDiffTools
+using SparseArrays
+using SparsityDetection
 
 using Printf
 
@@ -84,7 +87,7 @@ export freqdomain_impedance
 export measurement_derivative
 export testfunction
 export meas
-
+export unknown_indices
 
 export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities

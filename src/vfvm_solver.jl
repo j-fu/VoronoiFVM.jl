@@ -134,7 +134,7 @@ function _solve!(
             end
         else
             # When reusing lu factorization, we may try to iterate
-            # Generally, this is advisable.
+            # Genericly, this is advisable.
             if control.tol_linear <1.0
                 (sol,history)= bicgstabl!(values(update),
                                           this.matrix,
@@ -334,8 +334,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         end
 
     end        
-
-
     
     # Reset matrix + rhs
     nzv=nonzeros(matrix)
@@ -599,7 +597,32 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             
         end
     end
+    _eval_and_assemble_generic_operator(system,U,F)
     _eval_and_assemble_inactive_species(system,U,UOld,F)
+end
+
+
+function _eval_and_assemble_generic_operator(this::AbstractSystem,U,F)
+
+    if !has_generic_operator(this)
+        return
+    end
+
+    generic_operator(f,u)=this.physics.generic_operator(f,u,this)
+    vecF=vec(F)
+    vecU=vec(U)
+    y=similar(vecF)
+    generic_operator(y,vecU)
+    vecF.+=y
+    forwarddiff_color_jacobian!(this.generic_matrix, generic_operator, vecU, colorvec = this.generic_matrix_colors)
+    rowval=this.generic_matrix.rowval
+    colptr=this.generic_matrix.colptr
+    nzval=this.generic_matrix.nzval
+    for i=1:length(colptr)-1
+        for j=colptr[i]:colptr[i+1]-1
+            updateindex!(this.matrix,+,nzval[j],i,rowval[j])
+        end
+    end
 end
 
 ################################################################

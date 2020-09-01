@@ -96,6 +96,9 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     celledgefactors::Array{Tv,2}
     bfacenodefactors::Array{Tv,2}
     
+    generic_matrix::SparseMatrixCSC
+    generic_matrix_colors::Vector
+
     SparseSystem{Tv,Ti}() where {Tv,Ti} = new()
 end
 
@@ -185,7 +188,6 @@ end
 Base.reshape(v::SparseSolutionArray,sys::SparseSystem)=v
 
 
-
 ##################################################################
 """
 $(TYPEDSIGNATURES)
@@ -237,6 +239,13 @@ Get number of degree of freedom. Return 0 if species is not defined in node.
 end
 
 
+struct SparseSolutionIndices
+    a::SparseSolutionArray
+end
+
+unknown_indices(a::SparseSolutionArray) = SparseSolutionIndices(a)
+
+Base.getindex(idx::SparseSolutionIndices,i,j)=dof(idx.a,i,j)
 
 ##################################################################
 """
