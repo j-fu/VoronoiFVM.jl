@@ -1,5 +1,5 @@
 #=
-# 102: 1D Stationary convection-diffusion equation 
+# 102: 1D Stationary convection-diffusion equation
 ([source code](SOURCE_URL))
 
 Solve the equation
@@ -14,26 +14,20 @@ of a moving medium or the gradient of an electric field.
 This is a convection dominant second order boundary value problem which obeys
 a local and a global maximum principle:
 the solution which is bounded by the values at the boundary and has no local extrema in the
-interior. 
-If $v$ is large compared to $D$, a boundary layer is observed. 
+interior.
+If $v$ is large compared to $D$, a boundary layer is observed.
 
 The maximum principle of the solution can only be guaranteed it the discretization is
 performed accordingly: the flux function must monotonically increase in the first argument
-and monotonically decrease in the second argument. 
+and monotonically decrease in the second argument.
 
 The example describes three possible ways to define the flux function and demonstrates
-the impact on the qualitative properties of the solution. 
-=# 
+the impact on the qualitative properties of the solution.
+=#
 
 module Example102_StationaryConvectionDiffusion1D
 using Printf
 using VoronoiFVM
-
-## Data  passed to the different functions
-struct Data <: VoronoiFVM.AbstractData
-    v
-    D
-end
 
 ## Central difference flux. The velocity term is discretized using the
 ## average of the solution in the endpoints of the grid. If the local Peclet
@@ -63,7 +57,7 @@ end
 ## The exponential fitting flux has the proper monotonicity properties and
 ## kind of interpolates in a clever way between central
 ## and upwind flux. It can be derived by solving the two-point boundary value problem
-## at the grid interval analytically. 
+## at the grid interval analytically.
 
 ## Bernoulli function used in the exponential fitting discretization
 function bernoulli(x)
@@ -84,14 +78,14 @@ end
 function calculate(grid,data,flux,verbose)
 
     sys=VoronoiFVM.System(grid,VoronoiFVM.Physics(flux=flux, data=data))
-    
+
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
-    
+
     ## Set boundary conditions
     boundary_dirichlet!(sys,1,1,0.0)
     boundary_dirichlet!(sys,1,2,1.0)
-    
+
     ## Create a solution array
     inival=unknowns(sys,inival=0.5)
     solution=unknowns(sys)
@@ -106,13 +100,13 @@ function calculate(grid,data,flux,verbose)
 end
 
 function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
-    
+
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
-    
-    data=Data(v,D)
-    
+
+    data=(v=v,D=D)
+
     solution_exponential=calculate(grid,data,exponential_flux!,verbose)
     solution_upwind=calculate(grid,data,upwind_flux!,verbose)
     solution_central=calculate(grid,data,central_flux!,verbose)
@@ -136,5 +130,5 @@ function test()
     main() ≈ testval
 end
 
-end 
+end
 

@@ -7,8 +7,8 @@ using Printf
 using VoronoiFVM
 
 
-mutable struct Data <: VoronoiFVM.AbstractData
-    eps::Float64 
+mutable struct Data
+    eps::Float64
     z::Float64
     ic::Int32
     iphi::Int32
@@ -38,7 +38,7 @@ function classflux!(f,u,edge,data)
     f[iphi]=data.eps*(u[iphi,1]-u[iphi,2])
     bp,bm=fbernoulli_pm(u[iphi,1]-u[iphi,2])
     f[ic]=bm*u[ic,1]-bp*u[ic,2]
-end 
+end
 
 
 function storage!(f,u,node,data)
@@ -63,11 +63,11 @@ function sedanflux!(f,u,edge,data)
     mu2=-log(1-u[ic,2])
     bp,bm=fbernoulli_pm(data.z*2*(u[iphi,1]-u[iphi,2])+(mu1-mu2))
     f[ic]=bm*u[ic,1]-bp*u[ic,2]
-end 
+end
 
 
 function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:sparse)
-    
+
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
 
@@ -80,7 +80,7 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
     ic=data.ic
     iphi=data.iphi
 
-    
+
     physics=VoronoiFVM.Physics(data=data,
                                num_species=2,
                                flux=sedanflux!,
@@ -95,7 +95,7 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
     boundary_dirichlet!(sys,iphi,2,0.0)
     boundary_dirichlet!(sys,ic,2,0.5)
 
-    
+
     inival=unknowns(sys)
     @views inival[iphi,:].=2
     @views inival[ic,:].=0.5
@@ -103,8 +103,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
 
 
     plot_solution(Plotter,sys,inival)
-    
-    
+
+
     data.eps=1.0e-3
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
@@ -131,7 +131,7 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
         @views inival[iphi,:].=0
         @views inival[ic,:].=0.5
         sys.boundary_values[iphi,1]=0
-        
+
         dphi=1.0e-1
         phimax=5
         delta=1.0e-4
