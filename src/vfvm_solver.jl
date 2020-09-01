@@ -656,7 +656,7 @@ end
 
 ################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Solution method for instance of abstract system.
 
@@ -665,7 +665,7 @@ solve! for each value of the parameter p from interval
 (0,1). The user is responsible for the interpretation of
 the parameter. The optional `pre()` callback can be used
 to communicate its value to the system.
-The optional`post()` callback method can be used to perform
+The optional `post()` callback method can be used to perform
 various postprocessing steps.
 
 If `control.handle_error` is true, `solve!`  throws an error, and

@@ -1,4 +1,13 @@
 # Changes
+## v0.8.5 Sep 1 2020
+- allow any object in Physics.data  (thanks Jan Weidner)
+- add generic operator for non-canonical problem structures
+
+## v0.8.4 July 25 2020
+- Update ExtendableGrids + ExtendableSparse
+
+## v0.8.3 June 25 2020
+- Replace splatting by dispatch on availability of data record
 
 ## v0.8.2 May 15 2020
 - Form factors are now pre-calculated and stored
