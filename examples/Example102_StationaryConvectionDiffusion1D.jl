@@ -1,4 +1,5 @@
 #=
+
 # 102: 1D Stationary convection-diffusion equation
 ([source code](SOURCE_URL))
 
@@ -23,6 +24,7 @@ and monotonically decrease in the second argument.
 
 The example describes three possible ways to define the flux function and demonstrates
 the impact on the qualitative properties of the solution.
+
 =#
 
 module Example102_StationaryConvectionDiffusion1D

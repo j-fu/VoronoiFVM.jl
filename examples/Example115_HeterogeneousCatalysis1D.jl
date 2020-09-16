@@ -52,6 +52,7 @@ R_{BC}(u_C, u_B)&=k_{BC}^+ u_B(1-u_C) - k_{BC}^-u_C\\
 ```
 
 =#
+
 module Example115_HeterogeneousCatalysis1D
 using Printf
 using VoronoiFVM

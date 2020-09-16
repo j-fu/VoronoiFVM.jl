@@ -19,7 +19,7 @@ f(x)=
 This stationary problem is an example of a nonlinear Poisson equation or Poisson-Boltzmann equation.
 Such equation occur e.g. in simulations of electrochemical systems and semicondutor devices.
  
-=# 
+=#
 
 module Example405_GenericOperator
 using Printf

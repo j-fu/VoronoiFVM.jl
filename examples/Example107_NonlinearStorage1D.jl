@@ -11,7 +11,7 @@ in $\Omega=-1,1)$ with homogeneous Neumann boundary conditons.
 We can derive an exact solution from the Barenblatt solution of the previous
 example.
 
-=# 
+=#
 
 module Example107_NonlinearStorage1D
 using Printf

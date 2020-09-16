@@ -1,4 +1,4 @@
-#= 
+#=
 
 # 101: 1D Laplace equation 
 ([source code](SOURCE_URL))
@@ -16,11 +16,13 @@ u(\gamma_2)=g_2.
 
 We replace the Dirichlet boundary condition by a Robin boundary
 condition with a penalty parameter $\frac{1}{\varepsilon}$:
+
 ```math
 \nabla u(\gamma_1) + \frac{1}{\varepsilon}(u(\gamma_1)-g_1)=0  \\
 -\nabla u(\gamma_2) + \frac{1}{\varepsilon}(u(\gamma_2)-g_2)
 =0  
 ```
+
 This penalty method for the implementation of Dirichlet
 boundary conditions is used throughout VoronoiFVM.
 
@@ -61,6 +63,7 @@ u'(1)- u'(\sigma_{n,n+1})&k=n
 \end{cases}
 \end{aligned}
 ```
+
 In the last equation, we wrote $u_k=u(x_k)$ and $g(u_k,u_l)=u_k-u_l$. For
 the interior interfaces between control volumes, we replaced $u'$ by a
 difference quotient. In the boundary control volumes, we replaced $u'$  by the boundary
@@ -85,6 +88,7 @@ into a module structure. This allows to load
 all of them at once into the REPL without name
 clashes. We shouldn't forget the corresponding end
 statement.
+
 =#
 
 module Example101_Laplace1D

@@ -15,7 +15,7 @@ The Barenblatt solution is an exact solution of this problem which for m>1 has a
 We initialize this problem with the exact solution for $t=t_0=0.001$.
 
 (see Barenblatt, G. I. "On nonsteady motions of gas and fluid in porous medium." Appl. Math. and Mech.(PMM) 16.1 (1952): 67-78.)
-=# 
+=#
 
 module Example106_NonlinearDiffusion1D
 using Printf
