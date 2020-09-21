@@ -98,7 +98,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
             p1=Plotter.contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound[3,:])))
             p2=Plotter.contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.0001:0.002),clim=(0,0.002), colorbar=:right,color=:viridis)
             p3=Plotter.plot(grid=true,ylims=(0,0.0025))
-            ExtendableGrids.plot(bgrid2,U_bound,p=p3,show=false,Plotter=Plotter)
+            p3=ExtendableGrids.plot(bgrid2,U_bound,p=p3,show=false,clear=false,Plotter=Plotter,plot=p3)
             p=Plotter.plot(p1,p2,p3,layout=(3,1) )
             Plotter.gui(p)
         end
