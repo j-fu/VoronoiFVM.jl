@@ -1,11 +1,24 @@
 ##############################################################
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
-
-Constant for switch between Taylor series and full implementation
+Calculation of Bernoulli function via Horner scheme based on Taylor
+coefficients around 0.
 """
-const fbernoulli_eps=1.0e-4
+
+function bernoulli_horner(x)
+    y=x/47_900_160
+    y=x*y
+    y=x*(-1/1_209_600+y)
+    y=x*y
+    y=x*(1/30_240+y)
+    y=x*y
+    y=x*(-1/720+y)
+    y=x*y
+    y=x*(1/12+y)
+    y=x*(-1/2+y)
+    y=1+y
+end
 
 
 ##############################################################
@@ -22,22 +35,14 @@ with Bernoulli from JuliaStats/Distributions.jl
 
 Returns a real number containing the result.
 """
-function fbernoulli(x::Real)
-    if x<-fbernoulli_eps
-        return x/(exp(x)-1)
-    elseif x < fbernoulli_eps
-        x2  = x*x;
-        x4  = x2*x2;
-        x6  = x4*x2;
-        x8  = x6*x2;
-        x10 = x8*x2;
-        return 1.0 - 0.5*x +1.0/12.0 * x2 
-        - 1.0/720.0 * x4 
-        + 1.0/30240.0 * x6 
-        - 1.0/1209600.0 * x8 
-        + 1.0/47900160.0 * x10; 
+function fbernoulli(x)
+    expx=exp(x)
+    if expx<0.99999
+        return x/(expx-1)
+    elseif expx < 1.00001
+        return bernoulli_horner(x)
     else
-        return x/(exp(x)-1)
+        return x/(expx-1)
     end
 end
 
@@ -74,34 +79,13 @@ Returns two real numbers containing the result for argument
 
 """
 function fbernoulli_pm(x::Real)
-    if x<-fbernoulli_eps
-        expx=exp(x)
-        bp=x/(expx-1.0)
+    expx=exp(x)
+    if abs(expx-1)>0.00001
+        bp=x/(expx-1)
         bm=expx*bp
         return bp,bm
-    elseif x < fbernoulli_eps
-        x2  = x*x;
-        x4  = x2*x2;
-        x6  = x4*x2;
-        x8  = x6*x2;
-        x10 = x8*x2;
-
-        horder=1.0/12.0 * x2 
-        - 1.0/720.0 * x4 
-        + 1.0/30240.0 * x6 
-        - 1.0/1209600.0 * x8 
-        + 1.0/47900160.0 * x10
-
-        bp=  1.0 - 0.5*x + horder
-        bm = 1.0 + 0.5*x + horder
-        return bp,bm
     else
-        expmx=exp(-x)
-        bm=-x/(expmx-1.0)
-        bp=expmx*bm
-        # expx=exp(x)
-        # bp=x/(expx-1.0)
-        # bm=expx*bp
-        return bp,bm
+        y=bernoulli_horner(x)
+        return y,x+y
     end
 end
