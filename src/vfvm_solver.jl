@@ -6,11 +6,16 @@ Extract value from dual number. Use to debug physics callbacks.
 Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
+const partials=ForwardDiff.partials
+const npartials=ForwardDiff.npartials
 
 
 
 # Add value to matrix if it is nonzero
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
+    if isnan(v)
+        error("trying to assemble NaN")
+    end
     if v!=zero(Tv)
         updateindex!(matrix,+,v*fac,i,j)
     end
@@ -87,8 +92,8 @@ function _solve!(
     residual=this.residual
     update=this.update
     _initialize!(solution,this)
+    SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
 
-    # Newton iteration
     oldnorm=1.0
     converged=false
     if control.verbose
@@ -113,14 +118,24 @@ function _solve!(
             end
         end
 
+        mtx=this.matrix
         
+        nliniter=0
         # Sparse LU factorization
         # Here, we seem miss the possibility to re-use the 
         # previous symbolic information
         # We however reuse the factorization control.max_lureuse times.
-        nliniter=0
         if nlu==0
-            lufact=LinearAlgebra.lu(this.matrix)
+            try
+                lufact=LinearAlgebra.lu(mtx)
+            catch err
+                if (control.handle_exceptions)
+                    _print_error(err,stacktrace(catch_backtrace()))
+                    throw(FactorizationError())
+                else
+                    rethrow(err)
+                end
+            end
             # LU triangular solve gives Newton update
             try
                 ldiv!(values(update),lufact,values(residual))
@@ -137,12 +152,12 @@ function _solve!(
             # Genericly, this is advisable.
             if control.tol_linear <1.0
                 (sol,history)= bicgstabl!(values(update),
-                                          this.matrix,
+                                          mtx,
                                           values(residual),
                                           1,
                                           Pl=lufact,
                                           tol=control.tol_linear,
-                                          max_mv_products=20,
+                                          max_mv_products=100,
                                           log=true)
                 nliniter=history.iters
             else
@@ -158,6 +173,7 @@ function _solve!(
                 end
             end
         end
+        
         nlu=min(nlu+1,control.max_lureuse)
         solval=values(solution)
         solval.-=damp*values(update)
@@ -172,13 +188,13 @@ function _solve!(
         if rnorm>1.0e-50
             dnorm=abs((rnorm-rnorm_new)/rnorm)
         end
-
+        
         if dnorm<control.tol_round
             nround=nround+1
         else
             nround=0
         end
-
+        
         if control.verbose
             if   control.tol_linear<1.0
                 itstring=@sprintf("it=% 3d(% 2d)",ii,nliniter)
@@ -191,6 +207,11 @@ function _solve!(
                 @printf("    %s du=%.3e cont=%.3e\n",itstring,norm, norm/oldnorm)
             end
         end
+        if norm/oldnorm > 1.0/control.tol_mono
+            converged=false
+            break
+        end
+        
         if norm<control.tol_absolute || norm <tolx
             converged=true
             break

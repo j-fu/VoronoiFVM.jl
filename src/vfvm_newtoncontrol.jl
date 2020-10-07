@@ -1,4 +1,6 @@
 ################################################
+const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
+
 """
 $(TYPEDEF)
 
@@ -34,6 +36,14 @@ mutable struct NewtonControl
     Default value: `1.0e-10`.
     """
     tol_round::Float64
+
+    """
+    Tolerance for monotonicity test:
+    terminat with error if ``\\Delta_i/\\Delta_{i-1}>`` `1/tol_mono`.
+
+    Default value: 1.0e-3
+    """
+    tol_mono::Float64
 
     """
     Initial damping parameter ``d_0``.
@@ -163,6 +173,13 @@ mutable struct NewtonControl
     """
     edge_cutoff::Float64
 
+    """
+    Pivot tolerance for umfpack
+
+    Default value: $(default_umfpack_pivot_tolerance).
+    """
+    umfpack_pivot_tolerance::Float64
+
     
     NewtonControl()=NewtonControl(new())
 end
@@ -177,6 +194,7 @@ function NewtonControl(this)
     this.tol_absolute=1.0e-10
     this.tol_relative=1.0e-10
     this.tol_round=1.0e-10
+    this.tol_mono=1.0e-3
     this.damp_initial=1.0
     this.damp_growth=1.2
     this.max_lureuse=0
@@ -194,7 +212,7 @@ function NewtonControl(this)
     this.Δu_opt=0.1
     this.handle_exceptions=false
     this.edge_cutoff=0.0
-    
+    this.umfpack_pivot_tolerance=default_umfpack_pivot_tolerance
     return this
 end
 

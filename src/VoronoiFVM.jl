@@ -17,6 +17,7 @@ using DocStringExtensions
 using SparseArrays
 using ExtendableSparse
 using LinearAlgebra
+using SuiteSparse
 
 using SparseDiffTools
 using SparseArrays
@@ -79,7 +80,7 @@ export boundary_robin!
 export dof
 export getdof
 export setdof!
-export value
+export value,partials,npartials
 export solve!
 export evolve!
 export embed!
