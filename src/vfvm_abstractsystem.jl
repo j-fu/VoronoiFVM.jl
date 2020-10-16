@@ -4,7 +4,7 @@ $(TYPEDEF)
     
 Abstract type for finite volume system structure
 """
-abstract type AbstractSystem{Tv<:Number, Ti <:Integer} end
+abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 
 
 
@@ -21,11 +21,11 @@ Create Finite Volume System.
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 
 """
-function System(grid,physics::Physics; unknown_storage=:sparse)
+function System(grid,physics::Physics; unknown_storage=:sparse, matrixindextype=Int32)
     if Symbol(unknown_storage)==:dense
-        return DenseSystem(grid,physics)
+        return DenseSystem(grid,physics, matrixindextype=matrixindextype)
     elseif Symbol(unknown_storage)==:sparse
-        return SparseSystem(grid,physics)
+        return SparseSystem(grid,physics, matrixindextype=matrixindextype)
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
@@ -137,12 +137,12 @@ end
 
 # Create matrix in system and figure out if species
 # distribution is homgeneous
-function _complete!(this::AbstractSystem{Tv,Ti};create_newtonvectors=false) where {Tv,Ti}
+function _complete!(this::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false) where {Tv,Ti, Tm}
 
     if isdefined(this,:matrix)
         return
     end
-    this.matrix=ExtendableSparseMatrix{Tv,Ti}(num_dof(this), num_dof(this))
+    this.matrix=ExtendableSparseMatrix{Tv,Tm}(num_dof(this), num_dof(this))
     this.species_homogeneous=true
     species_added=false
     for inode=1:size(this.node_dof,2)

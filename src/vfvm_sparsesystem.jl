@@ -1,4 +1,4 @@
-##################################################################
+#################################################################
 """
 $(TYPEDEF)
 
@@ -34,7 +34,7 @@ creates overhead.
 
 $(TYPEDFIELDS)
 """
-mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
+mutable struct SparseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
 
     """
     Grid
@@ -70,12 +70,12 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
     Sparse matrix containing degree of freedom numbers for each node
     """
-    node_dof::SparseMatrixCSC{Int8,Ti}
+    node_dof::SparseMatrixCSC{Int8,Tm}
 
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::ExtendableSparseMatrix{Tv,Ti}
+    matrix::ExtendableSparseMatrix{Tv,Tm}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -85,12 +85,12 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
     Solution vector holding Newton update
     """
-    update::SparseSolutionArray{Tv,Ti}
+    update::SparseSolutionArray{Tv,Tm}
 
     """
     Solution vector holding Newton residual
     """
-    residual::SparseSolutionArray{Tv,Ti}
+    residual::SparseSolutionArray{Tv,Tm}
 
     cellnodefactors::Array{Tv,2}
     celledgefactors::Array{Tv,2}
@@ -99,7 +99,7 @@ mutable struct SparseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     generic_matrix::SparseMatrixCSC
     generic_matrix_colors::Vector
 
-    SparseSystem{Tv,Ti}() where {Tv,Ti} = new()
+    SparseSystem{Tv,Ti,Tm}() where {Tv,Ti,Tm} = new()
 end
 
 ##################################################################
@@ -109,16 +109,17 @@ $(TYPEDSIGNATURES)
 
 Constructor for SparseSystem.
 """
-function  SparseSystem(grid,physics::Physics)
+function  SparseSystem(grid,physics::Physics; matrixindextype=Int32)
     Tv=coord_type(grid)
     Ti=index_type(grid)
-    this=SparseSystem{Tv,Ti}()
+    Tm=matrixindextype
+    this=SparseSystem{Tv,Ti,Tm}()
     maxspec=physics.num_species
     this.grid=grid
     this.physics=physics
     this.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
     this.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
-    this.node_dof=spzeros(Int8,Int32,maxspec,num_nodes(grid))
+    this.node_dof=spzeros(Int8,Tm,maxspec,num_nodes(grid))
     this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.species_homogeneous=false
@@ -143,7 +144,7 @@ $(SIGNATURES)
 Create a solution vector for sparse system. 
 The entries of the returned vector are undefined.
 """
-unknowns(sys::SparseSystem{Tv,Ti};inival=undef) where {Tv,Ti}=unknowns(Tv,sys,inival=inival)
+unknowns(sys::SparseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm}=unknowns(Tv,sys,inival=inival)
 
 ##################################################################
 """
@@ -152,12 +153,12 @@ $(SIGNATURES)
 Create a solution vector for sparse system with given type.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu::Type, sys::SparseSystem{Tv, Ti};inival=undef) where {Tv,Ti}
+function unknowns(Tu::Type, sys::SparseSystem{Tv, Ti, Tm};inival=undef) where {Tv,Ti,Tm}
     a0=Array{Tu}(undef,num_dof(sys))
     if inival!=undef
         fill!(a0,inival)
     end
-    return SparseSolutionArray{Tu,Ti}(SparseMatrixCSC(sys.node_dof.m,
+    return SparseSolutionArray{Tu,Tm}(SparseMatrixCSC(sys.node_dof.m,
                                                       sys.node_dof.n,
                                                       sys.node_dof.colptr,
                                                       sys.node_dof.rowval,
@@ -174,7 +175,7 @@ $(SIGNATURES)
 
 Reshape vector to fit as solution to system.
 """
-function Base.reshape(v::AbstractVector{Tu},sys::SparseSystem{Tv,Ti}) where {Tu,Tv,Ti}
+function Base.reshape(v::AbstractVector{Tu},sys::SparseSystem{Tv,Ti,Tm}) where {Tu,Tv,Ti,Tm}
     @assert  length(v)==num_dof(sys)
     SparseSolutionArray{Tu,Ti}(SparseMatrixCSC(sys.node_dof.m,
                                             sys.node_dof.n,

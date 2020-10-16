@@ -846,7 +846,7 @@ $(SIGNATURES)
 Integrate function `F` of  solution vector over domain or boundary 
 The result contains the integral for each species separately.
 """
-function integrate(this::AbstractSystem{Tv,Ti},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti}
+function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti,Tm}
     grid=this.grid
     data=this.physics.data
     nspecies=num_species(this)

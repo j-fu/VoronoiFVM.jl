@@ -18,7 +18,7 @@ to the system matrix.
 
 $(TYPEDFIELDS)
 """
-mutable struct DenseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
+mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     Grid
     """
@@ -57,7 +57,7 @@ mutable struct DenseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::ExtendableSparseMatrix{Tv,Ti}
+    matrix::ExtendableSparseMatrix{Tv,Tm}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -81,7 +81,7 @@ mutable struct DenseSystem{Tv,Ti} <: AbstractSystem{Tv,Ti}
     generic_matrix::SparseMatrixCSC
     generic_matrix_colors::Vector
    
-    DenseSystem{Tv,Ti}() where {Tv,Ti} = new()
+    DenseSystem{Tv,Ti, Tm}() where {Tv,Ti, Tm} = new()
 end
 ##################################################################
 """
@@ -89,10 +89,11 @@ $(TYPEDSIGNATURES)
 
 Constructor for DenseSystem.
 """
-function  DenseSystem(grid,physics::Physics)
+function  DenseSystem(grid,physics::Physics;matrixindextype=Int32)
     Tv=coord_type(grid)
     Ti=index_type(grid)
-    this=DenseSystem{Tv,Ti}()
+    Tm=matrixindextype
+    this=DenseSystem{Tv,Ti,Tm}()
     maxspec=physics.num_species
     this.grid=grid
     this.physics=physics
