@@ -92,7 +92,7 @@ function enable_species!(this::AbstractSystem,ispec::Integer, regions::AbstractV
         this.region_species[ispec,ireg]=ispec
         for icell=1:num_cells(this.grid)
             if _cellregions[icell]==ireg
-                for iloc=1:size(_cellnodes,1)
+                for iloc=1:num_targets(_cellnodes,icell)
                     iglob=_cellnodes[iloc,icell]
                     this.node_dof[ispec,iglob]=ispec
                 end

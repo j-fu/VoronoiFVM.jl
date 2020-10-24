@@ -66,7 +66,7 @@ $(SIGNATURES)
 Calculate node volume  and voronoi surface contributions for cell.
 """ 
 
-function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell::Int,nodefac,edgefac) where Tv
+function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell::Int,nodefac,edgefac)
     K=cellnodes[1,icell]
     L=cellnodes[2,icell]
     xK=coord[1,K]
@@ -78,7 +78,7 @@ function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell::
     nothing
 end
 
-function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell::Int,nodefac,edgefac) where Tv
+function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell::Int,nodefac,edgefac)
     K=cellnodes[1,icell]
     L=cellnodes[2,icell]
     xK=coord[1,K]
@@ -90,11 +90,10 @@ function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell::I
         r1=xK[1]
     end
     rhalf=0.5*(r1+r0);
-    πv::Tv=π
-    # cpar[1]= πv*(r1*r1-r0*r0);         # circular volume
-    nodefac[1]= πv*(rhalf*rhalf-r0*r0);   # circular volume between midline and boundary
-    nodefac[2]= πv*(r1*r1-rhalf*rhalf);   # circular volume between midline and boundary
-    edgefac[1]= 2.0*πv*rhalf/(r1-r0);     # circular surface / width
+    # cpar[1]= π*(r1*r1-r0*r0);         # circular volume
+    nodefac[1]= π*(rhalf*rhalf-r0*r0);   # circular volume between midline and boundary
+    nodefac[2]= π*(r1*r1-rhalf*rhalf);   # circular volume between midline and boundary
+    edgefac[1]= 2.0*π*rhalf/(r1-r0);     # circular surface / width
     nothing
 end
     
@@ -218,20 +217,21 @@ $(SIGNATURES)
 Calculate node volume  contributions for boundary face.
 """ 
 
-function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface::Int,nodefac) where Tv
+function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface::Int,nodefac)
     nodefac[1]=1.0
     nothing
 end
 
-function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac) where Tv
+function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface::Int,nodefac)
     inode=bfacenodes[1,ibface]
     r=coord[1,inode]
-    nodefac[1]=2*pi*r
+    nodefac[1]=2*π*r
+    @show nodefac[1]
     nothing
 end
 
 # TODO: Test
-function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface::Int,nodefac) where Tv
+function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface::Int,nodefac)
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     dx=coord[1,i1]-coord[1,i2]
@@ -243,7 +243,7 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibf
 end
 
 # TODO: Test
-function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface::Int,nodefac) where Tv
+function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface::Int,nodefac)
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     r1=coord[1,i1]
@@ -254,25 +254,10 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,i
     rmid=(r1+r2)/2
     dz=z1-z2
     l=sqrt(dr*dr+dz*dz)
-    nodefac[1]=pi*(r1+rmid)*l/2
-    nodefac[2]=pi*(r2+rmid)*l/2
+    nodefac[1]=π*(r1+rmid)*l/2
+    nodefac[2]=π*(r2+rmid)*l/2
     nothing
 end
-
-
-ExtendableGrids.num_nodes(::Type{Vertex0D})=1
-num_edges(::Type{Vertex0D})=0
-
-const cen_Edge1D=reshape([1 2],:,1)
-local_celledgenodes(::Type{Edge1D})=cen_Edge1D
-ExtendableGrids.num_nodes(::Type{Edge1D})=2
-num_edges(::Type{Edge1D})=1
-
-const cen_Triangle2D=[ 2 3 1; 3 1 2]
-local_celledgenodes(::Type{Triangle2D})=cen_Triangle2D
-ExtendableGrids.num_nodes(::Type{Triangle2D})=3
-num_edges(::Type{Triangle2D})=3
-
 
 
 
