@@ -48,8 +48,14 @@ R_{AB}(u_A, u_B)&=k_{AB}^+exp(u_A'(0))u_A - k_{AB}^-exp(-u_A'(0))u_B\\
 module Example406_WeirdReaction
 using Printf
 using VoronoiFVM
+using SparseArrays
 
-function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
+function main(;n=10,
+              Plotter=nothing,
+              verbose=false,
+              tend=1,
+              unknown_storage=:sparse,
+              autodetect_sparsity=true)
     
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
@@ -108,14 +114,42 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
         f[idx[iC,1]]=u[idx[iC,1]]  + 0.1*(u[idx[iA,1]]-u[idx[iA,2]])/(X[2]-X[1])
     end
 
-    physics=VoronoiFVM.Physics(
-        num_species=3,
-        breaction=breaction!,
-        generic=generic_operator!,
-        flux=flux!,
-        storage=storage!,
-        source=source!
-    )
+    # If we know the sparsity pattern, we can here create a
+    # sparse matrix with values set to 1 in the nonzero
+    # slots. This allows to circumvent the
+    # autodetection which may takes some time.
+    function generic_operator_sparsity(sys)
+        idx=unknown_indices(unknowns(sys))
+        sparsity=spzeros(num_dof(sys),num_dof(sys))
+        sparsity[idx[iC,1],idx[iC,1]]=1
+        sparsity[idx[iC,1],idx[iA,1]]=1
+        sparsity[idx[iC,1],idx[iA,2]]=1
+        sparsity
+    end
+
+
+
+    
+    if autodetect_sparsity
+        physics=VoronoiFVM.Physics(
+            num_species=3,
+            breaction=breaction!,
+            generic=generic_operator!,
+            flux=flux!,
+            storage=storage!,
+            source=source!
+        )
+    else
+        physics=VoronoiFVM.Physics(
+            num_species=3,
+            breaction=breaction!,
+            generic=generic_operator!,
+            generic_sparsity=generic_operator_sparsity,
+            flux=flux!,
+            storage=storage!,
+            source=source!
+        )
+    end
     
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
@@ -170,7 +204,10 @@ end
 
 function test()
     testval=0.007027597470502758
-    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
+    main(unknown_storage=:sparse) ≈ testval &&
+        main(unknown_storage=:dense) ≈ testval &&
+        main(unknown_storage=:sparse,autodetect_sparsity=false) ≈ testval &&
+        main(unknown_storage=:dense,autodetect_sparsity=false) ≈ testval
 end
 
 end

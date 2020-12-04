@@ -628,10 +628,9 @@ function _eval_and_assemble_generic_operator(this::AbstractSystem,U,F)
     if !has_generic_operator(this)
         return
     end
-
     generic_operator(f,u)=this.physics.generic_operator(f,u,this)
-    vecF=vec(F)
-    vecU=vec(U)
+    vecF=values(F)
+    vecU=values(U)
     y=similar(vecF)
     generic_operator(y,vecU)
     vecF.+=y

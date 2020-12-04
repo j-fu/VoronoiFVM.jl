@@ -49,6 +49,9 @@ end
 function nofunc_generic(f,u,sys)
 end
 
+function nofunc_generic_sparsity(sys)
+end
+
 
 ##########################################################
 """
@@ -65,6 +68,7 @@ struct Physics{Flux<:Function,
                BReaction<:Function,
                BStorage<:Function,
                GenericOperator<:Function,
+               GenericOperatorSparsity<:Function,
                Data} <: AbstractPhysics
     """
     Flux between neigboring control volumes
@@ -103,6 +107,12 @@ struct Physics{Flux<:Function,
 
     
     """
+    Generic function
+    """
+    generic_operator_sparsity::GenericOperatorSparsity
+
+    
+    """
     User data (parameters)
     """
     data::Data
@@ -128,7 +138,8 @@ function Physics(;num_species=1,
                  source::Function=nofunc,
                  breaction::Function=nofunc,
                  bstorage::Function=nofunc,
-                 generic::Function=nofunc_generic
+                 generic::Function=nofunc_generic,
+                 generic_sparsity::Function=nofunc_generic_sparsity
                  )
     if !isdata(data)
         flux==nofunc ? flux=nofunc2 : true
@@ -145,6 +156,7 @@ function Physics(;num_species=1,
                    breaction,
                    bstorage,
                    generic,
+                   generic_sparsity,
                    data,
                    Int8(num_species)
                    )

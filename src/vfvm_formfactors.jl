@@ -226,7 +226,6 @@ function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibfac
     inode=bfacenodes[1,ibface]
     r=coord[1,inode]
     nodefac[1]=2*π*r
-    @show nodefac[1]
     nothing
 end
 
