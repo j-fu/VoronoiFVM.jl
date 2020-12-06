@@ -1,4 +1,4 @@
-name: CI
+name: linux-macos-windows
 on:
   pull_request:
     branches:

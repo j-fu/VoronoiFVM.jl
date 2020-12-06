@@ -1,7 +1,7 @@
 VoronoiFVM.jl
 ===============
 
-[![Build status](https://github.com/j-fu/VoronoiFVM.jl/workflows/CI/badge.svg)](https://github.com/j-fu/VoronoiFVM.jl/actions)
+[![Build status](https://github.com/j-fu/VoronoiFVM.jl/workflows/linux-macos-windows/badge.svg)](https://github.com/j-fu/VoronoiFVM.jl/actions)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://j-fu.github.io/VoronoiFVM.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://j-fu.github.io/VoronoiFVM.jl/dev)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3529808.svg)](https://doi.org/10.5281/zenodo.3529808)
