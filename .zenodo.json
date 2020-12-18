@@ -1,0 +1,29 @@
+{
+    "title": "VoronoiFVM.jl",
+    
+    "creators": [
+        {
+            "affiliation": "Weierstrass Institute (WIAS) Berlin",
+            "name": "Fuhrmann, Jürgen",
+            "orcid": "0000-0003-4432-2434"
+        },
+        {
+            "affiliation": "PTW Freiburg",
+            "name": "Weidner, Jan"
+        },
+    ],
+    
+    "description": "Solver for coupled nonlinear partial differential equations based on the Voronoi finite volume method."
+    
+    "keywords": [
+        "Finite Volume Method",
+        "Nonliner Reaction-Convection-Diffusion",
+        "Automatic Differentiation",
+        "Julia language",
+    ],
+    
+    "access_right": "open",
+    "license": "BSD-3-Clause",
+    "upload_type": "software"
+}
+

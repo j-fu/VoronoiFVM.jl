@@ -4,7 +4,9 @@ License information
 VoronoiFVM.jl is an open-source toolkit licensed under the BSD license.
 
 ````
-Copyright (c) 2018,2019 Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>
+
+Copyright (c) 2018-2020 
+Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de> and contributors
 
 All rights reserved.
 
