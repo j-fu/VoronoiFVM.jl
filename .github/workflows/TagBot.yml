@@ -2,7 +2,7 @@ name: TagBot
 on:
   issue_comment:
     types:
-      - created schedule:
+      - created
   workflow_dispatch:  
 jobs:
   TagBot:
