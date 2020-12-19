@@ -35,7 +35,9 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
                                f[2]=-u[1]*u[2]
                                end,
                                
-                               flux=function(f,u,edge)   
+                               flux=function(f,u0,edge)
+                               u=unknowns(edge,u0)
+
                                nspecies=2
                                f[1]=eps[1]*(u[1,1]-u[1,2])*(0.01+u[2,1]+u[2,2])
                                f[2]=eps[2]*(u[2,1]-u[2,2])*(0.01+u[1,1]+u[1,2])

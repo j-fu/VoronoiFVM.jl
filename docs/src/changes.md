@@ -1,4 +1,39 @@
 # Changes
+## v0.9.0 Dec XXX 2020
+- API modification:
+  - __Breaking__: The API change to passing the unknowns to the
+    an edge callback as a matrix turned out to be a dead end in the
+    strategic sense. In order to extend functionality, we need to be able
+    to pass more data to  which we can apply differetiation. Particular plans
+    involve bifurcation parameters and reconstructed gradients.
+    So we return to the viewK/viewL pattern we had before. However, 
+    these are now aliases:
+    - `viewK(edge,u)=unknowns(edge,u,1)`
+    - `viewL(edge,u)=unknowns(edge,u,2)`
+    In order to ease refactoring in the case where models have been
+    implemented with Matrix access to the unknowns, `unknowns(edge,u)`
+    returns a matrix of the edge unknowns. 
+    
+    So for refactoring, just rewrite e.g.
+````
+    function flux(y,u,edge)
+        for ispec=1:nspec
+            y[ispec]=u[ispec,1]-u[ispec,2]
+        end
+    end
+````
+    to
+````
+    function flux(y,u0,edge)
+        u=unknowns(edge,u0)
+        for ispec=1:nspec
+            y[ispec]=u[ispec,1]-u[ispec,2]
+        end
+    end
+````
+
+
+
 ## v0.8.5 Sep 1 2020
 - allow any object in Physics.data  (thanks Jan Weidner)
 - add generic operator for non-canonical problem structures

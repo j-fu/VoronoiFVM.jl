@@ -28,7 +28,8 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
         end
     end
 
-    function flux!(f,u,edge)
+    function flux!(f,u0,edge)
+        u=unknowns(edge,u0)
         f[1]=u[1,1]-u[1,2]
     end
     

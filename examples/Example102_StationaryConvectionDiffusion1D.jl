@@ -36,7 +36,8 @@ using VoronoiFVM
 ## number v*h/D>1, the monotonicity property is lost.  Grid refinement
 ## can fix this situation by decreasing $h$.
 
-function central_flux!(f,u,edge,data)
+function central_flux!(f,u0,edge,data)
+    u=unknowns(edge,u0)
     h=meas(edge)
     f_diff=data.D*(u[1,1]-u[1,2])
     f[1]=f_diff+data.v*h*(u[1,1]+u[1,2])/2
@@ -46,7 +47,8 @@ end
 ## via brute force and loses one order of convergence for small $h$ compared
 ## to the central flux.
 
-function upwind_flux!(f,u,edge,data)
+function upwind_flux!(f,u0,edge,data)
+    u=unknowns(edge,u0)
     h=meas(edge)
     fdiff=data.D*(u[1,]-u[1,2])
     if data.v>0
@@ -69,7 +71,8 @@ function bernoulli(x)
     return x/(exp(x)-1)
 end
 
-function exponential_flux!(f,u,edge,data)
+function exponential_flux!(f,u0,edge,data)
+    u=unknowns(edge,u0)
     h=meas(edge)
     Bplus= data.D*bernoulli(data.v*h/data.D)
     Bminus=data.D*bernoulli(-data.v*h/data.D)

@@ -99,7 +99,7 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
     node=Node{Tv,Ti}(this)
     edge=Edge{Tv,Ti}(this)
     data=this.physics.data
-    UKL=Array{Tv,2}(undef,nspecies,2)
+    UKL=Array{Tv,1}(undef,2*nspecies)
     UK=Array{Tv,1}(undef,nspecies)
     UKold=Array{Tv,1}(undef,nspecies)
     
@@ -125,8 +125,8 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
             _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
             for ispec=1:nspecies
-                UKL[ispec,1]=U[ispec,edge.node[1]]
-                UKL[ispec,2]=U[ispec,edge.node[2]]
+                UKL[ispec]=U[ispec,edge.node[1]]
+                UKL[ispec+nspecies]=U[ispec,edge.node[2]]
             end
             res.=0
             if isdata(data)

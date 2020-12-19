@@ -39,8 +39,9 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
 
     Q=0.0
 
-    function flux!(f,u,edge)
-        f[1]=u[1]-u[2]
+    function flux!(f,u0,edge)
+        u=unknowns(edge,u0)
+        f[1]=u[1,1]-u[1,2]
     end
     function storage!(f,u,node)
         f[1]=u[1]

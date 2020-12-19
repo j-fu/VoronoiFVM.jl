@@ -372,7 +372,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     # Arrays for gathering solution data
     UK=Array{Tv,1}(undef,nspecies)
     UKOld=Array{Tv,1}(undef,nspecies)
-    UKL=Array{Tv,2}(undef,nspecies,2)
+    UKL=Array{Tv,1}(undef,2*nspecies)
 
     # array holding source term
     src=zeros(Tv,nspecies)
@@ -479,8 +479,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
             #Set up argument for fluxwrap
             for ispec=1:nspecies
-                UKL[ispec,1]=U[ispec,edge.node[1]]
-                UKL[ispec,2]=U[ispec,edge.node[2]]
+                UKL[ispec]=U[ispec,edge.node[1]]
+                UKL[nspecies+ispec]=U[ispec,edge.node[2]]
             end
 
             ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)

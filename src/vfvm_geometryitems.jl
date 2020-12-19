@@ -186,12 +186,81 @@ end
 edgelength(edge::Edge)=meas(edge)
 
 
+
+
+
+##################################################################
+"""
+$(TYPEDEF)
+
+Wrapper struct for viewing unknowns passed to flux as matrix
+    
+$(TYPEDFIELDS)
+"""
+struct MatrixUnknowns{T} <:AbstractMatrix{T} 
+    u::Vector{T}
+    n1::Int64
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct matrix of unknowns from edge - these can be used in flux functions
+with the v0.7.x and v0.8.x syntax to acces data.
+"""
+unknowns(edge::Edge,u::Vector{T}) where T = MatrixUnknowns{T}(u,edge.nspec)
+Base.getindex(u::MatrixUnknowns,i,j)=@inbounds u.u[(j-1)*u.n1+i]
+Base.size(u::MatrixUnknowns)=(u.n1,2)
+
+
+
+##################################################################
+"""
+$(TYPEDEF)
+
+Wrapper struct for viewing unknowns passed to callback functions
+    
+$(TYPEDFIELDS)
+"""
+struct VectorUnknowns{T} <:AbstractVector{T} 
+    u::Vector{T}
+    n::Int64
+    offset::Int64
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct vector unknowns on edge.
+"""
+unknowns(edge::Edge, u::Vector{T},i) where T = VectorUnknowns{T}(u,edge.nspec,(i-1)*(edge.nspec))
+Base.getindex(u::VectorUnknowns,i)=@inbounds u.u[u.offset+i]
+Base.size(u::VectorUnknowns)=(u.n,)
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct vector unknowns on node
+"""
+unknowns(node::Node, u)=u
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct vector unknowns on bnode
+"""
+unknowns(node::BNode, u)=u
+
+
+
 """
 $(TYPEDSIGNATURES)
 
 Solution view on first edge node
 """
-@inline viewK(edge::Edge,u::AbstractArray)=@views u[1:edge.nspec]
+viewK(edge::Edge,u)=unknowns(edge,u,1)
 
 
 """
@@ -199,19 +268,5 @@ $(TYPEDSIGNATURES)
 
 Solution view on second edge node
 """
-@inline viewL(edge::Edge,u::AbstractArray)=@views u[edge.nspec+1:2*edge.nspec]
+viewL(edge::Edge,u)=unknowns(edge,u,2)
 
-"""
-$(TYPEDSIGNATURES)
-
-Solution view on first edge node
-"""
-@inline viewK(nspec,u::AbstractArray)=@views u[1:nspec]
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Solution view on second edge node
-"""
-@inline viewL(nspec,u::AbstractArray)=@views u[nspec+1:2*nspec]
