@@ -80,7 +80,8 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
 
     generic_matrix::SparseMatrixCSC
     generic_matrix_colors::Vector
-   
+
+    uhash::UInt64
     DenseSystem{Tv,Ti, Tm}() where {Tv,Ti, Tm} = new()
 end
 ##################################################################
@@ -103,6 +104,7 @@ function  DenseSystem(grid,physics::Physics;matrixindextype=Int32)
     this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     this.species_homogeneous=false
+    this.uhash=0x0
     return this
 end
 

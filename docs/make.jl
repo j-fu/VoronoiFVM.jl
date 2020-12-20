@@ -50,6 +50,7 @@ function make_all()
             "API Documentation" => [
                 "physics.md",
                 "system.md",
+                "diffeq.md",
                 "allindex.md",
             ],
             "Examples" => generated_examples

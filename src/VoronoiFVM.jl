@@ -93,9 +93,10 @@ export unknown_indices
 export cartesian!, circular_symmetric!, spherical_symmmetric!
 export edgevelocities
 
-# deprecated
 export edgelength
 export viewK,viewL,data
 
+include("vfvm_diffeq_interface.jl")
+export eval_rhs!,eval_jacobian!,mass_matrix,jac_prototype
 end
 

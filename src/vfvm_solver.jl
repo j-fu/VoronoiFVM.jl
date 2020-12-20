@@ -809,6 +809,7 @@ function evolve!(
                     # reduce time step and retry  solution
                     Δt=Δt*0.5
                     if Δt<control.Δt_min
+                        @printf(" Δt_min=%.2g reached while Δu=%.2g >>  Δu_opt=%.2g\n",control.Δt_min, Δu,control.Δu_opt)
                         throw(EmbeddingError())
                     end
                     if control.verbose
