@@ -10,16 +10,16 @@
         {
             "affiliation": "PTW Freiburg",
             "name": "Weidner, Jan"
-        },
+        }
     ],
     
-    "description": "Solver for coupled nonlinear partial differential equations based on the Voronoi finite volume method."
+    "description": "Solver for coupled nonlinear partial differential equations based on the Voronoi finite volume method.",
     
     "keywords": [
         "Finite Volume Method",
         "Nonliner Reaction-Convection-Diffusion",
         "Automatic Differentiation",
-        "Julia language",
+        "Julia language"
     ],
     
     "access_right": "open",
