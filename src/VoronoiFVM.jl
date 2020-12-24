@@ -19,8 +19,8 @@ using ExtendableSparse
 using LinearAlgebra
 using SuiteSparse
 
+using StaticArrays
 using SparseDiffTools
-using SparseArrays
 using SparsityDetection
 
 using Printf

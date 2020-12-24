@@ -7,4 +7,5 @@ Manifest.toml
 deps/build.log
 deps/deps.jl
 deps/usr
+.repl_history.jl
 
