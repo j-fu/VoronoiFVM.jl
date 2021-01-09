@@ -50,6 +50,7 @@ using Printf
 using VoronoiFVM
 using SparseArrays
 using ExtendableGrids
+using .GridVisualize
 
 function main(;n=10,
               Plotter=nothing,
@@ -178,7 +179,7 @@ function main(;n=10,
     
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
-    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
+    p=GridVisualizer(Plotter=Plotter,layout=(2,1))
     while time<tend
         time=time+tstep
         solve!(U,inival,sys,tstep=tstep,control=control)
@@ -190,9 +191,9 @@ function main(;n=10,
         push!(T,time)
         push!(u_C,U[iC,1])
 
-        gridplot!(p[1,1],grid,U[iA,:],label="[A]",title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),color=:red)
-        gridplot!(p[1,1],grid,U[iB,:], label="[B]",clear=false,color=:blue)
-        gridplot!(p[2,1],copy(T),copy(u_C),label="[C]",clear=true,show=true)
+        visualize!(p[1,1],grid,U[iA,:],label="[A]",title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),color=:red)
+        visualize!(p[1,1],grid,U[iB,:], label="[B]",clear=false,color=:blue)
+        visualize!(p[2,1],copy(T),copy(u_C),label="[C]",clear=true,show=true)
     end
     return U[iC,1]
 end

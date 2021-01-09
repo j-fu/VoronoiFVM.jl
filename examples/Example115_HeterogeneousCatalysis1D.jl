@@ -57,6 +57,7 @@ module Example115_HeterogeneousCatalysis1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
     
@@ -158,7 +159,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     T=zeros(0)
     u_C=zeros(0)
 
-    p=GridPlotContext(Plotter=Plotter,layout=(3,1))
+    p=GridVisualizer(Plotter=Plotter,layout=(3,1))
     while time<tend
         time=time+tstep
         solve!(U,inival,sys,tstep=tstep)
@@ -170,9 +171,9 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
         push!(T,time)
         push!(u_C,U[iC,1])
 
-        gridplot!(p[1,1],grid,U[iA,:],clear=true,title=@sprintf("[A]: (%.3f,%.3f)",extrema(U[iA,:])...))
-        gridplot!(p[2,1],grid,U[iB,:],clear=true,title=@sprintf("[B]: (%.3f,%.3f)",extrema(U[iA,:])...))
-        gridplot!(p[3,1],simplexgrid(copy(T)),copy(u_C),clear=true,title=@sprintf("[C]: %.3f",u_C[end]),show=true)
+        visualize!(p[1,1],grid,U[iA,:],clear=true,title=@sprintf("[A]: (%.3f,%.3f)",extrema(U[iA,:])...))
+        visualize!(p[2,1],grid,U[iB,:],clear=true,title=@sprintf("[B]: (%.3f,%.3f)",extrema(U[iA,:])...))
+        visualize!(p[3,1],simplexgrid(copy(T)),copy(u_C),clear=true,title=@sprintf("[C]: %.3f",u_C[end]),show=true)
         yield()
     end
     return U[iC,1]

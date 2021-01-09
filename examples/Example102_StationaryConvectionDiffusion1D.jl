@@ -31,6 +31,7 @@ module Example102_StationaryConvectionDiffusion1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 ## Central difference flux. The velocity term is discretized using the
 ## average of the solution in the endpoints of the grid. If the local Peclet
@@ -118,10 +119,10 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
     solution_central=calculate(grid,data,central_flux!,verbose)
 
 
-    p=GridPlotContext(Plotter=Plotter,layout=(3,1))
-    gridplot!(p[1,1],grid,solution_exponential[1,:],title="exponential")
-    gridplot!(p[2,1],grid,solution_upwind[1,:],title="upwind")
-    gridplot!(p[3,1],grid,solution_central[1,:],title="centered",show=true)
+    p=GridVisualizer(Plotter=Plotter,layout=(3,1))
+    visualize!(p[1,1],grid,solution_exponential[1,:],title="exponential")
+    visualize!(p[2,1],grid,solution_upwind[1,:],title="upwind")
+    visualize!(p[3,1],grid,solution_central[1,:],title="centered",show=true)
     
     ## Return test value
     return sum(solution_exponential)+sum(solution_upwind)+sum(solution_central)

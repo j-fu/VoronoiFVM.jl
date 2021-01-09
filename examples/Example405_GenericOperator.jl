@@ -25,6 +25,7 @@ module Example405_GenericOperator
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     
@@ -98,7 +99,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     ## Stationary solution of the problem
     solve!(solution,inival,sys, control=control)
     
-    gridplot(grid,solution[1,:],title="Nonlinear Poisson",Plotter=Plotter)
+    visualize(grid,solution[1,:],title="Nonlinear Poisson",Plotter=Plotter)
     return sum(solution)
 end
 

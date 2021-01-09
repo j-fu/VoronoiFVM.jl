@@ -17,6 +17,7 @@ using Printf
 
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, brea=false)
     

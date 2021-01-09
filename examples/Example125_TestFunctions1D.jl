@@ -5,6 +5,7 @@ module Example125_TestFunctions1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
@@ -55,15 +56,15 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     control.verbose=verbose
     control.damp_initial=0.1
     I1=0
-    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
+    p=GridVisualizer(Plotter=Plotter,layout=(2,1))
     for xeps in [1.0,0.1,0.01]
         eps=[xeps,xeps]
         solve!(U,inival,sys,control=control)
         I1=integrate(sys,tf1,U)
         coord=coordinates(grid)
         inival.=U
-        gridplot!(p[1,1],grid,U[1,:])
-        gridplot!(p[2,1],grid,U[2,:])
+        visualize!(p[1,1],grid,U[1,:])
+        visualize!(p[2,1],grid,U[2,:])
         reveal(p)
         u5=U[5]
     end

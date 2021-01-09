@@ -9,6 +9,7 @@ module Example203_CoordinateSystems
 using VoronoiFVM
 using LinearAlgebra
 using ExtendableGrids
+using .GridVisualize
 
 function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     h=0.1*2.0^(-nref)
@@ -63,7 +64,7 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     # Solve stationary problem
     solve!(solution,inival,sys)
 
-    gridplot(grid,solution[1,:],Plotter=Plotter)
+    visualize(grid,solution[1,:],Plotter=Plotter)
 
     exact=symlapcyl.(coordinates(grid)[1,:])
     err=norm(solution[1,:]-exact,Inf)

@@ -6,6 +6,7 @@ module Example210_NonlinearPoisson2D_Reaction
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
@@ -65,7 +66,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     time=0.0
     istep=0
     u15=0
-    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
+    p=GridVisualizer(Plotter=Plotter,layout=(2,1))
     while time<1
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -76,8 +77,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         u15=U[15]
         tstep*=1.0
         istep=istep+1
-        gridplot!(p[1,1],grid,U[1,:],clear=true)
-        gridplot!(p[2,1],grid,U[2,:],show=true)
+        visualize!(p[1,1],grid,U[1,:],clear=true)
+        visualize!(p[2,1],grid,U[2,:],show=true)
     end
     return u15
 end

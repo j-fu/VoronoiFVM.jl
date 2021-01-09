@@ -6,6 +6,7 @@ module Example215_NonlinearPoisson2D_BoundaryReaction
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=100)
     h=1.0/convert(Float64,n)
@@ -59,7 +60,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=
     istep=0
     u25=0
     
-    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
+    p=GridVisualizer(Plotter=Plotter,layout=(2,1))
     while time<tend
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -72,8 +73,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=
         tstep*=1.2
         istep=istep+1
         u25=U[25]
-        gridplot!(p[1,1],grid,U[1,:],title=@sprintf("U1: %.3g U1+U2:%8.3g",I[1,1],Uall),flimits=(0,1))
-        gridplot!(p[2,1],grid,U[2,:],title=@sprintf("U2: %.3g",I[2,1]),flimits=(0,1))
+        visualize!(p[1,1],grid,U[1,:],title=@sprintf("U1: %.3g U1+U2:%8.3g",I[1,1],Uall),flimits=(0,1))
+        visualize!(p[2,1],grid,U[2,:],title=@sprintf("U2: %.3g",I[2,1]),flimits=(0,1))
         reveal(p)
     end
     return u25
