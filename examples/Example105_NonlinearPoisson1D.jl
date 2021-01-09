@@ -24,6 +24,7 @@ Such equation occur e.g. in simulations of electrochemical systems and semicondu
 module Example105_NonlinearPoisson1D
 using Printf
 using VoronoiFVM
+using ExtendableGrids
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     
@@ -87,14 +88,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     ## Stationary solution of the problem
     solve!(solution,inival,sys, control=control)
 
-    if isplots(Plotter)
-        coord=coordinates(grid)
-        Plotter.plot(coord[1,:],solution[1,:],
-                   label="",
-                   title="Nonlinear Poisson",
-                   grid=true,show=true)
-    end
-    
+    gridplot(grid,solution[1,:],title="Nonlinear Poisson", Plotter=Plotter)
+
     return sum(solution)
 end
 

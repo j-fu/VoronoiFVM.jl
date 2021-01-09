@@ -20,7 +20,7 @@ We initialize this problem with the exact solution for $t=t_0=0.001$.
 module Example106_NonlinearDiffusion1D
 using Printf
 using VoronoiFVM
-
+using ExtendableGrids
 
 function barenblatt(x,t,m)
     tx=t^(-1.0/(m+1.0))
@@ -82,24 +82,14 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     time=t0
+    p=GridPlotContext(Plotter=Plotter,layout=(2,1),fast=true)
     while time<tend
         time=time+tstep
         solve!(solution,inival,sys,control=control,tstep=tstep)
         inival.=solution
-        if verbose
-            @printf("time=%g\n",time)
-        end
-        if isplots(Plotter)
-            p=Plotter.plot(X,
-                         solution[1,:],
-                         label="numerical",
-                         title=@sprintf("Nonlinear Diffusion t=%.5f",time),
-                         grid=true)
-            Plotter.plot!(p,X,
-                        map(x->barenblatt(x,time,m),X),
-                        label="exact",
-                        show=true)
-        end
+        gridplot!(p[1,1],grid,solution[1,:],title=@sprintf("numerical, t=%.3g",time))
+        gridplot!(p[2,1],grid,map(x->barenblatt(x,time,m),grid),title=@sprintf("exact, t=%.3g",time))
+        reveal(p)
     end
     return sum(solution)
 end

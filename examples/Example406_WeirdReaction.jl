@@ -49,6 +49,7 @@ module Example406_WeirdReaction
 using Printf
 using VoronoiFVM
 using SparseArrays
+using ExtendableGrids
 
 function main(;n=10,
               Plotter=nothing,
@@ -172,11 +173,12 @@ function main(;n=10,
     
     tstep=0.01
     time=0.0
-    T=[]
-    u_C=[]
+    T=Float64[]
+    u_C=Float64[]
     
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
+    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
     while time<tend
         time=time+tstep
         solve!(U,inival,sys,tstep=tstep,control=control)
@@ -184,21 +186,13 @@ function main(;n=10,
         if verbose
             @printf("time=%g\n",time)
         end
-        ## Record  boundary species
+        ## Record  boundary pecies
         push!(T,time)
         push!(u_C,U[iC,1])
 
-        if isplots(Plotter)
-            Plots=Plotter
-            coord=coordinates(grid)
-            p1=Plots.plot(coord[1,:],U[iA,:], grid=true, label="[A]")
-            Plots.plot!(p1,coord[1,:],U[iB,:], label="[B]",
-                        title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f\n",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),
-                        ylabel="[A], [B]", xlabel="x",legend=:topright,framestyle=:full)
-            p2=Plots.plot(T,u_C,ylabel="[C]",xlabel="t",framestyle=:full, label="[C]")
-            p=Plots.plot(p1,p2,layout=(2,1))
-            Plots.gui(p)
-        end
+        gridplot!(p[1,1],grid,U[iA,:],label="[A]",title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),color=:red)
+        gridplot!(p[1,1],grid,U[iB,:], label="[B]",clear=false,color=:blue)
+        gridplot!(p[2,1],copy(T),copy(u_C),label="[C]",clear=true,show=true)
     end
     return U[iC,1]
 end

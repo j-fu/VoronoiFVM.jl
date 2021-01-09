@@ -28,6 +28,7 @@ module Example150_Impedance1D
 
 using Printf
 using VoronoiFVM
+using ExtendableGrids
 
 function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
@@ -155,14 +156,10 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         ω=ω*1.2
 
     end
-
-    if isplots(Plotter)
-        p=Plotter.plot(grid=true)
-        Plotter.plot!(p,real(allIL),imag(allIL),label="calc")
-        Plotter.plot!(p,real(allIxL),imag(allIxL),label="exact")
-        Plotter.gui(p)
-    end
-    #return test value
+    
+    p=GridPlotContext(Plotter=Plotter)
+    gridplot!(p,real(allIL),imag(allIL),label="calc",color=:red)
+    gridplot!(p,real(allIxL),imag(allIxL),label="exact",show=true,clear=false,color=:blue)
     return  imag(allIL[5])
 end
 

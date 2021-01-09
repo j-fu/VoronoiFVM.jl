@@ -156,7 +156,7 @@ function _solve!(
                                           values(residual),
                                           1,
                                           Pl=lufact,
-                                          tol=control.tol_linear,
+                                          reltol=control.tol_linear,
                                           max_mv_products=100,
                                           log=true)
                 nliniter=history.iters
