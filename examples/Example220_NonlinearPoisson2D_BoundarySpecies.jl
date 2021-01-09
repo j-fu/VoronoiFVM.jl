@@ -84,6 +84,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     time=0.0
     istep=0
     u5=0
+    p=GridPlotContext(Plotter=Plotter,layout=(3,1))
     while time<1
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -95,14 +96,9 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         istep=istep+1
         U_bound=view(U[3,:],bgrid2)
         u5=U_bound[5]
-        if isplots(Plotter)
-            p1=Plotter.contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6),colorbar=:right,color=:viridis,title=@sprintf("max1=%g max2=%g maxb=%g\n",maximum(U[1,:]),maximum(U[2,:]),maximum(U_bound[3,:])))
-            p2=Plotter.contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.0001:0.002),clim=(0,0.002), colorbar=:right,color=:viridis)
-            p3=Plotter.plot(grid=true,ylims=(0,0.0025))
-            p3=ExtendableGrids.plot(bgrid2,U_bound,p=p3,show=false,clear=false,Plotter=Plotter,plot=p3)
-            p=Plotter.plot(p1,p2,p3,layout=(3,1) )
-            Plotter.gui(p)
-        end
+        gridplot!(p[1,1],grid,U[1,:],clear=true)
+        gridplot!(p[2,1],grid,U[2,:])
+        gridplot!(p[3,1],bgrid2,U_bound,show=true,flimits=(0,0.0025))
     end
     return u5
 end

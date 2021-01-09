@@ -5,6 +5,7 @@ module Example205_NonlinearPoisson2D
 
 using Printf
 using VoronoiFVM
+using ExtendableGrids
 
 
 
@@ -56,6 +57,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     tstep=0.01
     time=0.0
     u15=0
+    p=GridPlotContext(Plotter=Plotter)
     while time<1.0
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -66,11 +68,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
             @printf("time=%g\n",time)
         end
 
+        gridplot!(p[1,1],grid,U[1,:],Plotter=Plotter,clear=true,show=true)
         tstep*=1.0
-        if isplots(Plotter)
-            levels=collect(0:0.05:1)
-            p=Plotter.contourf(X,Y,reshape(values(U),length(X),length(Y)),levels=levels,colorbar=:right,show=true)
-        end
     end
     return u15
 end

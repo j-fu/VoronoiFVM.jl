@@ -32,7 +32,7 @@ function main(;Plotter=nothing)
     inival=unknowns(sys,inival=0)
     solution=unknowns(sys)
     solve!(solution,inival,sys)
-    ExtendableGrids.plot(grid,solution[1,:],Plotter=Plotter)
+    gridplot(grid,solution[1,:],Plotter=Plotter,zplane=0.5, flevel=0.5)
     return solution[43]
 end
 

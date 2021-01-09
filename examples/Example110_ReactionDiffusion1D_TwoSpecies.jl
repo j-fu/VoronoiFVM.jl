@@ -19,7 +19,7 @@ module Example110_ReactionDiffusion1D_TwoSpecies
 
 using Printf
 using VoronoiFVM
-
+using ExtendableGrids
 
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     h=1/n
@@ -73,16 +73,14 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     control.verbose=verbose
     control.damp_initial=0.1
     u5=0
+    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
     for xeps in [1.0,0.5,0.25,0.1,0.05,0.025,0.01]
         eps=[xeps,xeps]
         solve!(U,inival,sys,control=control)
         inival.=U
-        if isplots(Plotter)
-            coord=coordinates(grid)
-            p=Plotter.plot(coord[1,:],U[1,:], grid=true)
-            Plotter.plot!(p,coord[1,:],U[2,:],show=true, title=@sprintf("\$\\varepsilon=%8.3f\$",xeps)),
-            Plotter.sleep(0.2)
-        end
+        gridplot!(p[1,1],grid,U[1,:],clear=true,title="U1, eps=$(xeps)")
+        gridplot!(p[2,1],grid,U[2,:],clear=true,title="U2, eps=$(xeps)",reveal=true)
+        sleep(0.2)
         u5=U[5]
     end
     return u5

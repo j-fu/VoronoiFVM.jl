@@ -9,7 +9,7 @@ using ExtendableGrids
 
 
 
-function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse)
+function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse,tend=10)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
     grid=VoronoiFVM.Grid(X)
@@ -21,10 +21,8 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     subgrid2=subgrid(grid,[1,2,3])
     subgrid3=subgrid(grid,[3])
     
-    if isplots(Plotter)&&plot_grid
-        p=Plotter.plot()
-        VoronoiFVM.plot(Plotter,grid,p=p)
-        Plotter.gui(p)
+    if plot_grid
+        plotgrid(grid,Plotter=Plotter)
         return
     end
     
@@ -87,8 +85,8 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     tstep=0.01
     time=0.0
     istep=0
-    tend=10
     testval=0
+    p=GridPlotContext(Plotter=Plotter,layout=(1,1))
     while time<tend
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -96,27 +94,26 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         if verbose
             @printf("time=%g\n",time)
         end
-        tstep*=1.0
+        tstep*=1.1
         istep=istep+1
-        testval=U[2,15]
-        if isplots(Plotter)
-            Plots=Plotter
-            p=Plots.plot()
-            U1=view(U[1,:],subgrid1)
-            U2=view(U[2,:],subgrid2)
-            U3=view(U[3,:],subgrid3)
-            plot(subgrid1, U1,label="spec1", color=(0.5,0,0),p=p,show=false, Plotter=Plots)
-            plot(subgrid2, U2,label="spec2", color=(0.0,0.5,0),p=p,show=false, Plotter=Plots)
-            plot(subgrid3, U3,label="spec3", color=(0.0,0.0,0.5),p=p,show=false, Plotter=Plots)
-            Plots.gui(p)
-        end
+        testval=U[2,5]
+        
+        U1=view(U[1,:],subgrid1)
+        U2=view(U[2,:],subgrid2)
+        U3=view(U[3,:],subgrid3)
+        
+        gridplot!(p[1,1],subgrid1, U1,label="spec1", color=(0.5,0,0),xlimits=(0,3),flimits=(0,1e-3),
+                  title=@sprintf("three regions t=%.3g",time))
+        gridplot!(p[1,1],subgrid2, U2,label="spec2", color=(0.0,0.5,0),clear=false)
+        gridplot!(p[1,1],subgrid3, U3,label="spec3", color=(0.0,0.0,0.5),clear=false,show=true)
     end
     return testval
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.00039500514567080265 &&
-        main(unknown_storage=:dense) ≈ 0.00039500514567080265
+    testval=0.0005954993329548969
+    main(unknown_storage=:sparse) ≈ testval &&
+        main(unknown_storage=:dense) ≈ testval
 end
 
 end

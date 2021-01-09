@@ -56,6 +56,7 @@ R_{BC}(u_C, u_B)&=k_{BC}^+ u_B(1-u_C) - k_{BC}^-u_C\\
 module Example115_HeterogeneousCatalysis1D
 using Printf
 using VoronoiFVM
+using ExtendableGrids
 
 function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
     
@@ -157,6 +158,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     T=zeros(0)
     u_C=zeros(0)
 
+    p=GridPlotContext(Plotter=Plotter,layout=(3,1))
     while time<tend
         time=time+tstep
         solve!(U,inival,sys,tstep=tstep)
@@ -168,17 +170,10 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
         push!(T,time)
         push!(u_C,U[iC,1])
 
-        if isplots(Plotter)
-            Plots=Plotter
-            coord=coordinates(grid)
-            p1=Plots.plot(coord[1,:],U[iA,:], grid=true, label="[A]")
-            Plots.plot!(p1,coord[1,:],U[iB,:], label="[B]",
-                        title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f\n",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),
-                        ylabel="[A], [B]", xlabel="x",legend=:topright,framestyle=:full)
-            p2=Plots.plot(T,u_C,ylabel="[C]",xlabel="t",framestyle=:full, label="[C]")
-            p=Plots.plot(p1,p2,layout=(2,1))
-            Plots.gui(p)
-        end
+        gridplot!(p[1,1],grid,U[iA,:],clear=true,title=@sprintf("[A]: (%.3f,%.3f)",extrema(U[iA,:])...))
+        gridplot!(p[2,1],grid,U[iB,:],clear=true,title=@sprintf("[B]: (%.3f,%.3f)",extrema(U[iA,:])...))
+        gridplot!(p[3,1],simplexgrid(copy(T)),copy(u_C),clear=true,title=@sprintf("[C]: %.3f",u_C[end]),show=true)
+        yield()
     end
     return U[iC,1]
 end

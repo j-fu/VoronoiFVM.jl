@@ -5,7 +5,7 @@ module Example160_UnipolarDriftDiffusion1D
 using Printf
 
 using VoronoiFVM
-
+using ExtendableGrids
 
 mutable struct Data
     eps::Float64
@@ -15,18 +15,9 @@ mutable struct Data
     Data()=new()
 end
 
-function plot_solution(Plots,sys,U0)
-    !isplots(Plots) && return
-    ildata=data(sys)
-    iphi=ildata.iphi
-    ic=ildata.ic
-    p=Plots.plot(grid=true)
-    coord=coordinates(sys.grid)
-    @views begin
-        Plots.plot!(p,coord[1,:],U0[iphi,:], label="Potential", color=:green)
-        Plots.plot!(p,coord[1,:],U0[ic,:], label="c-", color=:blue)
-    end
-    Plots.gui(p)
+function plot_solution(p,sys,U0,data)
+    gridplot!(p,sys.grid,U0[data.iphi,:], label="ψ", color=:green)
+    gridplot!(p,sys.grid,U0[data.ic,:], label="c-", color=:blue,show=true,clear=false)
 end
 
 
@@ -103,8 +94,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
     @views inival[ic,:].=0.5
     U=unknowns(sys)
 
-
-    plot_solution(Plotter,sys,inival)
+    p=GridPlotContext(Plotter=Plotter)
+    plot_solution(p,sys,inival,data)
 
 
     data.eps=1.0e-3
@@ -124,7 +115,7 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
             if verbose
                 @printf("time=%g\n",t)
             end
-            plot_solution(Plotter,sys,U)
+            plot_solution(p,sys,U,data)
             tstep*=1.4
         end
         return u1
@@ -152,7 +143,7 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
                 sys.boundary_values[iphi,1]=dir*phi+delta
                 solve!(U,inival,sys,control=control)
                 inival.=U
-                plot_solution(Plotter,sys,U)
+                plot_solution(p,sys,U,data)
                 Qdelta=integrate(sys,physics.reaction,U)
                 cdl=(Qdelta[iphi]-Q[iphi])/delta
                 if dir==1
@@ -165,13 +156,10 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
                 phi+=dphi
             end
         end
-        if isplots(Plotter)
-            Plots=Plotter
-            p=Plots.plot(grid=true)
-            Plots.plot!(p,vplus,cdlplus,color=:green)
-            Plots.plot!(p,vminus,cdlminus,color=:green)
-            Plots.gui(p)
-        end
+
+        px=GridPlotContext(Plotter=Plotter)
+        gridplot!(px,vplus,cdlplus,color=:green,clear=true)
+        gridplot!(px,vminus,cdlminus,color=:green,clear=false,show=true)
         return cdl
     end
 end
