@@ -4,6 +4,7 @@
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     h=1/n
@@ -57,13 +58,13 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     control.verbose=verbose
     control.damp_initial=0.1
     u5=0
-    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
+    p=GridVisualizer(Plotter=Plotter,layout=(2,1))
     for xeps in [1.0,0.5,0.25,0.1,0.05,0.025,0.01]
         eps=[xeps,xeps]
         solve!(U,inival,sys,control=control)
         inival.=U
-        gridplot!(p[1,1],grid,U[1,:],clear=true,title=&quot;U1, eps=$(xeps)&quot;)
-        gridplot!(p[2,1],grid,U[2,:],clear=true,title=&quot;U2, eps=$(xeps)&quot;,reveal=true)
+        visualize!(p[1,1],grid,U[1,:],clear=true,title=&quot;U1, eps=$(xeps)&quot;)
+        visualize!(p[2,1],grid,U[2,:],clear=true,title=&quot;U2, eps=$(xeps)&quot;,reveal=true)
         sleep(0.2)
         u5=U[5]
     end
@@ -74,4 +75,4 @@ function test()
     testval=0.7117546972922056
     main(unknown_storage=:sparse) ≈ testval &amp;&amp; main(unknown_storage=:dense) ≈ testval
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example107_NonlinearStorage1D/">« 107: 1D Nonlinear Storage</a><a class="docs-footer-nextpage" href="../Example115_HeterogeneousCatalysis1D/">115: 1D heterogeneous catalysis »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 14:22">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example107_NonlinearStorage1D/">« 107: 1D Nonlinear Storage</a><a class="docs-footer-nextpage" href="../Example115_HeterogeneousCatalysis1D/">115: 1D heterogeneous catalysis »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 18:24">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

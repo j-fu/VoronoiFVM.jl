@@ -4,6 +4,7 @@
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 
 
@@ -55,7 +56,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     tstep=0.01
     time=0.0
     u15=0
-    p=GridPlotContext(Plotter=Plotter)
+    p=GridVisualizer(Plotter=Plotter)
     while time&lt;1.0
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -66,7 +67,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
             @printf(&quot;time=%g\n&quot;,time)
         end
 
-        gridplot!(p[1,1],grid,U[1,:],Plotter=Plotter,clear=true,show=true)
+        visualize!(p[1,1],grid,U[1,:],Plotter=Plotter,clear=true,show=true)
         tstep*=1.0
     end
     return u15
@@ -76,4 +77,4 @@ function test()
     main(unknown_storage=:sparse) ≈ 0.3554284760906605 &amp;&amp;
         main(unknown_storage=:dense) ≈ 0.3554284760906605
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example203_CoordinateSystems/">« 203: Various coordinate systems</a><a class="docs-footer-nextpage" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 14:22">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example203_CoordinateSystems/">« 203: Various coordinate systems</a><a class="docs-footer-nextpage" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 18:24">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

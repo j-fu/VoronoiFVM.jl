@@ -3,6 +3,7 @@
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using .GridVisualize
 
 # Central difference flux. The velocity term is discretized using the
 # average of the solution in the endpoints of the grid. If the local Peclet
@@ -90,10 +91,10 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
     solution_central=calculate(grid,data,central_flux!,verbose)
 
 
-    p=GridPlotContext(Plotter=Plotter,layout=(3,1))
-    gridplot!(p[1,1],grid,solution_exponential[1,:],title=&quot;exponential&quot;)
-    gridplot!(p[2,1],grid,solution_upwind[1,:],title=&quot;upwind&quot;)
-    gridplot!(p[3,1],grid,solution_central[1,:],title=&quot;centered&quot;,show=true)
+    p=GridVisualizer(Plotter=Plotter,layout=(3,1))
+    visualize!(p[1,1],grid,solution_exponential[1,:],title=&quot;exponential&quot;)
+    visualize!(p[2,1],grid,solution_upwind[1,:],title=&quot;upwind&quot;)
+    visualize!(p[3,1],grid,solution_central[1,:],title=&quot;centered&quot;,show=true)
 
     # Return test value
     return sum(solution_exponential)+sum(solution_upwind)+sum(solution_central)
@@ -104,4 +105,4 @@ function test()
     main() ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example101_Laplace1D/">« 101: 1D Laplace equation</a><a class="docs-footer-nextpage" href="../Example105_NonlinearPoisson1D/">105: 1D Nonlinear Poisson equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 14:22">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example101_Laplace1D/">« 101: 1D Laplace equation</a><a class="docs-footer-nextpage" href="../Example105_NonlinearPoisson1D/">105: 1D Nonlinear Poisson equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 18:24">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
