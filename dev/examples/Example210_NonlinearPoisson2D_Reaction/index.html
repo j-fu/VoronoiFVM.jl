@@ -3,7 +3,7 @@
 
 using Printf
 using VoronoiFVM
-
+using ExtendableGrids
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
@@ -63,6 +63,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     time=0.0
     istep=0
     u15=0
+    p=GridPlotContext(Plotter=Plotter,layout=(2,1))
     while time&lt;1
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -73,13 +74,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         u15=U[15]
         tstep*=1.0
         istep=istep+1
-
-        if isplots(Plotter)
-            p1=Plotter.contourf(X,Y,reshape(U[1,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6),colorbar=:right,color=:viridis,title=@sprintf(&quot;max1=%g max2=%g\n&quot;,maximum(U[1,:]),maximum(U[2,:])))
-            p2=Plotter.contourf(X,Y,reshape(U[2,:],length(X),length(Y)),levels=collect(0:0.1:0.6),clim=(0,0.6), colorbar=:right,color=:viridis)
-            p=Plotter.plot(p1,p2,layout=(2,1) )
-            Plotter.gui(p)
-        end
+        gridplot!(p[1,1],grid,U[1,:],clear=true)
+        gridplot!(p[2,1],grid,U[2,:],show=true)
     end
     return u15
 end
@@ -88,4 +84,4 @@ function test()
     main(unknown_storage=:sparse) ≈ 0.014566189535134827 &amp;&amp;
         main(unknown_storage=:dense) ≈ 0.014566189535134827
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example205_NonlinearPoisson2D/">« 205: 2D Nonlinear Poisson equation</a><a class="docs-footer-nextpage" href="../Example215_NonlinearPoisson2D_BoundaryReaction/">215: 2D Nonlinear Poisson with boundary reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 24 December 2020 18:50">Thursday 24 December 2020</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example205_NonlinearPoisson2D/">« 205: 2D Nonlinear Poisson equation</a><a class="docs-footer-nextpage" href="../Example215_NonlinearPoisson2D_BoundaryReaction/">215: 2D Nonlinear Poisson with boundary reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 14:22">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

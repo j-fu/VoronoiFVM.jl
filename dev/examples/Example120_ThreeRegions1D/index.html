@@ -7,7 +7,7 @@ using ExtendableGrids
 
 
 
-function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse)
+function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse,tend=10)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
     grid=VoronoiFVM.Grid(X)
@@ -19,10 +19,8 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     subgrid2=subgrid(grid,[1,2,3])
     subgrid3=subgrid(grid,[3])
 
-    if isplots(Plotter)&amp;&amp;plot_grid
-        p=Plotter.plot()
-        VoronoiFVM.plot(Plotter,grid,p=p)
-        Plotter.gui(p)
+    if plot_grid
+        plotgrid(grid,Plotter=Plotter)
         return
     end
 
@@ -85,8 +83,8 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     tstep=0.01
     time=0.0
     istep=0
-    tend=10
     testval=0
+    p=GridPlotContext(Plotter=Plotter,layout=(1,1))
     while time&lt;tend
         time=time+tstep
         solve!(U,inival,sys,control=control,tstep=tstep)
@@ -94,27 +92,26 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         if verbose
             @printf(&quot;time=%g\n&quot;,time)
         end
-        tstep*=1.0
+        tstep*=1.1
         istep=istep+1
-        testval=U[2,15]
-        if isplots(Plotter)
-            Plots=Plotter
-            p=Plots.plot()
-            U1=view(U[1,:],subgrid1)
-            U2=view(U[2,:],subgrid2)
-            U3=view(U[3,:],subgrid3)
-            plot(subgrid1, U1,label=&quot;spec1&quot;, color=(0.5,0,0),p=p,show=false, Plotter=Plots)
-            plot(subgrid2, U2,label=&quot;spec2&quot;, color=(0.0,0.5,0),p=p,show=false, Plotter=Plots)
-            plot(subgrid3, U3,label=&quot;spec3&quot;, color=(0.0,0.0,0.5),p=p,show=false, Plotter=Plots)
-            Plots.gui(p)
-        end
+        testval=U[2,5]
+
+        U1=view(U[1,:],subgrid1)
+        U2=view(U[2,:],subgrid2)
+        U3=view(U[3,:],subgrid3)
+
+        gridplot!(p[1,1],subgrid1, U1,label=&quot;spec1&quot;, color=(0.5,0,0),xlimits=(0,3),flimits=(0,1e-3),
+                  title=@sprintf(&quot;three regions t=%.3g&quot;,time))
+        gridplot!(p[1,1],subgrid2, U2,label=&quot;spec2&quot;, color=(0.0,0.5,0),clear=false)
+        gridplot!(p[1,1],subgrid3, U3,label=&quot;spec3&quot;, color=(0.0,0.0,0.5),clear=false,show=true)
     end
     return testval
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.00039500514567080265 &amp;&amp;
-        main(unknown_storage=:dense) ≈ 0.00039500514567080265
+    testval=0.0005954993329548969
+    main(unknown_storage=:sparse) ≈ testval &amp;&amp;
+        main(unknown_storage=:dense) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 24 December 2020 18:50">Thursday 24 December 2020</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 14:22">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
