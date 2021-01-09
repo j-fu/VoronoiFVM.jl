@@ -1,4 +1,9 @@
 # Changes
+## v0.10.0 Jan 9 2021
+- Moving visualization to the package [GridVisualize.jl](https://github.com/j-fu/GridVisualize.jl), emerging from 
+  the visualization methods in ExtendableGrids
+
+
 ## v0.9.0 Dec 21 2020
 - Add the possibility to interface with [DifferentialEquations.jl](https://diffeq.sciml.ai/stable/)
 - __Breaking__: The API change to passing the unknowns to the
