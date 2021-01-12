@@ -50,7 +50,7 @@ using Printf
 using VoronoiFVM
 using SparseArrays
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 function main(;n=10,
               Plotter=nothing,
@@ -191,9 +191,9 @@ function main(;n=10,
         push!(T,time)
         push!(u_C,U[iC,1])
 
-        visualize!(p[1,1],grid,U[iA,:],label="[A]",title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),color=:red)
-        visualize!(p[1,1],grid,U[iB,:], label="[B]",clear=false,color=:blue)
-        visualize!(p[2,1],copy(T),copy(u_C),label="[C]",clear=true,show=true)
+        scalarplot!(p[1,1],grid,U[iA,:],label="[A]",title=@sprintf("max_A=%.5f max_B=%.5f u_C=%.5f",maximum(U[iA,:]),maximum(U[iB,:]),u_C[end]),color=:red)
+        scalarplot!(p[1,1],grid,U[iB,:], label="[B]",clear=false,color=:blue)
+        scalarplot!(p[2,1],copy(T),copy(u_C),label="[C]",clear=true,show=true)
     end
     return U[iC,1]
 end

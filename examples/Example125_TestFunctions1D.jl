@@ -5,7 +5,7 @@ module Example125_TestFunctions1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
@@ -63,8 +63,8 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         I1=integrate(sys,tf1,U)
         coord=coordinates(grid)
         inival.=U
-        visualize!(p[1,1],grid,U[1,:])
-        visualize!(p[2,1],grid,U[2,:])
+        scalarplot!(p[1,1],grid,U[1,:])
+        scalarplot!(p[2,1],grid,U[2,:])
         reveal(p)
         u5=U[5]
     end

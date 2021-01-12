@@ -6,7 +6,7 @@ module Example120_ThreeRegions1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 
 
@@ -103,10 +103,10 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         U2=view(U[2,:],subgrid2)
         U3=view(U[3,:],subgrid3)
         
-        visualize!(p[1,1],subgrid1, U1,label="spec1", color=(0.5,0,0),xlimits=(0,3),flimits=(0,1e-3),
+        scalarplot!(p[1,1],subgrid1, U1,label="spec1", color=(0.5,0,0),xlimits=(0,3),flimits=(0,1e-3),
                   title=@sprintf("three regions t=%.3g",time))
-        visualize!(p[1,1],subgrid2, U2,label="spec2", color=(0.0,0.5,0),clear=false)
-        visualize!(p[1,1],subgrid3, U3,label="spec3", color=(0.0,0.0,0.5),clear=false,show=true)
+        scalarplot!(p[1,1],subgrid2, U2,label="spec2", color=(0.0,0.5,0),clear=false)
+        scalarplot!(p[1,1],subgrid3, U3,label="spec3", color=(0.0,0.0,0.5),clear=false,show=true)
     end
     return testval
 end

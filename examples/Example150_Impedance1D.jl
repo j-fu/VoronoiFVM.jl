@@ -29,7 +29,7 @@ module Example150_Impedance1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
@@ -159,8 +159,8 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     end
     
     p=GridVisualizer(Plotter=Plotter)
-    visualize!(p,real(allIL),imag(allIL),label="calc",color=:red)
-    visualize!(p,real(allIxL),imag(allIxL),label="exact",show=true,clear=false,color=:blue)
+    scalarplot!(p,real(allIL),imag(allIL),label="calc",color=:red)
+    scalarplot!(p,real(allIxL),imag(allIxL),label="exact",show=true,clear=false,color=:blue)
     return  imag(allIL[5])
 end
 

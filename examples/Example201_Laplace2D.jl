@@ -9,7 +9,7 @@
 module Example201_Laplace2D
 
 using VoronoiFVM,ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 
 ## Flux function which describes the flux
@@ -33,7 +33,7 @@ function main(;Plotter=nothing)
     inival=unknowns(sys,inival=0)
     solution=unknowns(sys)
     solve!(solution,inival,sys)
-    visualize(grid,solution[1,:],Plotter=Plotter)
+    scalarplot(grid,solution[1,:],Plotter=Plotter)
     return solution[7]
 end
 

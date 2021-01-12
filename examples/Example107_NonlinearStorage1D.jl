@@ -17,7 +17,7 @@ module Example107_NonlinearStorage1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 function barenblatt(x,t,m)
     tx=t^(-1.0/(m+1.0))
@@ -87,8 +87,8 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
         time=time+tstep
         solve!(solution,inival,sys,control=control,tstep=tstep)
         inival.=solution
-        visualize!(p[1,1],grid,solution[1,:],title=@sprintf("numerical, t=%.5f",time),clear=true)
-        visualize!(p[2,1],grid,map(x->barenblatt(x,time,m)^m,grid),title=@sprintf("exact, t=%.4f",time),clear=true)
+        scalarplot!(p[1,1],grid,solution[1,:],title=@sprintf("numerical, t=%.5f",time),clear=true)
+        scalarplot!(p[2,1],grid,map(x->barenblatt(x,time,m)^m,grid),title=@sprintf("exact, t=%.4f",time),clear=true)
         sleep(1.0e-5)
 #        yield()
     end

@@ -6,7 +6,7 @@ module Example210_NonlinearPoisson2D_Reaction
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
@@ -77,8 +77,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         u15=U[15]
         tstep*=1.0
         istep=istep+1
-        visualize!(p[1,1],grid,U[1,:],clear=true)
-        visualize!(p[2,1],grid,U[2,:],show=true)
+        scalarplot!(p[1,1],grid,U[1,:],clear=true)
+        scalarplot!(p[2,1],grid,U[2,:],show=true)
     end
     return u15
 end

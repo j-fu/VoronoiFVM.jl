@@ -6,7 +6,7 @@ module Example205_NonlinearPoisson2D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 
 
@@ -69,7 +69,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
             @printf("time=%g\n",time)
         end
 
-        visualize!(p[1,1],grid,U[1,:],Plotter=Plotter,clear=true,show=true)
+        scalarplot!(p[1,1],grid,U[1,:],Plotter=Plotter,clear=true,show=true)
         tstep*=1.0
     end
     return u15

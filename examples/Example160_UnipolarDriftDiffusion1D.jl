@@ -6,7 +6,7 @@ using Printf
 
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 mutable struct Data
     eps::Float64
@@ -17,8 +17,8 @@ mutable struct Data
 end
 
 function plot_solution(p,sys,U0,data)
-    visualize!(p,sys.grid,U0[data.iphi,:], label="ψ", color=:green)
-    visualize!(p,sys.grid,U0[data.ic,:], label="c-", color=:blue,show=true,clear=false)
+    scalarplot!(p,sys.grid,U0[data.iphi,:], label="ψ", color=:green)
+    scalarplot!(p,sys.grid,U0[data.ic,:], label="c-", color=:blue,show=true,clear=false)
 end
 
 
@@ -159,8 +159,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
         end
 
         px=GridVisualizer(Plotter=Plotter)
-        visualize!(px,vplus,cdlplus,color=:green,clear=true)
-        visualize!(px,vminus,cdlminus,color=:green,clear=false,show=true)
+        scalarplot!(px,vplus,cdlplus,color=:green,clear=true)
+        scalarplot!(px,vminus,cdlminus,color=:green,clear=false,show=true)
         return cdl
     end
 end

@@ -20,7 +20,7 @@ module Example110_ReactionDiffusion1D_TwoSpecies
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     h=1/n
@@ -79,8 +79,8 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         eps=[xeps,xeps]
         solve!(U,inival,sys,control=control)
         inival.=U
-        visualize!(p[1,1],grid,U[1,:],clear=true,title="U1, eps=$(xeps)")
-        visualize!(p[2,1],grid,U[2,:],clear=true,title="U2, eps=$(xeps)",reveal=true)
+        scalarplot!(p[1,1],grid,U[1,:],clear=true,title="U1, eps=$(xeps)")
+        scalarplot!(p[2,1],grid,U[2,:],clear=true,title="U2, eps=$(xeps)",reveal=true)
         sleep(0.2)
         u5=U[5]
     end

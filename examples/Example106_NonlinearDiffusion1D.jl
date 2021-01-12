@@ -21,7 +21,7 @@ module Example106_NonlinearDiffusion1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 function barenblatt(x,t,m)
     tx=t^(-1.0/(m+1.0))
@@ -88,8 +88,8 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
         time=time+tstep
         solve!(solution,inival,sys,control=control,tstep=tstep)
         inival.=solution
-        visualize!(p[1,1],grid,solution[1,:],title=@sprintf("numerical, t=%.3g",time))
-        visualize!(p[2,1],grid,map(x->barenblatt(x,time,m),grid),title=@sprintf("exact, t=%.3g",time))
+        scalarplot!(p[1,1],grid,solution[1,:],title=@sprintf("numerical, t=%.3g",time))
+        scalarplot!(p[2,1],grid,map(x->barenblatt(x,time,m),grid),title=@sprintf("exact, t=%.3g",time))
         reveal(p)
     end
     return sum(solution)
