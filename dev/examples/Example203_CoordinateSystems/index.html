@@ -4,7 +4,7 @@
 using VoronoiFVM
 using LinearAlgebra
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     h=0.1*2.0^(-nref)
@@ -53,7 +53,7 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     inival.=0
     solution.=0</code></pre><p>Solve stationary problem</p><pre><code class="language-julia">    solve!(solution,inival,sys)
 
-    visualize(grid,solution[1,:],Plotter=Plotter)
+    scalarplot(grid,solution[1,:],Plotter=Plotter)
 
     exact=symlapcyl.(coordinates(grid)[1,:])
     err=norm(solution[1,:]-exact,Inf)
@@ -61,4 +61,4 @@ end</code></pre><p>Called by unit test</p><pre><code class="language-julia">func
     main() &lt;1.0e-14
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example201_Laplace2D/">« 201: 2D Laplace equation</a><a class="docs-footer-nextpage" href="../Example205_NonlinearPoisson2D/">205: 2D Nonlinear Poisson equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 21:09">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example201_Laplace2D/">« 201: 2D Laplace equation</a><a class="docs-footer-nextpage" href="../Example205_NonlinearPoisson2D/">205: 2D Nonlinear Poisson equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 12 January 2021 23:31">Tuesday 12 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

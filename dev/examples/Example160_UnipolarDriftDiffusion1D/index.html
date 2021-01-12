@@ -5,7 +5,7 @@ using Printf
 
 using VoronoiFVM
 using ExtendableGrids
-using .GridVisualize
+using GridVisualize
 
 mutable struct Data
     eps::Float64
@@ -16,8 +16,8 @@ mutable struct Data
 end
 
 function plot_solution(p,sys,U0,data)
-    visualize!(p,sys.grid,U0[data.iphi,:], label=&quot;ψ&quot;, color=:green)
-    visualize!(p,sys.grid,U0[data.ic,:], label=&quot;c-&quot;, color=:blue,show=true,clear=false)
+    scalarplot!(p,sys.grid,U0[data.iphi,:], label=&quot;ψ&quot;, color=:green)
+    scalarplot!(p,sys.grid,U0[data.ic,:], label=&quot;c-&quot;, color=:blue,show=true,clear=false)
 end
 
 
@@ -158,8 +158,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
         end
 
         px=GridVisualizer(Plotter=Plotter)
-        visualize!(px,vplus,cdlplus,color=:green,clear=true)
-        visualize!(px,vminus,cdlminus,color=:green,clear=false,show=true)
+        scalarplot!(px,vplus,cdlplus,color=:green,clear=true)
+        scalarplot!(px,vminus,cdlminus,color=:green,clear=false,show=true)
         return cdl
     end
 end
@@ -170,4 +170,4 @@ function test()
             main(dlcap=true) ≈ .010759276468375045 &amp;&amp;
             main(dlcap=true,unknown_storage=:dense) ≈ .010759276468375045
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example201_Laplace2D/">201: 2D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 9 January 2021 21:09">Saturday 9 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example201_Laplace2D/">201: 2D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 12 January 2021 23:31">Tuesday 12 January 2021</span>. Using Julia version 1.5.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
