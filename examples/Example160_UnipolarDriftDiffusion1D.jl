@@ -166,6 +166,10 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
 end
 
 function test()
+    res1=main(unknown_storage=:sparse)
+    println("res1= ", res1)
+    res2=main(unknown_storage=:sparse,dlcap=true)
+    println("res2= ",res2)
         main(unknown_storage=:sparse) ≈ 0.9999546021312723 &&
             main(unknown_storage=:dense) ≈ 0.9999546021312723 &&
             main(dlcap=true) ≈ .010759276468375045 &&

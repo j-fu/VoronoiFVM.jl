@@ -1,4 +1,7 @@
 # Changes
+## v0.10.3 Feb 11, 2019
+- Introduce non-mutating solve
+- Optionally record history if log kw is true in solve.
 ## v0.10.0 Jan 9 2021
 - Moving visualization to the package [GridVisualize.jl](https://github.com/j-fu/GridVisualize.jl), emerging from 
   the visualization methods in ExtendableGrids
