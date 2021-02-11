@@ -83,11 +83,13 @@ function _solve!(
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
     this::AbstractSystem{Tv}, # Finite volume system
     control::NewtonControl,
-    tstep::Tv
+    tstep::Tv,
+    log::Bool
 ) where Tv
 
     _complete!(this, create_newtonvectors=true)
-
+    nlhistory=zeros(0)
+    
     solution.=oldsol
     residual=this.residual
     update=this.update
@@ -194,7 +196,8 @@ function _solve!(
         else
             nround=0
         end
-        
+
+        push!(nlhistory,norm)
         if control.verbose
             if   control.tol_linear<1.0
                 itstring=@sprintf("it=% 3d(% 2d)",ii,nliniter)
@@ -230,6 +233,7 @@ function _solve!(
     if control.verbose
         @printf("    Newton iteration successful\n")
     end
+    return nlhistory
 end
 
 ################################################################
@@ -660,19 +664,39 @@ function solve!(
     inival::AbstractMatrix{Tv},   # Initial value 
     this::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
-    tstep::Tv=Inf                # Time step size. Inf means  stationary solution
+    tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
+    log::Bool=true
 ) where Tv
     if control.verbose
         @time begin
-            _solve!(solution,inival,this,control,tstep)
+            history=_solve!(solution,inival,this,control,tstep,log)
         end
     else 
-        _solve!(solution,inival,this,control,tstep)
+        history=_solve!(solution,inival,this,control,tstep,log)
     end
-    return solution
+    return log ? (solution,history) : solution
 end
 
 
+################################################################
+"""
+$(TYPEDSIGNATURES)
+
+Solution method for instance of abstract system.
+
+Perform solution of stationary system (if `tstep==Inf`) or one time step
+of implicit Euler time step system using Newton's method with damping. 
+Initial damping is chosen according  `control.damp_initial`.
+"""
+function solve(
+    inival::AbstractMatrix{Tv},   # Initial value 
+    this::AbstractSystem{Tv};     # Finite volume system
+    control=NewtonControl(),      # Newton solver control information
+    tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
+    log::Bool=false
+) where Tv
+    solve!(unknowns(this),inival,this,control=control, tstep=tstep,log=log)
+end
 
 ################################################################
 """

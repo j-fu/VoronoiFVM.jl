@@ -21,7 +21,7 @@ Create Finite Volume System.
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 
 """
-function System(grid,physics::Physics; unknown_storage=:sparse, matrixindextype=Int32)
+function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int32)
     if Symbol(unknown_storage)==:dense
         return DenseSystem(grid,physics, matrixindextype=matrixindextype)
     elseif Symbol(unknown_storage)==:sparse

@@ -78,11 +78,11 @@ Returns two real numbers containing the result for argument
 `x` and argument `-x`.
 
 """
-function fbernoulli_pm(x::Real)
+function fbernoulli_pm(x)
     expx=exp(x)
     if abs(expx-1)>0.00001
         bp=x/(expx-1)
-        bm=expx*bp
+        bm=x/(1-1/expx)
         return bp,bm
     else
         y=bernoulli_horner(x)

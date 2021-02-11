@@ -81,7 +81,7 @@ export dof
 export getdof
 export setdof!
 export value,partials,npartials
-export solve!
+export solve!,solve
 export evolve!
 export embed!
 export freqdomain_impedance
