@@ -210,7 +210,7 @@ function _solve!(
                 @printf("    %s du=%.3e cont=%.3e\n",itstring,norm, norm/oldnorm)
             end
         end
-        if norm/oldnorm > 1.0/control.tol_mono
+        if ii>1 &&  norm/oldnorm > 1.0/control.tol_mono
             converged=false
             break
         end
