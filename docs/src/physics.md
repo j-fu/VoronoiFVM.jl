@@ -1,4 +1,4 @@
-# Physics
+# Physics & special functions
 
 ## Types and Constants
 ```@autodocs
@@ -6,8 +6,6 @@ Modules = [VoronoiFVM]
 Pages = ["vfvm_physics.jl","vfvm_functions.jl"]
 Order = [:type]
 ```
-
-
 
 ```@autodocs
 Modules = [VoronoiFVM]

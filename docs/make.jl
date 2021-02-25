@@ -34,7 +34,7 @@ function make_all()
                               preprocess=preprocess)
         end
     end
-    generated_examples=joinpath.("examples",readdir(example_md_dir))
+    generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     
     makedocs(
         sitename="VoronoiFVM.jl",

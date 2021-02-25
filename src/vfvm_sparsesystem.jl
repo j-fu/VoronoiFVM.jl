@@ -7,6 +7,8 @@ is stored in a sparse matrix structure.
 
 This class plays well with the abstract array interface.
 
+Fields:
+
 $(TYPEDFIELDS)
 """
 struct SparseSolutionArray{Tv,Ti} <: AbstractMatrix{Tv}
@@ -92,14 +94,37 @@ mutable struct SparseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     residual::SparseSolutionArray{Tv,Tm}
 
+    """
+    Precomputed geometry factors for cell nodes
+    """
     cellnodefactors::Array{Tv,2}
-    celledgefactors::Array{Tv,2}
-    bfacenodefactors::Array{Tv,2}
     
+    """
+    Precomputed geometry factors for cell edges
+    """
+    celledgefactors::Array{Tv,2}
+
+    """
+    Precomputed geometry factors for boundary nodes
+    """
+    bfacenodefactors::Array{Tv,2}
+
+    """
+    Sparse matrix for generic operator handling
+    """
     generic_matrix::SparseMatrixCSC
+
+    """
+    Sparse matrix colors for generic operator handling
+    """
     generic_matrix_colors::Vector
 
-    uhash::UInt64 
+    """
+    Hash value of latest unknowns vector the assembly was called with
+    """
+    uhash::UInt64
+
+    
     SparseSystem{Tv,Ti,Tm}() where {Tv,Ti,Tm} = new()
 end
 

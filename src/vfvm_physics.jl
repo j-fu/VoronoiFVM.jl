@@ -71,54 +71,71 @@ struct Physics{Flux<:Function,
                GenericOperatorSparsity<:Function,
                Data} <: AbstractPhysics
     """
-    Flux between neigboring control volumes
+    Flux between neigboring control volumes: `flux(f,_u,edge)` or `flux(f,_u,edge,data)`
+    should return in `f[i]` the flux of species i along the edge joining circumcenters
+    of neigboring control volumes. `u=unknowns(_u)` returns a 2D array such that for species i,
+    `u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
     """
     flux::Flux
 
     """
-    Storage term (term under time derivative)
+    Storage term (term under time derivative): `storage(f,u,node)` or `storage(f,u,node,data)` 
+
+    It should return in `f[i]` the storage term for the i-th equation. `u[i]` contains the value of
+    the i-th unknown.
     """
     storage::Storage
 
     """
-    Reaction term
+    Reaction term:  `reaction(f,u,node)` or `reaction(f,u,node,data)` 
+
+    It should return in `f[i]` the reaction term for the i-th equation. `u[i]` contains the value of
+    the i-th unknown.
     """
     reaction::Reaction
 
-    """"
-    Source term
+    """
+    Source term: `source(f,node)` or `source(f,node,data)`.
+
+    It should return the in `f[i]` the value of the source term for the i-th equation.
     """
     source::Source
 
     """
-    Boundary reaction term
+    Boundary reaction term:  `breaction(f,u,node)` or `breaction(f,u,node,data)` 
+    Similar to reaction, but restricted to the inner or outer boundaries.
     """
     breaction::BReaction
 
     """
-    Boundary storage term
+    Boundary storage term: `bstorage(f,u,node)` or `bstorage(f,u,node,data)` 
+    Similar to storage, but restricted to the inner or outer boundaries.
     """
     bstorage::BStorage
 
     """
-    Generic function
+    Generic operator  `generic_operator(f,u,sys)`. 
+    This operator acts on the full solution `u` of a system. Sparsity
+    is detected automatically  unless `generic_operator_sparsity` is given.
     """
     generic_operator::GenericOperator
 
     
     """
-    Generic function
+    Function defining the sparsity structure of the generic operator.
+    This should return the sparsity pattern of the `generic_operator`.
     """
     generic_operator_sparsity::GenericOperatorSparsity
 
     
     """
-    User data (parameters)
+    User data (parameters).
+    This allows to pass various parameters to the callback functions.
     """
     data::Data
 
     """
-    Number of species
+    Number of species including boundary species.
     """
     num_species::Int8
 
@@ -126,9 +143,15 @@ end
 
 ##########################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Constructor for physics data with default values.
+Constructor for physics data with default values for the
+constitutive callback functions.
+
+There are two variants of this constructor. It `data` is given, all callback functions
+should accept a last `data` argument. Otherwise, no data are passed explicitely, and it
+is assumed that constitutive callbacks take parameters from the closure where the function
+is defined.
 """
 function Physics(;num_species=1,
                  data=NoData(),
@@ -149,6 +172,7 @@ function Physics(;num_species=1,
         breaction==nofunc ? breaction=nofunc2 : true
         bstorage==nofunc ? bstorage=nofunc2 : true
     end
+    
     return Physics(flux,
                    storage,
                    reaction,
@@ -162,9 +186,19 @@ function Physics(;num_species=1,
                    )
 end
 
+"""
+$(SIGNATURES)
+
+Check if physics object has data
+"""
 hasdata(physics::Physics)=isdata(physics.data)
 
 
+"""
+$(SIGNATURES)
+
+Show physics object
+"""
 function Base.show(io::IO,physics::AbstractPhysics)
     str=@sprintf("VoronoiFVM.Physics(num_species=%d",physics.num_species)
     if isdata(physics.data)

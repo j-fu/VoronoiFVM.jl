@@ -74,14 +74,36 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     residual::Matrix{Tv}
 
+    """
+    Precomputed geometry factors for cell nodes
+    """
     cellnodefactors::Array{Tv,2}
+    
+    """
+    Precomputed geometry factors for cell edges
+    """
     celledgefactors::Array{Tv,2}
+
+    """
+    Precomputed geometry factors for boundary nodes
+    """
     bfacenodefactors::Array{Tv,2}
 
+    """
+    Sparse matrix for generic operator handling
+    """
     generic_matrix::SparseMatrixCSC
+
+    """
+    Sparse matrix colors for generic operator handling
+    """
     generic_matrix_colors::Vector
 
+    """
+    Hash value of latest unknowns vector the assembly was called with
+    """
     uhash::UInt64
+
     DenseSystem{Tv,Ti, Tm}() where {Tv,Ti, Tm} = new()
 end
 ##################################################################

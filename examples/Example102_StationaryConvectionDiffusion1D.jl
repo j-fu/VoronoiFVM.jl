@@ -40,9 +40,9 @@ using GridVisualize
 
 function central_flux!(f,u0,edge,data)
     u=unknowns(edge,u0)
-    h=meas(edge)
     f_diff=data.D*(u[1,1]-u[1,2])
-    f[1]=f_diff+data.v*h*(u[1,1]+u[1,2])/2
+    vh=project(edge,data.v)
+    f[1]=f_diff+vh*(u[1,1]+u[1,2])/2
 end
 
 ## The simple upwind flux corrects the monotonicity properties essentially
@@ -51,12 +51,12 @@ end
 
 function upwind_flux!(f,u0,edge,data)
     u=unknowns(edge,u0)
-    h=meas(edge)
     fdiff=data.D*(u[1,]-u[1,2])
-    if data.v>0
-        f[1]=fdiff+data.v*h*u[1,1]
+    vh=project(edge,data.v)
+    if vh>0
+        f[1]=fdiff+vh*u[1,1]
     else
-        f[1]=fdiff+data.v*h*u[1,2]
+        f[1]=fdiff+vh*u[1,2]
     end
 end
 
@@ -75,15 +75,15 @@ end
 
 function exponential_flux!(f,u0,edge,data)
     u=unknowns(edge,u0)
-    h=meas(edge)
-    Bplus= data.D*bernoulli(data.v*h/data.D)
-    Bminus=data.D*bernoulli(-data.v*h/data.D)
+    vh=project(edge,data.v)
+    Bplus= data.D*bernoulli(vh/data.D)
+    Bminus=data.D*bernoulli(-vh/data.D)
     f[1]=Bminus*u[1,1]-Bplus*u[1,2]
 end
 
 
 function calculate(grid,data,flux,verbose)
-
+    
     sys=VoronoiFVM.System(grid,VoronoiFVM.Physics(flux=flux, data=data))
 
     ## Add species 1 to region 1
@@ -112,13 +112,14 @@ function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
     h=1.0/convert(Float64,n)
     grid=VoronoiFVM.Grid(collect(0:h:1))
 
-    data=(v=v,D=D)
+    data=(v=[v],D=D)
 
+    # Calculate three stationary solutions with different ways to calculate flux
     solution_exponential=calculate(grid,data,exponential_flux!,verbose)
     solution_upwind=calculate(grid,data,upwind_flux!,verbose)
     solution_central=calculate(grid,data,central_flux!,verbose)
 
-
+    # Visualize solutions using GridVisualize.jl
     p=GridVisualizer(Plotter=Plotter,layout=(3,1))
     scalarplot!(p[1,1],grid,solution_exponential[1,:],title="exponential")
     scalarplot!(p[2,1],grid,solution_upwind[1,:],title="upwind")

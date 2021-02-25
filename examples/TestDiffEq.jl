@@ -24,7 +24,7 @@ Note that this example requires  PyPlot and DifferentialEquations to be installe
 =#
 
 
-module  DiffEqCompare
+module TestDiffEq
 
 using VoronoiFVM
 using DifferentialEquations
