@@ -186,6 +186,13 @@ end
 edgelength(edge::Edge)=meas(edge)
 
 
+function project(edge::Edge,vec)
+    vh=0.0
+    for i=1:size(edge.coord)[1]
+        vh+=(edge.coord[i,edge.node[2]]-edge.coord[i,edge.node[1]])*vec[i]
+    end
+    return vh
+end
 
 
 

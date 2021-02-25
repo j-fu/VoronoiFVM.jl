@@ -87,7 +87,7 @@ export embed!
 export freqdomain_impedance
 export measurement_derivative
 export testfunction
-export meas
+export meas,project
 export unknown_indices
 
 export cartesian!, circular_symmetric!, spherical_symmmetric!

@@ -665,7 +665,7 @@ function solve!(
     this::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
-    log::Bool=true
+    log::Bool=false
 ) where Tv
     if control.verbose
         @time begin
