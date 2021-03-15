@@ -651,13 +651,16 @@ end
 
 ################################################################
 """
-$(TYPEDSIGNATURES)
+````
+solve!(solution, inival, system; control=NewtonControl(),tstep=Inf, log=false)
+````
 
-Solution method for instance of abstract system.
+Perform solution of stationary problem(if `tstep==Inf`) or one step
+of the implicit Euler method using Newton's method with `inival` as initial
+value. The method writes into `solution`. 
 
-Perform solution of stationary system (if `tstep==Inf`) or one tine step
-of implicit Euler time step system using Newton's method with damping. 
-Initial damping is chosen according  `control.damp_initial`.
+It returns `solution` or, if `log==true`, a tuple of solution and a vector
+containing the residual history of Newton's method.
 """
 function solve!(
     solution::AbstractMatrix{Tv}, # Solution
@@ -680,13 +683,16 @@ end
 
 ################################################################
 """
-$(TYPEDSIGNATURES)
+````
+solve(inival, system; control=NewtonControl(), tstep=Inf, log=false)
+````
 
-Solution method for instance of abstract system.
+Perform solution of stationary problem(if `tstep==Inf`) or one step
+of the implicit Euler method using Newton's method with `inival` as initial
+value. The method writes into `solution`. 
 
-Perform solution of stationary system (if `tstep==Inf`) or one time step
-of implicit Euler time step system using Newton's method with damping. 
-Initial damping is chosen according  `control.damp_initial`.
+It returns a solution array or, if `log==true`, a tuple of solution and a vector
+containing the residual history of Newton's method.
 """
 function solve(
     inival::AbstractMatrix{Tv},   # Initial value 
@@ -700,12 +706,15 @@ end
 
 ################################################################
 """
-$(SIGNATURES)
-
-Solution method for instance of abstract system.
-
-Perform solution via parameter embedding, calling
-solve! for each value of the parameter p from interval
+````
+function embed!(solution, inival, system; 
+                control=NewtonControl(),
+                pre=function(sol,p) end,
+                post=function(sol,p) end
+)
+````
+Solve sttionary problem ia parameter embedding, calling
+`solve!` for increasing values of the parameter p from interval
 (0,1). The user is responsible for the interpretation of
 the parameter. The optional `pre()` callback can be used
 to communicate its value to the system.
@@ -713,7 +722,7 @@ The optional `post()` callback method can be used to perform
 various postprocessing steps.
 
 If `control.handle_error` is true, `solve!`  throws an error, and
- stepsize `control.Δp` is lowered,
+stepsize `control.Δp` is lowered,
 and `solve!` is called again with a smaller  parameter
 value. If `control.Δp<control.Δp_min`, `embed!` is aborted
 with error.
@@ -727,7 +736,7 @@ function embed!(
     pre=function(sol,p) end,       # Function for preparing step
     post=function(sol,p) end      # Function for postprocessing successful step
 ) where Tv
-    inival=copy(xinival)
+    inival=copy(inival)
     p=0.0
     Δp=control.Δp
     if control.verbose
@@ -776,24 +785,40 @@ end
 
 ################################################################
 """
-$(TYPEDSIGNATURES)
+````
+function evolve!(solution, inival, system, times;
+                 control=NewtonControl(), 
+                 pre=function(sol,t) end,   
+                 post=function(sol,oldsol, t, Δt) end,
+                 sample=function(sol,t) end,
+                 delta=(u,v,t, Δt)->norm(u-v,Inf)
+)
+````
 
-Time dependent solver for abstract system
+Use implicit Euler method  + damped   Newton's method  to 
+solve time dependent problem. Time step control is performed
+according to the data in `control`.  All times in `times`
+are reached exactly.
 
-Use implicit Euler method with + damped   Newton's method  to 
-solve time dependent problem.
+Callbacks:
+- `pre` is invoked before each time step
+- `post`  is invoked after each time step
+- `sample` is called for all times in `times[2:end]`.
+
+`delta` is  used to control the time step.
 """
 function evolve!(
     solution::AbstractMatrix{Tv}, # Solution
-    xinival::AbstractMatrix{Tv},   # Initial value 
+    inival::AbstractMatrix{Tv},   # Initial value 
     this::AbstractSystem{Tv},    # Finite volume system
     times::AbstractVector;
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,t) end,       # Function for preparing step
     post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
+    sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
     delta=(u,v,t, Δt)->norm(u-v,Inf) # Time step error estimator
 ) where Tv
-    inival=copy(xinival)
+    inival=copy(inival)
     Δt=control.Δt
     if control.verbose
         @printf("  Evolution: start\n")
@@ -854,6 +879,7 @@ function evolve!(
                        tend-t)
             end
         end
+        sample(solution,times[i+1])
     end
     if control.verbose
         @printf("  Evolution: success\n")
@@ -861,13 +887,143 @@ function evolve!(
     return solution
 end
 
+"""
+$(TYPEDEF)
+
+Abstract type for transient solution
+"""
+abstract type AbstractTransientSolution{T,N,A,B}  <: AbstractDiffEqArray{T, N, A} end
+
+"""
+$(TYPEDEF)
+
+Transient solution structure
+
+## Fields
+$(TYPEDFIELDS)
+    
+
+## Interface
+Object of this type adhere to the `AbstractDiffEqArray`  interface.
+For indexing and interpolation, see [https://diffeq.sciml.ai/stable/basics/solution/](https://diffeq.sciml.ai/stable/basics/solution/).
+
+In particular, a TransientSolution `sol` can be accessed as follows:
+- `sol[it]` contains the solution for timestep `i`
+- `sol[ispec,:,it]` contains the solution for component `ispec` at timestep `i`
+- `sol(t)` returns a (linearly) interpolated solution value for `t`.
+- `sol.t[it]` is the corresponding time
+- `sol[ispec,ix,it]` refers to solution of component `ispec` at node `ix` at moment `it`
+
+
+"""
+mutable struct TransientSolution{T,N,A,B} <: AbstractTransientSolution{T,N,A,B}
+    """
+    Vector of solutions
+    """
+    u::A
+    """
+    Vector of times
+    """
+    t::B
+end
+
+TransientSolution(vec::AbstractVector{T}, ts, ::NTuple{N}) where {T, N} = TransientSolution{eltype(T), N, typeof(vec), typeof(ts)}(vec, ts)
+
+TransientSolution(vec::AbstractVector,ts::AbstractVector) = TransientSolution(vec, ts, (size(vec[1])..., length(vec)))
+
+Base.append!(s::TransientSolution,t::Real,sol::AbstractArray)=push!(s.t,t), push!(s.u,copy(sol))
+
+(sol::TransientSolution)(t) = _interpolate(sol,t)
+
+function _interpolate(sol,t)
+    idx=searchsortedfirst(sol.t,t)
+    if idx==1 || idx >length(sol)
+        return nothing
+    end
+    if t==sol.t[idx]
+        return sol[idx]
+    else
+        retval=similar(sol[idx])
+        dt=sol.t[idx]-sol.t[idx-1]
+        a=(t-sol.t[idx-1])/dt
+        b=(sol.t[idx]-t)/dt
+        retval.=sol[idx-1].*a + sol[idx].*b
+    end
+end
+
+
+"""
+````
+function solve(inival, system, times;
+               control=NewtonControl(), 
+               pre=function(sol,t) end,   
+               post=function(sol,oldsol, t, Δt) end,
+               sample=function(sol,t) end,
+               delta=(u,v,t, Δt)->norm(u-v,Inf),
+               store_all=true
+)
+````
+Use implicit Euler method  + damped   Newton's method  to 
+solve time dependent problem. Time step control is performed
+according to the data in `control`.  All times in `times`
+are reached exactly.
+
+Callbacks:
+- `pre` is invoked before each time step
+- `post`  is invoked after each time step
+- `sample` is called for all times in `times[2:end]`.
+
+`delta` is  used to control the time step.
+
+If `store_all==true`, all timestep solutions are stored. Otherwise,
+only solutions for the elements of `times` are stored.
+
+
+Returns a transient solution object `sol` containing stored solutions,
+see [`TransientSolution`](@ref)
+
+"""
+function solve(inival::AbstractMatrix,
+               sys::AbstractSystem,
+               times::AbstractVector;
+               control=NewtonControl(),
+               pre=function(sol,t) end,       # Function for preparing step
+               post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
+               sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
+               delta=(u,v,t, Δt)->norm(u-v,Inf), # Time step error estimator
+               store_all=true # if true, store all solutions, otherwise, store only at sampling times
+               )
+    tsol=TransientSolution([copy(inival)],[times[1]])
+    solution=copy(inival)
+    if store_all
+        evolve!(solution,inival,sys,times,
+                control=control,
+                post=(u,uold,t,Δt)->(post(u,uold,t,Δt);append!(tsol,t,u)),
+                pre=pre,
+                sample=sample,
+                delta=delta
+                )
+    else
+        evolve!(solution,inival,sys,times,
+                control=control,
+                post=post,
+                sample=(u,t)->(sample(u,t);append!(tsol,t,u)),
+                pre=pre,
+                delta=delta
+                )
+    end
+    tsol
+end
 
 
 ################################################################
 """
-$(SIGNATURES)
+````
+integrate(system,F,U; boundary=false)    
+````
 
-Integrate function `F` of  solution vector over domain or boundary 
+Integrate node function (same signature as reaction or storage)
+ `F` of  solution vector over domain or boundary 
 The result contains the integral for each species separately.
 """
 function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti,Tm}
@@ -928,7 +1084,6 @@ function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{
         end
     end
     
-
     return integral
 end
 

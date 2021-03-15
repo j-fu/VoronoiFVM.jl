@@ -239,7 +239,7 @@ values(a::SparseSolutionArray)=a.node_dof.nzval
 ##################################################################
 """
 $(SIGNATURES)
-
+    
 Create a copy of solution array
 """
 Base.copy(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{Tv,Ti}(SparseMatrixCSC(this.node_dof.m,
@@ -248,7 +248,20 @@ Base.copy(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{
                                                                                                        this.node_dof.rowval,
                                                                                                        Base.copy(this.node_dof.nzval)
                                                                                                        )
-                                                                            )
+                                                                                       )
+                                                                                       
+"""
+$(SIGNATURES)
+    
+Create a similar unintialized solution array
+"""
+Base.similar(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{Tv,Ti}(SparseMatrixCSC(this.node_dof.m,
+                                                                                                          this.node_dof.n,
+                                                                                                          this.node_dof.colptr,
+                                                                                                          this.node_dof.rowval,
+                                                                                                          Base.similar(this.node_dof.nzval)
+                                                                                                          )
+                                                                                          )
 ##################################################################
 """
 $(SIGNATURES)

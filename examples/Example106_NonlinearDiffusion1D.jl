@@ -8,7 +8,7 @@ Solve the nonlinear diffusion equation
 ```math
 \partial_t u -\Delta u^m = 0
 ```
-in $\Omega=(-1,1)$ with homogeneous Neumann boundary conditons using the implicit Euler method.
+in $\Omega=(-1,1)$ with homogeneous Neumann boundary condtions using the implicit Euler method.
 
 This equation is also called  "porous medium equation". 
 The Barenblatt solution is an exact solution of this problem which for m>1 has a finite support.

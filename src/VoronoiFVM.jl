@@ -22,6 +22,7 @@ using SuiteSparse
 using StaticArrays
 using SparseDiffTools
 using SparsityDetection
+using RecursiveArrayTools
 
 using Printf
 
@@ -81,7 +82,6 @@ export dof
 export getdof
 export setdof!
 export value,partials,npartials
-export solve!,solve
 export evolve!
 export embed!
 export freqdomain_impedance
@@ -98,5 +98,7 @@ export viewK,viewL,data
 
 include("vfvm_diffeq_interface.jl")
 export eval_rhs!,eval_jacobian!,mass_matrix,jac_prototype
+export transient_solution,TransientSolution
+export solve!,solve
 end
 

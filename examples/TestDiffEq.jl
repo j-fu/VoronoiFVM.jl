@@ -35,10 +35,6 @@ using PyPlot
 import Base:push!
 
 
-# this eventually should go into VoronoiFVM.jl
-struct MySolution t ; u end
-mysolution(t0,inival)=MySolution([t0],[inival])
-Base.push!(s::MySolution,t,sol)=push!(s.t,t), push!(s.u,copy(sol))
 
 
 
@@ -82,47 +78,35 @@ function run_vfvm(;n=20,m=2,t0=0.001, tend=0.01,tstep=1.0e-6,unknown_storage=:de
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
 
     solution=unknowns(sys)
-
-    sol=mysolution(t0,inival)
-
     control=VoronoiFVM.NewtonControl()
-    control.verbose=true
+    control.verbose=false
     control.Δt=tstep
     control.Δu_opt=0.05
     control.Δt_min=tstep
-    
-    evolve!(solution,inival,sys,[t0,tend],control=control,post=(u,uold,t,Δt)->(push!(sol,t,u)))
 
-    err=norm(vec(sol.u[end])-map(x->barenblatt(x,tend,m),X))
+    times=collect(t0:t0:tend)
+    times=[t0,tend]
+    sol=VoronoiFVM.solve(inival,sys,times,control=control,store_all=true)
+    err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
     sol,X,err
 end
 
 
 
-function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01, unknown_storage=:dense)
+function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01, unknown_storage=:dense,solver=nothing)
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
-
     tspan = (t0,tend)
-    
-    f = ODEFunction(eval_rhs!,
-                    jac=eval_jacobian!,
-                    jac_prototype=jac_prototype(sys),
-                    mass_matrix=mass_matrix(sys))
-    
-    prob = ODEProblem(f,vec(inival),tspan,sys)
-    sol = DifferentialEquations.solve(prob,Rodas5())
-    err=norm(sol.u[end]-map(x->barenblatt(x,tend,m),X))
+    sol=VoronoiFVM.solve(DifferentialEquations,inival,sys,tspan,solver=solver)
+    err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
     sol, X,err
 end
 
 
-function main(;m=2,n=20)
+function main(;m=2,n=20, solver=nothing, unknown_storage=:dense)
     function plotsol(sol,X)
-        nt=length(sol.t)
-        nx=length(X)
-        f=[ sol.u[it][ix]  for it=1:nt, ix=1:nx]
+        f=sol[1,:,:]'
         contourf(X,sol.t,f,0:0.1:10,cmap=:summer)
         contour(X,sol.t,f,0:1:10,colors=:black)
     end
@@ -131,14 +115,14 @@ function main(;m=2,n=20)
     subplot(121)
     
     t=@elapsed begin
-        sol,X,err=run_vfvm(m=m,n=n)
+        sol,X,err=run_vfvm(m=m,n=n, unknown_storage=unknown_storage)
     end
     title(@sprintf("VoronoiFVM: %.0f ms e=%.2e",t*1000,err))
     plotsol(sol,X)
     
     subplot(122)
     t=@elapsed begin
-        sol,X,err=run_diffeq(m=m,n=n)
+        sol,X,err=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
     end
     plotsol(sol,X)
     title(@sprintf("DifferentialEq: %.0f ms, e=%.2e",t*1000,err))

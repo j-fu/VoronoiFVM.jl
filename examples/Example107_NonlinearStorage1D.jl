@@ -7,7 +7,7 @@ This equation comes from the transformation of the nonlinear diffuision equation
 ```math
 \partial_t u^\frac{1}{m} -\Delta u = 0
 ```
-in $\Omega=-1,1)$ with homogeneous Neumann boundary conditons.
+in $\Omega=(-1,1)$ with homogeneous Neumann boundary conditions.
 We can derive an exact solution from the Barenblatt solution of the previous
 example.
 
