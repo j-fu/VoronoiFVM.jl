@@ -9,6 +9,9 @@ Modules = [VoronoiFVM]
 Pages = [
     "vfvm_abstractsystem.jl",
     "vfvm_xgrid.jl",
+    "vfvm_densesolution.jl",
+    "vfvm_sparsesolution.jl",
+    "vfvm_transientsolution.jl",
     "vfvm_densesystem.jl",
     "vfvm_sparsesystem.jl",
     "vfvm_geometryitems.jl",
@@ -23,6 +26,9 @@ Modules = [VoronoiFVM]
 Pages = [
     "vfvm_abstractsystem.jl",
     "vfvm_xgrid.jl",
+    "vfvm_densesolution.jl",
+    "vfvm_sparsesolution.jl",
+    "vfvm_transientsolution.jl",
     "vfvm_densesystem.jl",
     "vfvm_sparsesystem.jl",
     "vfvm_geometryitems.jl",
@@ -38,6 +44,9 @@ Modules = [VoronoiFVM]
 Pages = [
     "vfvm_abstractsystem.jl",
     "vfvm_xgrid.jl",
+    "vfvm_densesolution.jl",
+    "vfvm_sparsesolution.jl",
+    "vfvm_transientsolution.jl",
     "vfvm_densesystem.jl",
     "vfvm_sparsesystem.jl",
     "vfvm_geometryitems.jl",

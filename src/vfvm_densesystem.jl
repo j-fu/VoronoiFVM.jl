@@ -1,5 +1,3 @@
-
-
 ##################################################################
 """
 $(TYPEDEF)
@@ -67,12 +65,12 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     Solution vector holding Newton update
     """
-    update::Matrix{Tv}
+    update::DenseSolutionArray{Tv}
 
     """
     Solution vector holding Newton residual
     """
-    residual::Matrix{Tv}
+    residual::DenseSolutionArray{Tv}
 
     """
     Precomputed geometry factors for cell nodes
@@ -140,8 +138,6 @@ num_dof(this::DenseSystem)= length(this.node_dof)
 
 
 
-
-
 ##################################################################
 """
 $(TYPEDSIGNATURES)
@@ -167,7 +163,7 @@ function unknowns(Tu::Type,sys::DenseSystem{Tv};inival=undef) where Tv
 end
 
 
-Base.reshape(v::Matrix{Tu},sys::DenseSystem{Tv}) where {Tu,Tv}=v
+Base.reshape(v::DenseSolutionArray{Tu},sys::DenseSystem{Tv}) where {Tu,Tv}=v
 
 
 ##################################################################
@@ -182,26 +178,6 @@ function Base.reshape(v::AbstractVector{Tu}, sys::DenseSystem{Tv}) where {Tu,Tv}
     reshape(v,Int64(nspec),Int64(length(v)/nspec))
 end
 
-##################################################################
-"""
-$(TYPEDSIGNATURES)
-
-Array of values in solution array.
-"""
-values(a::Array)= vec(a)
-
-
-
-
-##################################################################
-"""
-$(TYPEDSIGNATURES)
-
-Get number of degree of freedom.
-"""
-dof(a::Array{Tv,2}, ispec::Integer, K::Integer) where Tv = (K-1)*size(a,1)+ispec
-
-unknown_indices(a::Array{Tv,2}) where Tv=LinearIndices(a)
 
 #
 # Assemble dummy equations for inactive species
@@ -224,7 +200,7 @@ end
 #
 # Initialize values in inactive dof for dense system
 #
-function _initialize_inactive_dof!(U::Matrix{Tv},this::DenseSystem{Tv}) where {Tv}
+function _initialize_inactive_dof!(U::DenseSolutionArray{Tv},this::DenseSystem{Tv}) where {Tv}
     if this.species_homogeneous
         return
     end
@@ -237,13 +213,5 @@ function _initialize_inactive_dof!(U::Matrix{Tv},this::DenseSystem{Tv}) where {T
     end
 end
 
-
-#
-# Accessors for node-dof based loops
-#
-_firstnodedof(U::Matrix{Tv},K) where Tv = (K-1)*size(U,1)+1
-_lastnodedof(U::Matrix{Tv},K) where Tv = K*size(U,1)
-_spec(U::Matrix{Tv},idof,K) where Tv =   idof-(K-1)*size(U,1)
-_add(U::Matrix{Tv},idof,val) where Tv=U[CartesianIndices(U)[idof]]+=val
 
 
