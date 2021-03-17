@@ -94,6 +94,8 @@ function Base.getindex(v::VectorOfDiskArrays,i)
     end
 end
 
+_tempname()=Base.VERSION<v"1.4" ? tempname() : tempname(pwd())*".jld2" 
+
 """
 ````
 VectorOfDiskArrays(firstobj:AbstractArray;
@@ -108,7 +110,7 @@ Constructor of vector of arrays stored on disk (via JLD2).
 
 The disk file is automatically removed if the object is garbage collected.
 """
-function VectorOfDiskArrays(obj::AbstractArray{T}; keep_open=true, fname=tempname(pwd())*".jld2") where T
+function VectorOfDiskArrays(obj::AbstractArray{T}; keep_open=true, fname=_tempname()) where T
     file=jldopen(fname,"a+")
     file[string(1)]=obj
     if !keep_open
@@ -139,7 +141,7 @@ function TransientSolution(t0::Number,
                            inival::AbstractArray{T};
                            in_memory=false,
                            keep_open=true,
-                           fname=tempname(pwd())*".jld2") where T
+                           fname=_tempname()) where T
     if !in_memory && !isa(inival,SparseSolutionArray)
         TransientSolution(VectorOfDiskArrays(inival,keep_open=keep_open,fname=fname),[t0])
     else
