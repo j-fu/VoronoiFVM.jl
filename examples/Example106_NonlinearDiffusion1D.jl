@@ -72,27 +72,31 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
 
     ## Create a solution array
     inival=unknowns(sys)
-    solution=unknowns(sys)
     t0=0.001
 
     ## Broadcast the initial value
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
 
 
-    ## Create solver control info
+    ## Create solver control info for constant time step size
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
-    time=t0
+    control.Δt_min=tstep
+    control.Δt_max=tstep
+    control.Δt=tstep
+    control.Δu_opt=1
+    
+
+    tsol=solve(inival,sys,[t0,tend],control=control)
+
     p=GridVisualizer(Plotter=Plotter,layout=(2,1),fast=true)
-    while time<tend
-        time=time+tstep
-        solve!(solution,inival,sys,control=control,tstep=tstep)
-        inival.=solution
-        scalarplot!(p[1,1],grid,solution[1,:],title=@sprintf("numerical, t=%.3g",time))
+    for i=1:length(tsol)
+        time=tsol.t[i]
+        scalarplot!(p[1,1],grid,tsol[1,:,i],title=@sprintf("numerical, t=%.3g",time))
         scalarplot!(p[2,1],grid,map(x->barenblatt(x,time,m),grid),title=@sprintf("exact, t=%.3g",time))
         reveal(p)
     end
-    return sum(solution)
+    return sum(tsol[end])
 end
 
 

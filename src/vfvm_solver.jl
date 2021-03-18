@@ -713,7 +713,7 @@ function embed!(solution, inival, system;
                 post=function(sol,p) end
 )
 ````
-Solve sttionary problem ia parameter embedding, calling
+Solve stationary problem via parameter embedding, calling
 `solve!` for increasing values of the parameter p from interval
 (0,1). The user is responsible for the interpretation of
 the parameter. The optional `pre()` callback can be used
@@ -824,6 +824,7 @@ function evolve!(
         @printf("  Evolution: start\n")
     end
     for i=1:length(times)-1
+
         Δt=max(Δt,control.Δt_min)
         tstart=times[i]
         tend=times[i+1]
@@ -896,7 +897,8 @@ function solve(inival, system, times;
                post=function(sol,oldsol, t, Δt) end,
                sample=function(sol,t) end,
                delta=(u,v,t, Δt)->norm(u-v,Inf),
-               store_all=true
+               store_all=true,
+               in_memory=true
 )
 ````
 Use implicit Euler method  + damped   Newton's method  to 
@@ -927,9 +929,10 @@ function solve(inival::AbstractMatrix,
                post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
                sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
                delta=(u,v,t, Δt)->norm(u-v,Inf), # Time step error estimator
-               store_all=true # if true, store all solutions, otherwise, store only at sampling times
+               store_all=true, # if true, store all solutions, otherwise, store only at sampling times
+               in_memory=true
                )
-    tsol=TransientSolution([copy(inival)],[times[1]])
+    tsol=TransientSolution(times[1],inival, in_memory=in_memory)
     solution=copy(inival)
     if store_all
         evolve!(solution,inival,sys,times,

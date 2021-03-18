@@ -127,24 +127,24 @@ Base.append!(s::TransientSolution{T,N,VectorOfDiskArrays{T},B}, t::Real,sol::Abs
 """
 ````
 TransientSolution(t0,inival;
-                  in_memory=false,
+                  in_memory=true,
                   keep_open=true,
                   fname=tempname(pwd())*".jld2"
 ````
 Constructor of transient solution with initial value and inital time.
 
-- `in_memory`: if true, data are kept in main memory, otherwise on disk (via JLD2)
+- `in_memory`: if true (default), data are kept in main memory, otherwise on disk (via JLD2)
 - `keep_open`: if true, disk file is not closed during the existence of the object
 - `fname`: file name for the disk file
 """
 function TransientSolution(t0::Number,
                            inival::AbstractArray{T};
-                           in_memory=false,
+                           in_memory=true,
                            keep_open=true,
                            fname=_tempname()) where T
     if !in_memory && !isa(inival,SparseSolutionArray)
         TransientSolution(VectorOfDiskArrays(inival,keep_open=keep_open,fname=fname),[t0])
     else
-        TransientSolution([inival], [t0])
+        TransientSolution([copy(inival)], [t0])
     end
 end
