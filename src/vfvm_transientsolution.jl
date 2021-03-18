@@ -57,9 +57,7 @@ function _interpolate(sol,t)
     else
         retval=similar(sol[idx])
         dt=sol.t[idx]-sol.t[idx-1]
-        a=(t-sol.t[idx-1])/dt
-        b=(sol.t[idx]-t)/dt
-        retval.=sol[idx-1].*a + sol[idx].*b
+        retval.=sol[idx-1] + sol[idx].*(t-sol.t[idx-1])/dt
     end
 end
 
