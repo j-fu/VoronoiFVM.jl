@@ -17,7 +17,7 @@ function barenblatt(x,t,m)
 end
 
 
-function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=0.01,tstep=0.0001)
+function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=0.01,tstep=0.0001,DiffEq=nothing)
 
     # Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)
@@ -68,8 +68,11 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
     control.Δt=tstep
     control.Δu_opt=1
 
-
-    tsol=solve(inival,sys,[t0,tend],control=control)
+    if isnothing(DiffEq)
+        tsol=solve(inival,sys,[t0,tend],control=control)
+    else
+        tsol=solve(DiffEq,inival,sys,[t0,tend])
+    end
 
     p=GridVisualizer(Plotter=Plotter,layout=(2,1),fast=true)
     for i=1:length(tsol)
@@ -87,4 +90,4 @@ function test()
     main(unknown_storage=:sparse) ≈ testval &amp;&amp; main(unknown_storage=:dense) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example105_NonlinearPoisson1D/">« 105: 1D Nonlinear Poisson equation</a><a class="docs-footer-nextpage" href="../Example107_NonlinearStorage1D/">107: 1D Nonlinear Storage »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 18 March 2021 17:40">Thursday 18 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example105_NonlinearPoisson1D/">« 105: 1D Nonlinear Poisson equation</a><a class="docs-footer-nextpage" href="../Example107_NonlinearStorage1D/">107: 1D Nonlinear Storage »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 18 March 2021 19:56">Thursday 18 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
