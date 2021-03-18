@@ -203,10 +203,15 @@ Returns a transient solution object `sol` containing stored solutions,
 see [`TransientSolution`](@ref).
 
 """
-function solve(DiffEq::Module, inival::AbstractArray,sys::AbstractSystem, tspan; solver=nothing, kwargs...)
-    if solver==nothing
+function solve(DiffEq::Module,
+               inival::AbstractArray,
+               sys::AbstractSystem,
+               tspan; solver=nothing, kwargs...)
+
+    if isnothing(solver)
         solver=DiffEq.Rosenbrock23()
     end
+
     f = DiffEq.ODEFunction(eval_rhs!,
                            jac=eval_jacobian!,
                            jac_prototype=jac_prototype(sys),

@@ -1,8 +1,8 @@
 ##################################################################
 """
-$(TYPEDEF)
-
-Structure holding data for finite volume system solution.
+    $(TYPEDEF)
+    
+    Structure holding data for finite volume system solution.
 Information on species distribution is kept in sparse
 matrices, and the solution array is of type SparseSolutionArray,
 i.e. effectively it is a sparse matrix.
@@ -193,6 +193,8 @@ end
 
 Base.reshape(v::SparseSolutionArray,sys::SparseSystem)=v
 
+
+
 #
 # Dummy routine for sparse system
 #
@@ -204,5 +206,3 @@ end
 #
 function     _initialize_inactive_dof!(U::AbstractMatrix{Tv},this::SparseSystem{Tv}) where {Tv}
 end
-
-

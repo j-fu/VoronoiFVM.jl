@@ -166,6 +166,12 @@ mutable struct NewtonControl
     """
     Δu_opt::Float64
 
+
+    """
+    force first timestep
+    """
+    force_first_step::Bool
+    
     """
     Edge cutoff for rectangular triangles.
 
@@ -210,6 +216,7 @@ function NewtonControl(this)
     this.Δt_min=1.0e-3
     this.Δt_grow=1.2
     this.Δu_opt=0.1
+    this.force_first_step=false
     this.handle_exceptions=false
     this.edge_cutoff=0.0
     this.umfpack_pivot_tolerance=default_umfpack_pivot_tolerance

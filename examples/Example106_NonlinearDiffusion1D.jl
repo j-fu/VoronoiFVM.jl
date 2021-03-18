@@ -35,7 +35,7 @@ function barenblatt(x,t,m)
 end
 
 
-function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=0.01,tstep=0.0001)
+function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=0.01,tstep=0.0001,DiffEq=nothing)
     
     ## Create a one-dimensional discretization
     h=1.0/convert(Float64,n/2)
@@ -85,9 +85,12 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
     control.Δt_max=tstep
     control.Δt=tstep
     control.Δu_opt=1
-    
 
-    tsol=solve(inival,sys,[t0,tend],control=control)
+    if isnothing(DiffEq)
+        tsol=solve(inival,sys,[t0,tend],control=control)
+    else
+        tsol=solve(DiffEq,inival,sys,[t0,tend])
+    end
 
     p=GridVisualizer(Plotter=Plotter,layout=(2,1),fast=true)
     for i=1:length(tsol)

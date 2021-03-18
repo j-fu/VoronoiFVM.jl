@@ -819,6 +819,7 @@ function evolve!(
     delta=(u,v,t, Δt)->norm(u-v,Inf) # Time step error estimator
 ) where Tv
     inival=copy(inival)
+    _initialize_dirichlet!(inival,this)
     Δt=control.Δt
     if control.verbose
         @printf("  Evolution: start\n")
@@ -858,7 +859,7 @@ function evolve!(
                 if !solved
                     # reduce time step and retry  solution
                     Δt=Δt*0.5
-                    if Δt<control.Δt_min
+                    if Δt<control.Δt_min &&  (i>1 || !control.force_first_step)
                         @printf(" Δt_min=%.2g reached while Δu=%.2g >>  Δu_opt=%.2g\n",control.Δt_min, Δu,control.Δu_opt)
                         throw(EmbeddingError())
                     end
@@ -932,7 +933,7 @@ function solve(inival::AbstractMatrix,
                store_all=true, # if true, store all solutions, otherwise, store only at sampling times
                in_memory=true
                )
-    tsol=TransientSolution(times[1],inival, in_memory=in_memory)
+    tsol=TransientSolution(Float64(times[1]),inival, in_memory=in_memory)
     solution=copy(inival)
     if store_all
         evolve!(solution,inival,sys,times,

@@ -49,17 +49,17 @@ Base.append!(s::TransientSolution,t::Real,sol::AbstractArray)=push!(s.t,t), push
 
 function _interpolate(sol,t)
     idx=searchsortedfirst(sol.t,t)
-    if idx==1 || idx >length(sol)
+    if idx==1 || idx > length(sol)
         return nothing
     end
-    if t==sol.t[idx]
-        return sol[idx]
+    if t==sol.t[idx-1]
+        return sol[idx-1]
     else
         retval=similar(sol[idx])
         dt=sol.t[idx]-sol.t[idx-1]
-        a=(t-sol.t[idx-1])/dt
-        b=(sol.t[idx]-t)/dt
-        retval.=sol[idx-1].*a + sol[idx].*b
+        a=(sol.t[idx]-t)/dt
+        b=(t-sol.t[idx-1])/dt
+        retval.=a*sol[idx-1] + b*sol[idx]
     end
 end
 
