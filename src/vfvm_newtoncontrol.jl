@@ -223,9 +223,28 @@ function NewtonControl(this)
     return this
 end
 
+
+"""
+````
+timesteps!(control,Δt; grow=1.0)
+````
+
+Modify control data such that the time steps are fixed to a
+geometric sequence such that Δt_new=Δt_old*grow
+"""
+function fixed_timesteps!(control,Δt; grow=1.0)
+    control.Δt=Δt
+    control.Δt_max=Δt
+    control.Δt_min=Δt
+    control.Δt_grow=grow
+    control.Δu_opt=floatmax()
+    control
+end
+
 function Base.show(io::IO, this::NewtonControl)
     for name in fieldnames(typeof(this))
         @printf("%16s = ",name)
         println(io,getfield(this,name))
     end
 end
+9
