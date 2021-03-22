@@ -252,7 +252,7 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
                 UK[ispec]=U[ispec,node.index]
             end
             this.physics.reaction(res,UK,nodeparams...)
-            this.physics.source(src,UK,nodeparams...)
+            this.physics.source(src,nodeparams...)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
                     integral[ispec]+=this.cellnodefactors[inode,icell]*(res[ispec]-src[ispec])*tf[node.index]

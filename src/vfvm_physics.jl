@@ -35,11 +35,17 @@ isdata(::Any)=true
 function nofunc(f,u,node,data)
 end
 
+function nosrc(f,node,data)
+end
+
 function default_storage(f,u,node,data)
     f.=u
 end
 
 function nofunc2(f,u,node)
+end
+
+function nosrc2(f,node)
 end
 
 function default_storage2(f,u,node)
@@ -158,7 +164,7 @@ function Physics(;num_species=1,
                  flux::Function=nofunc,
                  reaction::Function=nofunc,
                  storage::Function=default_storage,
-                 source::Function=nofunc,
+                 source::Function=nosrc,
                  breaction::Function=nofunc,
                  bstorage::Function=nofunc,
                  generic::Function=nofunc_generic,
@@ -168,7 +174,7 @@ function Physics(;num_species=1,
         flux==nofunc ? flux=nofunc2 : true
         reaction==nofunc ? reaction=nofunc2 : true
         storage==default_storage ? storage=default_storage2 : true
-        source==nofunc ? source=nofunc2 : true
+        source==nosrc ? source=nosrc2 : true
         breaction==nofunc ? breaction=nofunc2 : true
         bstorage==nofunc ? bstorage=nofunc2 : true
     end
