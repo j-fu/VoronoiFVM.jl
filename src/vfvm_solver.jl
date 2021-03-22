@@ -825,7 +825,7 @@ function evolve!(
         @printf("  Evolution: start\n")
     end
     for i=1:length(times)-1
-
+        
         Δt=max(Δt,control.Δt_min)
         tstart=times[i]
         tend=times[i+1]
@@ -859,9 +859,13 @@ function evolve!(
                 if !solved
                     # reduce time step and retry  solution
                     Δt=Δt*0.5
-                    if Δt<control.Δt_min &&  (i>1 || !control.force_first_step)
+                    if Δt<control.Δt_min
                         @printf(" Δt_min=%.2g reached while Δu=%.2g >>  Δu_opt=%.2g\n",control.Δt_min, Δu,control.Δu_opt)
-                        throw(EmbeddingError())
+                        if !(control.force_first_step && istep==0)
+                            throw(EmbeddingError())
+                        else
+                            solved=true
+                        end
                     end
                     if control.verbose
                         @printf("  Evolution: retry: Δt=%.3e\n",Δt)
