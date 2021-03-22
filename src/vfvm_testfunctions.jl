@@ -93,6 +93,7 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
     res=zeros(Tv,nspecies)
+    src=zeros(Tv,nspecies)
     stor=zeros(Tv,nspecies)
     storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
@@ -153,17 +154,19 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
                 end
                 if isdata(data)
                     this.physics.reaction(res,UK,node,data)
+                    this.physics.source(src,node,data)
                     this.physics.storage(stor,UK,node,data)
                     this.physics.storage(storold,UKold,node,data)
                 else
                     this.physics.reaction(res,UK,node)
+                    this.physics.source(src,node)
                     this.physics.storage(stor,UK,node)
                     this.physics.storage(storold,UKold,node)
                 end
             end
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=this.cellnodefactors[inode,icell]*(res[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
+                    integral[ispec]+=this.cellnodefactors[inode,icell]*(res[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
                 end
             end
         end
@@ -193,6 +196,7 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
     nspecies=num_species(this)
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
+    src=zeros(Tu,nspecies)
     stor=zeros(Tu,nspecies)
     node=Node{Tv,Ti}(this)
     edge=Edge{Tv,Ti}(this)
@@ -244,12 +248,14 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
             _fill!(node,cellnodes,cellregions,inode,icell)
             for ispec=1:nspecies
                 res[ispec]=0.0
+                src[ispec]=0.0
                 UK[ispec]=U[ispec,node.index]
             end
             this.physics.reaction(res,UK,nodeparams...)
+            this.physics.source(src,UK,nodeparams...)
             for ispec=1:nspecies
                 if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=this.cellnodefactors[inode,icell]*res[ispec]*tf[node.index]
+                    integral[ispec]+=this.cellnodefactors[inode,icell]*(res[ispec]-src[ispec])*tf[node.index]
                 end
             end
         end
