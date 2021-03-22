@@ -88,7 +88,8 @@ $(SIGNATURES)
 
 Calculate test function integral for transient solution.
 """
-function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}, Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv,Ti}
+function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv},
+                   Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv,Ti}
     grid=this.grid
     nspecies=num_species(this)
     integral=zeros(Tv,nspecies)
