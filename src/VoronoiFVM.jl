@@ -33,7 +33,7 @@ export cartesian!, circular_symmetric!, spherical_symmmetric!
 include("vfvm_physics.jl")
 include("vfvm_functions.jl")
 include("vfvm_newtoncontrol.jl")
-
+export fixed_timesteps!,NewtonControl
 
 include("vfvm_densesolution.jl")
 include("vfvm_sparsesolution.jl")
