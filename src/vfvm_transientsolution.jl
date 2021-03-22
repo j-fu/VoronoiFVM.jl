@@ -48,6 +48,9 @@ Base.append!(s::TransientSolution,t::Real,sol::AbstractArray)=push!(s.t,t), push
 (sol::TransientSolution)(t) = _interpolate(sol,t)
 
 function _interpolate(sol,t)
+    if isapprox(t,sol.t[1],atol=1.0e-10*abs(sol.t[2]-sol.t[1]))
+        return sol[1]
+    end
     idx=searchsortedfirst(sol.t,t)
     if idx==1 || idx > length(sol)
         return nothing
