@@ -1,5 +1,10 @@
-# # 125: Terminal flux calculation via test functions
-# ([source code](SOURCE_URL))
+#=
+# 125: Terminal flux calculation via test functions
+([source code](SOURCE_URL))
+
+For a rather comprehensive explanation
+see [225: Terminal flux calculation via test functions, nD](@ref)
+=#
 
 module Example125_TestFunctions1D 
 using Printf
