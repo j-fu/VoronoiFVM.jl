@@ -147,10 +147,10 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     Uend=integrate(system,storage,tsol[end])
 
 
-    F[1] ≈ R[1] &amp;&amp;
-        isapprox(I[1],0.0,atol=1.0e-16) &amp;&amp;
-        R[2] ≈ I[2] &amp;&amp;
-        F[1]*(tend-t0) ≈ ( Uend[1] + Uend[2] + all_outflow)
+    F[1] ≈ R[1]  ? true : return false
+    isapprox(I[1],0.0,atol=1.0e-16)  ? true  : return false
+    R[2] ≈ I[2]  ? true : return false
+    F[1]*(tend-t0) ≈ ( Uend[1] + Uend[2] + all_outflow) ? true : return false
 end
 
 
@@ -163,4 +163,4 @@ function test()
     main(dim=3, unknown_storage=:dense  )  ? true : return false
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">« 220: 2D Nonlinear Poisson with boundary reaction and boundary species</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 23 March 2021 09:17">Tuesday 23 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">« 220: 2D Nonlinear Poisson with boundary reaction and boundary species</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 23 March 2021 09:35">Tuesday 23 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
