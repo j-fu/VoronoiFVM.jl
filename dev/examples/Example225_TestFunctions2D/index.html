@@ -9,25 +9,25 @@
 \int_\Omega r(u_1,u_2) d\omega &amp;\approx \sum_{i\in \mathcal N} |\omega_i| r(u_{1,i},u_{2,i})\\
 \int_\Omega f d\omega &amp;\approx \sum_{i\in \mathcal N} |\omega_i| f_i
 \end{aligned}\]</p><p>But what about  the boundary integral ?  Here, we use a  trick to cast the surface  integral to the  integral to  a volume integral  with the help of a test function:</p><p>Let <span>$T(x)$</span> be the solution of the Laplace problem <span>$-\nabla^2 T =0$</span> in <span>$\Omega$</span> and the boundary conditions</p><p class="math-container">\[\begin{aligned}
-  T &amp;=0 \quad \text{at}\; \Gamma_4\\
-  T &amp;=1 \quad \text{at}\; \Gamma_2\\
+T &amp;=0 \quad \text{at}\; \Gamma_4\\
+T &amp;=1 \quad \text{at}\; \Gamma_2\\
 \partial_n T &amp;=0\quad \text{at}\;  \Gamma_1,\Gamma_3
 \end{aligned}\]</p><p>Write <span>$\vec j=-\nabla u$</span>. and assume <span>$\nabla\cdot \vec j + r =f$</span>.</p><p class="math-container">\[\begin{aligned}
 \int_{\Gamma_2} \vec j \cdot \vec n ds&amp;=\int_{\Gamma_2} T\vec j \cdot \vec n ds \quad \text{due to}\; T=1\; \text{on}\; \Gamma_2\\
  &amp;=\int_{\partial\Omega}  T\vec j \cdot \vec n ds\quad \text{due to}\; T=0\; \text{on}\; \Gamma_4, \quad\vec j\cdot \vec n=0\; \text{on}\; \Gamma_1, \Gamma_3\\
- &amp;= \int_\Omega \nabla \cdot (T \vec j) d\omega \quad \text{(Gauss)}\\
- &amp;= \int_\Omega \nabla T \cdot \vec j d\omega + \int_\Omega T \nabla\cdot j d\omega\\
- &amp;=  \int_\Omega \nabla T \cdot \vec j d\omega + \int_\Omega T(f-r)dω\\
+&amp;= \int_\Omega \nabla \cdot (T \vec j) d\omega \quad \text{(Gauss)}\\
+&amp;= \int_\Omega \nabla T \cdot \vec j d\omega + \int_\Omega T \nabla\cdot j d\omega\\
+&amp;=  \int_\Omega \nabla T \cdot \vec j d\omega + \int_\Omega T(f-r)dω\\
 \end{aligned}\]</p><p>and we approximate</p><p class="math-container">\[\begin{aligned}
 \int_\Omega \nabla T \cdot \vec j d\omega \approx \sum_{k,l}
 \frac{|\omega_k\cap\omega_l|}{h_{k,l}}g(u_k, u_l) (T_k-T_l)
-\end{aligned}\]</p><p>where the sum runs over pairs of neigboring control volumes.</p><p>The <code>integrate</code> method with a  test function parameter returns a value for each species, the sign convention assumes that species leaving the domain lead to negative values.</p><h3 id="Transient-problem"><a class="docs-heading-anchor" href="#Transient-problem">Transient problem</a><a id="Transient-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Transient-problem" title="Permalink"></a></h3><p>The amount  of species created via  the source term (measured  in <code>F</code>) integrated  over time  should be  equal to  the sum  of the  amount of species left in  the domain at the  very end of the  evolution and the amount of species which left the domain:</p><p class="math-container">\[\int_{t_0}^{t_{end}} \int_\Omega f d\omega dt= \int_\Omega (u_1+u_2)dω + \int_{t_0}^{t_{end}} \int_{\Gamma_2} \nabla u_2 \cdot \vec n ds\]</p><p>Literature references:</p><ul><li>H. Gajewski &quot;Analysis und Numerik von Ladungstransport in Halbleitern&quot;, WIAS Berlin, Report No.6</li><li>Yoder, P. D., K. Gärtner, and W. Fichtner. &quot;A generalized Ramo–Shockley theorem for classical to quantum transport at arbitrary frequencies.&quot; Journal of Applied Physics 79.4 (1996): 1951-1954.</li><li>P. Farrell, N. Rotundo, D. H. Doan, M. Kantner, J. Fuhrmann, and T. Koprucki, &quot;Numerical methods for drift-diffusion models&quot;, in Handbook of optoelectronic device modeling and simulation: Lasers, modulators, photodetectors, solar cells, and numerical methods, vol. 2, J. Piprek, Ed. Boca Raton: CRC Press, 2017, pp. 733–771. URL:</li></ul><pre><code class="language-julia">module Example225_TestFunctions2D
+\end{aligned}\]</p><p>where the sum runs over pairs of neigboring control volumes.</p><p>The <code>integrate</code> method with a  test function parameter returns a value for each species, the sign convention assumes that species leaving the domain lead to negative values.</p><h3 id="Transient-problem"><a class="docs-heading-anchor" href="#Transient-problem">Transient problem</a><a id="Transient-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Transient-problem" title="Permalink"></a></h3><p>The amount  of species created via  the source term (measured  in <code>F</code>) integrated  over time  should be  equal to  the sum  of the  amount of species left in  the domain at the  very end of the  evolution and the amount of species which left the domain:</p><p class="math-container">\[\int_{t_0}^{t_{end}} \int_\Omega f d\omega dt= \int_\Omega (u_1+u_2)dω + \int_{t_0}^{t_{end}} \int_{\Gamma_2} \nabla u_2 \cdot \vec n ds\]</p><p>Literature references:</p><ul><li>H. Gajewski &quot;Analysis und Numerik von Ladungstransport in Halbleitern&quot;, WIAS Berlin, Report No.6</li><li>Yoder, P. D., K. Gärtner, and W. Fichtner. &quot;A generalized Ramo–Shockley theorem for classical to quantum transport at arbitrary frequencies.&quot; Journal of Applied Physics 79.4 (1996): 1951-1954.</li><li>P. Farrell, N. Rotundo, D. H. Doan, M. Kantner, J. Fuhrmann, and T. Koprucki, &quot;Numerical methods for drift-diffusion models&quot;, in Handbook of optoelectronic device modeling and simulation: Lasers, modulators, photodetectors, solar cells, and numerical methods, vol. 2, J. Piprek, Ed. Boca Raton: CRC Press, 2017, pp. 733–771.</li></ul><pre><code class="language-julia">module Example225_TestFunctions2D
 
 using VoronoiFVM, GridVisualize,ExtendableGrids
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2,tend=5, dt=0.2)
     n=[101,21,5]
-    X=collect(range(0,1,length=n[dim]))
+    X=collect(range(0.0,1,length=n[dim]))
     if dim==1
         grid=simplexgrid(X)
         Γ_where_T_equal_1=[2]
@@ -52,7 +52,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
 	f[2]=u[2,1]-u[2,2]
     end
 
-    r(u1,u2)= u1-0.1*u2;
+    r(u1,u2)= u1-0.1*u2
 
     function reaction(f,u,node)
 	f[1]= r(u[1],u[2])
@@ -85,14 +85,14 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     scalarplot!(vis[1,2],grid,u[2,:],flimits=(0,1.5),title=&quot;u_2&quot;,show=true)
 
     &quot;&quot;&quot;
-    The `integrate` method of `VoronoiFVM`  provides a possibility to calculate
-    the volume integral of a function of a solution as described above.
-    It returns a `num_specie` x `num_regions` matrix of the integrals
-    of the function of the unknowns over the different subdomains (here, we have only one):
+        The `integrate` method of `VoronoiFVM`  provides a possibility to calculate
+        the volume integral of a function of a solution as described above.
+        It returns a `num_specie` x `num_regions` matrix of the integrals
+        of the function of the unknowns over the different subdomains (here, we have only one):
     &quot;&quot;&quot;
 
     &quot;&quot;&quot;
-    Amount of u_1 and u_2 in the domain aka integral over identity storage function:
+        Amount of u_1 and u_2 in the domain aka integral over identity storage function:
     &quot;&quot;&quot;
     U=integrate(system,storage,u)
 
@@ -113,14 +113,14 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     I=integrate(system,T,u)
 
 
-    t0=0.0;
+    t0=0.0
 
-    control=fixed_timesteps!(VoronoiFVM.NewtonControl(),dt);
+    control=fixed_timesteps!(VoronoiFVM.NewtonControl(),dt)
 
     tsol=solve(inival,system,[t0,tend],control=control)
 
 
-    vis1=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(600,300),fignumber=4);
+    vis1=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(600,300),fignumber=4)
 
     for i=1:length(tsol)
         sol=tsol[i]
@@ -134,7 +134,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
   	push!(outflow_rate,ofr[2])
     end
 
-    vis2=GridVisualizer(Plotter=Plotter,layout=(1,1),resolution=(600,300),fignumber=2);
+    vis2=GridVisualizer(Plotter=Plotter,layout=(1,1),resolution=(600,300),fignumber=2)
     scalarplot!(vis2[1,1],[0,tend],-[I[2],I[2]],label=&quot;stationary&quot;,clear=true)
     scalarplot!(vis2[1,1],tsol.t[2:end],-outflow_rate,label=&quot;transient&quot;,show=true)
 
@@ -142,10 +142,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     for i=1:length(tsol)-1
 	all_outflow-=outflow_rate[i]*(tsol.t[i+1]-tsol.t[i])
     end
-    all_outflow
 
     Uend=integrate(system,storage,tsol[end])
-
 
     F[1] ≈ R[1]  ? true : return false
     isapprox(I[1],0.0,atol=1.0e-16)  ? true  : return false
@@ -163,4 +161,4 @@ function test()
     main(dim=3, unknown_storage=:dense  )  ? true : return false
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">« 220: 2D Nonlinear Poisson with boundary reaction and boundary species</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 23 March 2021 09:35">Tuesday 23 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">« 220: 2D Nonlinear Poisson with boundary reaction and boundary species</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 23 March 2021 09:57">Tuesday 23 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
