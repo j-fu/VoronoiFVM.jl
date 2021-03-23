@@ -107,7 +107,7 @@ Literature references:
 
 - H. Gajewski "Analysis und Numerik von Ladungstransport in Halbleitern", WIAS Berlin, Report No.6
 - Yoder, P. D., K. Gärtner, and W. Fichtner. "A generalized Ramo–Shockley theorem for classical to quantum transport at arbitrary frequencies." Journal of Applied Physics 79.4 (1996): 1951-1954.
-- P. Farrell, N. Rotundo, D. H. Doan, M. Kantner, J. Fuhrmann, and T. Koprucki, “Numerical methods for drift-diffusion models,” in Handbook of optoelectronic device modeling and simulation: Lasers, modulators, photodetectors, solar cells, and numerical methods, vol. 2, J. Piprek, Ed. Boca Raton: CRC Press, 2017, pp. 733–771. URL:
+- P. Farrell, N. Rotundo, D. H. Doan, M. Kantner, J. Fuhrmann, and T. Koprucki, "Numerical methods for drift-diffusion models", in Handbook of optoelectronic device modeling and simulation: Lasers, modulators, photodetectors, solar cells, and numerical methods, vol. 2, J. Piprek, Ed. Boca Raton: CRC Press, 2017, pp. 733–771. URL:
 
 =#
 
@@ -245,12 +245,12 @@ end
 
 
 function test()
-    main(dim=1, unknown_storage=:sparse )&&
-    main(dim=1, unknown_storage=:dense  )&&
-    main(dim=2, unknown_storage=:sparse )&&
-    main(dim=2, unknown_storage=:dense  )&&
-    main(dim=3, unknown_storage=:sparse )&&
-    main(dim=3, unknown_storage=:dense  )
+    main(dim=1, unknown_storage=:sparse )  ? true : return false
+    main(dim=1, unknown_storage=:dense  )  ? true : return false
+    main(dim=2, unknown_storage=:sparse )  ? true : return false
+    main(dim=2, unknown_storage=:dense  )  ? true : return false
+    main(dim=3, unknown_storage=:sparse )  ? true : return false
+    main(dim=3, unknown_storage=:dense  )  ? true : return false
 end
 
 end
