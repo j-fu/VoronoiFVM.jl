@@ -234,11 +234,10 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     end
     
     Uend=integrate(system,storage,tsol[end])
-    
-    F[1] ≈ R[1]  ? true : return false
-    isapprox(I[1],0.0,atol=1.0e-16)  ? true  : return false
-    R[2] ≈ I[2]  ? true : return false
-    F[1]*(tend-t0) ≈ ( Uend[1] + Uend[2] + all_outflow) ? true : return false
+    isapprox(F[1], R[1],rtol=1.0e-12)  ? true : return false
+    isapprox(I[1], 0.0, atol=1.0e-12)  ? true : return false
+    isapprox(R[2], I[2],rtol=1.0e-12)  ? true : return false
+    isapprox(F[1]*(tend-t0), ( Uend[1] + Uend[2] + all_outflow), rtol=1.0e-12) ? true : return false
 end
 
 
