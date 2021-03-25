@@ -999,10 +999,10 @@ function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{
         for ibface=1:num_bfaces(grid)
             for inode=1:num_nodes(geom)
                 _fill!(node,bfacenodes,bfaceregions,inode,ibface)
-                F(res,U[:,node.index],nodeparams...)
+                @views F(res,U[:,node.index],nodeparams...)
                 for ispec=1:nspecies
                     if this.node_dof[ispec,node.index]==ispec
-                        integral[ispec,node.region]+this.bfacenodefactors[inode,ibface]*res[ispec]
+                        integral[ispec,node.region]+=this.bfacenodefactors[inode,ibface]*res[ispec]
                     end
                 end
             end
