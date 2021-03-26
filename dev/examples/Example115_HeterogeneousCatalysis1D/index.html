@@ -19,6 +19,7 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+using LinearAlgebra
 
 function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
 
@@ -117,27 +118,21 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     time=0.0
 
     # Data to store surface concentration vs time
-    T=zeros(0)
-    u_C=zeros(0)
 
     p=GridVisualizer(Plotter=Plotter,layout=(3,1))
-    while time&lt;tend
-        time=time+tstep
-        solve!(U,inival,sys,tstep=tstep)
-        inival.=U
-        if verbose
-            @printf(&quot;time=%g\n&quot;,time)
-        end
-        # Record  boundary species
-        push!(T,time)
-        push!(u_C,U[iC,1])
 
-        scalarplot!(p[1,1],grid,U[iA,:],clear=true,title=@sprintf(&quot;[A]: (%.3f,%.3f)&quot;,extrema(U[iA,:])...))
-        scalarplot!(p[2,1],grid,U[iB,:],clear=true,title=@sprintf(&quot;[B]: (%.3f,%.3f)&quot;,extrema(U[iA,:])...))
-        scalarplot!(p[3,1],simplexgrid(copy(T)),copy(u_C),clear=true,title=@sprintf(&quot;[C]: %.3f&quot;,u_C[end]),show=true)
-        yield()
+    control=fixed_timesteps!(VoronoiFVM.NewtonControl(),tstep)
+    tsol=solve(inival,sys,[0,tend])#control=control)
+
+    p=GridVisualizer(Plotter=Plotter,layout=(3,1),fast=true)
+    for it=1:length(tsol)
+        time=tsol.t[it]
+        scalarplot!(p[1,1],grid,tsol[iA,:,it],clear=true,title=@sprintf(&quot;[A]: (%.3f,%.3f)&quot;,extrema(tsol[iA,:,it])...))
+        scalarplot!(p[2,1],grid,tsol[iB,:,it],clear=true,title=@sprintf(&quot;[B]: (%.3f,%.3f)&quot;,extrema(tsol[iB,:,it])...))
+        scalarplot!(p[3,1],tsol.t[1:it],tsol[iC,1,1:it],title=@sprintf(&quot;[C]&quot;),clear=true,show=true)
     end
-    return U[iC,1]
+
+    return tsol[iC,1,end]
 end
 
 function test()
@@ -145,4 +140,4 @@ function test()
     main(unknown_storage=:sparse) ≈ testval &amp;&amp; main(unknown_storage=:dense) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">« 110: 1D Reaction Diffusion equation with two species</a><a class="docs-footer-nextpage" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 25 March 2021 23:20">Thursday 25 March 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">« 110: 1D Reaction Diffusion equation with two species</a><a class="docs-footer-nextpage" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 26 March 2021 15:21">Friday 26 March 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
