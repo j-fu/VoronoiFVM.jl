@@ -130,7 +130,7 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
                 UKL[ispec]=U[ispec,edge.node[1]]
                 UKL[ispec+nspecies]=U[ispec,edge.node[2]]
             end
-            res.=0
+            res.=zero(Tv)
             if isdata(data)
                 this.physics.flux(res,UKL,edge,data)
             else
@@ -146,9 +146,9 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
         for inode=1:num_nodes(geom)
             _fill!(node,cellnodes,cellregions,inode,icell)
             begin
-                res.=0
-                stor.=0
-                storold.=0
+                res.=zero(Tv)
+                stor.=zero(Tv)
+                storold.=zero(Tv)
                 for ispec=1:nspecies
                     UK[ispec]=U[ispec,node.index]
                     UKold[ispec]=Uold[ispec,node.index]

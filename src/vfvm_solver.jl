@@ -449,17 +449,20 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             
             if isreaction
                 # Evaluate & differentiate reaction term if present
+                Y.=zero(Tv)
                 ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
                 res_react=DiffResults.value(result_r)
                 jac_react=DiffResults.jacobian(result_r)
             end
             
             # Evaluate & differentiate storage term
+            Y.=zero(Tv)
             ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
             res_stor=DiffResults.value(result_s)
             jac_stor=DiffResults.jacobian(result_s)
 
             # Evaluate storage term for old timestep
+            oldstor.=zero(Tv)
             storagewrap(oldstor,UKOld)
             
             
@@ -487,6 +490,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 UKL[nspecies+ispec]=U[ispec,edge.node[2]]
             end
 
+            Y.=zero(Tv)
             ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
             res=DiffResults.value(result_flx)
             jac=DiffResults.jacobian(result_flx)
@@ -576,6 +580,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             if isbreaction
 
                 # Evaluate function + derivative
+                Y.=zero(Tv)
                 ForwardDiff.jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
                 res_breact=DiffResults.value(result_r)
                 jac_breact=DiffResults.jacobian(result_r)
@@ -604,6 +609,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 bstoragewrap(oldbstor,UKOld)
 
                 # Evaluate & differentiate storage term for new time step value
+                Y.=zero(Tv)
                 ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
                 res_bstor=DiffResults.value(result_s)
                 jac_bstor=DiffResults.jacobian(result_s)
@@ -999,6 +1005,7 @@ function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{
         for ibface=1:num_bfaces(grid)
             for inode=1:num_nodes(geom)
                 _fill!(node,bfacenodes,bfaceregions,inode,ibface)
+                res.=zero(Tv)
                 @views F(res,U[:,node.index],nodeparams...)
                 for ispec=1:nspecies
                     if this.node_dof[ispec,node.index]==ispec
@@ -1018,7 +1025,8 @@ function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{
         for icell=1:num_cells(grid)
             for inode=1:num_nodes(geom)
                 _fill!(node,cellnodes,cellregions,inode,icell)
-                F(res,U[:,node.index],nodeparams...)
+                res.=zero(Tv)
+                @views F(res,U[:,node.index],nodeparams...)
                 for ispec=1:nspecies
                     if this.node_dof[ispec,node.index]==ispec
                         integral[ispec,node.region]+=this.cellnodefactors[inode,icell]*res[ispec]
