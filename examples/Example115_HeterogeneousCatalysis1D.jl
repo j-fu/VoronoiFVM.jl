@@ -161,7 +161,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     p=GridVisualizer(Plotter=Plotter,layout=(3,1))
 
     control=fixed_timesteps!(VoronoiFVM.NewtonControl(),tstep)
-    tsol=solve(inival,sys,[0,tend])#control=control)
+    tsol=solve(inival,sys,[0,tend],control=control)
 
     p=GridVisualizer(Plotter=Plotter,layout=(3,1),fast=true)
     for it=1:length(tsol)
@@ -176,7 +176,7 @@ end
 
 function test()
     testval=0.87544440641274
-    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
+    isapprox(main(unknown_storage=:sparse),testval,rtol=1.0e-12)&&
+    isapprox(main(unknown_storage=:dense),testval,rtol=1.0e-12)
 end
-
 end
