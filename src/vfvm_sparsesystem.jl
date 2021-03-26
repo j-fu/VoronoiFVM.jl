@@ -195,6 +195,7 @@ Base.reshape(v::SparseSolutionArray,sys::SparseSystem)=v
 
 
 
+
 #
 # Dummy routine for sparse system
 #
@@ -206,3 +207,6 @@ end
 #
 function     _initialize_inactive_dof!(U::AbstractMatrix{Tv},this::SparseSystem{Tv}) where {Tv}
 end
+
+LinearAlgebra.norm(sys::SparseSystem,u,p)=norm(u.node_dof.nzval,p)
+

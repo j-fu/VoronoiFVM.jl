@@ -15,6 +15,10 @@ function _eval_res_jac!(sys,u)
         ur=reshape(u,sys)
         eval_and_assemble(sys,ur,ur,sys.residual,Inf)
         sys.uhash=uhash
+    else
+        global nd
+        nd=nd+1
+        @printf(" nd:%d %x\n",nf,uhash)
     end
 end
 
@@ -25,11 +29,17 @@ Interpret the  discrete problem as an ODE/DAE problem. Provide the
 rhs function for DifferentialEquations.jl.
 """
 function eval_rhs!(du, u, sys,t)
+    global nf
+    nf=nf+1
+    @printf("  f:%d\n",nf)
     _eval_res_jac!(sys,u)
     du.=-vec(sys.residual)
     nothing
 end
 
+njac=0
+nf=0
+nd=0
 """
 $(SIGNATURES)
 
@@ -37,6 +47,9 @@ Interpret the  discrete problem as an ODE/DAE problem. Provide the
 jacobi matrix calculation function for DifferentialEquations.jl.
 """
 function eval_jacobian!(J, u, sys,t)
+    global njac
+    njac=njac+1
+    @printf("jac:%d\n",njac)
     _eval_res_jac!(sys,u)
     # Need to implement broadcast for ExtendableSparse.
     J.=-sys.matrix.cscmatrix
@@ -211,7 +224,13 @@ function solve(DiffEq::Module,
     if isnothing(solver)
         solver=DiffEq.Rosenbrock23()
     end
+    global njac
+    global nf
+    global nd
 
+    njac=0
+    nf=0
+    nd=0
     f = DiffEq.ODEFunction(eval_rhs!,
                            jac=eval_jacobian!,
                            jac_prototype=jac_prototype(sys),

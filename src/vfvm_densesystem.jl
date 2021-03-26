@@ -214,4 +214,10 @@ function _initialize_inactive_dof!(U::DenseSolutionArray{Tv},this::DenseSystem{T
 end
 
 
-
+"""
+   
+"""
+function LinearAlgebra.norm(sys::DenseSystem,u,p)
+    _initialize_inactive_dof!(u,sys)
+    norm(u,p)
+end

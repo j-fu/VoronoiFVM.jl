@@ -791,7 +791,7 @@ function evolve!(solution, inival, system, times;
                  pre=function(sol,t) end,   
                  post=function(sol,oldsol, t, Δt) end,
                  sample=function(sol,t) end,
-                 delta=(u,v,t, Δt)->norm(u-v,Inf)
+                 delta=(u,v,t, Δt)->norm(sys,u-v,Inf)
 )
 ````
 
@@ -816,7 +816,7 @@ function evolve!(
     pre=function(sol,t) end,       # Function for preparing step
     post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
     sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
-    delta=(u,v,t, Δt)->norm(u-v,Inf) # Time step error estimator
+    delta=(u,v,t, Δt)->norm(sys,u-v,Inf) # Time step error estimator
 ) where Tv
     inival=copy(inival)
     _initialize_dirichlet!(inival,this)
@@ -901,7 +901,7 @@ function solve(inival, system, times;
                pre=function(sol,t) end,   
                post=function(sol,oldsol, t, Δt) end,
                sample=function(sol,t) end,
-               delta=(u,v,t, Δt)->norm(u-v,Inf),
+               delta=(u,v,t, Δt)->norm(sys,u-v,Inf),
                store_all=true,
                in_memory=true
 )
@@ -933,7 +933,7 @@ function solve(inival::AbstractMatrix,
                pre=function(sol,t) end,       # Function for preparing step
                post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
                sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
-               delta=(u,v,t, Δt)->norm(u-v,Inf), # Time step error estimator
+               delta=(u,v,t, Δt)->norm(sys,u-v,Inf), # Time step error estimator
                store_all=true, # if true, store all solutions, otherwise, store only at sampling times
                in_memory=true
                )

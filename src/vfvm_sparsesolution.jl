@@ -114,6 +114,8 @@ Return  value for degree of freedom.
 getdof(a::SparseSolutionArray,i::Integer) =a.node_dof.nzval[i] 
 
 
+Base.:-(a::SparseSolutionArray,b::SparseSolutionArray)=SparseSolutionArray(a.node_dof-b.node_dof)
+Base.:+(a::SparseSolutionArray,b::SparseSolutionArray)=SparseSolutionArray(a.node_dof+b.node_dof)
 
 
 ##################################################################

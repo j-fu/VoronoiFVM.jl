@@ -58,6 +58,7 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+using LinearAlgebra
 
 function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
     
@@ -156,27 +157,21 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     time=0.0
 
     ## Data to store surface concentration vs time
-    T=zeros(0)
-    u_C=zeros(0)
 
     p=GridVisualizer(Plotter=Plotter,layout=(3,1))
-    while time<tend
-        time=time+tstep
-        solve!(U,inival,sys,tstep=tstep)
-        inival.=U
-        if verbose
-            @printf("time=%g\n",time)
-        end
-        ## Record  boundary species
-        push!(T,time)
-        push!(u_C,U[iC,1])
 
-        scalarplot!(p[1,1],grid,U[iA,:],clear=true,title=@sprintf("[A]: (%.3f,%.3f)",extrema(U[iA,:])...))
-        scalarplot!(p[2,1],grid,U[iB,:],clear=true,title=@sprintf("[B]: (%.3f,%.3f)",extrema(U[iA,:])...))
-        scalarplot!(p[3,1],simplexgrid(copy(T)),copy(u_C),clear=true,title=@sprintf("[C]: %.3f",u_C[end]),show=true)
-        yield()
+    control=fixed_timesteps!(VoronoiFVM.NewtonControl(),tstep)
+    tsol=solve(inival,sys,[0,tend])#control=control)
+
+    p=GridVisualizer(Plotter=Plotter,layout=(3,1),fast=true)
+    for it=1:length(tsol)
+        time=tsol.t[it]
+        scalarplot!(p[1,1],grid,tsol[iA,:,it],clear=true,title=@sprintf("[A]: (%.3f,%.3f)",extrema(tsol[iA,:,it])...))
+        scalarplot!(p[2,1],grid,tsol[iB,:,it],clear=true,title=@sprintf("[B]: (%.3f,%.3f)",extrema(tsol[iB,:,it])...))
+        scalarplot!(p[3,1],tsol.t[1:it],tsol[iC,1,1:it],title=@sprintf("[C]"),clear=true,show=true)
     end
-    return U[iC,1]
+
+    return tsol[iC,1,end]
 end
 
 function test()
