@@ -87,7 +87,7 @@ export testfunction
 export meas,project
 export unknown_indices
 
-export edgevelocities
+export edgevelocities,bfacevelocities
 
 export edgelength
 export viewK,viewL,data

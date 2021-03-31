@@ -372,25 +372,28 @@ function bfacefactors!(::Type{Triangle2D},::Type{<:Cartesian3D},coord,bfacenodes
 end
 
 ##################################################################
+
+#
+# TODO: this should be generalized for more quadrules
+#
+function integrate(coordl,coordr,hnormal,velofunc)
+    wl=1.0/6.0
+    wm=2.0/3.0
+    wr=1.0/6.0
+    coordm=0.5*(coordl+coordr)
+    (vxl,vyl)=velofunc(coordl[1],coordl[2])
+    (vxm,vym)=velofunc(coordm[1],coordm[2])
+    (vxr,vyr)=velofunc(coordr[1],coordr[2])
+    return (wl*vxl +wm*vxm+wr*vxr)*hnormal[1] + (wl*vyl +wm*vym+wr*vyr)*hnormal[2]
+end
+
+
 """
 $(SIGNATURES)
 
 Project velocity onto grid edges,
 """
 function edgevelocities(grid,velofunc)
-    #
-    # TODO: this should be generalized for more quadrules
-    #
-    function integrate(coordl,coordr,hnormal,velofunc)
-        wl=1.0/6.0
-        wm=2.0/3.0
-        wr=1.0/6.0
-        coordm=0.5*(coordl+coordr)
-        (vxl,vyl)=velofunc(coordl[1],coordl[2])
-        (vxm,vym)=velofunc(coordm[1],coordm[2])
-        (vxr,vyr)=velofunc(coordr[1],coordr[2])
-        return (wl*vxl +wm*vxm+wr*vxr)*hnormal[1] + (wl*vyl +wm*vym+wr*vyr)*hnormal[2]
-    end
     
     @assert dim_space(grid)<3
 
@@ -430,5 +433,31 @@ function edgevelocities(grid,velofunc)
             velovec[iedge]=integrate(p1,p2,hnormal,velofunc)
         end
     end
+    return velovec
+end
+
+
+function bfacevelocities(grid,velofunc)
+    @assert dim_space(grid)<3
+    bfacenodes=grid[BFaceNodes]
+    coord=grid[Coordinates]
+    bfacecells=grid[BFaceCells]
+    bfacenormals=grid[BFaceNormals]
+    bfr=grid[BFaceRegions]
+    velovec=zeros(Float64,2,num_bfaces(grid))
+    if dim_space(grid)==1
+        for ibface=1:num_bfaces(grid)
+            vx,vy=velofunc(coord[1,bfacenodes[1,ibface]])
+            velovec[ibface]=vx*bfacenormals[1,ibface]
+        end
+    else
+        for ibface=1:num_bfaces(grid)
+            p1=coord[:,bfacenodes[1,ibface]]
+            p2=coord[:,bfacenodes[2,ibface]]
+            pm=0.5*(p1+p2)
+            velovec[1,ibface]=integrate(p1,pm,bfacenormals[:,ibface],velofunc)
+            velovec[2,ibface]=integrate(pm,p2,bfacenormals[:,ibface],velofunc)
+        end
+    end            
     return velovec
 end

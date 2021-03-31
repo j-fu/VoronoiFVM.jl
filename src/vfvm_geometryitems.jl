@@ -14,6 +14,17 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     Index in grid
     """
     index::Ti
+    
+    """
+    BFace number it is called from
+    """
+    ibface::Ti
+
+    
+    """
+    local node number
+    """
+    ibnode::Ti
 
     """
     Boundary region number
@@ -30,11 +41,13 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     coord::Matrix{Tv}
     
-    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,num_species(sys),coordinates(sys.grid))
+    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,0,0,num_species(sys),coordinates(sys.grid))
 end
 
 function _fill!(node::BNode,bfacenodes,bfaceregions,ibnode,ibface)
     K=bfacenodes[ibnode,ibface]
+    node.ibface=ibface
+    node.ibnode=ibnode
     node.region=bfaceregions[ibface]
     node.index=K
 end
