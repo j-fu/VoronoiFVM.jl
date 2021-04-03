@@ -106,7 +106,7 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
 end
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Constructor for DenseSystem.
 """
@@ -114,44 +114,44 @@ function  DenseSystem(grid,physics::Physics;matrixindextype=Int32)
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype
-    this=DenseSystem{Tv,Ti,Tm}()
+    system=DenseSystem{Tv,Ti,Tm}()
     maxspec=physics.num_species
-    this.grid=grid
-    this.physics=physics
-    this.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
-    this.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
-    this.node_dof=spzeros(Int8,Int32,maxspec,num_nodes(grid))
-    this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
-    this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
-    this.species_homogeneous=false
-    this.uhash=0x0
-    return this
+    system.grid=grid
+    system.physics=physics
+    system.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
+    system.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
+    system.node_dof=spzeros(Int8,Int32,maxspec,num_nodes(grid))
+    system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.species_homogeneous=false
+    system.uhash=0x0
+    return system
 end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Number of degrees of freedom for system.
 """
-num_dof(this::DenseSystem)= length(this.node_dof)
+num_dof(system::DenseSystem)= length(system.node_dof)
 
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Create a solution vector for dense system.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-unknowns(sys::DenseSystem{Tv};inival=undef) where Tv = unknowns(Tv,sys,inival=inival)
+unknowns(system::DenseSystem{Tv};inival=undef) where Tv = unknowns(Tv,system,inival=inival)
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Create a solution vector for dense system.
+Create a solution vector for dense system with elements of type `Tu`.
 If inival is not specified, the entries of the returned vector are undefined.
 """
 function unknowns(Tu::Type,sys::DenseSystem{Tv};inival=undef) where Tv
@@ -163,7 +163,7 @@ function unknowns(Tu::Type,sys::DenseSystem{Tv};inival=undef) where Tv
 end
 
 
-Base.reshape(v::DenseSolutionArray{Tu},sys::DenseSystem{Tv}) where {Tu,Tv}=v
+Base.reshape(v::DenseSolutionArray{Tu},system::DenseSystem{Tv}) where {Tu,Tv}=v
 
 
 ##################################################################
@@ -182,16 +182,16 @@ end
 #
 # Assemble dummy equations for inactive species
 #
-function _eval_and_assemble_inactive_species(this::DenseSystem,U,Uold,F)
-    if this.species_homogeneous
+function _eval_and_assemble_inactive_species(system::DenseSystem,U,Uold,F)
+    if system.species_homogeneous
         return
     end
-    for inode=1:size(this.node_dof,2)
-        for ispec=1:size(this.node_dof,1)
-            if !isdof(this,ispec,inode)
+    for inode=1:size(system.node_dof,2)
+        for ispec=1:size(system.node_dof,1)
+            if !isdof(system,ispec,inode)
                 F[ispec,inode]+= U[ispec,inode]-Uold[ispec,inode];
                 idof=dof(F,ispec,inode)
-                this.matrix[idof,idof]+=1.0
+                system.matrix[idof,idof]+=1.0
             end
         end
     end
@@ -200,13 +200,13 @@ end
 #
 # Initialize values in inactive dof for dense system
 #
-function _initialize_inactive_dof!(U::DenseSolutionArray{Tv},this::DenseSystem{Tv}) where {Tv}
-    if this.species_homogeneous
+function _initialize_inactive_dof!(U::DenseSolutionArray{Tv},system::DenseSystem{Tv}) where {Tv}
+    if system.species_homogeneous
         return
     end
-    for inode=1:size(this.node_dof,2)
-        for ispec=1:size(this.node_dof,1)
-            if !isdof(this,ispec,inode)
+    for inode=1:size(system.node_dof,2)
+        for ispec=1:size(system.node_dof,1)
+            if !isdof(system,ispec,inode)
                 U[ispec,inode]=0
             end
         end
@@ -215,9 +215,12 @@ end
 
 
 """
-   
+$(SIGNATURES)
+
+Calculate norm, paying attention to species distribution over regions
 """
-function LinearAlgebra.norm(sys::DenseSystem,u,p)
-    _initialize_inactive_dof!(u,sys)
+function LinearAlgebra.norm(system::DenseSystem,u,p)
+    _initialize_inactive_dof!(u,system)
     norm(u,p)
 end
+

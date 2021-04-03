@@ -13,20 +13,12 @@ abstract type AbstractPhysics end
 $(TYPEDEF)
 
 Abstract type for user data.
-
-!!! Deprecate
-There is no benefit in inheriting from `AbstractData` and this type
-will be removed in a future release.
+!!! compat  
+    Will be removed in future versions
 """
 abstract type AbstractData end
 
-struct NoData <: AbstractData
-end
-
-struct DummyData <: AbstractData
-end
-
-isdata(::NoData)=false
+isdata(::Nothing)=false
 isdata(::Any)=true
 
 #
@@ -61,9 +53,11 @@ end
 
 ##########################################################
 """
-$(TYPEDEF)
+````
+struct Physics
+````
 
-Physics data record.
+Physics data record with the following fields:
 
 $(TYPEDFIELDS)
 """
@@ -149,18 +143,34 @@ end
 
 ##########################################################
 """
-$(SIGNATURES)
+````
+Physics(;num_species=1,
+         data=nothing,
+         flux,
+         reaction,
+         storage,
+         source,
+         breaction,
+         bstorage,
+         generic,
+         generic_sparsity
+)
+````
 
-Constructor for physics data with default values for the
-constitutive callback functions.
+Constructor for physics data. For the meaning of the optional function
+callbacks, see [`Physics`](@ref).
 
 There are two variants of this constructor. It `data` is given, all callback functions
 should accept a last `data` argument. Otherwise, no data are passed explicitely, and it
 is assumed that constitutive callbacks take parameters from the closure where the function
 is defined.
+
+!!! compat  
+    Data passing callbacks will be mandatory in future versions
+
 """
 function Physics(;num_species=1,
-                 data=NoData(),
+                 data=nothing,
                  flux::Function=nofunc,
                  reaction::Function=nofunc,
                  storage::Function=default_storage,

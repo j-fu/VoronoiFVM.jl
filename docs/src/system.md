@@ -1,60 +1,35 @@
 # System
 
+The computational grid is required is assumed to correspond to a domain
+``\Omega=\cup_{r=1}^{n_\Omega} \Omega_r`` 
 
-## Types and Constants
+with boundary  ``\partial\Omega=\Gamma=\cup_{b=1}^{n_\Gamma} \Gamma_b``.
+
+The subdomains ``\Omega_r`` are called "regions" and the boundary
+subdomains ``\Gamma_b`` are called "boundary regions".
+
+On this complex of domains "lives"  a number of species which are either
+attached to a number of regions or to a number of boundary regions.
+
+Grids for VoronoiFVM are managed by the package 
+[ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl).
 
 
+## Abstract System
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = [
-    "vfvm_abstractsystem.jl",
-    "vfvm_xgrid.jl",
-    "vfvm_densesolution.jl",
-    "vfvm_sparsesolution.jl",
-    "vfvm_transientsolution.jl",
-    "vfvm_densesystem.jl",
-    "vfvm_sparsesystem.jl",
-    "vfvm_geometryitems.jl",
-    "vfvm_solver.jl",
-    "vfvm_newtoncontrol.jl", 
-    "vfvm_testfunctions.jl"]
-Order = [:type]
+Pages = ["vfvm_abstractsystem.jl"]
 ```
 
+## Dense System
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = [
-    "vfvm_abstractsystem.jl",
-    "vfvm_xgrid.jl",
-    "vfvm_densesolution.jl",
-    "vfvm_sparsesolution.jl",
-    "vfvm_transientsolution.jl",
-    "vfvm_densesystem.jl",
-    "vfvm_sparsesystem.jl",
-    "vfvm_geometryitems.jl",
-    "vfvm_solver.jl",
-    "vfvm_newtoncontrol.jl", 
-    "vfvm_testfunctions.jl"]
-Order = [:constant]
+Pages = ["vfvm_densesystem.jl"]
 ```
-## Methods
 
+## Sparse System
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = [
-    "vfvm_abstractsystem.jl",
-    "vfvm_xgrid.jl",
-    "vfvm_densesolution.jl",
-    "vfvm_sparsesolution.jl",
-    "vfvm_transientsolution.jl",
-    "vfvm_densesystem.jl",
-    "vfvm_sparsesystem.jl",
-    "vfvm_geometryitems.jl",
-    "vfvm_solver.jl",
-    "vfvm_newtoncontrol.jl", 
-    "vfvm_testfunctions.jl"]
-Order = [:function]
+Pages = ["vfvm_sparsesystem.jl"]
 ```
-
-
 

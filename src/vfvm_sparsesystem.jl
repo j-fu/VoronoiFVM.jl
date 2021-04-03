@@ -1,8 +1,8 @@
 ##################################################################
 """
-    $(TYPEDEF)
+$(TYPEDEF)
     
-    Structure holding data for finite volume system solution.
+Structure holding data for finite volume system solution.
 Information on species distribution is kept in sparse
 matrices, and the solution array is of type SparseSolutionArray,
 i.e. effectively it is a sparse matrix.
@@ -109,7 +109,7 @@ end
 ##################################################################
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Constructor for SparseSystem.
 """
@@ -117,28 +117,28 @@ function  SparseSystem(grid,physics::Physics; matrixindextype=Int32)
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype
-    this=SparseSystem{Tv,Ti,Tm}()
+    system=SparseSystem{Tv,Ti,Tm}()
     maxspec=physics.num_species
-    this.grid=grid
-    this.physics=physics
-    this.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
-    this.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
-    this.node_dof=spzeros(Int8,Tm,maxspec,num_nodes(grid))
-    this.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
-    this.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
-    this.species_homogeneous=false
-    this.uhash=0x0
-    return this
+    system.grid=grid
+    system.physics=physics
+    system.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
+    system.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
+    system.node_dof=spzeros(Int8,Tm,maxspec,num_nodes(grid))
+    system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.species_homogeneous=false
+    system.uhash=0x0
+    return system
 end
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Number of degrees of freedom for system.
 """
-num_dof(this::SparseSystem)= nnz(this.node_dof)
+num_dof(system::SparseSystem)= nnz(system.node_dof)
 
 
 
@@ -158,15 +158,15 @@ $(SIGNATURES)
 Create a solution vector for sparse system with given type.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu::Type, sys::SparseSystem{Tv, Ti, Tm};inival=undef) where {Tv,Ti,Tm}
-    a0=Array{Tu}(undef,num_dof(sys))
+function unknowns(Tu::Type, system::SparseSystem{Tv, Ti, Tm};inival=undef) where {Tv,Ti,Tm}
+    a0=Array{Tu}(undef,num_dof(system))
     if inival!=undef
         fill!(a0,inival)
     end
-    return SparseSolutionArray{Tu,Tm}(SparseMatrixCSC(sys.node_dof.m,
-                                                      sys.node_dof.n,
-                                                      sys.node_dof.colptr,
-                                                      sys.node_dof.rowval,
+    return SparseSolutionArray{Tu,Tm}(SparseMatrixCSC(system.node_dof.m,
+                                                      system.node_dof.n,
+                                                      system.node_dof.colptr,
+                                                      system.node_dof.rowval,
                                                       a0
                                                       )
                                       )
@@ -180,12 +180,12 @@ $(SIGNATURES)
 
 Reshape vector to fit as solution to system.
 """
-function Base.reshape(v::AbstractVector{Tu},sys::SparseSystem{Tv,Ti,Tm}) where {Tu,Tv,Ti,Tm}
-    @assert  length(v)==num_dof(sys)
-    SparseSolutionArray{Tu,Ti}(SparseMatrixCSC(sys.node_dof.m,
-                                            sys.node_dof.n,
-                                            sys.node_dof.colptr,
-                                            sys.node_dof.rowval,
+function Base.reshape(v::AbstractVector{Tu},system::SparseSystem{Tv,Ti,Tm}) where {Tu,Tv,Ti,Tm}
+    @assert  length(v)==num_dof(system)
+    SparseSolutionArray{Tu,Ti}(SparseMatrixCSC(system.node_dof.m,
+                                            system.node_dof.n,
+                                            system.node_dof.colptr,
+                                            system.node_dof.rowval,
                                             Vector{Tu}(v)
                                             )
                             )
@@ -199,14 +199,19 @@ Base.reshape(v::SparseSolutionArray,sys::SparseSystem)=v
 #
 # Dummy routine for sparse system
 #
-function _eval_and_assemble_inactive_species(this::SparseSystem,U,Uold,F)
+function _eval_and_assemble_inactive_species(system::SparseSystem,U,Uold,F)
 end
 
 #
 # Dummy routine for sparse system
 #
-function     _initialize_inactive_dof!(U::AbstractMatrix{Tv},this::SparseSystem{Tv}) where {Tv}
+function     _initialize_inactive_dof!(U::AbstractMatrix{Tv},system::SparseSystem{Tv}) where {Tv}
 end
 
-LinearAlgebra.norm(sys::SparseSystem,u,p)=norm(u.node_dof.nzval,p)
+"""
+$(SIGNATURES)
+
+Calculate norm, paying attention to species distribution over regions
+"""
+LinearAlgebra.norm(system::SparseSystem,u,p)=norm(u.node_dof.nzval,p)
 

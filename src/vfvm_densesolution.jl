@@ -9,7 +9,7 @@ const DenseSolutionArray=Matrix
 
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Get degree of freedom number
 """
@@ -19,7 +19,7 @@ unknown_indices(a::DenseSolutionArray{Tv}) where Tv=LinearIndices(a)
 
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Array of values in solution array.
 """

@@ -2,7 +2,7 @@
 """
 $(TYPEDEF)
     
-Abstract type for finite volume system structure
+Abstract type for finite volume system structure.
 """
 abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 
@@ -10,7 +10,11 @@ abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+````
+function System(grid,physics;
+                unknown_storage=:dense;
+                matrixindextype=Int32)
+````
 
 Create Finite Volume System. 
 
@@ -19,7 +23,7 @@ Create Finite Volume System.
 - `unknown_storage`: string or symbol:
      - `:dense` :  solution vector is an  `nspecies` x `nnodes`  dense matrix
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
-
+- `matrixindextype` : Index type for sparse matrices created in the system
 """
 function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int32)
     if Symbol(unknown_storage)==:dense
@@ -32,23 +36,24 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
 end
 
 ##################################################################
-"""
-Constant to be used as boundary condition factor 
-to mark Dirichlet boundary conditons.    
-"""
+
+# Constant to be used as boundary condition factor 
+# to mark Dirichlet boundary conditons.    
 const Dirichlet=1.0e30
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+````
+is_boundary_species(AbstractSystem, ispec) -> Bool
+````
 
-Check if species number corresponds to boundary species.
+Check if species number corresponds to a boundary species.
 """
-function is_boundary_species(this::AbstractSystem, ispec::Integer)
+function is_boundary_species(system::AbstractSystem, ispec)
     isbspec=false
-    for ibreg=1:num_bfaceregions(this.grid)
-        if this.bregion_species[ispec,ibreg]>0
+    for ibreg=1:num_bfaceregions(system.grid)
+        if system.bregion_species[ispec,ibreg]>0
             isbspec=true
         end
     end
@@ -57,14 +62,16 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+````
+is_bulk_species(AbstractSystem, ispec) -> Bool
+````
 
-Check if species number corresponds bulk species.
+Check if species number corresponds to a bulk species.
 """
-function is_bulk_species(this::AbstractSystem, ispec::Integer)
+function is_bulk_species(system::AbstractSystem, ispec)
     isrspec=false
-    for ixreg=1:num_cellregions(this.grid)
-        if this.region_species[ispec,ixreg]>0
+    for ixreg=1:num_cellregions(system.grid)
+        if system.region_species[ispec,ixreg]>0
             isrspec=true
         end
     end
@@ -73,28 +80,30 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+````
+enable_species!(system,ispec,regions)
+````
 
-Add species to a list of bulk regions. Species numbers for
+Add species `ispec` to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
 """
-function enable_species!(this::AbstractSystem,ispec::Integer, regions::AbstractVector)
-    if ispec>num_species(this)
+function enable_species!(system::AbstractSystem,ispec::Integer, regions::AbstractVector)
+    if ispec>num_species(system)
         throw(DomainError(ispec,"Number of species exceeded"))
     end
-    if is_boundary_species(this,ispec)
+    if is_boundary_species(system,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
     end
-    _cellregions=cellregions(this.grid)
-    _cellnodes=cellnodes(this.grid)
+    _cellregions=cellregions(system.grid)
+    _cellnodes=cellnodes(system.grid)
     for i in eachindex(regions)
         ireg=regions[i]
-        this.region_species[ispec,ireg]=ispec
-        for icell=1:num_cells(this.grid)
+        system.region_species[ispec,ireg]=ispec
+        for icell=1:num_cells(system.grid)
             if _cellregions[icell]==ireg
                 for iloc=1:num_targets(_cellnodes,icell)
                     iglob=_cellnodes[iloc,icell]
-                    this.node_dof[ispec,iglob]=ispec
+                    system.node_dof[ispec,iglob]=ispec
                 end
             end
         end
@@ -104,30 +113,32 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+````
+enable_boundary_species!(system,ispec,regions)
+````
 
-Add species to a list of boundary regions. Species numbers for
+Add species `ispec` to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
 
 """
-function enable_boundary_species!(this::AbstractSystem, ispec::Integer, bregions::AbstractVector)
-    if ispec>num_species(this)
+function enable_boundary_species!(system::AbstractSystem, ispec::Integer, bregions::AbstractVector)
+    if ispec>num_species(system)
         throw(DomainError(ispec,"Number of species exceeded"))
     end
-    if is_bulk_species(this,ispec)
+    if is_bulk_species(system,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
-    _bfaceregions=bfaceregions(this.grid)
-    _bfacenodes=bfacenodes(this.grid)
+    _bfaceregions=bfaceregions(system.grid)
+    _bfacenodes=bfacenodes(system.grid)
     
     for i in eachindex(bregions)
         ireg=bregions[i]
-        this.bregion_species[ispec,ireg]=ispec
-        for ibface=1:num_bfaces(this.grid)
+        system.bregion_species[ispec,ireg]=ispec
+        for ibface=1:num_bfaces(system.grid)
             if _bfaceregions[ibface]==ireg
                 for iloc=1:size(_bfacenodes,1)
                     iglob=_bfacenodes[iloc,ibface]
-                    this.node_dof[ispec,iglob]=ispec
+                    system.node_dof[ispec,iglob]=ispec
                 end
             end
         end
@@ -137,20 +148,20 @@ end
 
 # Create matrix in system and figure out if species
 # distribution is homgeneous
-function _complete!(this::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false) where {Tv,Ti, Tm}
+function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false) where {Tv,Ti, Tm}
 
-    if isdefined(this,:matrix)
+    if isdefined(system,:matrix)
         return
     end
-    this.matrix=ExtendableSparseMatrix{Tv,Tm}(num_dof(this), num_dof(this))
-    this.species_homogeneous=true
+    system.matrix=ExtendableSparseMatrix{Tv,Tm}(num_dof(system), num_dof(system))
+    system.species_homogeneous=true
     species_added=false
-    for inode=1:size(this.node_dof,2)
-        for ispec=1:size(this.node_dof,1)
-            if this.node_dof[ispec,inode]==ispec
+    for inode=1:size(system.node_dof,2)
+        for ispec=1:size(system.node_dof,1)
+            if system.node_dof[ispec,inode]==ispec
                 species_added=true
             else
-                this.species_homogeneous=false
+                system.species_homogeneous=false
             end
         end
     end
@@ -159,45 +170,52 @@ function _complete!(this::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false) 
         error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
     end
     if create_newtonvectors
-        this.residual=unknowns(this)
-        this.update=unknowns(this)
+        system.residual=unknowns(system)
+        system.update=unknowns(system)
     end
-    update_grid!(this)
-    if has_generic_operator(this)
-        if has_generic_operator_sparsity(this) 
-            this.generic_matrix=this.physics.generic_operator_sparsity(this)
+    update_grid!(system)
+    if has_generic_operator(system)
+        if has_generic_operator_sparsity(system) 
+            system.generic_matrix=system.physics.generic_operator_sparsity(system)
         else
-            generic_operator(f,u)=this.physics.generic_operator(f,u,this)
-            input=rand(num_dof(this))
+            generic_operator(f,u)=system.physics.generic_operator(f,u,system)
+            input=rand(num_dof(system))
             output=similar(input)
             tdetect=@elapsed begin
                 sparsity_pattern = jacobian_sparsity(generic_operator,output,input)
-                this.generic_matrix = Float64.(sparse(sparsity_pattern))
+                system.generic_matrix = Float64.(sparse(sparsity_pattern))
             end
             println("sparsity detection for generic operator: $(tdetect) s")
-            if nnz(this.generic_matrix)==0
+            if nnz(system.generic_matrix)==0
                 error("Sparsity detection failed: no pattern found")
             end
         end
         tdetect=@elapsed begin
-            this.generic_matrix_colors = matrix_colors(this.generic_matrix)
+            system.generic_matrix_colors = matrix_colors(system.generic_matrix)
         end
         println("matrix coloring for generic operator: $(tdetect) s")
     end
 end
 
-function generic_operator_sparsity!(this::AbstractSystem,matrix::SparseMatrixCSC)
-    this.generic_matrix=matrix
+"""
+$(SIGNATURES)
+Set generic operator sparsity, in the case where a generic operator has been
+defined in physics.
+"""
+function generic_operator_sparsity!(system::AbstractSystem, sparsematrix::SparseMatrixCSC)
+    system.generic_matrix=sparsematrix
 end
 
 
 """
-$(SIGNATURES)
+````
+update_grid!(system; grid=system.grid)
+````
 
 Update grid (e.g. after rescaling of coordinates).
 """
-function update_grid!(this::AbstractSystem{Tv,Ti};grid=this.grid) where{Tv, Ti}
-
+function update_grid!(system::AbstractSystem{Tv,Ti}; grid=system.grid) where {Tv,Ti}
+    
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
     coord=grid[Coordinates]
@@ -208,87 +226,92 @@ function update_grid!(this::AbstractSystem{Tv,Ti};grid=this.grid) where{Tv, Ti}
     nbfaces=num_bfaces(grid)
     ncells=num_cells(grid)
 
-    this.cellnodefactors=zeros(Tv,num_nodes(geom),ncells)
-    this.celledgefactors=zeros(Tv,num_edges(geom),ncells)
-    this.bfacenodefactors=zeros(Tv,num_nodes(bgeom),nbfaces)
+    system.cellnodefactors=zeros(Tv,num_nodes(geom),ncells)
+    system.celledgefactors=zeros(Tv,num_edges(geom),ncells)
+    system.bfacenodefactors=zeros(Tv,num_nodes(bgeom),nbfaces)
 
     for icell=1:ncells
-        @views cellfactors!(geom,csys,coord,cellnodes,icell,this.cellnodefactors[:,icell],this.celledgefactors[:,icell])
+        @views cellfactors!(geom,csys,coord,cellnodes,icell,system.cellnodefactors[:,icell],system.celledgefactors[:,icell])
     end
     
     for ibface=1:nbfaces
-        @views bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,this.bfacenodefactors[:,ibface])
+        @views bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,system.bfacenodefactors[:,ibface])
     end
 end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
     
 Check if degree of freedom is defined.
 """
-isdof(this::AbstractSystem,ispec,inode)= this.node_dof[ispec,inode]==ispec ? true : false
+isdof(system::AbstractSystem,ispec,inode)= system.node_dof[ispec,inode]==ispec
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Number of species in system
 """
-num_species(this::AbstractSystem) = this.physics.num_species
+num_species(system::AbstractSystem) = system.physics.num_species
 
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Retrieve user data record.
 """
-data(this::AbstractSystem) = this.physics.data
+data(system::AbstractSystem) = system.physics.data
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Set Dirichlet boundary conditon for species ispec at boundary ibc.
+Set Dirichlet boundary condition for species ispec at boundary ibc:
+
+``u_{ispec}=v`` on ``\\Gamma_{ibc}``
 """
-function boundary_dirichlet!(this::AbstractSystem, ispec::Integer, ibc::Integer, val)
-    this.boundary_factors[ispec,ibc]=Dirichlet
-    this.boundary_values[ispec,ibc]=val
+function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
+    system.boundary_factors[ispec,ibc]=Dirichlet
+    system.boundary_values[ispec,ibc]=v
 end
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Set Neumann boundary conditon for species ispec at boundary ibc.
+Set Neumann boundary condition for species ispec at boundary ibc:
+
+``\\mathrm{flux}_{ispec}\\cdot \\vec n=v`` on ``\\Gamma_{ibc}``
 """
-function boundary_neumann!(this::AbstractSystem, ispec::Integer, ibc::Integer, val)
-    this.boundary_factors[ispec,ibc]=0.0
-    this.boundary_values[ispec,ibc]=val
+function boundary_neumann!(system::AbstractSystem, ispec, ibc, v)
+    system.boundary_factors[ispec,ibc]=0.0
+    system.boundary_values[ispec,ibc]=v
 end
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Set Robin boundary conditon for species ispec at boundary ibc.
+Set Robin boundary condition for species ispec at boundary ibc:
+
+``\\mathrm{flux}_{ispec}\\cdot \\vec n + \\alpha u_{ispec}=v`` on ``\\Gamma_{ibc}``
+
 """
-function boundary_robin!(this::AbstractSystem, ispec::Integer, ibc::Integer,fac, val)
-    this.boundary_factors[ispec,ibc]=fac
-    this.boundary_values[ispec,ibc]=val
+function boundary_robin!(system::AbstractSystem, ispec, ibc, α, v)
+    system.boundary_factors[ispec,ibc]=α
+    system.boundary_values[ispec,ibc]=v
 end
-
-
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Number of species (size of first dimension) of solution array.
 """
@@ -298,18 +321,20 @@ num_species(a::AbstractArray)=size(a,1)
 
 
 
+
+
 #
 # Initialize Dirichlet BC
 #
-function _initialize_dirichlet!(U::AbstractMatrix,this::AbstractSystem)
-    _bfaceregions=bfaceregions(this.grid)
-    _bfacenodes=bfacenodes(this.grid)
-    for ibface=1:num_bfaces(this.grid)
+function _initialize_dirichlet!(U::AbstractMatrix,system::AbstractSystem)
+    _bfaceregions=bfaceregions(system.grid)
+    _bfacenodes=bfacenodes(system.grid)
+    for ibface=1:num_bfaces(system.grid)
         ibreg=_bfaceregions[ibface]
-        for ispec=1:num_species(this)
-            if this.boundary_factors[ispec,ibreg]≈ Dirichlet
-                for inode=1:dim_grid(this.grid)
-                    U[ispec,_bfacenodes[inode,ibface]]=this.boundary_values[ispec,ibreg]
+        for ispec=1:num_species(system)
+            if system.boundary_factors[ispec,ibreg]≈ Dirichlet
+                for inode=1:dim_grid(system.grid)
+                    U[ispec,_bfacenodes[inode,ibface]]=system.boundary_values[ispec,ibreg]
                 end
             end
         end
@@ -319,9 +344,9 @@ end
 
 
 
-function _initialize!(U::AbstractMatrix,this::AbstractSystem)
-    _initialize_dirichlet!(U,this)
-    _initialize_inactive_dof!(U,this)
+function _initialize!(U::AbstractMatrix,system::AbstractSystem)
+    _initialize_dirichlet!(U,system)
+    _initialize_inactive_dof!(U,system)
 end
 
 

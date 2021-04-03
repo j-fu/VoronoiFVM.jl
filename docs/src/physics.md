@@ -1,24 +1,24 @@
 # Physics & special functions
 
-## Types and Constants
+## Physics
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = ["vfvm_physics.jl","vfvm_functions.jl"]
-Order = [:type]
+Pages = ["vfvm_physics.jl"]
 ```
 
+## Edge and node data
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = ["vfvm_physics.jl","vfvm_functions.jl"]
-Order = [:constants]
+Pages = ["vfvm_geometryitems.jl"]
+]
 ```
-## Methods
 
+## Special functions
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = ["vfvm_physics.jl","vfvm_functions.jl"]
-Order = [:function]
+Pages = ["vfvm_functions.jl"]
 ```
+
 
 
 

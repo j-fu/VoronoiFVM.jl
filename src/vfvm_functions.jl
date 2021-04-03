@@ -1,6 +1,6 @@
 ##############################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Calculation of Bernoulli function via Horner scheme based on Taylor
 coefficients around 0.
@@ -23,14 +23,12 @@ end
 
 ##############################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Bernoulli function implementation for exponentially
-fitted finite volumes.
+Bernoulli function ``B(x)=\\frac{x}{e^x-1}`` for exponentially
+fitted upwinding.
 
-
-
-The name fbernoulli has been chosen to avoid confusion
+The name `fbernoulli` has been chosen to avoid confusion
 with Bernoulli from JuliaStats/Distributions.jl
 
 Returns a real number containing the result.
@@ -64,15 +62,14 @@ end
 
 
 """ 
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Bernoulli function implementation for exponentially
-fitted finite volumes, joint evaluation for positive and negative
+Bernoulli function ``B(x)=\\frac{x}{e^x-1}`` for exponentially
+fitted upwind, joint evaluation for positive and negative
 argument
 
-Usually, we need B(x), B(-x) togehter, 
+Usually, we need ``B(x), B(-x)`` togehter, 
 and it is cheaper to calculate them together.
-
 
 Returns two real numbers containing the result for argument
 `x` and argument `-x`.

@@ -25,18 +25,18 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
     
-Return size of solution array.
+Return size of sparse solution array.
 """
 Base.size(a::SparseSolutionArray)=size(a.node_dof)
 
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Array of values in solution array.
+Array of values in sparse solution array.
 """
 values(a::SparseSolutionArray)=a.node_dof.nzval
 
@@ -47,7 +47,7 @@ values(a::SparseSolutionArray)=a.node_dof.nzval
 """
 $(SIGNATURES)
     
-Create a copy of solution array
+Create a copy of sparse solution array
 """
 Base.copy(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{Tv,Ti}(SparseMatrixCSC(this.node_dof.m,
                                                                                                        this.node_dof.n,
@@ -60,7 +60,7 @@ Base.copy(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{
 """
 $(SIGNATURES)
     
-Create a similar unintialized solution array
+Create a similar unintialized sparse solution array
 """
 Base.similar(this::SparseSolutionArray{Tv,Ti}) where {Tv,Ti} = SparseSolutionArray{Tv,Ti}(SparseMatrixCSC(this.node_dof.m,
                                                                                                           this.node_dof.n,
@@ -97,7 +97,7 @@ Base.getindex(idx::SparseSolutionIndices,i,j)=dof(idx.a,i,j)
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Set value for degree of freedom.
 """
@@ -107,7 +107,7 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Return  value for degree of freedom.
 """
@@ -120,9 +120,9 @@ Base.:+(a::SparseSolutionArray,b::SparseSolutionArray)=SparseSolutionArray(a.nod
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Accessor for solution array.
+Accessor for sparse solution array.
 """
 function Base.setindex!(a::SparseSolutionArray, v, ispec::Integer, inode::Integer)
     searchk=dof(a,ispec,inode)
@@ -137,9 +137,9 @@ end
 
 ##################################################################
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-Accessor for solution array.
+Accessor for sparse solution array.
 """
 function Base.getindex(a::SparseSolutionArray, ispec::Integer, inode::Integer)
     searchk=dof(a,ispec,inode)
