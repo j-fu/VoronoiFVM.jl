@@ -31,20 +31,22 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
+              L=1.0, R=1.0, D=1.0, C=1.0,
+              ω0=1.0e-3,ω1=5.0e1)
 
-    L=1.0
 
     # Create array which is refined close to 0
-    h0=0.1/2.0^nref
-    h1=0.5/2.0^nref
-    X=VoronoiFVM.geomspace(0.0,L,h0,h1)
+    h0=0.005/2.0^nref
+    h1=0.1/2.0^nref
+    
+    X=VoronoiFVM.geomspace(0,L,h0,h1)
 
     # Create discretitzation grid
     grid=VoronoiFVM.Grid(X)
 
     # Create and fill data
-    data = (R=1, D=1, C=2)
+    data = (R=R, D=D, C=C)
 
     # Declare constitutive functions
     flux=function(f,u0,edge,data)
@@ -60,6 +62,11 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         f[1]=data.R*u[1]
     end
 
+    excited_bc=1
+    excited_bcval=1.0
+    excited_spec=1
+    meas_bc=2
+    
     # Create physics struct
     physics=VoronoiFVM.Physics(data=data,
                                flux=flux,
@@ -68,37 +75,31 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
                                )
     # Create discrete system and enabe species
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
-    enable_species!(sys,1,[1])
+    enable_species!(sys,excited_spec,[1])
 
     # Create test functions for current measurement
 
-    excited_bc=1
-    excited_bcval=1.0
-    excited_spec=1
 
-
+    
     factory=VoronoiFVM.TestFunctionFactory(sys)
-    measurement_testfunction=testfunction(factory,[1],[2])
-
+    measurement_testfunction=testfunction(factory,[excited_bc],[meas_bc])
 
     boundary_dirichlet!(sys,excited_spec,excited_bc,excited_bcval)
-    boundary_dirichlet!(sys,1,2,0.0)
+    boundary_dirichlet!(sys,excited_spec,meas_bc,0.0)
 
 
-    inival=unknowns(sys)
-    steadystate=unknowns(sys)
-    inival.=0.0
-    solve!(steadystate,inival,sys)
+    inival=unknowns(sys,inival=0.0)
+    steadystate=solve(inival,sys)
 
     function meas_stdy(meas,U)
         u=reshape(U,sys)
-        meas[1]=VoronoiFVM.integrate_stdy(sys,measurement_testfunction,u)[1]
+        meas[1]=-VoronoiFVM.integrate_stdy(sys,measurement_testfunction,u)[excited_spec]
         nothing
     end
 
     function meas_tran(meas,U)
         u=reshape(U,sys)
-        meas[1]=VoronoiFVM.integrate_tran(sys,measurement_testfunction,u)[1]
+        meas[1]=-VoronoiFVM.integrate_tran(sys,measurement_testfunction,u)[excited_spec]
         nothing
     end
 
@@ -109,9 +110,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
 
     # Create Impeadancs system from steady state
-    excited_spec=1
-    excited_bc=1
-    isys=VoronoiFVM.ImpedanceSystem(sys,steadystate,excited_spec, excited_bc)
+    isys=VoronoiFVM.ImpedanceSystem(sys,steadystate,excited_spec,excited_bc)
 
     # Prepare recording of impedance results
     allomega=zeros(0)
@@ -124,48 +123,48 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     allIx0=zeros(Complex{Float64},0)
     allIxL=zeros(Complex{Float64},0)
 
-    ω0=0.5
-    ω1=1.0e4
     ω=ω0
 
-    testval=0.0
     UZ=unknowns(isys)
     while ω<ω1
-
-        iω=1im*ω
-
 
         # solve impedance system
         solve!(UZ,isys,ω)
 
         # calculate aproximate solution
         # obtain measurement in frequency  domain
-        IL=freqdomain_impedance(isys,ω,steadystate,excited_spec,excited_bc,excited_bcval,dmeas_stdy, dmeas_tran)
+        IL=impedance(isys,ω,steadystate, dmeas_stdy, dmeas_tran)
 
         # record approximate solution
         push!(allomega, ω)
         push!(allIL,IL)
 
         # record exact solution
-        z=sqrt(iω*data.C/data.D+data.R/data.D);
-        eplus=exp(z*L);
-        eminus=exp(-z*L);
-        IxL=2.0*data.D*z/(eminus-eplus);
-        push!(allIxL,IxL)
+        iω=1im*ω
+        z=sqrt(iω*data.C/data.D+data.R/data.D)
+        eplus=exp(z*L)
+        eminus=exp(-z*L)
+        IxL=2.0*data.D*z/(eplus-eminus)
+
+        push!(allIxL,1/IxL)
 
         # increase omega
-        ω=ω*1.2
+        ω=ω*1.1
 
     end
-    
+
     p=GridVisualizer(Plotter=Plotter)
-    scalarplot!(p,real(allIL),imag(allIL),label="calc",color=:red)
-    scalarplot!(p,real(allIxL),imag(allIxL),label="exact",show=true,clear=false,color=:blue)
-    return  imag(allIL[5])
+    scalarplot!(p,real(allIxL),imag(allIxL),label="exact",color=:red)
+    scalarplot!(p,real(allIL),imag(allIL),label="calc",show=true,clear=false,color=:blue)
+
+    sum(allIL)
 end
 
+
 function test()
-    main(unknown_storage=:dense) ≈ 0.23106605162049176 &&  main(unknown_storage=:sparse) ≈ 0.23106605162049176
+
+    tval=57.927104220385495 + 23.163943705749645im
+    main(unknown_storage=:dense) ≈ tval  &&  main(unknown_storage=:sparse) ≈ tval
 end
 
 

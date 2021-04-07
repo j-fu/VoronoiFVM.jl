@@ -5,6 +5,8 @@
 ```@autodocs
 Modules = [VoronoiFVM]
 Pages=["vfvm_solver.jl"]
+Order   = [:function, :type]
+Private = false
 ```
 
 ## Solver control

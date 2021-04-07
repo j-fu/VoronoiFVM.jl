@@ -1,5 +1,3 @@
-
-
 """
 $(TYPEDEF)
 
@@ -8,7 +6,15 @@ Abstract type for impedance system.
 abstract type AbstractImpedanceSystem{Tv <: Number} end
 
 
+"""
+$(TYPEDEF)
+
+Concrete type for impedance system.
+
+$(TYPEDFIELDS)
+"""
 mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
+
     """
     Nonzero pattern of time domain system matrix
     """
@@ -49,52 +55,51 @@ $(SIGNATURES)
 
 Construct impedance system from time domain system `sys` and steady state solution `U0`
 under the assumption of a periodic perturbation of species `excited_spec` at  boundary `excited_bc`.
-
 """
-function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Ti}
+function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Ti}
     residual=copy(U0)
 
-    # Ensure that sys.matrix contains the jacobian at U0
+    # Ensure that system.matrix contains the jacobian at U0
     # Moreover, here we use the fact that for large time step sizes,
     # the contribution from the time derivative (which should not belong to the
     # main part of the impedance matrix) is small. We also pass the steady state
     # value as the "old  timestep" value.
     # An advantage of this approach is the fact that this way, we get the
     # nonzero pattern for the iω term right.
-    eval_and_assemble(sys,U0,U0,residual,1.0e30)
+    eval_and_assemble(system,U0,U0,residual,1.0e30)
 
-    this=ImpedanceSystem{Tv}()
-    this.grid=sys.grid
+    impedance_system=ImpedanceSystem{Tv}()
+    impedance_system.grid=system.grid
     # catch the nonzero values of the system matrix
-    this.sysnzval=complex(nonzeros(sys.matrix))
-    m,n=size(sys.matrix)
+    impedance_system.sysnzval=complex(nonzeros(system.matrix))
+    m,n=size(system.matrix)
 
     # initialize storage derivative with zero
-    this.storderiv=spzeros(Tv,m,n)
+    impedance_system.storderiv=spzeros(Tv,m,n)
 
     # create sparse matrix with the same nonzero pattern of original matrix
-    this.matrix=SparseMatrixCSC(m,n,
-                                colptrs(sys.matrix),
-                                rowvals(sys.matrix),
-                                copy(this.sysnzval)
+    impedance_system.matrix=SparseMatrixCSC(m,n,
+                                colptrs(system.matrix),
+                                rowvals(system.matrix),
+                                copy(impedance_system.sysnzval)
                                 )
-    this.U0=U0
+    impedance_system.U0=U0
 
     # Initialize right hand side of impedance system
-    this.F=unknowns(Complex{Float64},sys)
+    impedance_system.F=unknowns(Complex{Float64},system)
  
-    matrix=this.matrix
-    storderiv=this.storderiv
-    F=this.F
-    grid=sys.grid
+    matrix=impedance_system.matrix
+    storderiv=impedance_system.storderiv
+    F=impedance_system.F
+    grid=system.grid
     
-    physics=sys.physics
+    physics=system.physics
 
     # Prepare calculation of derivative of the storage part
     data=physics.data
-    node=Node{Tv,Ti}(sys)
-    bnode=BNode{Tv,Ti}(sys)
-    nspecies=num_species(sys)
+    node=Node{Tv,Ti}(system)
+    bnode=BNode{Tv,Ti}(system)
+    nspecies=num_species(system)
     nodeparams=(node,)
     bnodeparams=(bnode,)
     if isdata(data)
@@ -147,7 +152,7 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
                 ispec=_spec(F,idof,K)
                 for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                     jspec=_spec(F,jdof,K)
-                    _addnz(storderiv,idof,jdof,jac_stor[ispec,jspec],sys.cellnodefactors[inode,icell])
+                    updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
                 end
             end
 
@@ -172,11 +177,11 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
                     end
                     idof=dof(F,ispec,bnode.index)
                     if idof>0 
-                        fac=sys.boundary_factors[ispec,ibreg]
+                        fac=system.boundary_factors[ispec,ibreg]
                         if fac==Dirichlet
                             F[ispec,bnode.index]+=fac
                         else
-                            F[ispec,bnode.index]+=fac*sys.bfacenodefactors[ibnode,ibface]
+                            F[ispec,bnode.index]+=fac*system.bfacenodefactors[ibnode,ibface]
                         end
                     end
                 end
@@ -193,68 +198,66 @@ function ImpedanceSystem(sys::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited
                     ispec=_spec(F,idof,K)
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
-                        _addnz(storderiv,idof,jdof,jac_bstor[ispec,jspec],sys.bfacenodefactors[ibnode,ibface])
+                        updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
                     end
                 end
             end
         end
     end
-    return this
+    return impedance_system
 end
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Create a vector of unknowns of the impedance system
 """
-unknowns(this::ImpedanceSystem{Tv}) where Tv=copy(this.F)
-
+unknowns(impedance_system::ImpedanceSystem{Tv}) where Tv=copy(impedance_system.F)
 
 
 """
-$(TYPEDSIGNATURES)
+$(SIGNATURES)
 
 Solve the impedance system for given frequency `ω`.
 """
-function solve!(UZ::AbstractMatrix{Complex{Tv}},this::ImpedanceSystem{Tv}, ω) where Tv
+function solve!(UZ::AbstractMatrix{Complex{Tv}},impedance_system::ImpedanceSystem{Tv}, ω) where Tv
     iω=ω*1im
-    matrix=this.matrix
-    storderiv=this.storderiv
-    grid=this.grid
+    matrix=impedance_system.matrix
+    storderiv=impedance_system.storderiv
+    grid=impedance_system.grid
     # Reset the matrix nonzero values
     nzval=nonzeros(matrix)
-    nzval.=this.sysnzval
+    nzval.=impedance_system.sysnzval
     # Add the ω dependent term to main diagonal.
     # This makes the implicit assumption that storderiv does not
     # introduce new matrix entries.
-    U0=this.U0
+    U0=impedance_system.U0
     for inode=1:num_nodes(grid)
         for idof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
             for jdof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
-                _addnz(matrix,idof,jdof,storderiv[idof,jdof],iω)
+                updateindex!(matrix,+,storderiv[idof,jdof]*iω,idof,jdof)
             end
         end
     end
     # Factorize + solve
     lufact=LinearAlgebra.lu(matrix)
-    ldiv!(values(UZ),lufact,values(this.F))
+    ldiv!(values(UZ),lufact,values(impedance_system.F))
 end
 
 
 """
-    $(TYPEDSIGNATURES)
+$(SIGNATURES)
 
-    Calculate the derivative of the scalar measurement functional at steady state U0
-    
-    Usually, this functional is  a test function integral.  Initially,
-    we assume that its value depends on all unknowns of the system.
+Calculate the derivative of the scalar measurement functional at steady state U0
 
+Usually, this functional is  a test function integral.  Initially,
+we assume that its value depends on all unknowns of the system.
 """
-function measurement_derivative(sys::AbstractSystem,measurement_functional,U0)
+function measurement_derivative(system::AbstractSystem,measurement_functional,U0)
 
     # Create a sparse 1×ndof matrix assuming that the functional
     # depends on all unknowns in the system
-    ndof=num_dof(sys)
+    ndof=num_dof(system)
     colptr=[i for i in 1:ndof+1]
     rowval=[1 for i in 1:ndof]
     nzval=[1.0 for in in 1:ndof]
@@ -274,19 +277,36 @@ function measurement_derivative(sys::AbstractSystem,measurement_functional,U0)
     return jac
 end
 
- 
-function freqdomain_impedance(isys, # frequency domain system
-                              ω,    # frequency 
-                              U0 ,  # steady state slution
-                              excited_spec,excited_bc,excited_bcval,
-                              dmeas_stdy, # Derivative of steady state part of measurement functional
-                              dmeas_tran  # Derivative of transient part of the measurement functional
+
+"""
+````
+freqdomain_impedance(impedance_system,ω, U0 ,
+                              excited_spec, excited_bc, excited_bcval,
+                              dmeas_stdy,
+                              dmeas_tran 
                               )
+    
+````
+
+Calculate impedance.
+
+-    ω:  frequency 
+-    U0: steady state slution
+-    dmeas_stdy: Derivative of steady state part of measurement functional
+-    dmeas_tran  Derivative of transient part of the measurement functional
+
+"""
+function impedance(impedance_system::ImpedanceSystem, # frequency domain system
+                   ω,    # frequency 
+                   U0 ,  # steady state slution
+                   dmeas_stdy, # Derivative of steady state part of measurement functional
+                   dmeas_tran  # Derivative of transient part of the measurement functional
+                   )
     
     iω=1im*ω
     # solve impedance system
-    UZ=unknowns(isys)
-    solve!(UZ,isys,ω)
+    UZ=unknowns(impedance_system)
+    solve!(UZ,impedance_system,ω)
  
     # obtain measurement in frequency  domain
     m_stdy=dmeas_stdy*values(UZ)
@@ -295,9 +315,26 @@ function freqdomain_impedance(isys, # frequency domain system
     # Calculate complex measurement 
     z=m_stdy[1]+iω*m_tran[1]
 
-    # return impedance (in fact, impedance is the reciprocal value here, this needs
-    # to be changed)
-    return z
+    return 1/z
 end
 
+"""
+$(SIGNATURES)
 
+Calculate reciprocal value of impedance.
+-  excited_spec,excited_bc,excited_bcval are ignored.
+
+!!! warning
+   This is deprecated: use [`impedance`](@ref).
+"""
+
+function freqdomain_impedance(impedance_system::ImpedanceSystem, # frequency domain system
+                   ω,    # frequency 
+                   U0 ,  # steady state slution
+                   excited_spec,excited_bc,excited_bcval,
+                   dmeas_stdy, # Derivative of steady state part of measurement functional
+                   dmeas_tran  # Derivative of transient part of the measurement functional
+                   )
+    z=impedance(impedance_system,ω,U0,dmeas_stdy,dmeas_tran)
+    1/z
+end

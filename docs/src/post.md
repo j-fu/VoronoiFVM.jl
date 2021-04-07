@@ -12,6 +12,9 @@ Pages = ["vfvm_testfunctions.jl"]
 ```
 
 ## Impedance calculatiom
+Impedance calculation can be seen as a postprocessing step
+after the solution of the unexcited stationary system.
+
 
 ```@autodocs
 Modules = [VoronoiFVM]

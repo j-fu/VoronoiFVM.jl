@@ -6,18 +6,33 @@ Extract value from dual number. Use to debug physics callbacks.
 Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
+
+##################################################################
+"""
+$(SIGNATURES)
+
+Extract derivatives from dual number.
+"""
 const partials=ForwardDiff.partials
+
+##################################################################
+"""
+$(SIGNATURES)
+
+Extract number of derivatives from dual number.
+"""
 const npartials=ForwardDiff.npartials
 
 
-
-# Add value to matrix if it is nonzero
+"""
+Add value to matrix if it is nonzero
+"""
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if isnan(v)
         error("trying to assemble NaN")
     end
     if v!=zero(Tv)
-        updateindex!(matrix,+,v*fac,i,j)
+        rawupdateindex!(matrix,+,v*fac,i,j)
     end
 end
 
@@ -56,6 +71,9 @@ struct EmbeddingError <: Exception
 end
 
 
+"""
+Print error when catching exceptions
+"""
 function _print_error(err,st)
     println()
     println(err)
@@ -77,23 +95,26 @@ function _print_error(err,st)
     println()
 end
 
-################################################################
+"""
+Solve time step problem. This is the core routine
+for implicit Euler and stationary solve.
+"""
 function _solve!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    this::AbstractSystem{Tv}, # Finite volume system
+    system::AbstractSystem{Tv}, # Finite volume system
     control::NewtonControl,
     tstep::Tv,
     log::Bool
 ) where Tv
 
-    _complete!(this, create_newtonvectors=true)
+    _complete!(system, create_newtonvectors=true)
     nlhistory=zeros(0)
     
     solution.=oldsol
-    residual=this.residual
-    update=this.update
-    _initialize!(solution,this)
+    residual=system.residual
+    update=system.update
+    _initialize!(solution,system)
     SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
 
     oldnorm=1.0
@@ -110,7 +131,7 @@ function _solve!(
 
     for ii=1:control.max_iterations
         try
-            eval_and_assemble(this,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
+            eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -120,7 +141,7 @@ function _solve!(
             end
         end
 
-        mtx=this.matrix
+        mtx=system.matrix
         
         nliniter=0
         # Sparse LU factorization
@@ -151,7 +172,7 @@ function _solve!(
             end
         else
             # When reusing lu factorization, we may try to iterate
-            # Genericly, this is advisable.
+            # Genericly, system is advisable.
             if control.tol_linear <1.0
                 (sol,history)= bicgstabl!(values(update),
                                           mtx,
@@ -243,7 +264,7 @@ $(SIGNATURES)
 Main assembly method.
 
 Evaluate solution with result in right hand side F and 
-assemble matrix into system.matrix.
+assemble Jacobi matrix into system.matrix.
 """
 function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
@@ -598,7 +619,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             end
             
             # Boundary reaction term has been given.
-            # Valid only for boundary species, but this is currently not checked.
+            # Valid only for boundary species, but system is currently not checked.
             if isbstorage
                 
                 # Fetch data for old timestep
@@ -632,25 +653,27 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     _eval_and_assemble_inactive_species(system,U,UOld,F)
 end
 
+"""
+Evaluate and assemble jacobian for generic operator part.
+"""
+function _eval_and_assemble_generic_operator(system::AbstractSystem,U,F)
 
-function _eval_and_assemble_generic_operator(this::AbstractSystem,U,F)
-
-    if !has_generic_operator(this)
+    if !has_generic_operator(system)
         return
     end
-    generic_operator(f,u)=this.physics.generic_operator(f,u,this)
+    generic_operator(f,u)=system.physics.generic_operator(f,u,system)
     vecF=values(F)
     vecU=values(U)
     y=similar(vecF)
     generic_operator(y,vecU)
     vecF.+=y
-    forwarddiff_color_jacobian!(this.generic_matrix, generic_operator, vecU, colorvec = this.generic_matrix_colors)
-    rowval=this.generic_matrix.rowval
-    colptr=this.generic_matrix.colptr
-    nzval=this.generic_matrix.nzval
+    forwarddiff_color_jacobian!(system.generic_matrix, generic_operator, vecU, colorvec = system.generic_matrix_colors)
+    rowval=system.generic_matrix.rowval
+    colptr=system.generic_matrix.colptr
+    nzval=system.generic_matrix.nzval
     for i=1:length(colptr)-1
         for j=colptr[i]:colptr[i+1]-1
-            updateindex!(this.matrix,+,nzval[j],i,rowval[j])
+            updateindex!(system.matrix,+,nzval[j],i,rowval[j])
         end
     end
 end
@@ -658,10 +681,13 @@ end
 ################################################################
 """
 ````
-solve!(solution, inival, system; control=NewtonControl(),tstep=Inf, log=false)
+solve!(solution, inival, system; 
+    control=NewtonControl(), 
+    tstep=Inf, 
+    log=false)
 ````
 
-Perform solution of stationary problem(if `tstep==Inf`) or one step
+Perform solution of stationary problem(if `tstep==Inf`) or of  one step
 of the implicit Euler method using Newton's method with `inival` as initial
 value. The method writes into `solution`. 
 
@@ -671,17 +697,17 @@ containing the residual history of Newton's method.
 function solve!(
     solution::AbstractMatrix{Tv}, # Solution
     inival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv};     # Finite volume system
+    system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
     log::Bool=false
 ) where Tv
     if control.verbose
         @time begin
-            history=_solve!(solution,inival,this,control,tstep,log)
+            history=_solve!(solution,inival,system,control,tstep,log)
         end
     else 
-        history=_solve!(solution,inival,this,control,tstep,log)
+        history=_solve!(solution,inival,system,control,tstep,log)
     end
     return log ? (solution,history) : solution
 end
@@ -690,24 +716,26 @@ end
 ################################################################
 """
 ````
-solve(inival, system; control=NewtonControl(), tstep=Inf, log=false)
+solve(inival, system; 
+      control=NewtonControl(), 
+      tstep=Inf, 
+      log=false)
 ````
 
 Perform solution of stationary problem(if `tstep==Inf`) or one step
 of the implicit Euler method using Newton's method with `inival` as initial
-value. The method writes into `solution`. 
-
+value.
 It returns a solution array or, if `log==true`, a tuple of solution and a vector
 containing the residual history of Newton's method.
 """
 function solve(
     inival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv};     # Finite volume system
+    system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
     log::Bool=false
 ) where Tv
-    solve!(unknowns(this),inival,this,control=control, tstep=tstep,log=log)
+    solve!(unknowns(system),inival,system,control=control, tstep=tstep,log=log)
 end
 
 ################################################################
@@ -722,14 +750,16 @@ function embed!(solution, inival, system;
 Solve stationary problem via parameter embedding, calling
 `solve!` for increasing values of the parameter p from interval
 (0,1). The user is responsible for the interpretation of
-the parameter. The optional `pre()` callback can be used
+the parameter. 
+
+The optional `pre()` callback can be used
 to communicate its value to the system.
+
 The optional `post()` callback method can be used to perform
 various postprocessing steps.
 
-If `control.handle_error` is true, `solve!`  throws an error, and
-stepsize `control.Δp` is lowered,
-and `solve!` is called again with a smaller  parameter
+If `control.handle_error` is true, if `solve!`  throws an error,
+stepsize `control.Δp` is lowered, and `solve!` is called again with a smaller  parameter
 value. If `control.Δp<control.Δp_min`, `embed!` is aborted
 with error.
 
@@ -737,7 +767,7 @@ with error.
 function embed!(
     solution::AbstractMatrix{Tv}, # Solution
     xinival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv};     # Finite volume system
+    system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,p) end,       # Function for preparing step
     post=function(sol,p) end      # Function for postprocessing successful step
@@ -757,7 +787,7 @@ function embed!(
             try
                 p=min(p0+Δp,1.0)
                 pre(solution,p)
-                solve!(solution,inival, this ,control=control)
+                solve!(solution,inival, system ,control=control)
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))
@@ -816,7 +846,7 @@ Callbacks:
 function evolve!(
     solution::AbstractMatrix{Tv}, # Solution
     inival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv},    # Finite volume system
+    system::AbstractSystem{Tv},    # Finite volume system
     times::AbstractVector;
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,t) end,       # Function for preparing step
@@ -825,7 +855,7 @@ function evolve!(
     delta=(u,v,t, Δt)->norm(sys,u-v,Inf) # Time step error estimator
 ) where Tv
     inival=copy(inival)
-    _initialize_dirichlet!(inival,this)
+    _initialize_dirichlet!(inival,system)
     Δt=control.Δt
     if control.verbose
         @printf("  Evolution: start\n")
@@ -847,7 +877,7 @@ function evolve!(
                 try
                     t=t0+Δt
                     pre(solution,t)
-                    solve!(solution,inival, this ,control=control,tstep=Δt)
+                    solve!(solution,inival, system ,control=control,tstep=Δt)
                 catch err
                     if (control.handle_exceptions)
                         _print_error(err,stacktrace(catch_backtrace()))
@@ -914,8 +944,8 @@ function solve(inival, system, times;
 ````
 Use implicit Euler method  + damped   Newton's method  to 
 solve time dependent problem. Time step control is performed
-according to the data in `control`.  All times in `times`
-are reached exactly.
+according to the data in `control`.  All times in the vector
+`times` are reached exactly.
 
 Callbacks:
 - `pre` is invoked before each time step
@@ -925,10 +955,9 @@ Callbacks:
 `delta` is  used to control the time step.
 
 If `store_all==true`, all timestep solutions are stored. Otherwise,
-only solutions for the elements of `times` are stored.
+only solutions for the moments defined in `times` are stored.
 
-
-Returns a transient solution object `sol` containing stored solutions,
+Returns a transient solution object `sol` containing the stored solution,
 see [`TransientSolution`](@ref)
 
 """
@@ -965,77 +994,4 @@ function solve(inival::AbstractMatrix,
     tsol
 end
 
-
-################################################################
-"""
-````
-integrate(system,F,U; boundary=false)    
-````
-
-Integrate node function (same signature as reaction or storage)
- `F` of  solution vector over domain or boundary 
-The result contains the integral for each species separately.
-"""
-function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti,Tm}
-    grid=this.grid
-    data=this.physics.data
-    nspecies=num_species(this)
-    res=zeros(Tu,nspecies)
-    node=Node{Tv,Ti}(this)
-    nodeparams=(node,)
-    if isdata(data)
-        nodeparams=(node,data,)
-    end
-
-    
-
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-
-
-    if boundary
-        
-        geom=grid[BFaceGeometries][1]
-        bfacenodes=grid[BFaceNodes]
-        bfaceregions=grid[BFaceRegions]
-        nbfaceregions=maximum(bfaceregions)
-        integral=zeros(Tu,nspecies,nbfaceregions)
-        
-        
-        for ibface=1:num_bfaces(grid)
-            for inode=1:num_nodes(geom)
-                _fill!(node,bfacenodes,bfaceregions,inode,ibface)
-                res.=zero(Tv)
-                @views F(res,U[:,node.index],nodeparams...)
-                for ispec=1:nspecies
-                    if this.node_dof[ispec,node.index]==ispec
-                        integral[ispec,node.region]+=this.bfacenodefactors[inode,ibface]*res[ispec]
-                    end
-                end
-            end
-        end
-    else
-        geom=grid[CellGeometries][1]
-        cellnodes=grid[CellNodes]
-        cellregions=grid[CellRegions]
-        ncellregions=maximum(cellregions)
-        integral=zeros(Tu,nspecies,ncellregions)
-        
-        
-        for icell=1:num_cells(grid)
-            for inode=1:num_nodes(geom)
-                _fill!(node,cellnodes,cellregions,inode,icell)
-                res.=zero(Tv)
-                @views F(res,U[:,node.index],nodeparams...)
-                for ispec=1:nspecies
-                    if this.node_dof[ispec,node.index]==ispec
-                        integral[ispec,node.region]+=this.cellnodefactors[inode,icell]*res[ispec]
-                    end
-                end
-            end
-        end
-    end
-    
-    return integral
-end
 
