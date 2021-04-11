@@ -58,6 +58,11 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     matrix::ExtendableSparseMatrix{Tv,Tm}
 
     """
+    Matrix factorization
+    """
+    factorization
+    
+    """
     Flag which says if the number of unknowns per node is constant
     """
     species_homogeneous::Bool
@@ -125,6 +130,7 @@ function  DenseSystem(grid,physics::Physics;matrixindextype=Int32)
     system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.species_homogeneous=false
     system.uhash=0x0
+    system.factorization=nothing
     return system
 end
 

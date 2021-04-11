@@ -1,4 +1,8 @@
 # Changes
+## v0.11, April 10, 2021
+- Internal rebuild based on factorize! from ExtendableSparse 0.5
+- Depending on Julia 1.5 now
+
 ## v0.10.13 April 1, 2021
 - Outflow boundary conditions
 

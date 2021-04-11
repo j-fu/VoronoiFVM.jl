@@ -124,7 +124,6 @@ function _solve!(
     end
     nlu=0
     nround=0
-    lufact=nothing
     damp=control.damp_initial
     tolx=0.0
     rnorm=LinearAlgebra.norm(values(solution),1)
@@ -145,12 +144,9 @@ function _solve!(
         
         nliniter=0
         # Sparse LU factorization
-        # Here, we seem miss the possibility to re-use the 
-        # previous symbolic information
-        # We however reuse the factorization control.max_lureuse times.
-        if nlu==0
+        if nlu==0 # (re)factorize, if possible reusing old factorization data
             try
-                lufact=LinearAlgebra.lu(mtx)
+                system.factorization=factorize!(system.factorization,mtx;kind=:umfpacklu)
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))
@@ -159,9 +155,12 @@ function _solve!(
                     rethrow(err)
                 end
             end
-            # LU triangular solve gives Newton update
+        end
+
+        if issolver(system.factorization) && nlu==0
+            # Direct solution via LU solve
             try
-                ldiv!(values(update),lufact,values(residual))
+                ldiv!(values(update),system.factorization,values(residual))
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))
@@ -170,31 +169,19 @@ function _solve!(
                     rethrow(err)
                 end
             end
+        elseif !issolver(system.factorization) || nlu>0
+            # Interative solution
+            (sol,history)= bicgstabl!(values(update),
+                                      mtx,
+                                      values(residual),
+                                      1,
+                                      Pl=system.factorization,
+                                      reltol=control.tol_linear,
+                                      max_mv_products=100,
+                                      log=true)
+            nliniter=history.iters
         else
-            # When reusing lu factorization, we may try to iterate
-            # Genericly, system is advisable.
-            if control.tol_linear <1.0
-                (sol,history)= bicgstabl!(values(update),
-                                          mtx,
-                                          values(residual),
-                                          1,
-                                          Pl=lufact,
-                                          reltol=control.tol_linear,
-                                          max_mv_products=100,
-                                          log=true)
-                nliniter=history.iters
-            else
-                try
-                    ldiv!(values(update),lufact,values(residual))
-                catch err
-                    if (control.handle_exceptions)
-                        _print_error(err,stacktrace(catch_backtrace()))
-                        throw(FactorizationError())
-                    else
-                        rethrow(err)
-                    end
-                end
-            end
+            error("This should not happen")
         end
         
         nlu=min(nlu+1,control.max_lureuse)

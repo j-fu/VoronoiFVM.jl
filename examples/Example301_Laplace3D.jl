@@ -20,10 +20,10 @@ function g!(f,u0,edge)
 end
 
 
-function main(;Plotter=nothing)
+function main(;Plotter=nothing,n=5)
     nspecies=1 
     ispec=1    
-    X=collect(0:0.2:1)
+    X=collect(0:1/n:1)
     grid=VoronoiFVM.Grid(X,X,X)
     physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
     sys=VoronoiFVM.System(grid,physics)

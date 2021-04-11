@@ -8,7 +8,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=100)
+function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=100,max_lureuse=0)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -54,7 +54,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
-    control.max_lureuse=0
+    control.max_lureuse=max_lureuse
     tstep=0.01
     time=0.0
     istep=0
