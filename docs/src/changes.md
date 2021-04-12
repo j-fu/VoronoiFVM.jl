@@ -1,7 +1,9 @@
 # Changes
-## v0.11, April 10, 2021
-- Internal rebuild based on factorize! from ExtendableSparse 0.5
+## v0.11, April 12, 2021
 - Depending on Julia 1.5 now
+- Lineaer solvers now based on factorize! from ExtendableSparse 0.5
+- Documentation overhaul
+- Re-checking impedance calculation
 
 ## v0.10.13 April 1, 2021
 - Outflow boundary conditions

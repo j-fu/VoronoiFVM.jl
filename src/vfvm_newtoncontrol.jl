@@ -96,6 +96,11 @@ mutable struct NewtonControl
     tol_linear::Float64
 
     """
+    Factorization kind for linear sytems (see ExtendableSparse.jl)
+    """
+    factorization::Symbol
+    
+    """
     Verbosity flag
 
     Default value: `false`.
@@ -220,6 +225,7 @@ function NewtonControl(this)
     this.handle_exceptions=false
     this.edge_cutoff=0.0
     this.umfpack_pivot_tolerance=default_umfpack_pivot_tolerance
+    this.factorization=:umfpack
     return this
 end
 

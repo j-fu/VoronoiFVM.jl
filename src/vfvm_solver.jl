@@ -146,7 +146,7 @@ function _solve!(
         # Sparse LU factorization
         if nlu==0 # (re)factorize, if possible reusing old factorization data
             try
-                system.factorization=factorize!(system.factorization,mtx;kind=:umfpacklu)
+                system.factorization=factorize!(system.factorization,mtx;kind=control.factorization)
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))
@@ -156,7 +156,6 @@ function _solve!(
                 end
             end
         end
-
         if issolver(system.factorization) && nlu==0
             # Direct solution via LU solve
             try
@@ -170,7 +169,8 @@ function _solve!(
                 end
             end
         elseif !issolver(system.factorization) || nlu>0
-            # Interative solution
+            # Iterative solution
+            update.=zero(Tv)
             (sol,history)= bicgstabl!(values(update),
                                       mtx,
                                       values(residual),
@@ -183,7 +183,7 @@ function _solve!(
         else
             error("This should not happen")
         end
-        
+
         nlu=min(nlu+1,control.max_lureuse)
         solval=values(solution)
         solval.-=damp*values(update)
@@ -454,6 +454,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             if issource
                 sourcewrap(src)
             end
+            
             
             if isreaction
                 # Evaluate & differentiate reaction term if present

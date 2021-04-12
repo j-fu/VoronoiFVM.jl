@@ -10,7 +10,7 @@ using GridVisualize
 
 
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_lureuse=0, factorization=:umfpack)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -54,7 +54,8 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
-    control.max_lureuse=10
+    control.max_lureuse=max_lureuse
+    control.factorization=factorization
     tstep=0.01
     time=0.0
     u15=0
@@ -76,7 +77,13 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 end
 
 function test()
-    main(unknown_storage=:sparse) ≈ 0.3554284760906605 &&
-        main(unknown_storage=:dense) ≈ 0.3554284760906605
+    # test at once for iterative solution here
+    testval=0.3554284760906605
+    main(unknown_storage=:sparse,max_lureuse=0) ≈  testval &&
+        main(unknown_storage=:dense,max_lureuse=0) ≈ testval &&
+        main(unknown_storage=:sparse,max_lureuse=10) ≈ testval &&
+        main(unknown_storage=:dense,max_lureuse=10) ≈ testval &&
+        main(unknown_storage=:sparse,max_lureuse=0, factorization=:ilu0) ≈ testval &&
+        main(unknown_storage=:dense,max_lureuse=0, factorization=:ilu0) ≈ testval 
 end
 end
