@@ -127,11 +127,10 @@ function _solve!(
     damp=control.damp_initial
     tolx=0.0
     rnorm=LinearAlgebra.norm(values(solution),1)
-    ncalloc=0
-    nballoc=0
+
     for ii=1:control.max_iterations
         try
-            (ncalloc,nballoc)=eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
+            eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -214,9 +213,9 @@ function _solve!(
                 itstring=@sprintf("it=% 3d",ii)
             end
             if control.max_round>0
-                @printf("    %s du=%.3e cont=%.3e dnorm=%.3e %d a:%d\n",itstring,norm, norm/oldnorm,dnorm,nround,nballoc+ncalloc)
+                @printf("    %s du=%.3e cont=%.3e dnorm=%.3e %d\n",itstring,norm, norm/oldnorm,dnorm,nround)
             else
-                @printf("    %s du=%.3e cont=%.3e  a:%d\n",itstring,norm, norm/oldnorm,nballoc+ncalloc)
+                @printf("    %s du=%.3e cont=%.3e\n",itstring,norm, norm/oldnorm)
             end
         end
         if ii>1 &&  norm/oldnorm > 1.0/control.tol_mono
@@ -433,8 +432,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     nn::Int=num_nodes(geom)
     ne::Int=num_edges(geom)
-    # Main cell loop
-    ncalloc=@allocated for icell=1:ncells
+
+
+    ncalloc=@allocated  for icell=1:ncells
         for inode=1:nn
             node.region=cellregions[icell]
             node.index=cellnodes[inode,icell]
@@ -487,7 +487,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             end
         end
 
-       for iedge=1:ne
+        for iedge=1:ne
             if abs(celledgefactors[iedge,icell])<edge_cutoff
                 continue
             end
@@ -542,8 +542,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                     _addnz(matrix,idofL,jdofK,-jac[ispec,jspec         ],fac)
                     _addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
                     _addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
-                    
-                end
+                 end
             end
         end
     end
@@ -652,10 +651,26 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             
         end
     end
+
+   if isnothing(matrix.lnkmatrix)
+       # There should be no allocations if the matrix pattern has not
+       # changed - this is the case when no new entries have been
+       # collected into lnkmatrix.
+       if system.allocs>=0 # we had a couple of runs before to bridge the compilation phase
+           system.allocs=ncalloc+nballoc
+           if system.allocs>0
+               error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
+                        See the documentation of `check_allocs!` for more information""")
+           end
+       elseif system.allocs > -100 # probably still in compiling phase
+           system.allocs=system.allocs+1
+       end
+       # otherwise, checking has been switched off.
+   end
    _eval_and_assemble_generic_operator(system,U,F)
    _eval_and_assemble_inactive_species(system,U,UOld,F)
-    ncalloc,nballoc
 end
+
 
 """
 Evaluate and assemble jacobian for generic operator part.

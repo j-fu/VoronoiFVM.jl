@@ -28,7 +28,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
     
-    eps=[1.0,1.0]
+    eps::Vector{Float64}=[1.0,1.0]
     
     physics=VoronoiFVM.Physics(num_species=2,
                                
@@ -57,7 +57,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
                                )
     
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
-    
+
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 

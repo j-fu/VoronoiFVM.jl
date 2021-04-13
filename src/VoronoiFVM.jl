@@ -57,7 +57,7 @@ export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!
 export value
-
+export check_allocs!
 
 
 include("vfvm_geometryitems.jl")

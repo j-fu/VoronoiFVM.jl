@@ -18,7 +18,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
         
-    eps=[1,1.0e-1]
+    eps::Vector{Float64}=[1,1.0e-1]
 
     physics=VoronoiFVM.Physics(
          num_species=2,

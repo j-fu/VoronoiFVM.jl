@@ -107,6 +107,12 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     uhash::UInt64
 
+
+    """
+    Data for allocation check
+    """
+    allocs::Int
+    
     DenseSystem{Tv,Ti, Tm}() where {Tv,Ti, Tm} = new()
 end
 ##################################################################
@@ -130,6 +136,7 @@ function  DenseSystem(grid,physics::Physics;matrixindextype=Int32)
     system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.species_homogeneous=false
     system.uhash=0x0
+    system.allocs=-1000
     system.factorization=nothing
     return system
 end

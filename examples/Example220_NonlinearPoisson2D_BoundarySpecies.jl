@@ -19,9 +19,8 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
 
     grid=VoronoiFVM.Grid(X,Y)
     
-    
     k=1.0
-    eps=1.0
+    eps::Float64=1.0
     physics=VoronoiFVM.Physics(
     num_species=3,
     breaction=function(f,u,node)
@@ -58,7 +57,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     )
     
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
-    
+
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
     enable_boundary_species!(sys,3,[2])

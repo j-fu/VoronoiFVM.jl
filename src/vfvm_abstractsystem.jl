@@ -25,14 +25,73 @@ Create Finite Volume System.
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 - `matrixindextype` : Index type for sparse matrices created in the system
 """
-function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int32)
+function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int32, check_allocs=true)
     if Symbol(unknown_storage)==:dense
-        return DenseSystem(grid,physics, matrixindextype=matrixindextype)
+        sys=DenseSystem(grid,physics, matrixindextype=matrixindextype)
     elseif Symbol(unknown_storage)==:sparse
-        return SparseSystem(grid,physics, matrixindextype=matrixindextype)
+        sys=SparseSystem(grid,physics, matrixindextype=matrixindextype)
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
+    check_allocs!(sys,check_allocs)
+end
+
+
+"""
+```
+check_allocs!(system,true_or_false)
+```
+
+Enable/disable checking for time-consuming allocations in the assembly loop. Unless the matrix
+pattern changes, there shouldn't occur any allocations in this loop. The check
+method is aware of matrix pattern changes. As a consequence, allocations  in the assembly loop are
+mostly due to type instabilities in physics callbacks.
+
+By default, this check is switched on. 
+
+Type instabilities can be introduced by variables in the closure of some physics callback.
+They can be debugged via the `@time` macro applied to the expressions in a physics callback.
+
+The following cases provide some ideas where to look for reasons of the problem and possible remedies:
+
+Case 1: a parameter changes its value, and Julia is not sure about the type.
+```julia
+eps=1.0
+
+flux(f,_u,edge)
+    u=unkowns(edge,_u)
+    f[1]=eps*(u[1,1]-[1,2])
+end
+... solve etc ...
+eps=2.0
+```
+Remedy: use a type annotation `eps::Float64=...` to signalize your intent to Julia.
+
+
+Case 2: variables in the closure have the same name as a variable
+introduced in a callback.
+```julia
+flux(f,_u,edge)
+    u=unkowns(edge,_u)
+    f[1]=(u[1,1]-[1,2])
+end
+
+... create etc ...
+
+u=solve(...)
+```
+Remedy: rename e.g. `u=solve()` to `sol=solve()`
+
+
+Checking can be switched off via `check_allocs!(system,false)`.
+"""
+function check_allocs!(system::AbstractSystem,chk::Bool)
+    if chk
+        system.allocs=-2
+    else
+        system.allocs=-1000
+    end
+    system
 end
 
 ##################################################################

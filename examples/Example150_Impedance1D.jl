@@ -75,6 +75,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
                                )
     # Create discrete system and enabe species
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
+
     enable_species!(sys,excited_spec,[1])
 
     # Create test functions for current measurement

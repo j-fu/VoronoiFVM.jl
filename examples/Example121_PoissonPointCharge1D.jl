@@ -38,7 +38,7 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
     cellmask!(grid, [0.0],[1.0],2)
     
 
-    Q=0.0
+    Q::Float64=0.0
 
     function flux!(f,u0,edge)
         u=unknowns(edge,u0)
@@ -65,7 +65,6 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
 
     ## Create system
     sys=VoronoiFVM.System(grid,physics,unknown_storage=:dense)
-
 
     ##  put potential into both regions
     enable_species!(sys,1,[1,2])
