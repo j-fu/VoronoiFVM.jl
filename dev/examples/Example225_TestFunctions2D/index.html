@@ -71,6 +71,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
 	                       source=source)
 
     system=VoronoiFVM.System(grid,physics)
+
     enable_species!(system,1,[1])
     enable_species!(system,2,[1])
     boundary_dirichlet!(system,2,2,0.0);
@@ -78,11 +79,11 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
 
     inival=unknowns(system,inival=0.0)
 
-    u=solve(inival,system)
+    sol=solve(inival,system)
 
     vis=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(600,300),fignumber=1)
-    scalarplot!(vis[1,1],grid,u[1,:],flimits=(0,1.5),title=&quot;u_1&quot;)
-    scalarplot!(vis[1,2],grid,u[2,:],flimits=(0,1.5),title=&quot;u_2&quot;,show=true)
+    scalarplot!(vis[1,1],grid,sol[1,:],flimits=(0,1.5),title=&quot;u_1&quot;)
+    scalarplot!(vis[1,2],grid,sol[2,:],flimits=(0,1.5),title=&quot;u_2&quot;,show=true)
 
     &quot;&quot;&quot;
         The `integrate` method of `VoronoiFVM`  provides a possibility to calculate
@@ -94,23 +95,23 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     &quot;&quot;&quot;
         Amount of u_1 and u_2 in the domain aka integral over identity storage function:
     &quot;&quot;&quot;
-    U=integrate(system,storage,u)
+    U=integrate(system,storage,sol)
 
     &quot;&quot;&quot;
     Amount of species created by source term per unit time:
     &quot;&quot;&quot;
-    F=integrate(system,(f,u,node)-&gt;source(f,node),u)
+    F=integrate(system,(f,u,node)-&gt;source(f,node),sol)
 
     &quot;&quot;&quot;
     Amount of  reaction per unit time:
     &quot;&quot;&quot;
-    R=integrate(system,reaction,u)
+    R=integrate(system,reaction,sol)
 
 
     tf=VoronoiFVM.TestFunctionFactory(system)
     T=testfunction(tf,Γ_where_T_equal_0,Γ_where_T_equal_1)
 
-    I=integrate(system,T,u)
+    I=integrate(system,T,sol)
 
 
     t0=0.0
@@ -160,4 +161,4 @@ function test()
     main(dim=3, unknown_storage=:dense  )  ? true : return false
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">« 220: 2D Nonlinear Poisson with boundary reaction and boundary species</a><a class="docs-footer-nextpage" href="../Example226_BoundaryIntegral/">226: Terminal flux calculation via test functions, nD, boundary reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 13 April 2021 07:30">Tuesday 13 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example220_NonlinearPoisson2D_BoundarySpecies/">« 220: 2D Nonlinear Poisson with boundary reaction and boundary species</a><a class="docs-footer-nextpage" href="../Example226_BoundaryIntegral/">226: Terminal flux calculation via test functions, nD, boundary reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 13 April 2021 19:28">Tuesday 13 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
