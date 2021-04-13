@@ -60,7 +60,7 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     Matrix factorization
     """
-    factorization
+    factorization::Union{Nothing,ExtendableSparse.AbstractExtendableSparseFactorization{Tv,Tm}}
     
     """
     Flag which says if the number of unknowns per node is constant

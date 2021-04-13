@@ -127,10 +127,11 @@ function _solve!(
     damp=control.damp_initial
     tolx=0.0
     rnorm=LinearAlgebra.norm(values(solution),1)
-
+    ncalloc=0
+    nballoc=0
     for ii=1:control.max_iterations
         try
-            eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
+            (ncalloc,nballoc)=eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -213,9 +214,9 @@ function _solve!(
                 itstring=@sprintf("it=% 3d",ii)
             end
             if control.max_round>0
-                @printf("    %s du=%.3e cont=%.3e dnorm=%.3e %d\n",itstring,norm, norm/oldnorm,dnorm,nround)
+                @printf("    %s du=%.3e cont=%.3e dnorm=%.3e %d a:%d\n",itstring,norm, norm/oldnorm,dnorm,nround,nballoc+ncalloc)
             else
-                @printf("    %s du=%.3e cont=%.3e\n",itstring,norm, norm/oldnorm)
+                @printf("    %s du=%.3e cont=%.3e  a:%d\n",itstring,norm, norm/oldnorm,nballoc+ncalloc)
             end
         end
         if ii>1 &&  norm/oldnorm > 1.0/control.tol_mono
@@ -270,12 +271,11 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     node=Node{Tv,Ti}(system)
     bnode=BNode{Tv,Ti}(system)
     edge=Edge{Tv,Ti}(system)
-    nspecies=num_species(system)
+    nspecies::Int=num_species(system)
     matrix=system.matrix
-    cellnodefactors=system.cellnodefactors
-    celledgefactors=system.celledgefactors
-    bfacenodefactors=system.bfacenodefactors
-    
+    cellnodefactors::Array{Tv,2}=system.cellnodefactors
+    celledgefactors::Array{Tv,2}=system.celledgefactors
+    bfacenodefactors::Array{Tv,2}=system.bfacenodefactors
     
     # splatting would work but costs allocations
     if isdata(data)
@@ -401,41 +401,44 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
     cfg_flx=ForwardDiff.JacobianConfig(fluxwrap, Y, UKL)
 
-    
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
     # comes handy to write compact code here.
     tstepinv=1.0/tstep 
 
     
-    boundary_factors=system.boundary_factors
-    boundary_values=system.boundary_values
+    boundary_factors::Array{Tv,2}=system.boundary_factors
+    boundary_values::Array{Tv,2}=system.boundary_values
     
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
     coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
+    cellnodes::Array{Ti,2}=grid[CellNodes]
+    cellregions::Vector{Ti}=grid[CellRegions]
     bgeom=grid[BFaceGeometries][1]
-    bfacenodes=grid[BFaceNodes]
-    bfaceregions=grid[BFaceRegions]
+    bfacenodes::Array{Ti,2}=grid[BFaceNodes]
+    bfaceregions::Vector{Ti}=grid[BFaceRegions]
     nbfaces=num_bfaces(grid)
     ncells=num_cells(grid)
-    
+
+
+    cellx::Array{Ti,2}=grid[CellNodes]
+    edgenodes::Array{Ti,2}=local_celledgenodes(geom)
+    has_celledges=false
     if haskey(grid,CellEdges)
         cellx=grid[CellEdges]
         edgenodes=grid[EdgeNodes]
         has_celledges=true
-    else
-        cellx=grid[CellNodes]
-        edgenodes=local_celledgenodes(geom)
-        has_celledges=false
     end
 
+    nn::Int=num_nodes(geom)
+    ne::Int=num_edges(geom)
     # Main cell loop
-    for icell=1:ncells
-        for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
+    ncalloc=@allocated for icell=1:ncells
+        for inode=1:nn
+            node.region=cellregions[icell]
+            node.index=cellnodes[inode,icell]
+            node.icell=icell
             for ispec=1:nspecies
                 # xx gather:
                 # ii=0
@@ -451,32 +454,29 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 UKOld[ispec]=UOld[ispec,node.index]
             end
 
-            if issource
+           if issource
                 sourcewrap(src)
             end
             
             
-            if isreaction
+           if isreaction
                 # Evaluate & differentiate reaction term if present
                 Y.=zero(Tv)
-                ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
+                ForwardDiff.vector_mode_jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
                 res_react=DiffResults.value(result_r)
                 jac_react=DiffResults.jacobian(result_r)
             end
             
             # Evaluate & differentiate storage term
             Y.=zero(Tv)
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
+            ForwardDiff.vector_mode_jacobian!(result_s,storagewrap,Y,UK,cfg_s)
             res_stor=DiffResults.value(result_s)
             jac_stor=DiffResults.jacobian(result_s)
 
             # Evaluate storage term for old timestep
             oldstor.=zero(Tv)
             storagewrap(oldstor,UKOld)
-            
-            
             K=node.index
-
             for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idof,K)
                 _add(F,idof,cellnodefactors[inode,icell]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
@@ -486,12 +486,27 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 end
             end
         end
-        for iedge=1:num_edges(geom)
+
+       for iedge=1:ne
             if abs(celledgefactors[iedge,icell])<edge_cutoff
                 continue
             end
-
-            _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
+            if has_celledges #  cellx==celledges, edgenodes==global_edgenodes
+                # If we work with projections of fluxes onto edges,
+                # we need to ensure that the edges are accessed with the
+                # same orientation without regard of the orientation induced
+                # by local cell numbering
+                edge.index=cellx[iedge,icell]
+                edge.node[1]=edgenodes[1,edge.index]
+                edge.node[2]=edgenodes[2,edge.index]
+            else # cx==cellnodes, edgenodes== local_edgenodes
+                edge.index=0
+                edge.node[1]=cellx[edgenodes[1,iedge],icell]
+                edge.node[2]=cellx[edgenodes[2,iedge],icell]
+            end
+            edge.region=cellregions[icell]
+            edge.icell=icell
+            
 
             #Set up argument for fluxwrap
             for ispec=1:nspecies
@@ -500,7 +515,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             end
 
             Y.=zero(Tv)
-            ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
+            ForwardDiff.vector_mode_jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
             res=DiffResults.value(result_flx)
             jac=DiffResults.jacobian(result_flx)
 
@@ -533,27 +548,28 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         end
     end
 
+    nbn::Int=num_nodes(bgeom)
     # Assembly loop for boundary conditions
-    for ibface=1:nbfaces
-        # Obtain boundary region number
-        ibreg=bfaceregions[ibface]
+    nballoc= @allocated for ibface=1:nbfaces
+        ibreg::Int=bfaceregions[ibface]
 
         # Loop over nodes of boundary face
-        for ibnode=1:num_nodes(bgeom)
-
+        for ibnode=1:nbn
             # Fill bnode data shuttle with data from grid
-            _fill!(bnode,bfacenodes,bfaceregions,ibnode,ibface)
+            bnode.ibface=ibface
+            bnode.ibnode=ibnode
+            bnode.region=bfaceregions[ibface]
+            bnode.index=bfacenodes[ibnode,ibface]
 
             # Copy unknown values from solution into dense array
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,bnode.index]
             end
-
             # Measure of boundary face part assembled to node
-            bnode_factor=bfacenodefactors[ibnode,ibface]
+           bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
 
             # Global index of node
-            K=bnode.index
+            K::Int=bnode.index
             
             # Assemble "standard" boundary conditions: Robin or
             # Dirichlet
@@ -587,10 +603,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             # Boundary reaction term has been given.
             # Valid for both boundary and interior species
             if isbreaction
-
                 # Evaluate function + derivative
                 Y.=zero(Tv)
-                ForwardDiff.jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
+                ForwardDiff.vector_mode_jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
                 res_breact=DiffResults.value(result_r)
                 jac_breact=DiffResults.jacobian(result_r)
                 
@@ -619,7 +634,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
                 # Evaluate & differentiate storage term for new time step value
                 Y.=zero(Tv)
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
+                ForwardDiff.vector_mode_jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
                 res_bstor=DiffResults.value(result_s)
                 jac_bstor=DiffResults.jacobian(result_s)
                 
@@ -637,8 +652,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             
         end
     end
-    _eval_and_assemble_generic_operator(system,U,F)
-    _eval_and_assemble_inactive_species(system,U,UOld,F)
+   _eval_and_assemble_generic_operator(system,U,F)
+   _eval_and_assemble_inactive_species(system,U,UOld,F)
+    ncalloc,nballoc
 end
 
 """

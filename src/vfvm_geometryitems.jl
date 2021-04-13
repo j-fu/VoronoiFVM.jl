@@ -95,9 +95,8 @@ mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti}
 end
 
 function _fill!(node::Node,cellnodes,cellregions,inode,icell)
-    K=cellnodes[inode,icell]
     node.region=cellregions[icell]
-    node.index=K
+    node.index=cellnodes[inode,icell]
     node.icell=icell
 end
 
