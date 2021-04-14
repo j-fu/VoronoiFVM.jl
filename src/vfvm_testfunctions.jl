@@ -88,19 +88,23 @@ $(SIGNATURES)
 
 Calculate test function integral for transient solution.
 """
-function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv},
+function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv},
                    Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv,Ti}
-    grid=this.grid
-    nspecies=num_species(this)
+    grid=system.grid
+    nspecies=num_species(system)
     integral=zeros(Tv,nspecies)
     res=zeros(Tv,nspecies)
     src=zeros(Tv,nspecies)
     stor=zeros(Tv,nspecies)
     storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
-    node=Node{Tv,Ti}(this)
-    edge=Edge{Tv,Ti}(this)
-    data=this.physics.data
+
+    physics=system.physics
+    node=Node{Tv,Ti}(system)
+    bnode=BNode{Tv,Ti}(system)
+    edge=Edge{Tv,Ti}(system)
+    @create_physics_wrappers(physics,node,bnode,edge)
+
     UKL=Array{Tv,1}(undef,2*nspecies)
     UK=Array{Tv,1}(undef,nspecies)
     UKold=Array{Tv,1}(undef,nspecies)
@@ -126,19 +130,14 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
         for iedge=1:num_edges(geom)
             _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
-            for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.node[1]]
-                UKL[ispec+nspecies]=U[ispec,edge.node[2]]
-            end
+            @views UKL[1:nspecies].=U[:,edge.node[1]]
+            @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
+
             res.=zero(Tv)
-            if isdata(data)
-                this.physics.flux(res,UKL,edge,data)
-            else
-                this.physics.flux(res,UKL,edge)
-            end
+            fluxwrap(res,UKL)
             for ispec=1:nspecies
-                if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
-                    integral[ispec]+=this.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+                if system.node_dof[ispec,edge.node[1]]==ispec && system.node_dof[ispec,edge.node[2]]==ispec
+                    integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
@@ -153,21 +152,14 @@ function integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{
                     UK[ispec]=U[ispec,node.index]
                     UKold[ispec]=Uold[ispec,node.index]
                 end
-                if isdata(data)
-                    this.physics.reaction(res,UK,node,data)
-                    this.physics.source(src,node,data)
-                    this.physics.storage(stor,UK,node,data)
-                    this.physics.storage(storold,UKold,node,data)
-                else
-                    this.physics.reaction(res,UK,node)
-                    this.physics.source(src,node)
-                    this.physics.storage(stor,UK,node)
-                    this.physics.storage(storold,UKold,node)
-                end
+                reactionwrap(res,UK)
+                sourcewrap(src)
+                storagewrap(stor,UK)
+                storagewrap(storold,UKold)
             end
             for ispec=1:nspecies
-                if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=this.cellnodefactors[inode,icell]*(res[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
+                if system.node_dof[ispec,node.index]==ispec
+                    integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
                 end
             end
         end
@@ -181,7 +173,7 @@ $(SIGNATURES)
 
 Calculate test function integral for steady state solution.
 """
-integrate(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}) where {Tv,Ti} =integrate(this,tf,U,U,Inf)
+integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}) where {Tv,Ti} =integrate(system,tf,U,U,Inf)
 
 
 
@@ -191,24 +183,22 @@ $(SIGNATURES)
 
 Steady state part of test function integral.
 """
-function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
-    grid=this.grid
-    data=this.physics.data
-    nspecies=num_species(this)
+function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
+    grid=system.grid
+    nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     src=zeros(Tu,nspecies)
     stor=zeros(Tu,nspecies)
-    node=Node{Tv,Ti}(this)
-    edge=Edge{Tv,Ti}(this)
+
+    physics=system.physics
+    node=Node{Tv,Ti}(system)
+    bnode=BNode{Tv,Ti}(system)
+    edge=Edge{Tv,Ti}(system)
+    @create_physics_wrappers(physics,node,bnode,edge)
+
     UKL=Array{Tu,1}(undef,2*nspecies)
     UK=Array{Tu,1}(undef,nspecies)
-    nodeparams=(node,)
-    edgeparams=(edge,)
-    if isdata(data)
-        nodeparams=(node,data,)
-        edgeparams=(edge,data,)
-    end
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
     coord=grid[Coordinates]
@@ -232,31 +222,29 @@ function integrate_stdy(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
         for iedge=1:num_edges(geom)
             _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
 
+            @views UKL[1:nspecies].=U[:,edge.node[1]]
+            @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
+            res.=zero(Tv)
+            
+            fluxwrap(res,UKL)
             for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.node[1]]
-                UKL[ispec+nspecies]=U[ispec,edge.node[2]]
-                res[ispec]=0.0
-            end
-            this.physics.flux(res,UKL,edgeparams...)
-            for ispec=1:nspecies
-                if this.node_dof[ispec,edge.node[1]]==ispec && this.node_dof[ispec,edge.node[2]]==ispec
-                    integral[ispec]+=this.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+                if system.node_dof[ispec,edge.node[1]]==ispec && system.node_dof[ispec,edge.node[2]]==ispec
+                    integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
         
         for inode=1:num_nodes(geom)
             _fill!(node,cellnodes,cellregions,inode,icell)
+
+            res.=zeros(Tv)
+            src.=zeros(Tv)
+            @views UK.=U[:,node.index]
+            reactionwrap(res,UK)
+            sourcewrap(src)
             for ispec=1:nspecies
-                res[ispec]=0.0
-                src[ispec]=0.0
-                UK[ispec]=U[ispec,node.index]
-            end
-            this.physics.reaction(res,UK,nodeparams...)
-            this.physics.source(src,nodeparams...)
-            for ispec=1:nspecies
-                if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=this.cellnodefactors[inode,icell]*(res[ispec]-src[ispec])*tf[node.index]
+                if system.node_dof[ispec,node.index]==ispec
+                    integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec])*tf[node.index]
                 end
             end
         end
@@ -270,22 +258,19 @@ $(SIGNATURES)
 
 Calculate transient part of test function integral.
 """
-function integrate_tran(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
-    grid=this.grid
-    data=this.physics.data
-    nspecies=num_species(this)
+function integrate_tran(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
+    grid=system.grid
+    nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
     res=zeros(Tu,nspecies)
     stor=zeros(Tu,nspecies)
-    node=Node{Tv,Ti}(this)
-    edge=Edge{Tv,Ti}(this)
 
-    nodeparams=(node,)
-    edgeparams=(edge,)
-    if isdata(data)
-        nodeparams=(node,data,)
-        edgeparams=(edge,data,)
-    end
+
+    physics=system.physics
+    node=Node{Tv,Ti}(system)
+    bnode=BNode{Tv,Ti}(system)
+    edge=Edge{Tv,Ti}(system)
+    @create_physics_wrappers(physics,node,bnode,edge)
     
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
@@ -298,15 +283,15 @@ function integrate_tran(this::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractAr
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
             _fill!(node,cellnodes,cellregions,inode,icell)
+
+            res.=zeros(Tv)
+            stor.=zeros(Tv)
+            @views UK.=U[:,node.index]
+
+            storagewrap(stor,U[:,node.index])
             for ispec=1:nspecies
-                UK[ispec]=U[ispec,node.index]
-                res[ispec]=0.0
-                stor[ispec]=0.0
-            end
-            this.physics.storage(stor,U[:,node.index],nodeparams...)
-            for ispec=1:nspecies
-                if this.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=this.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
+                if system.node_dof[ispec,node.index]==ispec
+                    integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
                 end
             end
         end

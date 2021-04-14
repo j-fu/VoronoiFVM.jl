@@ -244,6 +244,7 @@ function _solve!(
     return nlhistory
 end
 
+
 ################################################################
 """
 $(SIGNATURES)
@@ -265,107 +266,20 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     _complete!(system) # needed here as well for test function system which does not use newton
     
     grid=system.grid
+
     physics=system.physics
-    data=physics.data
     node=Node{Tv,Ti}(system)
     bnode=BNode{Tv,Ti}(system)
     edge=Edge{Tv,Ti}(system)
+    @create_physics_wrappers(physics,node,bnode,edge)
+
+
     nspecies::Int=num_species(system)
     matrix=system.matrix
     cellnodefactors::Array{Tv,2}=system.cellnodefactors
     celledgefactors::Array{Tv,2}=system.celledgefactors
     bfacenodefactors::Array{Tv,2}=system.bfacenodefactors
     
-    # splatting would work but costs allocations
-    if isdata(data)
-        issource=(physics.source!=nofunc)
-        isreaction=(physics.reaction!=nofunc)
-        isbreaction=(physics.breaction!=nofunc)
-        isbstorage=(physics.bstorage!=nofunc)
-
-        fluxwrap=function(y, u)
-            y.=0
-            physics.flux(y,u,edge,data)
-            nothing
-        end
-
-        reactionwrap=function (y, u)
-            y.=0
-            ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-            physics.reaction(y,u,node,data)
-            ## for ii in .. y[ii]=y[node.speclist[ii]]
-            nothing
-        end
-
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node,data)
-            nothing
-        end
-        
-        sourcewrap=function(y)
-            y.=0
-            physics.source(y,node,data)
-            nothing
-        end
-        
-         breactionwrap=function(y, u)
-            y.=0
-            physics.breaction(y,u,bnode,data)
-            nothing
-        end
-        
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode,data)
-            nothing
-        end
-        
-    else
-        issource=(physics.source!=nofunc2)
-        isreaction=(physics.reaction!=nofunc2)
-        isbreaction=(physics.breaction!=nofunc2)
-        isbstorage=(physics.bstorage!=nofunc2)
-
-        fluxwrap=function(y, u)
-            y.=0
-            physics.flux(y,u,edge)
-            nothing
-        end
-
-        reactionwrap=function(y, u)
-            y.=0
-            ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-            physics.reaction(y,u,node)
-            ## for ii in .. y[ii]=y[node.speclist[ii]]
-            nothing
-        end
-
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node)
-            nothing
-        end
-        
-        sourcewrap=function(y)
-            y.=0
-            physics.source(y,node)
-            nothing
-        end
-        
-         breactionwrap=function(y, u)
-            y.=0
-            physics.breaction(y,u,bnode)
-            nothing
-        end
-        
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode)
-            nothing
-        end
-
-    end        
     
     # Reset matrix + rhs
     nzv=nonzeros(matrix)
@@ -439,8 +353,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             node.region=cellregions[icell]
             node.index=cellnodes[inode,icell]
             node.icell=icell
-            for ispec=1:nspecies
-                # xx gather:
+            @views UK.=U[:,node.index]
+            @views UKOld.=UOld[:,node.index]
+            # xx gather:
                 # ii=0
                 # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
                 #    ispec=Fdof.rowval[idof]
@@ -450,9 +365,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 #   UK[1:nspecies]=U[:,node.index]
                 #   UKOld[1:nspecies]=UOld[:,node.index]
                 # Evaluate source term
-                UK[ispec]=U[ispec,node.index]
-                UKOld[ispec]=UOld[ispec,node.index]
-            end
+
 
            if issource
                 sourcewrap(src)
@@ -491,6 +404,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             if abs(celledgefactors[iedge,icell])<edge_cutoff
                 continue
             end
+            
             if has_celledges #  cellx==celledges, edgenodes==global_edgenodes
                 # If we work with projections of fluxes onto edges,
                 # we need to ensure that the edges are accessed with the
@@ -509,10 +423,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             
 
             #Set up argument for fluxwrap
-            for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.node[1]]
-                UKL[nspecies+ispec]=U[ispec,edge.node[2]]
-            end
+            @views UKL[1:nspecies].=U[:,edge.node[1]]
+            @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
 
             Y.=zero(Tv)
             ForwardDiff.vector_mode_jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
@@ -561,11 +473,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             bnode.index=bfacenodes[ibnode,ibface]
 
             # Copy unknown values from solution into dense array
-            for ispec=1:nspecies
-                UK[ispec]=U[ispec,bnode.index]
-            end
+            @views UK.=U[:,bnode.index]
+
             # Measure of boundary face part assembled to node
-           bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
+            bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
 
             # Global index of node
             K::Int=bnode.index
@@ -625,9 +536,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             if isbstorage
                 
                 # Fetch data for old timestep
-                for ispec=1:nspecies
-                    UKOld[ispec]=UOld[ispec,K]
-                end
+                @views UKOld.=UOld[:,bnode.index]
+
                 # Evaluate storage term for old timestep
                 bstoragewrap(oldbstor,UKOld)
 

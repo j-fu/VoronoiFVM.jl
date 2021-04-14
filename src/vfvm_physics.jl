@@ -234,3 +234,116 @@ function Base.show(io::IO,physics::AbstractPhysics)
     str=str*")"
     println(io,str)
 end
+
+
+
+
+"""
+```
+@create_physics_wrappers(physics,node,bnode,edge)
+```
+
+Create wrapper functions around physics callbacks which
+fit the API of `ForwardDiff.jacobian!` and pass the `data` parameter
+if necessary. These are meant to  be defined
+before performing assembly loops. The macro creates the follwing variables:
+
+- wrapper functions: `fluxwrap`,`storagewrap`,`reactionwrap`,`bstoragewrap`, `breactionwrap`
+- flag variables: `issource`, `isreaction`,`isbreaction`,`isbstorage`
+
+"""
+macro create_physics_wrappers(physics,node,bnode,edge)
+    return quote
+        data=$(esc(physics)).data
+    # splatting would work but costs allocations
+    if isdata(data)
+        global issource=($(esc(physics)).source!=nofunc)
+        global isreaction=($(esc(physics)).reaction!=nofunc)
+        global isbreaction=($(esc(physics)).breaction!=nofunc)
+        global isbstorage=($(esc(physics)).bstorage!=nofunc)
+
+        global fluxwrap=function(y, u)
+            y.=0
+            $(esc(physics)).flux(y,u,$(esc(edge)),data)
+            nothing
+        end
+
+        global reactionwrap=function (y, u)
+            y.=0
+            ## for ii in ..  uu[node.speclist[ii]]=u[ii]
+            $(esc(physics)).reaction(y,u,$(esc(node)),data)
+            ## for ii in .. y[ii]=y[node.speclist[ii]]
+            nothing
+        end
+
+        global storagewrap= function(y, u)
+            y.=0
+            $(esc(physics)).storage(y,u,$(esc(node)),data)
+            nothing
+        end
+        
+        global sourcewrap=function(y)
+            y.=0
+            $(esc(physics)).source(y,$(esc(node)),data)
+            nothing
+        end
+        
+         global breactionwrap=function(y, u)
+            y.=0
+            $(esc(physics)).breaction(y,u,$(esc(bnode)),data)
+            nothing
+        end
+        
+        global bstoragewrap=function(y, u)
+            y.=0
+            $(esc(physics)).bstorage(y,u,$(esc(bnode)),data)
+            nothing
+        end
+        
+    else
+        global issource=($(esc(physics)).source!=nofunc2)
+        global isreaction=($(esc(physics)).reaction!=nofunc2)
+        global isbreaction=($(esc(physics)).breaction!=nofunc2)
+        global isbstorage=($(esc(physics)).bstorage!=nofunc2)
+
+        global fluxwrap=function(y, u)
+            y.=0
+            $(esc(physics)).flux(y,u,$(esc(edge)))
+            nothing
+        end
+
+        global reactionwrap=function(y, u)
+            y.=0
+            ## for ii in ..  uu[node.speclist[ii]]=u[ii]
+            $(esc(physics)).reaction(y,u,$(esc(node)))
+            ## for ii in .. y[ii]=y[node.speclist[ii]]
+            nothing
+        end
+
+        global storagewrap= function(y, u)
+            y.=0
+            $(esc(physics)).storage(y,u,$(esc(node)))
+            nothing
+        end
+        
+        global sourcewrap=function(y)
+            y.=0
+            $(esc(physics)).source(y,$(esc(node)))
+            nothing
+        end
+        
+        global breactionwrap=function(y, u)
+            y.=0
+            $(esc(physics)).breaction(y,u,$(esc(bnode)))
+            nothing
+        end
+        
+        global bstoragewrap=function(y, u)
+            y.=0
+            $(esc(physics)).bstorage(y,u,$(esc(bnode)))
+            nothing
+        end
+
+    end
+    end
+end
