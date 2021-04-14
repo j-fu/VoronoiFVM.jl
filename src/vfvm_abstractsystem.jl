@@ -7,6 +7,7 @@ Abstract type for finite volume system structure.
 abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 
 
+default_check_allocs()= haskey(ENV,"VORONOIFVM_CHECK_ALLOCS") ? parse(Bool,ENV["VORONOIFVM_CHECK_ALLOCS"]) :  false
 
 ##################################################################
 """
@@ -25,7 +26,7 @@ Create Finite Volume System.
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 - `matrixindextype` : Index type for sparse matrices created in the system
 """
-function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int32, check_allocs=false)
+function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int32, check_allocs=default_check_allocs())
     if Symbol(unknown_storage)==:dense
         sys=DenseSystem(grid,physics, matrixindextype=matrixindextype)
     elseif Symbol(unknown_storage)==:sparse
@@ -47,7 +48,9 @@ pattern changes, there shouldn't occur any allocations in this loop. The check
 method is aware of matrix pattern changes. As a consequence, allocations  in the assembly loop are
 mostly due to type instabilities in physics callbacks.
 
-By default, this check is switched on. 
+By default,  this check  is switched off.  By setting  the environment
+variable `ENV["VORONOIFVM_CHECK_ALLOCS"]="true"`, this  default can be
+changed.
 
 Type instabilities can be introduced by variables in the closure of some physics callback.
 They can be debugged via the `@time` macro applied to the expressions in a physics callback.

@@ -1,8 +1,9 @@
 # Changes
 
+
 ## v0.11.1, April 13, 2021
 - Assembly loops cleaned from type instabilities
-- Check for allocations due to type instabilities introduced in physics callbacks.
+- Optionally check for allocations due to type instabilities introduced in physics callbacks.
   See [`check_allocs!`](@ref) for more information.
 
 ## v0.11, April 12, 2021
