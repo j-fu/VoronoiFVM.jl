@@ -33,7 +33,6 @@ jobs:
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
-          echo 'VORONOIFVM_CHECK_ALLOCS=true' >> $GITHUB_ENV
         with:
           path: ~/.julia/artifacts
           key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}

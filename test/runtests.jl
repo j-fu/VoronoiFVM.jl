@@ -1,5 +1,7 @@
 using Test
 
+ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
+
 modname(fname)=splitext(basename(fname))[1]
 
 #
