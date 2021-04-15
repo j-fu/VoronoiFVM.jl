@@ -192,7 +192,6 @@ function _solve!(
         if tolx==0.0
             tolx=norm*control.tol_relative
         end
-
         dnorm=1.0
         rnorm_new=LinearAlgebra.norm(values(solution),1)
         if rnorm>1.0e-50
@@ -562,21 +561,12 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         end
     end
 
-   if isnothing(matrix.lnkmatrix)
-       # There should be no allocations if the matrix pattern has not
-       # changed - this is the case when no new entries have been
-       # collected into lnkmatrix.
-       if system.allocs>=0 # we had a couple of runs before to bridge the compilation phase
-           system.allocs=ncalloc+nballoc
-           if system.allocs>0
-               error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
-                        See the documentation of `check_allocs!` for more information""")
-           end
-       elseif system.allocs > -100 # probably still in compiling phase
-           system.allocs=system.allocs+1
-       end
-       # otherwise, checking has been switched off.
-   end
+    # if  no new matrix entries have been created, we should see no allocations
+    # in the previous two loops
+    if isnothing(matrix.lnkmatrix) && !_check_allocs(system,ncalloc+nballoc)
+        error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
+                            See the documentation of `check_allocs!` for more information""")
+    end
    _eval_and_assemble_generic_operator(system,U,F)
    _eval_and_assemble_inactive_species(system,U,UOld,F)
 end

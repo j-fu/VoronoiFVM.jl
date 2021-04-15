@@ -38,6 +38,24 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
 end
 
 
+# Test if allocated is zero and if allocation check is enabled
+# However we need to be aware that @allocated reports allocations
+# during the compilation phase. So we need to wait for at least
+# one run of the system in order enact the checking.
+function _check_allocs(system, allocated)
+       if system.allocs>=0 # we had a couple of runs before to bridge the compilation phase
+           system.allocs=allocated
+           return system.allocs==0 
+       elseif system.allocs > -100 # probably still in compiling phase
+           system.allocs=system.allocs+1
+           return true
+       else
+           # otherwise, checking has been switched off.
+           return true
+       end
+end
+
+
 """
 ```
 check_allocs!(system,true_or_false)

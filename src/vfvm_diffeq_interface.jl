@@ -18,7 +18,6 @@ function _eval_res_jac!(sys,u)
     else
         global nd
         nd=nd+1
-        @printf(" nd:%d %x\n",nf,uhash)
     end
 end
 
@@ -31,7 +30,6 @@ rhs function for DifferentialEquations.jl.
 function eval_rhs!(du, u, sys,t)
     global nf
     nf=nf+1
-    @printf("  f:%d\n",nf)
     _eval_res_jac!(sys,u)
     du.=-vec(sys.residual)
     nothing
@@ -49,7 +47,6 @@ jacobi matrix calculation function for DifferentialEquations.jl.
 function eval_jacobian!(J, u, sys,t)
     global njac
     njac=njac+1
-    @printf("jac:%d\n",njac)
     _eval_res_jac!(sys,u)
     # Need to implement broadcast for ExtendableSparse.
     J.=-sys.matrix.cscmatrix
