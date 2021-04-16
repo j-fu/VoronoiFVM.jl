@@ -97,7 +97,7 @@ end
 
 """
 Solve time step problem. This is the core routine
-for implicit Euler and stationary solve.
+for implicit Euler and stationary solve
 """
 function _solve!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
@@ -315,7 +315,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
-    # comes handy to write compact code here.
+    # comes handy to write compact code here for the
+    # case of stationary problems.
     tstepinv=1.0/tstep 
 
     

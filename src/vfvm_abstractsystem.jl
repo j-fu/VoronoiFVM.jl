@@ -71,6 +71,7 @@ variable `ENV["VORONOIFVM_CHECK_ALLOCS"]="true"`, this  default can be
 changed.
 
 Type instabilities can be introduced by variables in the closure of some physics callback.
+See also the discussion [here](../runexamples/#Performance-with-closures).
 They can be debugged via the `@time` macro applied to the expressions in a physics callback.
 
 The following cases provide some ideas where to look for reasons of the problem and possible remedies:

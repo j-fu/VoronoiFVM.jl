@@ -1,5 +1,7 @@
 using Test
 
+# Activate assembly loop allocation checking
+# as default.
 ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
 
 modname(fname)=splitext(basename(fname))[1]

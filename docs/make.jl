@@ -40,7 +40,7 @@ function make_all()
         sitename="VoronoiFVM.jl",
         modules = [VoronoiFVM],
         clean = false, 
-        doctest = false,
+        doctest = true,
         authors = "J. Fuhrmann",
         repo="https://github.com/j-fu/VoronoiFVM.jl",
         pages=[ 
