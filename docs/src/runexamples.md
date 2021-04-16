@@ -27,17 +27,22 @@ If you want to modifiy the example, consider using `Revise.jl` and `includet`.
 ## Performance with  closures
 
 VoronoiFVM provides two flavors of calbacks for constitutive
-functions: one, where `data` is declared as part of `Physics` and
-passed down to the callbacks, and one, where the parameters of the
-physics callbacks are passed to them from the scope of the definition
-of the functions, via so-called closures.
+functions: 
 
-While the second method is very convenient to use, it comes with a
-serious performance pitfall: if a variable is assigned twice, Julia
-becomes unsure about it's type and therefore "boxes" it, i.e. it creates
-a wrapper struct around the variable value which is able to track its
-potentially changing type. The serious consequence of this is that 
-assignments to a boxed variable lead to allocations.
+- Callbacks with `data` parameoter. `data` is declared as part of `Physics` and
+  passed down to the callbacks
+- Callbacks without `data` parameter. Here, the parameters of the 
+  physics callbacks are accessed via closures, i.e. from within the 
+  scope of the definition of the particular function.
+
+While the  second method is  very convenient to  use, it comes  with a
+serious performance pitfall: if a  variable in the closure is assigned
+twice, Julia becomes unsure about  it's type and therefore "boxes" it,
+i.e. it  creates a wrapper struct  around the variable value  which is
+able to track  its potentially changing type.  The serious consequence
+of this is that assignments to a boxed variable lead to allocations, which
+are a serious performance hit if they occur in loops over grid nodes
+or edges.
 
 This behaviour is explained in the [Julia documentation](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured).
 
