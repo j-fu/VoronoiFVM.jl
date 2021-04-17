@@ -188,14 +188,14 @@ solve(DifferentialEquations, inival, system, tspan;
       kwargs...)
 ````
 
-Use a  timesteping scheme  from `DifferentialEquations.jl`  to perform
+Use a  timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) to perform
 transient solution  of the  system. 
 
 The system must have a constant diagonal mass matrix.
 
 Any stiff solver  capable to work with mass matrices  is possible.  If
 the system  contains elliptic equations, it  needs to be a  DAE solver
-able to work with.  See a list
+able to work with mass matrices.  See a list
 [here](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).
 
 

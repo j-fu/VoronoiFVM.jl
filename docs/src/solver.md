@@ -15,7 +15,7 @@ Modules = [VoronoiFVM]
 Pages=["vfvm_newtoncontrol.jl"]
 ```
 
-## Interface to DifferentialEquations.jl
+## [Interface to DifferentialEquations.jl](@id diffeq)
 
 ```@autodocs
 Modules = [VoronoiFVM]
