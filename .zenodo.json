@@ -1,5 +1,5 @@
 {
-    "title": "VoronoiFVM.jl",
+    "title": "VoronoiFVM.jl: Finite volume solver for coupled nonlinear partial differential equations",
     
     "creators": [
         {
@@ -8,8 +8,7 @@
             "orcid": "0000-0003-4432-2434"
         },
         {
-            "affiliation": "PTW Freiburg",
-            "name": "Weidner, Jan"
+            "name": "contributors"
         }
     ],
     

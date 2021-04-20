@@ -24,3 +24,4 @@ API changes:
 - [v0.7](https://j-fu.github.io/VoronoiFVM.jl/v0.7/changes/) (Some are breaking)
 
 
+If you use this package in your work, please cite it according to [CITATION.bib](https://raw.githubusercontent.com/j-fu/VoronoiFVM.jl/master/CITATION.bib)
