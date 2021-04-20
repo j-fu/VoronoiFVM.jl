@@ -116,7 +116,9 @@ function _solve!(
     update=system.update
     _initialize!(solution,system)
     SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
-
+    if typeof(control.factorization)!=typeof(system.factorization)
+        system.factorization=control.factorization
+    end
     oldnorm=1.0
     converged=false
     if control.verbose
@@ -146,7 +148,7 @@ function _solve!(
         # Sparse LU factorization
         if nlu==0 # (re)factorize, if possible reusing old factorization data
             try
-                system.factorization=factorize!(system.factorization,mtx;kind=control.factorization)
+                factorize!(system.factorization,mtx)
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))

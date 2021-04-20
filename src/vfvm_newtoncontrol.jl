@@ -98,7 +98,7 @@ mutable struct NewtonControl
     """
     Factorization kind for linear sytems (see ExtendableSparse.jl)
     """
-    factorization::Symbol
+    factorization::AbstractFactorization
     
     """
     Verbosity flag
@@ -225,7 +225,7 @@ function NewtonControl(this)
     this.handle_exceptions=false
     this.edge_cutoff=0.0
     this.umfpack_pivot_tolerance=default_umfpack_pivot_tolerance
-    this.factorization=:umfpack
+    this.factorization=LUFactorization()
     return this
 end
 

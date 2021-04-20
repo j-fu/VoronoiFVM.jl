@@ -60,7 +60,7 @@ mutable struct SparseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     Matrix factorization
     """
-    factorization
+    factorization::Union{Nothing,ExtendableSparse.AbstractFactorization{Tv,Tm}}
     
     """
     Flag which says if the number of unknowns per node is constant
@@ -122,7 +122,7 @@ $(SIGNATURES)
 
 Constructor for SparseSystem.
 """
-function  SparseSystem(grid,physics::Physics; matrixindextype=Int32)
+function  SparseSystem(grid,physics::Physics; matrixindextype=Int64)
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype

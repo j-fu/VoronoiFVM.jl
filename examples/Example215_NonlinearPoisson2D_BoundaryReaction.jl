@@ -7,8 +7,10 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+using ExtendableSparse
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=100,max_lureuse=0, factorization=:umfpack)
+function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=100,max_lureuse=0,
+              factorization=LUFactorization())
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)

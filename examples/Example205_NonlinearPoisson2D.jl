@@ -6,11 +6,13 @@ module Example205_NonlinearPoisson2D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
+using ExtendableSparse
 using GridVisualize
 
 
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_lureuse=0, factorization=:umfpack)
+function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_lureuse=0,
+              factorization=LUFactorization())
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -83,7 +85,7 @@ function test()
         main(unknown_storage=:dense,max_lureuse=0) ≈ testval &&
         main(unknown_storage=:sparse,max_lureuse=10) ≈ testval &&
         main(unknown_storage=:dense,max_lureuse=10) ≈ testval &&
-        main(unknown_storage=:sparse,max_lureuse=0, factorization=:ilu0) ≈ testval &&
-        main(unknown_storage=:dense,max_lureuse=0, factorization=:ilu0) ≈ testval 
+        main(unknown_storage=:sparse,max_lureuse=0, factorization=ILU0Preconditioner()) ≈ testval &&
+        main(unknown_storage=:dense,max_lureuse=0, factorization=ILU0Preconditioner()) ≈ testval 
 end
 end

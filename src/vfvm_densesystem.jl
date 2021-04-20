@@ -60,7 +60,7 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     Matrix factorization
     """
-    factorization::Union{Nothing,ExtendableSparse.AbstractExtendableSparseFactorization{Tv,Tm}}
+    factorization::Union{Nothing,ExtendableSparse.AbstractFactorization{Tv,Tm}}
     
     """
     Flag which says if the number of unknowns per node is constant
@@ -121,7 +121,7 @@ $(SIGNATURES)
 
 Constructor for DenseSystem.
 """
-function  DenseSystem(grid,physics::Physics;matrixindextype=Int32)
+function  DenseSystem(grid,physics::Physics;matrixindextype=Int64)
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype
