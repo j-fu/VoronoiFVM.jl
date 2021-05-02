@@ -92,12 +92,15 @@ function main(;n=20,m=2,Plotter=nothing,verbose=false, unknown_storage=:sparse,t
         tsol=solve(DiffEq,inival,sys,[t0,tend])
     end
 
-    p=GridVisualizer(Plotter=Plotter,layout=(2,1),fast=true)
+    p=GridVisualizer(Plotter=Plotter,layout=(1,1),fast=true)
     for i=1:length(tsol)
         time=tsol.t[i]
-        scalarplot!(p[1,1],grid,tsol[1,:,i],title=@sprintf("numerical, t=%.3g",time))
-        scalarplot!(p[2,1],grid,map(x->barenblatt(x,time,m),grid),title=@sprintf("exact, t=%.3g",time))
+        scalarplot!(p[1,1],grid,tsol[1,:,i],title=@sprintf("t=%.3g",time),color=:red,label="numerical",
+                    markershape=:circle,markevery=1)
+        scalarplot!(p[1,1],grid,map(x->barenblatt(x,time,m),grid),clear=false,color=:green,
+                    label="exact",markershape=:none)
         reveal(p)
+        sleep(1.0e-2)
     end
     return sum(tsol[end])
 end

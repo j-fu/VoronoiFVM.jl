@@ -155,8 +155,8 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
     end
 
     p=GridVisualizer(Plotter=Plotter)
-    scalarplot!(p,real(allIxL),imag(allIxL),label="exact",color=:red)
-    scalarplot!(p,real(allIL),imag(allIL),label="calc",show=true,clear=false,color=:blue)
+    scalarplot!(p,real(allIxL),imag(allIxL),label="exact",color=:red,linestyle=:dot)
+    scalarplot!(p,real(allIL),imag(allIL),label="calc",show=true,clear=false,color=:blue,linestyle=:solid)
 
     sum(allIL)
 end

@@ -88,7 +88,7 @@ function main(;nref=0,Plotter=nothing,D=0.01,v=1.0,tend=100,cin=1.0)
 
     vis=GridVisualizer(Plotter=Plotter)
     for i=1:length(tsol.t)
-        scalarplot!(vis[1,1],grid,tsol[1,:,i],flimits=(0,cin+1.0e-5))
+        scalarplot!(vis[1,1],grid,tsol[1,:,i],flimits=(0,cin+1.0e-5),title=@sprintf("time=%3f",tsol.t[i]),show=true)
     end
     tsol
 end

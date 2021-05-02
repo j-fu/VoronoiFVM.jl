@@ -64,9 +64,11 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     # Solve stationary problem
     solve!(solution,inival,sys)
 
-    scalarplot(grid,solution[1,:],Plotter=Plotter)
-
     exact=symlapcyl.(coordinates(grid)[1,:])
+    vis=GridVisualizer(Plotter=Plotter,layout=(2,1))
+    scalarplot!(vis[1,1],grid,solution[1,:],title="numerical")
+    scalarplot!(vis[2,1],grid,exact,title="exact",show=true)
+
     err=norm(solution[1,:]-exact,Inf)
 end
 

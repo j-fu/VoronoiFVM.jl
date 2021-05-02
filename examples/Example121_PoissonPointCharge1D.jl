@@ -82,10 +82,9 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
     ## Create solver control info
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
-    if ispyplot(Plotter)
-        Plotter.clf()
-    end
 
+
+    vis=GridVisualizer(Plotter=Plotter)
     ## Solve and plot for several values of charge
     for q in [0.1,0.2,0.4,0.8,1.6]
         
@@ -99,15 +98,8 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
         solve!(U,inival,sys, control=control)
         
         ## Plot data
-        if ispyplot(Plotter)
-            Plotter.grid()
-            coord=grid[Coordinates]
-            Plotter.plot(coord[1,:],U[1,:],label=@sprintf("Q=%.2f",q))
-            Plotter.xlabel("x")
-            Plotter.ylabel("\$\\phi\$")
-            Plotter.legend(loc="upper right")
-            Plotter.pause(1.0e-10)
-        end
+
+        scalarplot!(vis,grid,U[1,:],title=@sprintf("Q=%.2f",q),clear=true,show=true)
     end
     return sum(U)
 end

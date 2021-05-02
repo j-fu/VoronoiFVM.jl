@@ -71,7 +71,8 @@ function main(;n=10,Plotter=nothing,D=0.01,v=1.0,tend=100)
 
     vis=GridVisualizer(Plotter=Plotter)
     for i=1:length(tsol.t)
-        scalarplot!(vis[1,1],grid,tsol[1,:,i],flimits=(0,1))
+        scalarplot!(vis[1,1],grid,tsol[1,:,i],flimits=(0,1),title="t=$(tsol.t[i])",show=true)
+        sleep(0.01)
     end
     tsol
 end

@@ -136,8 +136,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
         for log10t=-4:0.01:0
             time=10^(log10t)
             sol=tsol(time)
-            scalarplot!(vis[1,1],grid,sol[iphi,:],label="ϕ",title=@sprintf("time=%.3g",time),flimits=(0,5))
-            scalarplot!(vis[1,1],grid,sol[ic,:],label="c",flimits=(0,5))
+            scalarplot!(vis[1,1],grid,sol[iphi,:],label="ϕ",title=@sprintf("time=%.3g",time),flimits=(0,5),color=:green)
+            scalarplot!(vis[1,1],grid,sol[ic,:],label="c",flimits=(0,5),clear=false,color=:red)
             reveal(vis)
         end
         return sum(tsol[end])
@@ -158,8 +158,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
         cdlplus=zeros(0)
         vminus=zeros(0)
         cdlminus=zeros(0)
-        cdl=0
-        vis=GridVisualizer(Plotter=Plotter,layout=(1,1),fast=true)
+        cdl=0.0
+        vis=GridVisualizer(Plotter=Plotter,layout=(2,1),fast=true)
         for dir in [1,-1]
             phi=0.0
             while phi<phimax
@@ -171,9 +171,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
                 solve!(U,inival,sys,control=control)
                 inival.=U
                 
-                scalarplot!(vis[1,1],grid,U[iphi,:],label="ϕ",title=@sprintf("Δϕ=%.3g",phi),flimits=(-5,5))
-                scalarplot!(vis[1,1],grid,U[ic,:],label="c",flimits=(0,5))
-                reveal(vis)
+                scalarplot!(vis[1,1],grid,U[iphi,:],label="ϕ",title=@sprintf("Δϕ=%.3g",phi),flimits=(-5,5),clear=true,color=:green)
+                scalarplot!(vis[1,1],grid,U[ic,:],label="c",flimits=(0,5),clear=false,color=:red)
 
                 Qdelta=integrate(sys,physics.reaction,U)
                 cdl=(Qdelta[iphi]-Q[iphi])/delta
@@ -184,12 +183,19 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
                     push!(vminus,dir*phi)
                     push!(cdlminus,cdl)
                 end
+
+                scalarplot!(vis[2,1],[0,1.0e-1], [0,0.05],color=:white,clear=true)
+                v=vcat(reverse(vminus),vplus)
+                c=vcat(reverse(cdlminus),cdlplus)
+                if length(v)>=2
+                    scalarplot!(vis[2,1],v,c,color=:green,clear=false,title="C_dl")
+                end
+                
                 phi+=dphi
+                reveal(vis)
             end
         end
 
-        scalarplot!(vis[1,1],vplus,cdlplus,color=:green,clear=true,flimits=(0,0.05))
-        scalarplot!(vis[1,1],vminus,cdlminus,color=:green,clear=false,show=true)
         return cdl
     end
 end
