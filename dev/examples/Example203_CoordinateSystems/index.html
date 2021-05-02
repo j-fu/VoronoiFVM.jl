@@ -53,12 +53,14 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     inival.=0
     solution.=0</code></pre><p>Solve stationary problem</p><pre><code class="language-julia">    solve!(solution,inival,sys)
 
-    scalarplot(grid,solution[1,:],Plotter=Plotter)
-
     exact=symlapcyl.(coordinates(grid)[1,:])
+    vis=GridVisualizer(Plotter=Plotter,layout=(2,1))
+    scalarplot!(vis[1,1],grid,solution[1,:],title=&quot;numerical&quot;)
+    scalarplot!(vis[2,1],grid,exact,title=&quot;exact&quot;,show=true)
+
     err=norm(solution[1,:]-exact,Inf)
 end</code></pre><p>Called by unit test</p><pre><code class="language-julia">function test()
     main() &lt;1.0e-14
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example201_Laplace2D/">« 201: 2D Laplace equation</a><a class="docs-footer-nextpage" href="../Example204_HagenPoiseuille/">204: 2D Convection in Hagen-Poiseuille flow »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 22 April 2021 21:28">Thursday 22 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example201_Laplace2D/">« 201: 2D Laplace equation</a><a class="docs-footer-nextpage" href="../Example204_HagenPoiseuille/">204: 2D Convection in Hagen-Poiseuille flow »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 2 May 2021 20:16">Sunday 2 May 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

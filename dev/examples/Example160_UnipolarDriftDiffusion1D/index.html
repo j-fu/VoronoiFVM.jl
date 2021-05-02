@@ -111,8 +111,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
         for log10t=-4:0.01:0
             time=10^(log10t)
             sol=tsol(time)
-            scalarplot!(vis[1,1],grid,sol[iphi,:],label=&quot;ϕ&quot;,title=@sprintf(&quot;time=%.3g&quot;,time),flimits=(0,5))
-            scalarplot!(vis[1,1],grid,sol[ic,:],label=&quot;c&quot;,flimits=(0,5))
+            scalarplot!(vis[1,1],grid,sol[iphi,:],label=&quot;ϕ&quot;,title=@sprintf(&quot;time=%.3g&quot;,time),flimits=(0,5),color=:green)
+            scalarplot!(vis[1,1],grid,sol[ic,:],label=&quot;c&quot;,flimits=(0,5),clear=false,color=:red)
             reveal(vis)
         end
         return sum(tsol[end])
@@ -133,8 +133,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
         cdlplus=zeros(0)
         vminus=zeros(0)
         cdlminus=zeros(0)
-        cdl=0
-        vis=GridVisualizer(Plotter=Plotter,layout=(1,1),fast=true)
+        cdl=0.0
+        vis=GridVisualizer(Plotter=Plotter,layout=(2,1),fast=true)
         for dir in [1,-1]
             phi=0.0
             while phi&lt;phimax
@@ -146,9 +146,8 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
                 solve!(U,inival,sys,control=control)
                 inival.=U
 
-                scalarplot!(vis[1,1],grid,U[iphi,:],label=&quot;ϕ&quot;,title=@sprintf(&quot;Δϕ=%.3g&quot;,phi),flimits=(-5,5))
-                scalarplot!(vis[1,1],grid,U[ic,:],label=&quot;c&quot;,flimits=(0,5))
-                reveal(vis)
+                scalarplot!(vis[1,1],grid,U[iphi,:],label=&quot;ϕ&quot;,title=@sprintf(&quot;Δϕ=%.3g&quot;,phi),flimits=(-5,5),clear=true,color=:green)
+                scalarplot!(vis[1,1],grid,U[ic,:],label=&quot;c&quot;,flimits=(0,5),clear=false,color=:red)
 
                 Qdelta=integrate(sys,physics.reaction,U)
                 cdl=(Qdelta[iphi]-Q[iphi])/delta
@@ -159,12 +158,19 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
                     push!(vminus,dir*phi)
                     push!(cdlminus,cdl)
                 end
+
+                scalarplot!(vis[2,1],[0,1.0e-1], [0,0.05],color=:white,clear=true)
+                v=vcat(reverse(vminus),vplus)
+                c=vcat(reverse(cdlminus),cdlplus)
+                if length(v)&gt;=2
+                    scalarplot!(vis[2,1],v,c,color=:green,clear=false,title=&quot;C_dl&quot;)
+                end
+
                 phi+=dphi
+                reveal(vis)
             end
         end
 
-        scalarplot!(vis[1,1],vplus,cdlplus,color=:green,clear=true,flimits=(0,0.05))
-        scalarplot!(vis[1,1],vminus,cdlminus,color=:green,clear=false,show=true)
         return cdl
     end
 end
@@ -177,4 +183,4 @@ function test()
     isapprox(main(unknown_storage=:dense,dlcap=true),0.010759276468375045,rtol=1.0e-5)
 
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example201_Laplace2D/">201: 2D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 22 April 2021 21:28">Thursday 22 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example201_Laplace2D/">201: 2D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 2 May 2021 20:16">Sunday 2 May 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
