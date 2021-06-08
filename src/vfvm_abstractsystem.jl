@@ -298,26 +298,29 @@ Update grid (e.g. after rescaling of coordinates).
 """
 function update_grid!(system::AbstractSystem{Tv,Ti}; grid=system.grid) where {Tv,Ti}
     
-    geom=grid[CellGeometries][1]
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
-    bgeom=grid[BFaceGeometries][1]
-    bfacenodes=grid[BFaceNodes]
-    nbfaces=num_bfaces(grid)
-    ncells=num_cells(grid)
+    geom        = grid[CellGeometries][1]
+    csys        = grid[CoordinateSystem]
+    coord       = grid[Coordinates]
+    cellnodes   = grid[CellNodes]
+    cellregions = grid[CellRegions]
+    bgeom       = grid[BFaceGeometries][1]
+    bfacenodes  = grid[BFaceNodes]
+    nbfaces     = num_bfaces(grid)
+    ncells      = num_cells(grid)
 
-    system.cellnodefactors=zeros(Tv,num_nodes(geom),ncells)
-    system.celledgefactors=zeros(Tv,num_edges(geom),ncells)
-    system.bfacenodefactors=zeros(Tv,num_nodes(bgeom),nbfaces)
-
+    system.cellnodefactors  = zeros(Tv, num_nodes(geom), ncells)
+    system.celledgefactors  = zeros(Tv, num_edges(geom), ncells)
+    system.bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
+    system.bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
+    
     for icell=1:ncells
-        @views cellfactors!(geom,csys,coord,cellnodes,icell,system.cellnodefactors[:,icell],system.celledgefactors[:,icell])
+        @views cellfactors!(geom, csys, coord, cellnodes, icell,
+                            system.cellnodefactors[:,icell],system.celledgefactors[:,icell])
     end
     
     for ibface=1:nbfaces
-        @views bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,system.bfacenodefactors[:,ibface])
+        @views bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,
+                             system.bfacenodefactors[:,ibface], system.bfaceedgefactors[:, ibface])
     end
 end
 

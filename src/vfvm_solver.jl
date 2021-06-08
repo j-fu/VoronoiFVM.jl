@@ -266,97 +266,105 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     _complete!(system) # needed here as well for test function system which does not use newton
     
-    grid=system.grid
-
-    physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    @create_physics_wrappers(physics,node,bnode,edge)
-
-
-    nspecies::Int=num_species(system)
-    matrix=system.matrix
-    cellnodefactors::Array{Tv,2}=system.cellnodefactors
-    celledgefactors::Array{Tv,2}=system.celledgefactors
-    bfacenodefactors::Array{Tv,2}=system.bfacenodefactors
+    grid    = system.grid
+    physics = system.physics
+    node    = Node{Tv,Ti}(system)
+    bnode   = BNode{Tv,Ti}(system)
+    edge    = Edge{Tv,Ti}(system)
     
+    @create_physics_wrappers(physics, node, bnode, edge)
+
+
+    nspecies::Int = num_species(system)
+    matrix        = system.matrix
+    
+    cellnodefactors::Array{Tv,2}  = system.cellnodefactors
+    celledgefactors::Array{Tv,2}  = system.celledgefactors
+    bfacenodefactors::Array{Tv,2} = system.bfacenodefactors
+    bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors    
     
     # Reset matrix + rhs
-    nzv=nonzeros(matrix)
-    nzv.=0.0
-    F.=0.0
+    nzv  = nonzeros(matrix)
+    nzv .= 0.0
+    F   .= 0.0
 
     # structs holding diff results for storage, reaction,  flux ...
-    result_r=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_flx=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,2*nspecies))
-    
+    result_r    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies))
+    result_s    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies))
+    result_flx  = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies))
+    result_bflx = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies))  
     # Array holding function results
-    Y=Array{Tv,1}(undef,nspecies)
+    Y = Array{Tv,1}(undef,nspecies)
 
     # Arrays for gathering solution data
-    UK=Array{Tv,1}(undef,nspecies)
-    UKOld=Array{Tv,1}(undef,nspecies)
-    UKL=Array{Tv,1}(undef,2*nspecies)
+    UK    = Array{Tv,1}(undef,nspecies)
+    UKOld = Array{Tv,1}(undef,nspecies)
+    UKL   = Array{Tv,1}(undef,2*nspecies)
 
     # array holding source term
-    src=zeros(Tv,nspecies)
-
+    src   = zeros(Tv,nspecies)
+    bsrc  = zeros(Tv,nspecies)
     # arrays holding storage terms for old solution
-    oldstor=zeros(Tv,nspecies)
-    res_react=zeros(Tv,nspecies)
-    jac_react=zeros(Tv,nspecies,nspecies)
-    oldbstor=zeros(Tv,nspecies)
+    oldstor   = zeros(Tv, nspecies)
+    res_react = zeros(Tv, nspecies)
+    jac_react = zeros(Tv, nspecies, nspecies)
+    oldbstor  = zeros(Tv, nspecies)
 
-    cfg_r=ForwardDiff.JacobianConfig(reactionwrap, Y, UK)
-    cfg_s=ForwardDiff.JacobianConfig(storagewrap, Y, UK)
-    cfg_br=ForwardDiff.JacobianConfig(breactionwrap, Y, UK)
-    cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
-    cfg_flx=ForwardDiff.JacobianConfig(fluxwrap, Y, UKL)
+    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK)
+    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK)
+    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK)
+    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
+    
+    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL)
+    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL)
 
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
     # comes handy to write compact code here for the
     # case of stationary problems.
-    tstepinv=1.0/tstep 
+    tstepinv = 1.0/tstep 
 
     
-    boundary_factors::Array{Tv,2}=system.boundary_factors
-    boundary_values::Array{Tv,2}=system.boundary_values
+    boundary_factors::Array{Tv,2} = system.boundary_factors
+    boundary_values::Array{Tv,2}  = system.boundary_values
     
-    geom=grid[CellGeometries][1]
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-    cellnodes::Array{Ti,2}=grid[CellNodes]
-    cellregions::Vector{Ti}=grid[CellRegions]
-    bgeom=grid[BFaceGeometries][1]
-    bfacenodes::Array{Ti,2}=grid[BFaceNodes]
-    bfaceregions::Vector{Ti}=grid[BFaceRegions]
-    nbfaces=num_bfaces(grid)
-    ncells=num_cells(grid)
-
-
-    cellx::Array{Ti,2}=grid[CellNodes]
-    edgenodes::Array{Ti,2}=local_celledgenodes(geom)
+    geom    = grid[CellGeometries][1]
+    csys    = grid[CoordinateSystem]
+    coord   = grid[Coordinates]
+    bgeom   = grid[BFaceGeometries][1]
+    nbfaces = num_bfaces(grid)
+    ncells  = num_cells(grid)
+    
+    cellnodes::Array{Ti,2}   = grid[CellNodes]
+    cellregions::Vector{Ti}  = grid[CellRegions]
+    bfacenodes::Array{Ti,2}  = grid[BFaceNodes]
+    bfaceregions::Vector{Ti} = grid[BFaceRegions]
+    cellx::Array{Ti,2}       = grid[CellNodes]
+    edgenodes::Array{Ti,2}   = local_celledgenodes(geom)
+    
     has_celledges=false
+    
     if haskey(grid,CellEdges)
-        cellx=grid[CellEdges]
-        edgenodes=grid[EdgeNodes]
-        has_celledges=true
+        cellx         = grid[CellEdges]
+        edgenodes     = grid[EdgeNodes]
+        has_celledges = true
     end
 
-    nn::Int=num_nodes(geom)
-    ne::Int=num_edges(geom)
+    bedgenodes = grid[BEdgeNodes]
+    bfaceedges = grid[BFaceEdges]
+
+
+    nn::Int = num_nodes(geom)
+    ne::Int = num_edges(geom)
 
 
     ncalloc=@allocated  for icell=1:ncells
         for inode=1:nn
-            node.region=cellregions[icell]
-            node.index=cellnodes[inode,icell]
-            node.icell=icell
-            @views UK.=U[:,node.index]
-            @views UKOld.=UOld[:,node.index]
+            node.region   = cellregions[icell]
+            node.index    = cellnodes[inode,icell]
+            node.icell    = icell
+            @views UK    .= U[:,node.index]
+            @views UKOld .= UOld[:,node.index]
             # xx gather:
                 # ii=0
                 # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
@@ -368,25 +376,23 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 #   UKOld[1:nspecies]=UOld[:,node.index]
                 # Evaluate source term
 
-
-           if issource
+            if issource
                 sourcewrap(src)
             end
             
-            
-           if isreaction
+            if isreaction
                 # Evaluate & differentiate reaction term if present
-                Y.=zero(Tv)
+                Y .= zero(Tv)
                 ForwardDiff.vector_mode_jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
-                res_react=DiffResults.value(result_r)
-                jac_react=DiffResults.jacobian(result_r)
+                res_react = DiffResults.value(result_r)
+                jac_react = DiffResults.jacobian(result_r)
             end
             
             # Evaluate & differentiate storage term
             Y.=zero(Tv)
             ForwardDiff.vector_mode_jacobian!(result_s,storagewrap,Y,UK,cfg_s)
-            res_stor=DiffResults.value(result_s)
-            jac_stor=DiffResults.jacobian(result_s)
+            res_stor = DiffResults.value(result_s)
+            jac_stor = DiffResults.jacobian(result_s)
 
             # Evaluate storage term for old timestep
             oldstor.=zero(Tv)
@@ -412,21 +418,21 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 # we need to ensure that the edges are accessed with the
                 # same orientation without regard of the orientation induced
                 # by local cell numbering
-                edge.index=cellx[iedge,icell]
-                edge.node[1]=edgenodes[1,edge.index]
-                edge.node[2]=edgenodes[2,edge.index]
+                edge.index   = cellx[iedge,icell]
+                edge.node[1] = edgenodes[1,edge.index]
+                edge.node[2] = edgenodes[2,edge.index]
             else # cx==cellnodes, edgenodes== local_edgenodes
-                edge.index=0
-                edge.node[1]=cellx[edgenodes[1,iedge],icell]
-                edge.node[2]=cellx[edgenodes[2,iedge],icell]
+                edge.index   = 0
+                edge.node[1] = cellx[edgenodes[1,iedge],icell]
+                edge.node[2] = cellx[edgenodes[2,iedge],icell]
             end
-            edge.region=cellregions[icell]
-            edge.icell=icell
+            edge.region = cellregions[icell]
+            edge.icell  = icell
             
 
             #Set up argument for fluxwrap
-            @views UKL[1:nspecies].=U[:,edge.node[1]]
-            @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
+            @views UKL[1:nspecies]            .= U[:, edge.node[1]]
+            @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
 
             Y.=zero(Tv)
             ForwardDiff.vector_mode_jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
@@ -435,7 +441,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
             K=edge.node[1]
             L=edge.node[2]
+            
             fac=celledgefactors[iedge,icell]
+            
             for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idofK,K)
                 idofL=dof(F,ispec,L)
@@ -461,7 +469,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         end
     end
 
-    nbn::Int=num_nodes(bgeom)
+    nbn::Int = num_nodes(bgeom)
+    nbe::Int = num_edges(bgeom)
+
     # Assembly loop for boundary conditions
     nballoc= @allocated for ibface=1:nbfaces
         ibreg::Int=bfaceregions[ibface]
@@ -480,8 +490,14 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
 
+            if isbsource
+                bsourcewrap(bsrc)
+            end
+
             # Global index of node
             K::Int=bnode.index
+
+
             
             # Assemble "standard" boundary conditions: Robin or
             # Dirichlet
@@ -491,8 +507,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 # If species is present, assemble the boundary condition
                 if idof>0
                     # Get user specified data
-                    boundary_factor=boundary_factors[ispec,ibreg]
-                    boundary_value=boundary_values[ispec,ibreg]
+                    boundary_factor = boundary_factors[ispec,ibreg]
+                    boundary_value  = boundary_values[ispec,ibreg]
                     
                     if boundary_factor==Dirichlet
                         # Dirichlet is encoded in the boundary condition factor
@@ -524,7 +540,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 # Assemble RHS + matrix
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
-                    _add(F,idof,bnode_factor*res_breact[ispec])
+                    _add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
                         _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
@@ -559,8 +575,62 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                         _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
                     end
                 end
-            end
+            end # if isbstorage
             
+        end # ibnode=1:nbn
+        if isbflux
+            for ibedge=1:nbe
+                if abs(bfaceedgefactors[ibedge,ibface]) < edge_cutoff
+                    continue
+                end
+
+
+                edge.index   = bfaceedges[ibedge, ibface]
+                edge.node[1] = bedgenodes[1, edge.index]
+                edge.node[2] = bedgenodes[2, edge.index]
+
+                edge.region = ibreg
+                edge.icell  = ibface
+
+                @views UKL[1:nspecies]            .= U[:, edge.node[1]]
+                @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
+
+                Y.=zero(Tv)
+                ForwardDiff.vector_mode_jacobian!(result_bflx, bfluxwrap, Y, UKL, cfg_bflx)
+                res = DiffResults.value(result_bflx)
+                jac = DiffResults.jacobian(result_bflx)
+                
+                K   = edge.node[1]
+                L   = edge.node[2]
+            
+                fac = bfaceedgefactors[ibedge, ibface]
+
+                for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
+                    ispec =_spec(F, idofK, K)
+                    idofL = dof(F, ispec, L)
+                    if idofL == 0
+                        continue
+                    end
+                    _add(F, idofK,  fac*res[ispec])
+                    _add(F, idofL, -fac*res[ispec])
+                    
+                    for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
+                        jspec = _spec(F,jdofK,K)
+                        jdofL = dof(F,jspec,L)
+                        if jdofL == 0
+                            continue
+                        end
+                        
+                        _addnz(matrix, idofK, jdofK, +jac[ispec, jspec         ], fac)
+                        _addnz(matrix, idofL, jdofK, -jac[ispec, jspec         ], fac)
+                        _addnz(matrix, idofK, jdofL, +jac[ispec, jspec+nspecies], fac)
+                        _addnz(matrix, idofL, jdofL, -jac[ispec, jspec+nspecies], fac)
+                     end
+                end
+
+
+
+            end
         end
     end
 

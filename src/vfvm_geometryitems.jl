@@ -52,7 +52,9 @@ function _fill!(node::BNode,bfacenodes,bfaceregions,ibnode,ibface)
     node.index=K
 end
 
+Base.size(bnode::BNode)=(size(bnode.coord)[1],)
 
+Base.getindex(bnode::BNode, idim)= bnode.coord[idim,bnode.index]
 
 
 

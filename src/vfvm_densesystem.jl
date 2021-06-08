@@ -93,6 +93,12 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     bfacenodefactors::Array{Tv,2}
 
     """
+    Precomputed geometry factors for boundary edges
+    """
+    bfaceedgefactors::Array{Tv,2}
+
+
+    """
     Sparse matrix for generic operator handling
     """
     generic_matrix::SparseMatrixCSC
@@ -112,6 +118,8 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     Data for allocation check
     """
     allocs::Int
+
+
     
     DenseSystem{Tv,Ti, Tm}() where {Tv,Ti, Tm} = new()
 end
@@ -122,22 +130,23 @@ $(SIGNATURES)
 Constructor for DenseSystem.
 """
 function  DenseSystem(grid,physics::Physics;matrixindextype=Int64)
-    Tv=coord_type(grid)
-    Ti=index_type(grid)
-    Tm=matrixindextype
-    system=DenseSystem{Tv,Ti,Tm}()
-    maxspec=physics.num_species
-    system.grid=grid
-    system.physics=physics
-    system.region_species=spzeros(Int8,Int16,maxspec,num_cellregions(grid))
-    system.bregion_species=spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
-    system.node_dof=spzeros(Int8,Int32,maxspec,num_nodes(grid))
-    system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
-    system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
-    system.species_homogeneous=false
-    system.uhash=0x0
-    system.allocs=-1000
-    system.factorization=nothing
+    Tv      = coord_type(grid)
+    Ti      = index_type(grid)
+    Tm      = matrixindextype
+    system  = DenseSystem{Tv,Ti,Tm}()
+    maxspec = physics.num_species
+    
+    system.grid                = grid
+    system.physics             = physics
+    system.region_species      = spzeros(Int8,Int16,maxspec,num_cellregions(grid))
+    system.bregion_species     = spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
+    system.node_dof            = spzeros(Int8,Int32,maxspec,num_nodes(grid))
+    system.boundary_values     = zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.boundary_factors    = zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.species_homogeneous = false
+    system.uhash               = 0x0
+    system.allocs              = -1000
+    system.factorization       = nothing
     return system
 end
 
@@ -167,7 +176,7 @@ $(SIGNATURES)
 Create a solution vector for dense system with elements of type `Tu`.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu::Type,sys::DenseSystem{Tv};inival=undef) where Tv
+function unknowns(Tu::Type, sys::DenseSystem{Tv}; inival=undef) where Tv
     a=Array{Tu}(undef,size(sys.node_dof)...)
     if inival!=undef
         fill!(a,inival)
