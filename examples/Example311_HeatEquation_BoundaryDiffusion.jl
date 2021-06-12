@@ -8,7 +8,7 @@ using ExtendableGrids
 
       ∂_tu - εΔu = 0            in [0,T] × Ω
            ε∇u⋅ν = k(u-v)       on [0,T] × Γ_1
-           ε∇u⋅ν = 0            on [0,T] × (∂Ω \ Γ_1)
+           ε∇u⋅ν = 0            on [0,T] × (∂Ω ∖ Γ_1)
   ∂_tv -ε_ΓΔ_Γ v = f(x) +k(u-v) on [0,T] × Γ_1
           u(0)   = 0.5          in   {0} × Ω
           v(0)   = 0.5          on   {0} × Γ_1  
@@ -96,7 +96,8 @@ function main(n::Int64)
     tstep = 0.01
     time  = 0.0
     step  = 0
-    while time < 1.0
+    T     = 10.0
+    while time < T
         time=time+tstep
         solve!(U, inival, sys, control=control, tstep=tstep)
         inival.=U
