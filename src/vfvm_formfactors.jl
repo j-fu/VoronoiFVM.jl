@@ -301,14 +301,14 @@ function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibf
     nothing
 end
 
-function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac, edgefac)
     inode=bfacenodes[1,ibface]
     r=coord[1,inode]
     nodefac[1]=2*π*r
     nothing
 end
 
-function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac, edgefac)
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     dx=coord[1,i1]-coord[1,i2]
@@ -319,7 +319,7 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibf
     nothing
 end
 
-function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface,nodefac,edgefac)
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     r1=coord[1,i1]
