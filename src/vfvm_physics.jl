@@ -199,7 +199,7 @@ function Physics(;num_species=1,
         reaction==nofunc ? reaction=nofunc2 : true
         storage==default_storage ? storage=default_storage2 : true
         source==nosrc ? source=nosrc2 : true
-        bflux==nofunc ? bflux=nfunc2 : true
+        bflux==nofunc ? bflux=nofunc2 : true
         breaction==nofunc ? breaction=nofunc2 : true
         bsource==nosrc ? bsource=nosrc2 : true
         bstorage==nofunc ? bstorage=nofunc2 : true
