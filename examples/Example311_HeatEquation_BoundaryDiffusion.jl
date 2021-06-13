@@ -1,6 +1,14 @@
+#=
+
+# 311: Heat Equation with boundary diffusion 
+([source code](SOURCE_URL))
+
+
+=#
+
+module Example311_HeatEquation_BoundaryDiffusion
 using Printf
 using VoronoiFVM
-using WriteVTK
 using ExtendableGrids
 
 """
@@ -14,7 +22,7 @@ using ExtendableGrids
           v(0)   = 0.5          on   {0} × Γ_1  
 """
 
-function main(n::Int64)
+function main(n=1)
 
     breg = 5 # boundary region number for surface diffusion
 
@@ -96,7 +104,7 @@ function main(n::Int64)
     tstep = 0.01
     time  = 0.0
     step  = 0
-    T     = 10.0
+    T     = 1.0
     while time < T
         time=time+tstep
         solve!(U, inival, sys, control=control, tstep=tstep)
@@ -113,4 +121,11 @@ function main(n::Int64)
     end
 
     nothing
+end
+
+
+function test()
+    main()
+end
+
 end

@@ -296,7 +296,7 @@ $(SIGNATURES)
 Calculate node volume  contributions for boundary face.
 """ 
 
-function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac,edgefac)
     nodefac[1]=1.0
     nothing
 end
