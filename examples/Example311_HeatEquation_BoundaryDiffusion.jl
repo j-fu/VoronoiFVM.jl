@@ -51,16 +51,21 @@ function main(n=1)
                       end,
         
         bflux       = function(f, u0, edge)
-                        u        = unknowns(edge,u0)
-                        f[2]     = eps_surf*(u[2,1]-u[2,2])
+                        if edge.region == breg
+                          u        = unknowns(edge,u0)
+                          f[2]     = eps_surf*(u[2,1]-u[2,2])
+                        else
+                          f[2] = 0.0
+                        end
+
                       end,
         breaction   = function(f,u,node)
                         if node.region == breg
                           f[1] = k*(u[1]-u[2])
                           f[2] = k*(u[2]-u[1])
                         else
-                          f[1] = 0        
-                          f[2] = 0
+                          f[1] = 0.0        
+                          f[2] = 0.0
                         end
                       end,
         bsource      = function(f, bnode)
@@ -101,7 +106,7 @@ function main(n=1)
     control.tol_linear  = 1.0e-5
     control.max_lureuse = 10
 
-    tstep = 0.01
+    tstep = 0.1
     time  = 0.0
     step  = 0
     T     = 1.0
@@ -126,6 +131,7 @@ end
 
 function test()
     main()
+    true
 end
 
 end

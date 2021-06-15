@@ -350,8 +350,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         has_celledges = true
     end
 
-    bedgenodes = grid[BEdgeNodes]
-    bfaceedges = grid[BFaceEdges]
+    bedgenodes::Array{Ti,2} = grid[BEdgeNodes]
+    bfaceedges::Array{Ti,2} = grid[BFaceEdges]
 
 
     nn::Int = num_nodes(geom)
