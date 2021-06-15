@@ -296,19 +296,19 @@ $(SIGNATURES)
 Calculate node volume  contributions for boundary face.
 """ 
 
-function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac,edgefac)
     nodefac[1]=1.0
     nothing
 end
 
-function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac, edgefac)
     inode=bfacenodes[1,ibface]
     r=coord[1,inode]
     nodefac[1]=2*π*r
     nothing
 end
 
-function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac, edgefac)
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     dx=coord[1,i1]-coord[1,i2]
@@ -319,7 +319,7 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibf
     nothing
 end
 
-function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface,nodefac,edgefac)
     i1=bfacenodes[1,ibface]
     i2=bfacenodes[2,ibface]
     r1=coord[1,i1]
@@ -336,38 +336,37 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,i
 end
 
 
-function bfacefactors!(::Type{Triangle2D},::Type{<:Cartesian3D},coord,bfacenodes,ibface,npar)
+function bfacefactors!(::Type{Triangle2D}, ::Type{<:Cartesian3D}, coord, bfacenodes, ibface, npar, epar)
 
     # Transferred from WIAS/pdelib, (c) J. Fuhrmann, H. Langmach, I. Schmelzer
-    i1=bfacenodes[1,ibface]
-    i2=bfacenodes[2,ibface]
-    i3=bfacenodes[3,ibface]
-    dd=@MVector zeros(3)
-    epar=@MVector zeros(3)
+    i1 = bfacenodes[1,ibface]
+    i2 = bfacenodes[2,ibface]
+    i3 = bfacenodes[3,ibface]
+    dd = @MVector zeros(3)
     for j=1:3
-        d= coord[j,i1] - coord[j,i3];  dd[2]+= d*d;
-        d= coord[j,i2] - coord[j,i1];  dd[3]+= d*d;
-        d= coord[j,i3] - coord[j,i2];  dd[1]+= d*d;
+        d = coord[j,i1] - coord[j,i3];  dd[2]+= d*d;
+        d = coord[j,i2] - coord[j,i1];  dd[3]+= d*d;
+        d = coord[j,i3] - coord[j,i2];  dd[1]+= d*d;
     end
     
     
     # Kanten-Flaechenanteile (ohne Abschneiden); epar als Hilfsfeld benutzt
-    epar[1]= (dd[2]+dd[3]-dd[1])*dd[1];
-    epar[2]= (dd[3]+dd[1]-dd[2])*dd[2];
-    epar[3]= (dd[1]+dd[2]-dd[3])*dd[3];
-    vol= sqrt(epar[1]+epar[2]+epar[3])*0.25;
+    epar[1] = (dd[2]+dd[3]-dd[1])*dd[1];
+    epar[2] = (dd[3]+dd[1]-dd[2])*dd[2];
+    epar[3] = (dd[1]+dd[2]-dd[3])*dd[3];
+    vol     = sqrt(epar[1]+epar[2]+epar[3])*0.25;
     
     d = 1.0/(8*vol);
         
     # Knoten-Flaechenanteile (ohne Abschneiden)
-    npar[1]= (epar[3]+epar[2])*d*0.25;
-    npar[2]= (epar[1]+epar[3])*d*0.25;
-    npar[3]= (epar[2]+epar[1])*d*0.25;
+    npar[1] = (epar[3]+epar[2])*d*0.25;
+    npar[2] = (epar[1]+epar[3])*d*0.25;
+    npar[3] = (epar[2]+epar[1])*d*0.25;
     
     # Kantengewichte 
-    # epar[1]= epar[1]*d/dd[1];
-    # epar[2]= epar[2]*d/dd[2];
-    # epar[3]= epar[3]*d/dd[3];
+    epar[1] = epar[1]*d/dd[1];
+    epar[2] = epar[2]*d/dd[2];
+    epar[3] = epar[3]*d/dd[3];
     nothing
 end
 

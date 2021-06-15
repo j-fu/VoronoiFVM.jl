@@ -93,6 +93,11 @@ mutable struct SparseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     bfacenodefactors::Array{Tv,2}
 
     """
+    Precomputed geometry factors for boundary edges
+    """
+    bfaceedgefactors::Array{Tv,2}
+
+    """
     Sparse matrix for generic operator handling
     """
     generic_matrix::SparseMatrixCSC

@@ -65,7 +65,9 @@ struct Physics{Flux<:Function,
                Reaction<:Function,
                Storage<:Function,
                Source<:Function,
+               BFlux<:Function,
                BReaction<:Function,
+               BSource<:Function,
                BStorage<:Function,
                GenericOperator<:Function,
                GenericOperatorSparsity<:Function,
@@ -102,11 +104,23 @@ struct Physics{Flux<:Function,
     source::Source
 
     """
+    Flux between neighboring control volumes on the boundary
+    """
+    bflux::BFlux
+
+    """
     Boundary reaction term:  `breaction(f,u,node)` or `breaction(f,u,node,data)` 
     Similar to reaction, but restricted to the inner or outer boundaries.
     """
     breaction::BReaction
 
+
+    """
+    Boundary source term: `bsource(f,node)` or `bsource(f,node,data)`.
+
+    It should return in `f[i]` the value of the source term for the i-th equation.
+    """
+    bsource::BSource
     """
     Boundary storage term: `bstorage(f,u,node)` or `bstorage(f,u,node,data)` 
     Similar to storage, but restricted to the inner or outer boundaries.
@@ -173,7 +187,9 @@ function Physics(;num_species=1,
                  reaction::Function=nofunc,
                  storage::Function=default_storage,
                  source::Function=nosrc,
+                 bflux::Function=nofunc,
                  breaction::Function=nofunc,
+                 bsource::Function=nosrc,
                  bstorage::Function=nofunc,
                  generic::Function=nofunc_generic,
                  generic_sparsity::Function=nofunc_generic_sparsity
@@ -183,7 +199,9 @@ function Physics(;num_species=1,
         reaction==nofunc ? reaction=nofunc2 : true
         storage==default_storage ? storage=default_storage2 : true
         source==nosrc ? source=nosrc2 : true
+        bflux==nofunc ? bflux=nofunc2 : true
         breaction==nofunc ? breaction=nofunc2 : true
+        bsource==nosrc ? bsource=nosrc2 : true
         bstorage==nofunc ? bstorage=nofunc2 : true
     end
     
@@ -191,7 +209,9 @@ function Physics(;num_species=1,
                    storage,
                    reaction,
                    source,
+                   bflux,
                    breaction,
+                   bsource,
                    bstorage,
                    generic,
                    generic_sparsity,
@@ -257,6 +277,7 @@ macro create_physics_wrappers(physics,node,bnode,edge)
             global issource=($(esc(physics)).source!=nofunc)
             global isreaction=($(esc(physics)).reaction!=nofunc)
             global isbreaction=($(esc(physics)).breaction!=nofunc)
+            global isbsource=($(esc(physics)).source!=nofunc)
             global isbstorage=($(esc(physics)).bstorage!=nofunc)
             
             global fluxwrap=function(y, u)
@@ -284,10 +305,22 @@ macro create_physics_wrappers(physics,node,bnode,edge)
                 $(esc(physics)).source(y,$(esc(node)),data)
                 nothing
             end
+
+            global bfluxwrap=function(y, u)
+                y.=0
+                $(esc(physics)).bflux(y,u,$(esc(edge)),data)
+                nothing
+            end
             
             global breactionwrap=function(y, u)
                 y.=0
                 $(esc(physics)).breaction(y,u,$(esc(bnode)),data)
+                nothing
+            end
+
+            global bsourcewrap=function(y)
+                y.=0
+                $(esc(physics)).bsource(y,$(esc(bnode)),data)
                 nothing
             end
             
@@ -298,10 +331,12 @@ macro create_physics_wrappers(physics,node,bnode,edge)
             end
         
         else
-            global issource=($(esc(physics)).source!=nofunc2)
-            global isreaction=($(esc(physics)).reaction!=nofunc2)
-            global isbreaction=($(esc(physics)).breaction!=nofunc2)
-            global isbstorage=($(esc(physics)).bstorage!=nofunc2)
+            global issource    = ($(esc(physics)).source    != nofunc2)
+            global isreaction  = ($(esc(physics)).reaction  != nofunc2)
+            global isbreaction = ($(esc(physics)).breaction != nofunc2)
+            global isbsource   = ($(esc(physics)).source    != nofunc2)
+            global isbflux     = ($(esc(physics)).bflux     != nofunc2)
+            global isbstorage  = ($(esc(physics)).bstorage  != nofunc2)
             
             global fluxwrap=function(y, u)
                 y.=0
@@ -328,10 +363,22 @@ macro create_physics_wrappers(physics,node,bnode,edge)
                 $(esc(physics)).source(y,$(esc(node)))
                 nothing
             end
+
+            global bfluxwrap=function(y, u)
+                y.=0
+                $(esc(physics)).bflux(y,u,$(esc(edge)))
+                nothing
+            end
             
             global breactionwrap=function(y, u)
                 y.=0
                 $(esc(physics)).breaction(y,u,$(esc(bnode)))
+                nothing
+            end
+
+            global bsourcewrap=function(y)
+                y.=0
+                $(esc(physics)).bsource(y,$(esc(bnode)))
                 nothing
             end
             
