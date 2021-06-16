@@ -277,8 +277,9 @@ macro create_physics_wrappers(physics,node,bnode,edge)
             global issource=($(esc(physics)).source!=nofunc)
             global isreaction=($(esc(physics)).reaction!=nofunc)
             global isbreaction=($(esc(physics)).breaction!=nofunc)
-            global isbsource=($(esc(physics)).source!=nofunc)
             global isbstorage=($(esc(physics)).bstorage!=nofunc)
+            global isbsource=($(esc(physics)).bsource!=nofunc)
+            global isbflux=($(esc(physics)).bflux!=nofunc)
             
             global fluxwrap=function(y, u)
                 y.=0
