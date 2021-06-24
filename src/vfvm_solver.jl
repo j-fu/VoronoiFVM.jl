@@ -310,14 +310,29 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     jac_react = zeros(Tv, nspecies, nspecies)
     oldbstor  = zeros(Tv, nspecies)
 
-    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK)
-    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK)
-    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK)
-    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
-    
-    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL)
-    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL)
 
+    # Due to
+
+    # https://github.com/JuliaDiff/ForwardDiff.jl/issues/516
+
+    # in   order   to  avoid   allocations,   we   directly  call   into
+    # vector_mode_jacobian!. However, by default,  this assumes that the
+    # length    of     the    argument     vector    is     less    than
+    # DEFAULT_CHUNK_THRESHOLD.
+
+    # This threshold can be increased by passing ForwardDiff.Chunk(UK,...).
+    
+    # See also https://juliadiff.org/ForwardDiff.jl/stable/user/advanced/#Configuring-Chunk-Size
+    
+    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    
+    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies))
+    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies))
+
+    
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
     # comes handy to write compact code here for the
@@ -428,7 +443,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             end
             edge.region = cellregions[icell]
             edge.icell  = icell
-            
 
             #Set up argument for fluxwrap
             @views UKL[1:nspecies]            .= U[:, edge.node[1]]
