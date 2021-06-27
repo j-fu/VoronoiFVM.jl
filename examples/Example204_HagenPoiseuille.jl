@@ -68,7 +68,7 @@ function main(;nref=0,Plotter=nothing,D=0.01,v=1.0,tend=100,cin=1.0)
     end
 
     ispec=1
-    physics=VoronoiFVM.Physics(num_species=1,flux=flux!,breaction=outflow!)
+    physics=VoronoiFVM.Physics(flux=flux!,breaction=outflow!)
     sys=VoronoiFVM.DenseSystem(grid,physics)
     enable_species!(sys,ispec,[1])
     evelo=edgevelocities(grid,fhp)

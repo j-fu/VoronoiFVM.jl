@@ -128,7 +128,6 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     end
     
     physics=VoronoiFVM.Physics(
-        num_species=3,
         breaction=breaction!,
         bstorage=bstorage!,
         flux=flux!,

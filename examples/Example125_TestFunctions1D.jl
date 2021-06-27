@@ -21,7 +21,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     eps::Vector{Float64}=[1,1.0e-1]
 
     physics=VoronoiFVM.Physics(
-         num_species=2,
+
     reaction=function(f,u,node)
         f[1]=10*(u[1]-u[2])
         f[2]=10*(u[2]-u[1])

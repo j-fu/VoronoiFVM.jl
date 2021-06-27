@@ -31,7 +31,6 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     k=[1,1,1]
 
     physics=VoronoiFVM.Physics(
-    num_species=3,
     reaction=function(f,u,node)
         if node.region==1
             f[1]=k[1]*u[1]

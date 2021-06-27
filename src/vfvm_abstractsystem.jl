@@ -124,6 +124,39 @@ end
 const Dirichlet=1.0e30
 
 
+#################################################################
+function addzrows(matrix::Matrix,maxrow)
+    nrow,ncol=size(matrix)
+    if maxrow<=nrow
+        return matrix
+    end
+    newmatrix=zeros(eltype(matrix),maxrow,ncol)
+    for icol=1:ncol
+        for irow=1:nrow
+            newmatrix[irow,icol]=matrix[irow,icol]
+        end
+    end
+    newmatrix
+end
+
+function addzrows(matrix::SparseMatrixCSC,maxrow)
+    nrow,ncol=size(matrix)
+    if maxrow<=nrow
+        return matrix
+    end
+    SparseMatrixCSC(maxrow, matrix.n,matrix.colptr,matrix.rowval,matrix.nzval)
+end
+
+function increase_num_species!(system,maxspec)
+    system.region_species=addzrows(system.region_species,maxspec)
+    system.bregion_species=addzrows(system.bregion_species,maxspec)
+    system.node_dof=addzrows(system.node_dof,maxspec)
+    system.boundary_values=addzrows(system.boundary_values,maxspec)
+    system.boundary_factors=addzrows(system.boundary_factors,maxspec)
+end
+
+
+
 ##################################################################
 """
 ````
@@ -171,8 +204,9 @@ bulk and boundary species have to be distinct.
 """
 function enable_species!(system::AbstractSystem,ispec::Integer, regions::AbstractVector)
     if ispec>num_species(system)
-        throw(DomainError(ispec,"Number of species exceeded"))
+        increase_num_species!(system,ispec)
     end
+    
     if is_boundary_species(system,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
     end
@@ -205,7 +239,7 @@ bulk and boundary species have to be distinct.
 """
 function enable_boundary_species!(system::AbstractSystem, ispec::Integer, bregions::AbstractVector)
     if ispec>num_species(system)
-        throw(DomainError(ispec,"Number of species exceeded"))
+        increase_num_species!(system,ispec)
     end
     if is_bulk_species(system,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
@@ -339,7 +373,7 @@ $(SIGNATURES)
 
 Number of species in system
 """
-num_species(system::AbstractSystem) = system.physics.num_species
+num_species(system::AbstractSystem) = size(system.node_dof,1)
 
 
 
@@ -438,7 +472,7 @@ end
 
 
 function Base.show(io::IO,sys::AbstractSystem)
-    str=@sprintf("%s(num_species=%d)",typeof(sys),sys.physics.num_species)
+    str=@sprintf("%s(num_species=%d)",typeof(sys),num_species(system))
     println(io,str)
 end
 

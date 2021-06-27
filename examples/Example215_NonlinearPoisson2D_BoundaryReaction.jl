@@ -20,7 +20,6 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=
     
     eps=1.0e-2
     physics=VoronoiFVM.Physics(
-        num_species=2,
         breaction=function(f,u,node)
         if  node.region==2
             f[1]=1*(u[1]-u[2])

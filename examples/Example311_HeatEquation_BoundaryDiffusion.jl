@@ -44,7 +44,6 @@ function main(n=1)
     eps_surf = 1.0e-2 # surface diffusion coefficient
     k        = 1.0    # transmission coefficient
     physics  = VoronoiFVM.Physics(
-        num_species = 2,
         flux        = function(f,u0,edge)
                             u    = unknowns(edge,u0)
                             f[1] = eps*(u[1,1]-u[1,2])

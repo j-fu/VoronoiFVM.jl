@@ -23,7 +23,6 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_
     eps=1.0e-2
     
     physics=VoronoiFVM.Physics(
-        num_species=1,
         reaction=function(f,u,node)
         f[1]=u[1]^2
         end,

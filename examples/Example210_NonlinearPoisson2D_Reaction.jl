@@ -40,8 +40,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     end
 
 
-    physics=VoronoiFVM.Physics(num_species=2,
-                               data=data,
+    physics=VoronoiFVM.Physics(data=data,
                                flux=flux!,
                                storage=storage!,
                                reaction=reaction!,

@@ -154,8 +154,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
 	f[1]=1.0
     end
     
-    physics=VoronoiFVM.Physics(num_species=2,
-	                       flux=flux,
+    physics=VoronoiFVM.Physics(flux=flux,
 	                       storage=storage,
 	                       reaction=reaction,
 	                       source=source)

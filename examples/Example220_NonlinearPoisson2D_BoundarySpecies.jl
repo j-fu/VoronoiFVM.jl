@@ -22,7 +22,6 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     k=1.0
     eps::Float64=1.0
     physics=VoronoiFVM.Physics(
-    num_species=3,
     breaction=function(f,u,node)
         if  node.region==2
             f[1]=k*(u[1]-u[3])

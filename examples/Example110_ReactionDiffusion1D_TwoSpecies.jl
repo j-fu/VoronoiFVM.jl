@@ -30,7 +30,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     
     eps::Vector{Float64}=[1.0,1.0]
     
-    physics=VoronoiFVM.Physics(num_species=2,
+    physics=VoronoiFVM.Physics(
                                
                                reaction=function(f,u,node)
                                f[1]=u[1]*u[2]

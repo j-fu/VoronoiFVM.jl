@@ -95,7 +95,6 @@ function main(;n=20,Plotter=nothing,dlcap=false,verbose=false,unknown_storage=:s
 
 
     physics=VoronoiFVM.Physics(data=data,
-                               num_species=2,
                                flux=sedanflux!,
                                reaction=reaction!,
                                storage=storage!

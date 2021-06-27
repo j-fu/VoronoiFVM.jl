@@ -24,7 +24,7 @@ function main(;n=11, nspec=50, Plotter=nothing, unknown_storage=:dense)
             f[ispec]=uk[ispec]-ul[ispec]
         end
     end
-    physics = VoronoiFVM.Physics(num_species = nspec,  flux = flux)
+    physics = VoronoiFVM.Physics(flux = flux)
     sys     = VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
     for ispec=1:nspec
         enable_species!(sys, ispec, [1])

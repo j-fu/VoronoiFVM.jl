@@ -135,7 +135,6 @@ function main(;n=10,
     
     if autodetect_sparsity
         physics=VoronoiFVM.Physics(
-            num_species=3,
             breaction=breaction!,
             generic=generic_operator!,
             flux=flux!,
@@ -144,7 +143,6 @@ function main(;n=10,
         )
     else
         physics=VoronoiFVM.Physics(
-            num_species=3,
             breaction=breaction!,
             generic=generic_operator!,
             generic_sparsity=generic_operator_sparsity,

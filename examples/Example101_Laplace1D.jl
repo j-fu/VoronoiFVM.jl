@@ -117,7 +117,7 @@ function main()
     grid=VoronoiFVM.Grid(X)
 
     ## Create a physics structure
-    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
+    physics=VoronoiFVM.Physics(flux=g!)
 
     ## Create a finite volume system 
     sys=VoronoiFVM.System(grid,physics)

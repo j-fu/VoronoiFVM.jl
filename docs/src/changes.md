@@ -1,5 +1,13 @@
 # Changes
 
+## v0.11.xxx
+- physics.num_species is now meaningless, num_species is automatically detected.
+
+## v0.11.8
+- increase chunk size threshold to match argument length in calls to vector_mode_jacobian
+
+## v0.11.7
+- First attempts on surface flux
 
 ## v0.11.1, April 13, 2021
 - Assembly loops cleaned from type instabilities

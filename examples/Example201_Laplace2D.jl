@@ -25,7 +25,7 @@ function main(;Plotter=nothing)
     ispec=1    
     X=collect(0:0.2:1)
     grid=VoronoiFVM.Grid(X,X)
-    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
+    physics=VoronoiFVM.Physics(flux=g!)
     sys=VoronoiFVM.System(grid,physics)
     enable_species!(sys,ispec,[1])
     boundary_dirichlet!(sys,ispec,1,0.0)

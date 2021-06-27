@@ -43,8 +43,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
         end
     end
     
-    physics=VoronoiFVM.Physics(num_species=1,
-	                       flux=flux,
+    physics=VoronoiFVM.Physics(flux=flux,
 	                       storage=storage,
 	                       breaction=breaction)
     
