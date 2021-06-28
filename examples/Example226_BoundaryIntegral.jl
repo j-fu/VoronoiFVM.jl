@@ -31,8 +31,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
         f.=u
     end
     
-    function flux(f,_u,edge)
-	u=unknowns(edge,_u)
+    function flux(f,u,edge)
 	f[1]=u[1,1]-u[1,2]
     end
     

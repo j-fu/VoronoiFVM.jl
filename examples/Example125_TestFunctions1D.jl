@@ -27,8 +27,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         f[2]=10*(u[2]-u[1])
     end,
 
-    flux=function(f,u0,edge)   
-        u=unknowns(edge,u0)
+    flux=function(f,u,edge)   
         f[1]=eps[1]*(u[1,1]-u[1,2])
         f[2]=eps[2]*(u[2,1]-u[2,2])
     end,

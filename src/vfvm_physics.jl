@@ -283,7 +283,7 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
             
             global fluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).flux(y,u,$(esc(edge)),data)
+                $(esc(physics)).flux(y,unknowns($(esc(edge)),u),$(esc(edge)),data)
                 nothing
             end
             
@@ -309,7 +309,7 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
 
             global bfluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).bflux(y,u,$(esc(bedge)),data)
+                $(esc(physics)).bflux(y,unknowns($(esc(bedge)),u),$(esc(bedge)),data)
                 nothing
             end
             
@@ -341,7 +341,7 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
             
             global fluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).flux(y,u,$(esc(edge)))
+                $(esc(physics)).flux(y,unknowns($(esc(edge)),u),$(esc(edge)))
                 nothing
             end
             
@@ -367,7 +367,7 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
 
             global bfluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).bflux(y,u,$(esc(bedge)))
+                $(esc(physics)).bflux(y,unknowns($(esc(bedge)),u),$(esc(bedge)))
                 nothing
             end
             

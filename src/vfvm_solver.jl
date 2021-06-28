@@ -268,13 +268,12 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     _complete!(system) # needed here as well for test function system which does not use newton
     
     grid    = system.grid
-    physics = system.physics
     node    = Node{Tv,Ti}(system)
     bnode   = BNode{Tv,Ti}(system)
     edge    = Edge{Tv,Ti}(system)
     bedge   = BEdge{Tv,Ti}(system)
     
-    @create_physics_wrappers(physics, node, bnode, edge, bedge)
+    @create_physics_wrappers(system.physics, node, bnode, edge, bedge)
 
 
     nspecies::Int = num_species(system)
@@ -348,11 +347,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     nbfaces = num_bfaces(grid)
     ncells  = num_cells(grid)
-
-
     geom=grid[CellGeometries][1]
     bgeom   = grid[BFaceGeometries][1]
 
+    
     nn::Int = num_nodes(geom)
     ne::Int = num_edges(geom)
 

@@ -78,8 +78,7 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     ## Diffusion flux for species A and B
     D_A=1.0
     D_B=1.0e-2
-    function flux!(f,u0,edge)
-        u=unknowns(edge,u0)
+    function flux!(f,u,edge)
         f[iA]=D_A*(u[iA,1]-u[iA,2])
         f[iB]=D_B*(u[iB,1]-u[iB,2])
     end

@@ -55,8 +55,7 @@ function create_porous_medium_problem(n,m,unknown_storage)
     X=collect(-1:h:1)
     grid=VoronoiFVM.Grid(X)
 
-    function flux!(f,u0,edge)
-        u=unknowns(edge,u0)
+    function flux!(f,u,edge)
         f[1]=u[1,1]^m-u[1,2]^m
     end
 

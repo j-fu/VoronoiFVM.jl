@@ -43,8 +43,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         end
     end,
     
-        flux=function(f,u0,edge)
-            u=unknowns(edge,u0)
+        flux=function(f,u,edge)
         
         if edge.region==1
             f[1]=eps[1]*(u[1,1]-u[1,2])
