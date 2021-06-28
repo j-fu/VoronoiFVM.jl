@@ -18,10 +18,8 @@ function main(;n=11, nspec=50, Plotter=nothing, unknown_storage=:dense)
     grid=simplexgrid(range(0,1,length=n))
     
     function flux(f,u,edge)
-        uk=viewK(edge,u)
-        ul=viewL(edge,u)
         for ispec=1:nspec
-            f[ispec]=uk[ispec]-ul[ispec]
+            f[ispec]=u[ispec,1]-u[ispec,2]
         end
     end
     physics = VoronoiFVM.Physics(flux = flux)

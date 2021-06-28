@@ -27,8 +27,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_
         f[1]=u[1]^2
         end,
         
-        flux=function(f,u0,edge)
-        u=unknowns(edge,u0)
+        flux=function(f,u,edge)
         f[1]=eps*(u[1,1]^2-u[1,2]^2)
         end,
         

@@ -348,11 +348,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     nbfaces = num_bfaces(grid)
     ncells  = num_cells(grid)
-
-
     geom=grid[CellGeometries][1]
     bgeom   = grid[BFaceGeometries][1]
 
+    
     nn::Int = num_nodes(geom)
     ne::Int = num_edges(geom)
 

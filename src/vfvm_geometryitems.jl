@@ -413,6 +413,7 @@ Base.size(u::MatrixUnknowns)=(u.n1,2)
 
 
 
+
 ##################################################################
 """
 $(TYPEDEF)
@@ -437,6 +438,7 @@ unknowns(edge::Edge, u::Vector{T},i) where T = VectorUnknowns{T}(u,edge.nspec,(i
 Base.getindex(u::VectorUnknowns,i)=@inbounds u.u[u.offset+i]
 Base.size(u::VectorUnknowns)=(u.n,)
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -452,6 +454,13 @@ Construct vector unknowns on bnode
 unknowns(node::BNode, u)=u
 
 
+################################################
+# Deprecation warnings here!
+
+# For backward compatibility
+unknowns(edge,u::MatrixUnknowns)=u
+# For backward compatibility
+unknowns(edge::Edge, u::MatrixUnknowns{T},i) where T = VectorUnknowns{T}(u.u,edge.nspec,(i-1)*(edge.nspec))
 
 """
 $(TYPEDSIGNATURES)

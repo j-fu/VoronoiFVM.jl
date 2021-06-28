@@ -43,8 +43,7 @@ end
 
 
 
-function classflux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function classflux!(f,u,edge,data)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=data.eps*(u[iphi,1]-u[iphi,2])
@@ -67,8 +66,7 @@ function reaction!(f,u,node,data)
     f[ic]=0
 end
 
-function sedanflux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function sedanflux!(f,u,edge,data)
     ic=data.ic
     iphi=data.iphi
     f[iphi]=data.eps*(u[iphi,1]-u[iphi,2])

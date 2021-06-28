@@ -49,8 +49,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
     data = (R=R, D=D, C=C)
 
     # Declare constitutive functions
-    flux=function(f,u0,edge,data)
-        u=unknowns(edge,u0)
+    flux=function(f,u,edge,data)
         f[1]=data.D*(u[1,1]-u[1,2])
     end
 

@@ -26,8 +26,7 @@ function bernoulli(x)
     return x/(exp(x)-1)
 end
 
-function exponential_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function exponential_flux!(f,u,edge,data)
     vh=project(edge,data.v)
     Bplus= data.D*bernoulli(vh/data.D)
     Bminus=data.D*bernoulli(-vh/data.D)

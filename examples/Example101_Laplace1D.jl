@@ -99,8 +99,7 @@ using VoronoiFVM
 
 ## Flux function which describes the flux
 ## between neigboring control volumes
-function g!(f,u0,edge)
-    u=unknowns(edge,u0)
+function g!(f,u,edge)
     f[1]=u[1,1]-u[1,2]
 end
 

@@ -22,8 +22,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
         f[2]=data.k*(u[2]-u[1])
     end
 
-    function flux!(f,u0,edge,data)
-        u=unknowns(edge,u0)
+    function flux!(f,u,edge,data)
         f[1]=data.eps*(u[1,1]-u[1,2])
         f[2]=data.eps*(u[2,1]-u[2,2])
     end
