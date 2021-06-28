@@ -246,6 +246,7 @@ function _solve!(
 end
 
 
+
 ################################################################
 """
 $(SIGNATURES)
@@ -349,6 +350,11 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     bgeom   = grid[BFaceGeometries][1]
     nbfaces = num_bfaces(grid)
     ncells  = num_cells(grid)
+
+
+        
+    node_data=NodeData(grid)
+    bnode_data=BNodeData(grid)
     
     cellnodes::Array{Ti,2}   = grid[CellNodes]
     cellregions::Vector{Ti}  = grid[CellRegions]
@@ -375,9 +381,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     ncalloc=@allocated  for icell=1:ncells
         for inode=1:nn
-            node.region   = cellregions[icell]
-            node.index    = cellnodes[inode,icell]
-            node.icell    = icell
+            _fill!(node,node_data,inode,icell)
             @views UK    .= U[:,node.index]
             @views UKOld .= UOld[:,node.index]
             # xx gather:
@@ -493,10 +497,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         # Loop over nodes of boundary face
         for ibnode=1:nbn
             # Fill bnode data shuttle with data from grid
-            bnode.ibface=ibface
-            bnode.ibnode=ibnode
-            bnode.region=bfaceregions[ibface]
-            bnode.index=bfacenodes[ibnode,ibface]
+            _fill!(bnode,bnode_data,ibnode,ibface)
 
             # Copy unknown values from solution into dense array
             @views UK.=U[:,bnode.index]

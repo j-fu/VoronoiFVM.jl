@@ -12,6 +12,7 @@ function test_addrows(m,n,mx)
 end
 
 function test()
+    @test test_addrows(0,100,1)
     @test test_addrows(1,100,1)
     @test test_addrows(1,100,2)
     @test test_addrows(1,100,4)

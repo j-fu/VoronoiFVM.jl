@@ -52,6 +52,11 @@ mutable struct DenseSystem{Tv,Ti, Tm} <: AbstractSystem{Tv,Ti, Tm}
     """
     node_dof::Array{Int8,2}
 
+
+    quantspec::Array{Int8,2}
+    bquantspec::Array{Int8,2}
+
+    
     """
     Jacobi matrix for nonlinear problem
     """
@@ -134,13 +139,15 @@ function  DenseSystem(grid,physics::Physics;matrixindextype=Int64)
     Ti      = index_type(grid)
     Tm      = matrixindextype
     system  = DenseSystem{Tv,Ti,Tm}()
-    maxspec = physics.num_species
-    
+    maxspec = 0
+
     system.grid                = grid
     system.physics             = physics
     system.region_species      = spzeros(Int8,Int16,maxspec,num_cellregions(grid))
     system.bregion_species     = spzeros(Int8,Int16,maxspec,num_bfaceregions(grid))
     system.node_dof            = spzeros(Int8,Int32,maxspec,num_nodes(grid))
+    system.quantspec=zeros(Ti,0,num_cellregions(grid))
+    system.bquantspec=zeros(Ti,0,num_cellregions(grid))
     system.boundary_values     = zeros(Tv,maxspec,num_bfaceregions(grid))
     system.boundary_factors    = zeros(Tv,maxspec,num_bfaceregions(grid))
     system.species_homogeneous = false

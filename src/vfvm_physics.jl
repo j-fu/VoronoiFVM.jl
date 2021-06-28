@@ -158,7 +158,7 @@ end
 ##########################################################
 """
 ````
-Physics(;num_species=1,
+Physics(;num_species=0,
          data=nothing,
          flux,
          reaction,
@@ -181,7 +181,7 @@ is defined.
 
 
 """
-function Physics(;num_species=1,
+function Physics(;num_species=0,
                  data=nothing,
                  flux::Function=nofunc,
                  reaction::Function=nofunc,

@@ -125,6 +125,13 @@ const Dirichlet=1.0e30
 
 
 #################################################################
+
+"""
+    addzrows(matrix,maxrow)
+
+Return matrix with number of rows increased to maxrow, and set
+the new elements to zero.
+"""
 function addzrows(matrix::Matrix,maxrow)
     nrow,ncol=size(matrix)
     if maxrow<=nrow
@@ -147,6 +154,14 @@ function addzrows(matrix::SparseMatrixCSC,maxrow)
     SparseMatrixCSC(maxrow, matrix.n,matrix.colptr,matrix.rowval,matrix.nzval)
 end
 
+
+
+"""
+     increase_num_species!(system,maxspec)
+
+Increase number of species in system to maxspec by adding new rows to all  relevant
+matrices.
+"""
 function increase_num_species!(system,maxspec)
     system.region_species=addzrows(system.region_species,maxspec)
     system.bregion_species=addzrows(system.bregion_species,maxspec)
@@ -155,6 +170,42 @@ function increase_num_species!(system,maxspec)
     system.boundary_factors=addzrows(system.boundary_factors,maxspec)
 end
 
+
+function add_continuous_quantity(sys,iquant,regions)
+    addzrows(sys.quantspec,iquant)
+    nspec=num_species(sys)
+    nspec=nspec+1
+    enable_species!(sys,nspec,regions)
+    for ireg ∈ regions
+        sys.quantspec[iquant,ireg]=nspec
+    end
+end
+
+function add_boundary_quantity(sys,iquant,bregions)
+    addzrows(sys.bquantspec,iquant)
+    nspec=num_species(sys)
+    nspec=nspec+1
+    enable_boundary_species!(sys,nspec,regions)
+    for ireg ∈ regions
+        sys.bquantspec[iquant,ireg]=nspec
+    end
+end
+
+
+""""
+
+For a discontinuous quantity, we need to have a different
+species number for each region.
+"""
+function add_discontinuous_quantity(sys,iquant,regions)
+    addzrows(sys.quantspec,iquant)
+    nspec=num_species(sys)
+    for ireg ∈ regions
+        nspec=nspec+1
+        enable_species!(sys,nspec,[ireg])
+        sys.quantspec[iquant,ireg]=nspec
+    end
+end
 
 
 ##################################################################

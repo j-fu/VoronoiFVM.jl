@@ -31,6 +31,10 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     region::Ti
 
+
+    cellregions::Vector{Ti}
+    
+
     """
     Number of species defined in node
     """
@@ -41,16 +45,54 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     coord::Matrix{Tv}
     
-    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,0,0,num_species(sys),coordinates(sys.grid))
+    BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,0,0,zeros(Ti,2),num_species(sys),coordinates(sys.grid))
+end
+
+
+
+struct BNodeData{Ti}
+    bfacenodes::Array{Ti,2}
+    bfaceregions::Vector{Ti}
+end
+
+function BNodeData(grid::ExtendableGrid)
+    Ti=eltype(grid[CellNodes])
+    BNodeData{Ti}(grid[BFaceNodes],grid[BFaceRegions])
+end
+
+
+function _fill!(node::BNode,bnode_data,ibnode,ibface)
+    K=bnode_data.bfacenodes[ibnode,ibface]
+    node.ibface=ibface
+    node.ibnode=ibnode
+    node.region=bnode_data.bfaceregions[ibface]
+    node.index=K
 end
 
 function _fill!(node::BNode,bfacenodes,bfaceregions,ibnode,ibface)
     K=bfacenodes[ibnode,ibface]
     node.ibface=ibface
     node.ibnode=ibnode
-    node.region=bfaceregions[ibface]
     node.index=K
+    node.region=bfaceregions[ibface]
 end
+
+function _fill!(node::BNode,bfacenodes,bfacecells,bfaceregions,cellregions,ibnode,ibface)
+    K=bfacenodes[ibnode,ibface]
+    node.ibface=ibface
+    node.ibnode=ibnode
+    node.index=K
+    node.cellregions[1]=0
+    node.cellregions[2]=0
+    for i=1:num_targets(bfacecells,ibface)
+        node.cellregions[i]=cellregions[bfacecells[ibface,i]]
+    end
+    node.region=bfaceregions[ibface]
+end
+
+
+
+
 
 Base.size(bnode::BNode)=(size(bnode.coord)[1],)
 
@@ -96,10 +138,22 @@ mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti}
     Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,num_species(sys),0, coordinates(sys.grid))
 end
 
-function _fill!(node::Node,cellnodes,cellregions,inode,icell)
-    node.region=cellregions[icell]
-    node.index=cellnodes[inode,icell]
+
+struct NodeData{Ti}
+    cellnodes::Array{Ti,2}
+    cellregions::Vector{Ti}
+end
+
+function NodeData(grid::ExtendableGrid)
+    Ti=eltype(grid[CellNodes])
+    NodeData{Ti}(grid[CellNodes],grid[CellRegions])
+end
+
+@inline function _fill!(node::Node,ndata,inode,icell)
+    node.region=ndata.cellregions[icell]
+    node.index=ndata.cellnodes[inode,icell]
     node.icell=icell
+    nothing
 end
 
 
