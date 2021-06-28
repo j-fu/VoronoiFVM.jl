@@ -272,8 +272,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     node    = Node{Tv,Ti}(system)
     bnode   = BNode{Tv,Ti}(system)
     edge    = Edge{Tv,Ti}(system)
+    bedge   = BEdge{Tv,Ti}(system)
     
-    @create_physics_wrappers(physics, node, bnode, edge)
+    @create_physics_wrappers(physics, node, bnode, edge, bedge)
 
 
     nspecies::Int = num_species(system)
@@ -343,37 +344,14 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2}  = system.boundary_values
-    
-    geom    = grid[CellGeometries][1]
-    csys    = grid[CoordinateSystem]
-    coord   = grid[Coordinates]
-    bgeom   = grid[BFaceGeometries][1]
+    bfaceregions::Vector{Ti} = grid[BFaceRegions]
+
     nbfaces = num_bfaces(grid)
     ncells  = num_cells(grid)
 
 
-        
-    node_data=NodeData(grid)
-    bnode_data=BNodeData(grid)
-    
-    cellnodes::Array{Ti,2}   = grid[CellNodes]
-    cellregions::Vector{Ti}  = grid[CellRegions]
-    bfacenodes::Array{Ti,2}  = grid[BFaceNodes]
-    bfaceregions::Vector{Ti} = grid[BFaceRegions]
-    cellx::Array{Ti,2}       = grid[CellNodes]
-    edgenodes::Array{Ti,2}   = local_celledgenodes(geom)
-    
-    has_celledges=false
-    
-    if haskey(grid,CellEdges)
-        cellx         = grid[CellEdges]
-        edgenodes     = grid[EdgeNodes]
-        has_celledges = true
-    end
-
-    bedgenodes::Array{Ti,2} = grid[BEdgeNodes]
-    bfaceedges::Array{Ti,2} = grid[BFaceEdges]
-
+    geom=grid[CellGeometries][1]
+    bgeom   = grid[BFaceGeometries][1]
 
     nn::Int = num_nodes(geom)
     ne::Int = num_edges(geom)
@@ -381,7 +359,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     ncalloc=@allocated  for icell=1:ncells
         for inode=1:nn
-            _fill!(node,node_data,inode,icell)
+            _fill!(node,inode,icell)
             @views UK    .= U[:,node.index]
             @views UKOld .= UOld[:,node.index]
             # xx gather:
@@ -431,22 +409,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             if abs(celledgefactors[iedge,icell])<edge_cutoff
                 continue
             end
-            
-            if has_celledges #  cellx==celledges, edgenodes==global_edgenodes
-                # If we work with projections of fluxes onto edges,
-                # we need to ensure that the edges are accessed with the
-                # same orientation without regard of the orientation induced
-                # by local cell numbering
-                edge.index   = cellx[iedge,icell]
-                edge.node[1] = edgenodes[1,edge.index]
-                edge.node[2] = edgenodes[2,edge.index]
-            else # cx==cellnodes, edgenodes== local_edgenodes
-                edge.index   = 0
-                edge.node[1] = cellx[edgenodes[1,iedge],icell]
-                edge.node[2] = cellx[edgenodes[2,iedge],icell]
-            end
-            edge.region = cellregions[icell]
-            edge.icell  = icell
+            _fill!(edge,iedge,icell)
 
             #Set up argument for fluxwrap
             @views UKL[1:nspecies]            .= U[:, edge.node[1]]
@@ -492,12 +455,12 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     # Assembly loop for boundary conditions
     nballoc= @allocated for ibface=1:nbfaces
-        ibreg::Int=bfaceregions[ibface]
+        ibreg=bfaceregions[ibface]
 
         # Loop over nodes of boundary face
         for ibnode=1:nbn
             # Fill bnode data shuttle with data from grid
-            _fill!(bnode,bnode_data,ibnode,ibface)
+            _fill!(bnode,ibnode,ibface)
 
             # Copy unknown values from solution into dense array
             @views UK.=U[:,bnode.index]
@@ -599,14 +562,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                     continue
                 end
 
-
-                edge.index   = bfaceedges[ibedge, ibface]
-                edge.node[1] = bedgenodes[1, edge.index]
-                edge.node[2] = bedgenodes[2, edge.index]
-
-                edge.region = ibreg
-                edge.icell  = ibface
-
+                _fill!(bedge,ibedge,ibface)
                 @views UKL[1:nspecies]            .= U[:, edge.node[1]]
                 @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
 

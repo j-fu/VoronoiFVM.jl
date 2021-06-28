@@ -99,6 +99,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, exci
     data=physics.data
     node=Node{Tv,Ti}(system)
     bnode=BNode{Tv,Ti}(system)
+    bfaceregions::Vector{Ti}=grid[BFaceRegions]
     nspecies=num_species(system)
     nodeparams=(node,)
     bnodeparams=(bnode,)
@@ -126,20 +127,13 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, exci
     result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
 
     geom=grid[CellGeometries][1]
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
 
     bgeom=grid[BFaceGeometries][1]
-    bfacenodes=grid[BFaceNodes]
-    bfaceregions=grid[BFaceRegions]
-
 
     # Interior cell loop for building up storage derivative
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
+            _fill!(node,inode,icell)
             @views UK[1:nspecies]=U0[:,node.index]
             
             # Evaluate & differentiate storage term at U0
@@ -164,7 +158,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, exci
     for ibface=1:num_bfaces(grid)
         ibreg=bfaceregions[ibface]
         for ibnode=1:num_nodes(bgeom)
-            _fill!(bnode,bfacenodes,bfaceregions,ibnode,ibface)
+            _fill!(bnode,ibnode,ibface)
             @views UK[1:nspecies]=U0[:,bnode.index]
 
             # Set right hand side for excited boundary conditions

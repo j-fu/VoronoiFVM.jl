@@ -258,7 +258,7 @@ end
 
 """
 ```
-@create_physics_wrappers(physics,node,bnode,edge)
+@create_physics_wrappers(physics,node,bnode,edge,bedge)
 ```
 
 Create wrapper functions around physics callbacks which
@@ -270,7 +270,7 @@ before performing assembly loops. The macro creates the follwing variables:
 - flag variables: `issource`, `isreaction`,`isbreaction`,`isbstorage`
 
 """
-macro create_physics_wrappers(physics,node,bnode,edge)
+macro create_physics_wrappers(physics,node,bnode,edge,bedge)
     return quote
         data=$(esc(physics)).data
         if isdata(data)
@@ -309,7 +309,7 @@ macro create_physics_wrappers(physics,node,bnode,edge)
 
             global bfluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).bflux(y,u,$(esc(edge)),data)
+                $(esc(physics)).bflux(y,u,$(esc(bedge)),data)
                 nothing
             end
             
@@ -367,7 +367,7 @@ macro create_physics_wrappers(physics,node,bnode,edge)
 
             global bfluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).bflux(y,u,$(esc(edge)))
+                $(esc(physics)).bflux(y,u,$(esc(bedge)))
                 nothing
             end
             

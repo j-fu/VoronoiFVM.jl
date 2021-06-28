@@ -103,7 +103,8 @@ function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatri
     node=Node{Tv,Ti}(system)
     bnode=BNode{Tv,Ti}(system)
     edge=Edge{Tv,Ti}(system)
-    @create_physics_wrappers(physics,node,bnode,edge)
+    bedge=Edge{Tv,Ti}(system)
+    @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
     UKL=Array{Tv,1}(undef,2*nspecies)
     UK=Array{Tv,1}(undef,nspecies)
@@ -111,24 +112,10 @@ function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatri
     
 
     geom=grid[CellGeometries][1]
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
-
-    if haskey(grid,CellEdges)
-        cellx=grid[CellEdges]
-        edgenodes=grid[EdgeNodes]
-        has_celledges=true
-    else
-        cellx=grid[CellNodes]
-        edgenodes=local_celledgenodes(geom)
-        has_celledges=false
-    end
     
     for icell=1:num_cells(grid)
         for iedge=1:num_edges(geom)
-            _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
+            _fill!(edge,iedge,icell)
 
             @views UKL[1:nspecies].=U[:,edge.node[1]]
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
@@ -143,7 +130,7 @@ function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatri
         end
         
         for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
+            _fill!(node,inode,icell)
             begin
                 res.=zero(Tv)
                 stor.=zero(Tv)
@@ -195,32 +182,16 @@ function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
     node=Node{Tv,Ti}(system)
     bnode=BNode{Tv,Ti}(system)
     edge=Edge{Tv,Ti}(system)
-    @create_physics_wrappers(physics,node,bnode,edge)
+    bedge=BEdge{Tv,Ti}(system)
+    @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
     UKL=Array{Tu,1}(undef,2*nspecies)
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
-
-    
-    if haskey(grid,CellEdges)
-        cellx=grid[CellEdges]
-        edgenodes=grid[EdgeNodes]
-        has_celledges=true
-    else
-        cellx=grid[CellNodes]
-        edgenodes=local_celledgenodes(geom)
-        has_celledges=false
-    end
-        
-
    
     for icell=1:num_cells(grid)
         for iedge=1:num_edges(geom)
-            _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
+            _fill!(edge,iedge,icell)
 
             @views UKL[1:nspecies].=U[:,edge.node[1]]
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
@@ -235,7 +206,7 @@ function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
         end
         
         for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
+            _fill!(node,inode,icell)
 
             res.=zeros(Tv)
             src.=zeros(Tv)
@@ -270,19 +241,16 @@ function integrate_tran(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
     node=Node{Tv,Ti}(system)
     bnode=BNode{Tv,Ti}(system)
     edge=Edge{Tv,Ti}(system)
-    @create_physics_wrappers(physics,node,bnode,edge)
+    bedge=BEdge{Tv,Ti}(system)
+    @create_physics_wrappers(physics,node,bnode,edge,bedge)
     
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
-
     
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
+            _fill!(node,inode,icell)
 
             res.=zeros(Tv)
             stor.=zeros(Tv)

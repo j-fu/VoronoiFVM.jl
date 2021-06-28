@@ -16,7 +16,7 @@ function test()
     @test msol==dsol
     @test length(msol[2,:,1])==100
     @test length(dsol[2,:,2])==100
-    true
+    trues
 end
 
 end

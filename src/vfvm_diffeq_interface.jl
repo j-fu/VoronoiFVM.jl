@@ -68,8 +68,6 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     cellnodefactors=system.cellnodefactors
     bfacenodefactors=system.bfacenodefactors
     bgeom=grid[BFaceGeometries][1]
-    bfacenodes=grid[BFaceNodes]
-    bfaceregions=grid[BFaceRegions]
     nbfaces=num_bfaces(grid)
 
     if isdata(data)
@@ -118,7 +116,7 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
 
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
+            _fill!(node,inode,icell)
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,node.index]
             end
@@ -136,7 +134,7 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     if isbstorage
         for ibface=1:nbfaces
             for ibnode=1:num_nodes(bgeom)
-                _fill!(bnode,bfacenodes,bfaceregions,ibnode,ibface)
+                _fill!(bnode,ibnode,ibface)
                 for ispec=1:nspecies
                     UK[ispec]=U[ispec,bnode.index]
                 end
