@@ -6,6 +6,133 @@ Abstract type for finite volume system structure.
 """
 abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 
+##################################################################
+"""
+$(TYPEDEF)
+    
+Structure holding data for finite volume system solution.
+Information on species distribution is kept in sparse
+matrices, and the solution array is of type SparseSolutionArray,
+i.e. effectively it is a sparse matrix.
+
+Unlike in the DenseSystem, the system matrix handles exactly those
+degrees of freedom which correspond to unknowns. However, handling
+of the sparse matrix structures for the bookkeeping of the unknowns
+creates overhead.
+
+$(TYPEDFIELDS)
+"""
+mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix} <: AbstractSystem{Tv,Ti, Tm}
+
+    """
+    Grid
+    """
+    grid
+
+    """
+    Physics data
+    """
+    physics::Physics
+
+    """
+    Array of boundary values 
+    """
+    boundary_values::Array{Tv,2} 
+
+    """
+    Array of boundary factors 
+    """
+    boundary_factors::Array{Tv,2}
+
+    """
+    Sparse matrix containing species numbers for inner regions
+    """
+    region_species::TSpecMat
+
+    """
+    Sparse matrix containing species numbers for boundary regions
+    """
+    bregion_species::TSpecMat
+
+
+    """
+    Sparse matrix containing degree of freedom numbers for each node
+    """
+    node_dof::TSpecMat
+
+    quantspec::Array{Ti,2}
+    bquantspec::Array{Ti,2}
+
+    
+    """
+    Jacobi matrix for nonlinear problem
+    """
+    matrix::ExtendableSparseMatrix{Tv,Tm}
+
+    """
+    Matrix factorization
+    """
+    factorization::Union{Nothing,ExtendableSparse.AbstractFactorization{Tv,Tm}}
+    
+    """
+    Flag which says if the number of unknowns per node is constant
+    """
+    species_homogeneous::Bool
+
+    """
+    Solution vector holding Newton update
+    """
+    update::TSolArray
+
+    """
+    Solution vector holding Newton residual
+    """
+    residual::TSolArray
+
+    """
+    Precomputed geometry factors for cell nodes
+    """
+    cellnodefactors::Array{Tv,2}
+    
+    """
+    Precomputed geometry factors for cell edges
+    """
+    celledgefactors::Array{Tv,2}
+
+    """
+    Precomputed geometry factors for boundary nodes
+    """
+    bfacenodefactors::Array{Tv,2}
+
+    """
+    Precomputed geometry factors for boundary edges
+    """
+    bfaceedgefactors::Array{Tv,2}
+
+    """
+    Sparse matrix for generic operator handling
+    """
+    generic_matrix::SparseMatrixCSC
+
+    """
+    Sparse matrix colors for generic operator handling
+    """
+    generic_matrix_colors::Vector
+
+    """
+    Hash value of latest unknowns vector the assembly was called with
+    """
+    uhash::UInt64
+
+    """
+    Data for allocation check
+    """
+    allocs::Int
+    
+    System{Tv,Ti,Tm, TSpecMat, TSolArray}() where {Tv,Ti,Tm, TSpecMat, TSolArray} = new()
+end
+
+
 
 default_check_allocs()= haskey(ENV,"VORONOIFVM_CHECK_ALLOCS") ? parse(Bool,ENV["VORONOIFVM_CHECK_ALLOCS"]) :  false
 
@@ -27,14 +154,35 @@ Create Finite Volume System.
 - `matrixindextype` : Index type for sparse matrices created in the system
 """
 function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
+
+    Tv=coord_type(grid)
+    Ti=index_type(grid)
+    Tm=matrixindextype
+
     if Symbol(unknown_storage)==:dense
-        sys=DenseSystem(grid,physics, matrixindextype=matrixindextype)
+        system=System{Tv,Ti,Tm,Matrix{Ti}, Matrix{Tv}}()
     elseif Symbol(unknown_storage)==:sparse
-        sys=SparseSystem(grid,physics, matrixindextype=matrixindextype)
+        system=System{Tv,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti}}()
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
-    check_allocs!(sys,check_allocs)
+
+    maxspec=0
+    system.grid=grid
+    system.physics=physics
+    system.region_species=spzeros(Ti,Int16,maxspec,num_cellregions(grid))
+    system.bregion_species=spzeros(Ti,Int16,maxspec,num_bfaceregions(grid))
+    system.node_dof=spzeros(Ti,Tm,maxspec,num_nodes(grid))
+    system.quantspec=spzeros(Ti,0,num_cellregions(grid))
+    system.bquantspec=spzeros(Ti,0,num_cellregions(grid))
+    system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
+    system.species_homogeneous=false
+    system.uhash=0x0
+    system.allocs=-1000
+    system.factorization=nothing
+    check_allocs!(system,check_allocs)
+    return system
 end
 
 
@@ -381,7 +529,7 @@ update_grid!(system; grid=system.grid)
 
 Update grid (e.g. after rescaling of coordinates).
 """
-function update_grid!(system::AbstractSystem{Tv,Ti}; grid=system.grid) where {Tv,Ti}
+function update_grid!(system::AbstractSystem{Tv,Ti,Tm}; grid=system.grid) where {Tv,Ti,Tm}
     
     geom        = grid[CellGeometries][1]
     csys        = grid[CoordinateSystem]
