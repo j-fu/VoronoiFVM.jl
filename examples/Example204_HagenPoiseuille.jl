@@ -19,7 +19,6 @@ using ExtendableGrids
 using GridVisualize
 
 
-
 function main(;nref=0,Plotter=nothing,D=0.01,v=1.0,tend=100,cin=1.0)
     H=1.0
     L=5.0

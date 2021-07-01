@@ -268,13 +268,12 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     _complete!(system) # needed here as well for test function system which does not use newton
     
     grid    = system.grid
-    physics = system.physics
     node    = Node{Tv,Ti}(system)
     bnode   = BNode{Tv,Ti}(system)
     edge    = Edge{Tv,Ti}(system)
     bedge   = BEdge{Tv,Ti}(system)
     
-    @create_physics_wrappers(physics, node, bnode, edge, bedge)
+    @create_physics_wrappers(system.physics, node, bnode, edge, bedge)
 
 
     nspecies::Int = num_species(system)
