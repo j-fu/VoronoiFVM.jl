@@ -40,7 +40,7 @@ function run_all_tests()
     ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
     
     @time begin
-#        run_tests_from_directory(@__DIR__,"test_")
+        run_tests_from_directory(@__DIR__,"test_")
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example")
     end
 end

@@ -27,7 +27,7 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     """
     Grid
     """
-    grid
+    grid::ExtendableGrid{Tv,Ti}
 
     """
     Physics data
