@@ -10,8 +10,7 @@ using GridVisualize
 # number v*h/D&gt;1, the monotonicity property is lost.  Grid refinement
 # can fix this situation by decreasing $h$.
 
-function central_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function central_flux!(f,u,edge,data)
     f_diff=data.D*(u[1,1]-u[1,2])
     vh=project(edge,data.v)
     f[1]=f_diff+vh*(u[1,1]+u[1,2])/2
@@ -21,8 +20,7 @@ end
 # via brute force and loses one order of convergence for small $h$ compared
 # to the central flux.
 
-function upwind_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function upwind_flux!(f,u,edge,data)
     fdiff=data.D*(u[1,]-u[1,2])
     vh=project(edge,data.v)
     if vh&gt;0
@@ -45,8 +43,7 @@ function bernoulli(x)
     return x/(exp(x)-1)
 end
 
-function exponential_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function exponential_flux!(f,u,edge,data)
     vh=project(edge,data.v)
     Bplus= data.D*bernoulli(vh/data.D)
     Bminus=data.D*bernoulli(-vh/data.D)
@@ -100,4 +97,4 @@ function test()
     main() ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example101_Laplace1D/">« 101: 1D Laplace equation</a><a class="docs-footer-nextpage" href="../Example103_ConvectionDiffusion1D/">103: 1D Convection-diffusion equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 29 June 2021 10:11">Tuesday 29 June 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example101_Laplace1D/">« 101: 1D Laplace equation</a><a class="docs-footer-nextpage" href="../Example103_ConvectionDiffusion1D/">103: 1D Convection-diffusion equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.3 on <span class="colophon-date" title="Friday 2 July 2021 09:22">Friday 2 July 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

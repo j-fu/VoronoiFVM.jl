@@ -7,8 +7,7 @@ using GridVisualize
 
 # Flux function which describes the flux
 # between neigboring control volumes
-function g!(f,u0,edge)
-    u=unknowns(edge,u0)
+function g!(f,u,edge)
     f[1]=u[1,1]-u[1,2]
 end
 
@@ -23,7 +22,7 @@ function main(;Plotter=nothing,n=5)
     ispec=1
     X=collect(0:1/n:1)
     grid=VoronoiFVM.Grid(X,X,X)
-    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!,source=s)
+    physics=VoronoiFVM.Physics(flux=g!,source=s)
     sys=VoronoiFVM.System(grid,physics)
     enable_species!(sys,ispec,[1])
     boundary_dirichlet!(sys,ispec,5,0.0)
@@ -41,4 +40,4 @@ function test()
     main() ≈ 0.012234524449380824
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example311_HeatEquation_BoundaryDiffusion/">311: Heat Equation with boundary diffusion »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 29 June 2021 10:11">Tuesday 29 June 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example311_HeatEquation_BoundaryDiffusion/">311: Heat Equation with boundary diffusion »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.3 on <span class="colophon-date" title="Friday 2 July 2021 09:22">Friday 2 July 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
