@@ -13,9 +13,8 @@ Solver for coupled nonlinear partial differential equations based on the Voronoi
 This Julia package merges the ideas behind [pdelib](http://www.wias-berlin.de/software/pdelib/?lang=0)/fvsys with the multiple dispatch paradigm of Julia. It allows to avoid the implementation of function derivatives.  It instead uses [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) and [DiffResults.jl](https://github.com/JuliaDiff/DiffResults.jl) to evaluate user functions along with their jacobians.
 
 
-It requires Julia 1.x
-
 API changes:
+- [v0.12](https://j-fu.github.io/VoronoiFVM.jl/v0.12/changes) (cleaned up API, maintaining backwards compatibility)
 - [v0.11](https://j-fu.github.io/VoronoiFVM.jl/v0.11/changes) (Requiring Julia 1.5 now)
 - [v0.10](https://j-fu.github.io/VoronoiFVM.jl/v0.10/changes)
 - [v0.9](https://j-fu.github.io/VoronoiFVM.jl/v0.9/changes/) (Some are breaking)

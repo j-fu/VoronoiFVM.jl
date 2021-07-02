@@ -46,9 +46,7 @@ include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmmetric!
 export coordinates
 
-include("vfvm_abstractsystem.jl")
-include("vfvm_densesystem.jl")
-include("vfvm_sparsesystem.jl")
+include("vfvm_system.jl")
 export unknowns
 export enable_species!
 export enable_boundary_species!

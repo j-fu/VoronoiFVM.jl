@@ -11,11 +11,12 @@ abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 $(TYPEDEF)
     
 Structure holding data for finite volume system solution.
-Information on species distribution is kept in sparse
-matrices, and the solution array is of type SparseSolutionArray,
-i.e. effectively it is a sparse matrix.
 
-Unlike in the DenseSystem, the system matrix handles exactly those
+Information on species distribution is kept in sparse or dense matrices
+matrices and, correspondingly,  the solution array is of type SparseSolutionArray
+or matrix, respectively.
+
+In the case of sparse unknown storage, the system matrix handles exactly those
 degrees of freedom which correspond to unknowns. However, handling
 of the sparse matrix structures for the bookkeeping of the unknowns
 creates overhead.
@@ -45,22 +46,30 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     boundary_factors::Array{Tv,2}
 
     """
-    Sparse matrix containing species numbers for inner regions
+    Matrix containing species numbers for inner regions
     """
     region_species::TSpecMat
 
     """
-    Sparse matrix containing species numbers for boundary regions
+    Matrix containing species numbers for boundary regions
     """
     bregion_species::TSpecMat
 
 
     """
-    Sparse matrix containing degree of freedom numbers for each node
+    Matrix containing degree of freedom numbers for each node
     """
     node_dof::TSpecMat
 
+
+    """
+    WIP
+    """
     quantspec::Array{Ti,2}
+
+    """
+    WIP
+    """
     bquantspec::Array{Ti,2}
 
     
@@ -132,6 +141,20 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     System{Tv,Ti,Tm, TSpecMat, TSolArray}() where {Tv,Ti,Tm, TSpecMat, TSolArray} = new()
 end
 
+"""
+    const DenseSystem
+
+Type alias for system with dense matrix based species management
+"""
+const DenseSystem = System{Tv,Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Ti, Tm}
+
+
+"""
+    const SparseSystem
+
+Type alias for system with sparse matrix based species management
+"""
+const SparseSystem = System{Tv,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti} } where {Tv, Ti, Tm}
 
 
 default_check_allocs()= haskey(ENV,"VORONOIFVM_CHECK_ALLOCS") ? parse(Bool,ENV["VORONOIFVM_CHECK_ALLOCS"]) :  false
@@ -185,7 +208,23 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
     return system
 end
 
+"""
+$(SIGNATURES)
 
+Constructor for DenseSystem.
+"""
+DenseSystem(grid,physics::Physics; matrixindextype=Int64)=System(grid,physics,matrixindextype=matrixindextype,unknown_storage=:dense)
+
+
+"""
+$(SIGNATURES)
+
+Constructor for SparseSystem.
+"""
+SparseSystem(grid,physics::Physics; matrixindextype=Int64)=System(grid,physics,matrixindextype=matrixindextype,unknown_storage=:sparse)
+
+
+###################################################################################################
 # Test if allocated is zero and if allocation check is enabled
 # However we need to be aware that @allocated reports allocations
 # during the compilation phase. So we need to wait for at least
@@ -340,11 +379,11 @@ function add_boundary_quantity(sys,iquant,bregions)
 end
 
 
-""""
+# """
 
-For a discontinuous quantity, we need to have a different
-species number for each region.
-"""
+# For a discontinuous quantity, we need to have a different
+# species number for each region.
+# """
 function add_discontinuous_quantity(sys,iquant,regions)
     addzrows(sys.quantspec,iquant)
     nspec=num_species(sys)
@@ -669,6 +708,41 @@ end
 
 
 
+function _eval_and_assemble_inactive_species(system::AbstractSystem,U,Uold,F) end
+
+function _eval_and_assemble_inactive_species(system::DenseSystem,U,Uold,F)
+    if system.species_homogeneous
+        return
+    end
+    for inode=1:size(system.node_dof,2)
+        for ispec=1:size(system.node_dof,1)
+            if !isdof(system,ispec,inode)
+                F[ispec,inode]+= U[ispec,inode]-Uold[ispec,inode];
+                idof=dof(F,ispec,inode)
+                system.matrix[idof,idof]+=1.0
+            end
+        end
+    end
+end
+
+function _initialize_inactive_dof!(U::AbstractMatrix,system::AbstractSystem) end
+
+function _initialize_inactive_dof!(U::DenseSolutionArray,system::DenseSystem)
+    if system.species_homogeneous
+        return
+    end
+    for inode=1:size(system.node_dof,2)
+        for ispec=1:size(system.node_dof,1)
+            if !isdof(system,ispec,inode)
+                U[ispec,inode]=0
+            end
+        end
+    end
+end
+
+
+
+
 
 function Base.show(io::IO,sys::AbstractSystem)
     str=@sprintf("%s(num_species=%d)",typeof(sys),num_species(system))
@@ -678,3 +752,112 @@ end
 #####################################################
 has_generic_operator(sys::AbstractSystem) = sys.physics.generic_operator!=nofunc_generic
 has_generic_operator_sparsity(sys::AbstractSystem) =  sys.physics.generic_operator_sparsity!=nofunc_generic_sparsity
+
+
+
+##################################################################
+"""
+$(SIGNATURES)
+
+Number of degrees of freedom for system.
+"""
+function num_dof(system::AbstractSystem) end
+
+num_dof(system::SparseSystem)= nnz(system.node_dof)
+
+num_dof(system::DenseSystem)= length(system.node_dof)
+
+
+"""
+$(SIGNATURES)
+
+Create a solution vector for system.
+If inival is not specified, the entries of the returned vector are undefined.
+"""
+function unknowns(system::AbstractSystem;inival=undef) end
+
+unknowns(sys::SparseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm}=unknowns(Tv,sys,inival=inival)
+
+unknowns(system::DenseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm} = unknowns(Tv,system,inival=inival)
+
+
+"""
+$(SIGNATURES)
+
+Create a solution vector for system with elements of type `Tu`.
+If inival is not specified, the entries of the returned vector are undefined.
+"""
+function unknowns(Tu::Type, sys::AbstractSystem; inival=undef) end
+
+function unknowns(Tu::Type, system::SparseSystem;inival=undef)
+    a0=Array{Tu}(undef,num_dof(system))
+    if inival!=undef
+        fill!(a0,inival)
+    end
+    return SparseSolutionArray(SparseMatrixCSC(system.node_dof.m,
+                                               system.node_dof.n,
+                                               system.node_dof.colptr,
+                                               system.node_dof.rowval,
+                                               a0
+                                               )
+    )
+end
+
+function unknowns(Tu::Type, sys::DenseSystem; inival=undef)
+    a=Array{Tu}(undef,size(sys.node_dof)...)
+    if inival!=undef
+        fill!(a,inival)
+    end
+    return a
+end
+
+
+
+
+
+"""
+$(SIGNATURES)
+
+Reshape vector to fit as solution to system.
+"""
+function Base.reshape(v,system::AbstractSystem) end
+
+Base.reshape(v::DenseSolutionArray,system::DenseSystem)=v
+
+Base.reshape(v::SparseSolutionArray,sys::SparseSystem)=v
+
+function Base.reshape(v::AbstractVector, sys::DenseSystem)
+    @assert  length(v)==num_dof(sys)
+    nspec=num_species(sys)
+    reshape(v,Int64(nspec),Int64(length(v)/nspec))
+end
+
+function Base.reshape(v::AbstractVector,system::SparseSystem)
+    @assert  length(v)==num_dof(system)
+    SparseSolutionArray(SparseMatrixCSC(system.node_dof.m,
+                                        system.node_dof.n,
+                                        system.node_dof.colptr,
+                                        system.node_dof.rowval,
+                                        Vector(v)
+                                        )
+                        )
+end
+
+
+
+"""
+$(SIGNATURES)
+
+Calculate norm, paying attention to species distribution over regions
+"""
+function LinearAlgebra.norm(system::AbstractSystem,u,p) end
+
+function LinearAlgebra.norm(system::DenseSystem,u,p)
+    _initialize_inactive_dof!(u,system)
+    norm(u,p)
+end
+
+LinearAlgebra.norm(system::SparseSystem,u,p)=norm(u.node_dof.nzval,p)
+
+
+

@@ -15,21 +15,9 @@ Grids for VoronoiFVM are managed by the package
 [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl).
 
 
-## Abstract System
 ```@autodocs
 Modules = [VoronoiFVM]
-Pages = ["vfvm_abstractsystem.jl"]
-```
-
-## Dense System
-```@autodocs
-Modules = [VoronoiFVM]
-Pages = ["vfvm_densesystem.jl"]
-```
-
-## Sparse System
-```@autodocs
-Modules = [VoronoiFVM]
-Pages = ["vfvm_sparsesystem.jl"]
+Pages = ["vfvm_system.jl"]
+Order = [:type, :constant, :function]
 ```
 

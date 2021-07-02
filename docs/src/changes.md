@@ -1,7 +1,11 @@
 # Changes
 
-## v0.11.xxx
-- physics.num_species is now meaningless, num_species is automatically detected.
+## v0.12.0, July 2 2021
+-  By default, the `u` parameter in flux callbacks is now a  `nspec x 2` array
+- `unknowns(edge,u)`, `viewK, viewL` are obsolete, they still work for backward compatibility
+- `physics.num_species` is now meaningless, num_species is automatically detected.
+- `SparseSystem` and `DenseSystem` are now type aliases of a parametrized type instead of two
+   independent subtypes of `System`
 
 ## v0.11.8
 - increase chunk size threshold to match argument length in calls to vector_mode_jacobian
