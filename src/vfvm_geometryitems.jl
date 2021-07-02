@@ -34,7 +34,6 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
 
 
     cellregions::Vector{Ti}
-    
 
     """
     Number of species defined in node
@@ -46,22 +45,31 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     coord::Matrix{Tv}
 
+    discontspec::Array{Ti,2}
+
 
     bfacenodes::Array{Ti,2}
 
     bfaceregions::Vector{Ti}
 
+    allcellregions::Vector{Ti}
+    
+    bfacecells::ExtendableGrids.Adjacency{Ti}
+    
     
     BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,0,0,zeros(Ti,2),
                                                                  num_species(sys),
                                                                  coordinates(sys.grid),
+                                                                 sys.discontspec,
                                                                  sys.grid[BFaceNodes],
-                                                                 sys.grid[BFaceRegions]
+                                                                 sys.grid[BFaceRegions],
+                                                                 sys.grid[CellRegions],
+                                                                 sys.grid[BFaceCells],
                                                                  )
 end
 
 
-@inline function _fill!(node::BNode,ibnode,ibface)
+@inline function _fill0!(node::BNode,ibnode,ibface)
     node.ibface=ibface
     node.ibnode=ibnode
     node.region=node.bfaceregions[ibface]
@@ -70,17 +78,14 @@ end
 end
 
 
-function _fill!(node::BNode,bfacenodes,bfacecells,bfaceregions,cellregions,ibnode,ibface)
-    K=bfacenodes[ibnode,ibface]
-    node.ibface=ibface
-    node.ibnode=ibnode
-    node.index=K
+function _fill!(node::BNode,ibnode,ibface)
+    _fill0!(node,ibnode,ibface)
     node.cellregions[1]=0
     node.cellregions[2]=0
-    for i=1:num_targets(bfacecells,ibface)
-        node.cellregions[i]=cellregions[bfacecells[ibface,i]]
+    for i=1:num_targets(node.bfacecells,ibface)
+        icell=node.bfacecells[i,ibface]
+        node.cellregions[i]=node.allcellregions[icell]
     end
-    node.region=bfaceregions[ibface]
 end
 
 
@@ -91,6 +96,7 @@ Base.size(bnode::BNode)=(size(bnode.coord)[1],)
 
 Base.getindex(bnode::BNode, idim)= bnode.coord[idim,bnode.index]
 
+Base.getindex(spec::Species,bnode::BNode,j)=bnode.discontspec[spec.i,bnode.cellregions[j]]
 
 
 ##################################################################
@@ -195,7 +201,9 @@ mutable struct Edge{Tv,Ti}  <: AbstractEdge{Tv, Ti}
     """
     coord::Matrix{Tv}
 
+    discontspec::Array{Ti,2}
 
+    
     cellx::Array{Ti,2}
     edgenodes::Array{Ti,2}
     cellregions::Vector{Ti}
@@ -224,6 +232,7 @@ function  Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}
         edge.edgenodes=local_celledgenodes(geom)
         edge.has_celledges=false
     end
+    edge.discontspec=sys.discontspec
     edge.cellregions=sys.grid[CellRegions]
     edge
 end
@@ -269,6 +278,36 @@ end
 
 Base.size(edge::Edge)=(size(edge.coord)[1],2)
 Base.getindex(edge::Edge, idim,inode)= edge.coord[idim,edge.node[inode]]
+
+Base.getindex(spec::Species,edge::Edge)=edge.discontspec[spec.i,edge.region]
+
+
+"""
+$(TYPEDEF)
+
+Wrapper struct for viewing unknowns passed to flux as matrix
+    
+$(TYPEDFIELDS)
+"""
+struct EdgeUnknowns{T} <:AbstractMatrix{T} 
+    u::Vector{T}
+    n1::Int64
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Construct matrix of unknowns from edge - these can be used in flux functions
+with the v0.7.x and v0.8.x syntax to acces data.
+"""
+unknowns(edge::AbstractEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec)
+Base.getindex(u::EdgeUnknowns,i,j)=@inbounds u.u[(j-1)*u.n1+i]
+Base.getindex(u::EdgeUnknowns,spec::Species,j)=@inbounds u[spec[u.edge],j]
+Base.size(u::EdgeUnknowns)=(u.n1,2)
+
+
+
 
 ##################################################################
 """
@@ -387,30 +426,6 @@ end
 
 
 
-##################################################################
-"""
-$(TYPEDEF)
-
-Wrapper struct for viewing unknowns passed to flux as matrix
-    
-$(TYPEDFIELDS)
-"""
-struct MatrixUnknowns{T} <:AbstractMatrix{T} 
-    u::Vector{T}
-    n1::Int64
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Construct matrix of unknowns from edge - these can be used in flux functions
-with the v0.7.x and v0.8.x syntax to acces data.
-"""
-unknowns(edge::AbstractEdge,u::Vector{T}) where T = MatrixUnknowns{T}(u,edge.nspec)
-Base.getindex(u::MatrixUnknowns,i,j)=@inbounds u.u[(j-1)*u.n1+i]
-Base.size(u::MatrixUnknowns)=(u.n1,2)
-
 
 
 
@@ -458,9 +473,9 @@ unknowns(node::BNode, u)=u
 # Deprecation warnings here!
 
 # For backward compatibility
-unknowns(edge,u::MatrixUnknowns)=u
+unknowns(edge,u::EdgeUnknowns)=u
 # For backward compatibility
-unknowns(edge::Edge, u::MatrixUnknowns{T},i) where T = VectorUnknowns{T}(u.u,edge.nspec,(i-1)*(edge.nspec))
+unknowns(edge::Edge, u::EdgeUnknowns{T},i) where T = VectorUnknowns{T}(u.u,edge.nspec,(i-1)*(edge.nspec))
 
 """
 $(TYPEDSIGNATURES)

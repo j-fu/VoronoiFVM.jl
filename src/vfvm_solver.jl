@@ -461,6 +461,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             # Fill bnode data shuttle with data from grid
             _fill!(bnode,ibnode,ibface)
 
+            
             # Copy unknown values from solution into dense array
             @views UK.=U[:,bnode.index]
 

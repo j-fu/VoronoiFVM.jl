@@ -50,12 +50,14 @@ include("vfvm_system.jl")
 export unknowns
 export enable_species!
 export enable_boundary_species!
+export enable_discontinuous_species!
 export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!
 export value
 export check_allocs!
+export Species
 
 include("vfvm_geometryitems.jl")
 include("vfvm_formfactors.jl")

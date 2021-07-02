@@ -62,17 +62,8 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     node_dof::TSpecMat
 
 
-    """
-    WIP
-    """
-    quantspec::Array{Ti,2}
+    discontspec::TSpecMat
 
-    """
-    WIP
-    """
-    bquantspec::Array{Ti,2}
-
-    
     """
     Jacobi matrix for nonlinear problem
     """
@@ -132,7 +123,7 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     Hash value of latest unknowns vector the assembly was called with
     """
     uhash::UInt64
-
+    
     """
     Data for allocation check
     """
@@ -196,8 +187,7 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
     system.region_species=spzeros(Ti,Int16,maxspec,num_cellregions(grid))
     system.bregion_species=spzeros(Ti,Int16,maxspec,num_bfaceregions(grid))
     system.node_dof=spzeros(Ti,Tm,maxspec,num_nodes(grid))
-    system.quantspec=spzeros(Ti,0,num_cellregions(grid))
-    system.bquantspec=spzeros(Ti,0,num_cellregions(grid))
+    system.discontspec=spzeros(Ti,0,num_cellregions(grid))
     system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.species_homogeneous=false
@@ -358,41 +348,93 @@ function increase_num_species!(system,maxspec)
 end
 
 
-function add_continuous_quantity(sys,iquant,regions)
-    addzrows(sys.quantspec,iquant)
-    nspec=num_species(sys)
-    nspec=nspec+1
-    enable_species!(sys,nspec,regions)
-    for ireg ∈ regions
-        sys.quantspec[iquant,ireg]=nspec
-    end
-end
 
-function add_boundary_quantity(sys,iquant,bregions)
-    addzrows(sys.bquantspec,iquant)
-    nspec=num_species(sys)
-    nspec=nspec+1
-    enable_boundary_species!(sys,nspec,regions)
-    for ireg ∈ regions
-        sys.bquantspec[iquant,ireg]=nspec
-    end
+struct Species
+    i::Int
 end
 
 
-# """
-
-# For a discontinuous quantity, we need to have a different
-# species number for each region.
-# """
-function add_discontinuous_quantity(sys,iquant,regions)
-    addzrows(sys.quantspec,iquant)
+function enable_discontinuous_species!(sys,spec::Species,regions)
+    sys.discontspec=addzrows(sys.discontspec,spec.i)
     nspec=num_species(sys)
     for ireg ∈ regions
         nspec=nspec+1
         enable_species!(sys,nspec,[ireg])
-        sys.quantspec[iquant,ireg]=nspec
+        sys.discontspec[spec.i,ireg]=nspec
     end
 end
+
+function enable_species!(sys,spec::Species,regions)
+    sys.discontspec=addzrows(sys.discontspec,spec.i)
+    nspec=num_species(sys)
+    nspec=nspec+1
+    enable_species!(sys,nspec,regions)
+    for ireg ∈ regions
+        sys.discontspec[spec.i,ireg]=nspec
+    end
+end
+
+
+function subgrids(spec::Species, sys)
+    grid=sys.grid
+    subgrids=Vector{ExtendableGrid}(undef,0)
+    for ireg=1:num_cellregions(grid)
+        ispec=sys.discontspec[spec.i,ireg]
+        if ispec>0
+            push!(subgrids,subgrid(grid,[ireg]))
+        end
+    end
+    subgrids
+end
+
+function views(U, spec::Species, subgrids,sys)
+    grid=sys.grid
+    projections=Vector[]
+    j=1
+    for ireg=1:num_cellregions(grid)
+        ispec=sys.discontspec[spec.i,ireg]
+        if ispec>0
+            push!(projections,view(U[ispec,:],subgrids[j]))
+            j=j+1
+        end
+    end
+    projections
+end
+
+# # """
+
+# # For a discontinuous quantity, we need to have a different
+# # species number for each region.
+# # """
+# function enable_discontinuous_species(sys,species::Species, regions)
+#     spec.regspec=
+#     nspec=num_species(sys)
+#     for ireg ∈ regions
+#         nspec=nspec+1
+#         enable_species!(sys,nspec,[ireg])
+#         dspec.regspec[ireg]=nspec
+#     end
+# end
+
+# function continuous_species(sys,species::Species, regions)
+#     spec=Species(sys)
+#     nspec=num_species(sys)
+#     nspec=nspec+1
+#     enable_species!(sys,nspec,regions)
+#     for ireg ∈ regions
+#         dspec.regspec[ireg]=nspec
+#     end
+# end
+
+# function boundary_species(sys,bregions)
+#     spec=Species(sys)
+#     nspec=num_species(sys)
+#     nspec=nspec+1
+#     enable_boundary_species!(sys,nspec,bregions)
+#     for ireg ∈ bregions
+#         dspec.regspec[ireg]=nspec
+#     end
+# end
 
 
 ##################################################################
@@ -638,6 +680,27 @@ function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
 end
 
 
+# just return the first which comes into mind.
+# we need to ensure homgeneity of bregion-region structure.
+# if that is true, this works.
+function get_cellregion(sys,ibc)
+    grid=sys.grid
+    bfregions=grid[BFaceRegions]
+    cregions=grid[CellRegions]
+    for ibface=1:num_bfaces(sys.grid)
+        if bfregions[ibface]==ibc
+            bfcells=grid[BFaceCells]
+            return cregions[bfcells[ibface,1]]
+        end
+    end
+    return 0
+end
+
+boundary_dirichlet!(sys::AbstractSystem, spec::Species, ibc, v)=boundary_dirichlet!(sys,
+                                                                                   sys.discontspec[spec.i,get_cellregion(sys,ibc)],
+                                                                                   ibc,
+                                                                                   v)
+
 ##################################################################
 """
 $(SIGNATURES)
@@ -741,11 +804,8 @@ function _initialize_inactive_dof!(U::DenseSolutionArray,system::DenseSystem)
 end
 
 
-
-
-
 function Base.show(io::IO,sys::AbstractSystem)
-    str=@sprintf("%s(num_species=%d)",typeof(sys),num_species(system))
+    str=@sprintf("%s(num_species=%d)",typeof(sys),num_species(sys))
     println(io,str)
 end
 
