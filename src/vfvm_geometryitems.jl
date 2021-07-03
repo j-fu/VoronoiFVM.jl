@@ -1,4 +1,5 @@
 abstract type AbstractGeometryItem{Tv<:Number, Ti <:Integer} end
+
 abstract type AbstractEdge{Tv<:Number, Ti <:Integer}  <: AbstractGeometryItem{Tv, Ti} end
 
 ##################################################################
@@ -93,10 +94,32 @@ end
 
 
 Base.size(bnode::BNode)=(size(bnode.coord)[1],)
-
 Base.getindex(bnode::BNode, idim)= bnode.coord[idim,bnode.index]
-
 Base.getindex(spec::Species,bnode::BNode,j)=bnode.discontspec[spec.i,bnode.cellregions[j]]
+
+
+struct BNodeUnknowns{T} <:AbstractMatrix{T} 
+    u::Vector{T}
+    bnode::BNode
+end
+
+unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode)
+Base.getindex(u::BNodeUnknowns,i,)=@inbounds u.u[i]
+Base.getindex(u::BNodeUnknowns,spec::Species,j)=@inbounds u[spec[u.bnode,j]]
+
+struct BNodeRHS{T} <:AbstractVector{T}
+    f::Vector{T}
+    bnode::BNode
+end
+
+
+rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS(f,bnode)
+Base.getindex(f::BNodeRHS,i)=@inbounds f.f[i]
+Base.getindex(f::BNodeRHS,spec::Species,j)=f[spec[f.bnode,j]]
+
+Base.setindex!(f::BNodeRHS,v,i)=@inbounds f.f[i]=v
+Base.setindex!(f::BNodeRHS,v,spec::Species,j)=@inbounds f[spec[f.bnode,j]]=v
+
 
 
 ##################################################################
@@ -281,32 +304,31 @@ Base.getindex(edge::Edge, idim,inode)= edge.coord[idim,edge.node[inode]]
 
 Base.getindex(spec::Species,edge::Edge)=edge.discontspec[spec.i,edge.region]
 
-
-"""
-$(TYPEDEF)
-
-Wrapper struct for viewing unknowns passed to flux as matrix
-    
-$(TYPEDFIELDS)
-"""
 struct EdgeUnknowns{T} <:AbstractMatrix{T} 
     u::Vector{T}
     n1::Int64
+    edge::AbstractEdge
+end
+
+Base.size(u::EdgeUnknowns)=(u.n1,2)
+
+unknowns(edge::AbstractEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
+Base.getindex(u::EdgeUnknowns,i,j)=@inbounds u.u[(j-1)*u.n1+i]
+Base.getindex(u::EdgeUnknowns,spec::Species,j)=@inbounds u[spec[u.edge],j]
+
+
+struct EdgeRHS{T} <:AbstractVector{T} 
+    f::Vector{T}
+    edge::Edge
 end
 
 
-"""
-$(TYPEDSIGNATURES)
+rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS(f,edge)
+Base.getindex(f::EdgeRHS,i)=@inbounds f.f[i]
+Base.getindex(f::EdgeRHS,spec::Species)=f[spec[f.edge]]
 
-Construct matrix of unknowns from edge - these can be used in flux functions
-with the v0.7.x and v0.8.x syntax to acces data.
-"""
-unknowns(edge::AbstractEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec)
-Base.getindex(u::EdgeUnknowns,i,j)=@inbounds u.u[(j-1)*u.n1+i]
-Base.getindex(u::EdgeUnknowns,spec::Species,j)=@inbounds u[spec[u.edge],j]
-Base.size(u::EdgeUnknowns)=(u.n1,2)
-
-
+Base.setindex!(f::EdgeRHS,v,i)=@inbounds f.f[i]=v
+Base.setindex!(f::EdgeRHS,v,spec::Species)=@inbounds f.f[spec[f.edge]]=v
 
 
 ##################################################################
