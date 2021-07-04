@@ -46,8 +46,6 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     """
     coord::Matrix{Tv}
 
-    discontspec::Array{Ti,2}
-
 
     bfacenodes::Array{Ti,2}
 
@@ -61,7 +59,6 @@ mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
     BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,0,0,zeros(Ti,2),
                                                                  num_species(sys),
                                                                  coordinates(sys.grid),
-                                                                 sys.discontspec,
                                                                  sys.grid[BFaceNodes],
                                                                  sys.grid[BFaceRegions],
                                                                  sys.grid[CellRegions],
@@ -95,7 +92,9 @@ end
 
 Base.size(bnode::BNode)=(size(bnode.coord)[1],)
 Base.getindex(bnode::BNode, idim)= bnode.coord[idim,bnode.index]
-Base.getindex(spec::Species,bnode::BNode,j)=bnode.discontspec[spec.i,bnode.cellregions[j]]
+Base.getindex(q::DiscontinuousQuantity,bnode::BNode,j)=q.regionspec[bnode.cellregions[j]]
+Base.getindex(q::ContinuousQuantity,bnode::BNode)=q.ispec
+
 
 
 struct BNodeUnknowns{T} <:AbstractMatrix{T} 
@@ -104,21 +103,26 @@ struct BNodeUnknowns{T} <:AbstractMatrix{T}
 end
 
 unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode)
-Base.getindex(u::BNodeUnknowns,i,)=@inbounds u.u[i]
-Base.getindex(u::BNodeUnknowns,spec::Species,j)=@inbounds u[spec[u.bnode,j]]
+Base.getindex(u::BNodeUnknowns,i)=@inbounds u.u[i]
+Base.getindex(u::BNodeUnknowns,q::DiscontinuousQuantity,j)=@inbounds u[q[u.bnode,j]]
+Base.getindex(u::BNodeUnknowns,q::ContinuousQuantity)=@inbounds u[q[u.bnode]]
 
 struct BNodeRHS{T} <:AbstractVector{T}
     f::Vector{T}
     bnode::BNode
 end
 
+Base.size(f::BNodeRHS)=size(f.f)
+
 
 rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS(f,bnode)
 Base.getindex(f::BNodeRHS,i)=@inbounds f.f[i]
-Base.getindex(f::BNodeRHS,spec::Species,j)=f[spec[f.bnode,j]]
+Base.getindex(f::BNodeRHS,q::DiscontinuousQuantity,j)=f[q[f.bnode,j]]
+Base.getindex(f::BNodeRHS,q::ContinuousQuantity)=f[q[f.bnode]]
 
 Base.setindex!(f::BNodeRHS,v,i)=@inbounds f.f[i]=v
-Base.setindex!(f::BNodeRHS,v,spec::Species,j)=@inbounds f[spec[f.bnode,j]]=v
+Base.setindex!(f::BNodeRHS,v,q::DiscontinuousQuantity,j)=@inbounds f[q[f.bnode,j]]=v
+Base.setindex!(f::BNodeRHS,v,q::ContinuousQuantity)=@inbounds f[q[f.bnode]]=v
 
 
 
@@ -224,8 +228,6 @@ mutable struct Edge{Tv,Ti}  <: AbstractEdge{Tv, Ti}
     """
     coord::Matrix{Tv}
 
-    discontspec::Array{Ti,2}
-
     
     cellx::Array{Ti,2}
     edgenodes::Array{Ti,2}
@@ -255,7 +257,6 @@ function  Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}
         edge.edgenodes=local_celledgenodes(geom)
         edge.has_celledges=false
     end
-    edge.discontspec=sys.discontspec
     edge.cellregions=sys.grid[CellRegions]
     edge
 end
@@ -302,7 +303,8 @@ end
 Base.size(edge::Edge)=(size(edge.coord)[1],2)
 Base.getindex(edge::Edge, idim,inode)= edge.coord[idim,edge.node[inode]]
 
-Base.getindex(spec::Species,edge::Edge)=edge.discontspec[spec.i,edge.region]
+Base.getindex(q::DiscontinuousQuantity,edge::Edge)=q.regionspec[edge.region]
+Base.getindex(q::ContinuousQuantity,edge::Edge)=q.ispec
 
 struct EdgeUnknowns{T} <:AbstractMatrix{T} 
     u::Vector{T}
@@ -314,7 +316,7 @@ Base.size(u::EdgeUnknowns)=(u.n1,2)
 
 unknowns(edge::AbstractEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
 Base.getindex(u::EdgeUnknowns,i,j)=@inbounds u.u[(j-1)*u.n1+i]
-Base.getindex(u::EdgeUnknowns,spec::Species,j)=@inbounds u[spec[u.edge],j]
+Base.getindex(u::EdgeUnknowns,q::AbstractQuantity,j)=@inbounds u[q[u.edge],j]
 
 
 struct EdgeRHS{T} <:AbstractVector{T} 
@@ -325,10 +327,10 @@ end
 
 rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS(f,edge)
 Base.getindex(f::EdgeRHS,i)=@inbounds f.f[i]
-Base.getindex(f::EdgeRHS,spec::Species)=f[spec[f.edge]]
+Base.getindex(f::EdgeRHS,q::AbstractQuantity)=f[q[f.edge]]
 
 Base.setindex!(f::EdgeRHS,v,i)=@inbounds f.f[i]=v
-Base.setindex!(f::EdgeRHS,v,spec::Species)=@inbounds f.f[spec[f.edge]]=v
+Base.setindex!(f::EdgeRHS,v,q::AbstractQuantity)=@inbounds f.f[q[f.edge]]=v
 
 
 ##################################################################

@@ -61,9 +61,6 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     """
     node_dof::TSpecMat
 
-
-    discontspec::TSpecMat
-
     """
     Jacobi matrix for nonlinear problem
     """
@@ -168,7 +165,16 @@ Create Finite Volume System.
 - `matrixindextype` : Index type for sparse matrices created in the system
 """
 function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
+    system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
+    physics!(system,physics)
+end
 
+function physics!(system::System,physics)
+    system.physics=physics
+    system
+end
+
+function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype
@@ -183,11 +189,9 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
 
     maxspec=0
     system.grid=grid
-    system.physics=physics
     system.region_species=spzeros(Ti,Int16,maxspec,num_cellregions(grid))
     system.bregion_species=spzeros(Ti,Int16,maxspec,num_bfaceregions(grid))
     system.node_dof=spzeros(Ti,Tm,maxspec,num_nodes(grid))
-    system.discontspec=spzeros(Ti,0,num_cellregions(grid))
     system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.species_homogeneous=false
@@ -197,6 +201,9 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
     check_allocs!(system,check_allocs)
     return system
 end
+
+
+
 
 """
 $(SIGNATURES)
@@ -349,92 +356,6 @@ end
 
 
 
-struct Species
-    i::Int
-end
-
-
-function enable_discontinuous_species!(sys,spec::Species,regions)
-    sys.discontspec=addzrows(sys.discontspec,spec.i)
-    nspec=num_species(sys)
-    for ireg ∈ regions
-        nspec=nspec+1
-        enable_species!(sys,nspec,[ireg])
-        sys.discontspec[spec.i,ireg]=nspec
-    end
-end
-
-function enable_species!(sys,spec::Species,regions)
-    sys.discontspec=addzrows(sys.discontspec,spec.i)
-    nspec=num_species(sys)
-    nspec=nspec+1
-    enable_species!(sys,nspec,regions)
-    for ireg ∈ regions
-        sys.discontspec[spec.i,ireg]=nspec
-    end
-end
-
-
-function subgrids(spec::Species, sys)
-    grid=sys.grid
-    subgrids=Vector{ExtendableGrid}(undef,0)
-    for ireg=1:num_cellregions(grid)
-        ispec=sys.discontspec[spec.i,ireg]
-        if ispec>0
-            push!(subgrids,subgrid(grid,[ireg]))
-        end
-    end
-    subgrids
-end
-
-function views(U, spec::Species, subgrids,sys)
-    grid=sys.grid
-    projections=Vector[]
-    j=1
-    for ireg=1:num_cellregions(grid)
-        ispec=sys.discontspec[spec.i,ireg]
-        if ispec>0
-            push!(projections,view(U[ispec,:],subgrids[j]))
-            j=j+1
-        end
-    end
-    projections
-end
-
-# # """
-
-# # For a discontinuous quantity, we need to have a different
-# # species number for each region.
-# # """
-# function enable_discontinuous_species(sys,species::Species, regions)
-#     spec.regspec=
-#     nspec=num_species(sys)
-#     for ireg ∈ regions
-#         nspec=nspec+1
-#         enable_species!(sys,nspec,[ireg])
-#         dspec.regspec[ireg]=nspec
-#     end
-# end
-
-# function continuous_species(sys,species::Species, regions)
-#     spec=Species(sys)
-#     nspec=num_species(sys)
-#     nspec=nspec+1
-#     enable_species!(sys,nspec,regions)
-#     for ireg ∈ regions
-#         dspec.regspec[ireg]=nspec
-#     end
-# end
-
-# function boundary_species(sys,bregions)
-#     spec=Species(sys)
-#     nspec=num_species(sys)
-#     nspec=nspec+1
-#     enable_boundary_species!(sys,nspec,bregions)
-#     for ireg ∈ bregions
-#         dspec.regspec[ireg]=nspec
-#     end
-# end
 
 
 ##################################################################
@@ -671,35 +592,15 @@ data(system::AbstractSystem) = system.physics.data
 $(SIGNATURES)
 
 Set Dirichlet boundary condition for species ispec at boundary ibc:
-
+    
 ``u_{ispec}=v`` on ``\\Gamma_{ibc}``
 """
-function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
+function boundary_dirichlet!(system::AbstractSystem, ispec::Integer, ibc, v)
     system.boundary_factors[ispec,ibc]=Dirichlet
     system.boundary_values[ispec,ibc]=v
 end
 
 
-# just return the first which comes into mind.
-# we need to ensure homgeneity of bregion-region structure.
-# if that is true, this works.
-function get_cellregion(sys,ibc)
-    grid=sys.grid
-    bfregions=grid[BFaceRegions]
-    cregions=grid[CellRegions]
-    for ibface=1:num_bfaces(sys.grid)
-        if bfregions[ibface]==ibc
-            bfcells=grid[BFaceCells]
-            return cregions[bfcells[ibface,1]]
-        end
-    end
-    return 0
-end
-
-boundary_dirichlet!(sys::AbstractSystem, spec::Species, ibc, v)=boundary_dirichlet!(sys,
-                                                                                   sys.discontspec[spec.i,get_cellregion(sys,ibc)],
-                                                                                   ibc,
-                                                                                   v)
 
 ##################################################################
 """
