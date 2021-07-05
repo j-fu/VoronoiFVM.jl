@@ -745,7 +745,7 @@ end
 
 
 function Base.show(io::IO,sys::AbstractSystem)
-    str=@sprintf("%s(num_species=%d)",typeof(sys),num_species(system))
+    str=@sprintf("%s(num_species=%d)",typeof(sys),num_species(sys))
     println(io,str)
 end
 
