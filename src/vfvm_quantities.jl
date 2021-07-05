@@ -14,27 +14,43 @@ struct DiscontinuousQuantity{Ti} <: AbstractQuantity{Ti}
 end
 
 
-function DiscontinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions) where {Tv,Ti,Tm}
-    nspec=num_species(sys)
-    quantity=DiscontinuousQuantity{Ti}(zeros(Ti,num_cellregions(sys.grid)))
-    for ireg ∈ regions
-        nspec=nspec+1
-        enable_species!(sys,nspec,[ireg])
-        quantity.regionspec[ireg]=nspec
+function DiscontinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions; regionspec=nothing) where {Tv,Ti,Tm}
+    rspec=zeros(Ti,num_cellregions(sys.grid))
+    if regionspec==nothing
+        nspec=num_species(sys)
+        for ireg ∈ regions
+            nspec=nspec+1
+            enable_species!(sys,nspec,[ireg])
+            rspec[ireg]=nspec
+        end
+    else
+        for ireg ∈ regions
+            enable_species!(sys,regionspec[ireg],[ireg])
+            rspec[ireg]=regionspec[ireg]
+        end
     end
+    quantity=DiscontinuousQuantity{Ti}(rspec)
     quantity
 end
 
-function ContinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions) where {Tv,Ti,Tm}
-    nspec=num_species(sys)
-    nspec=nspec+1
+function ContinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions; ispec=0) where {Tv,Ti,Tm}
+    if ispec==0
+        nspec=num_species(sys)
+        nspec=nspec+1
+    else
+        nspec=ispec
+    end
     enable_species!(sys,nspec,regions)
     ContinuousQuantity{Ti}(nspec)
 end
 
-function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions) where {Tv,Ti,Tm}
-    nspec=num_species(sys)
-    nspec=nspec+1
+function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions;ispec=1) where {Tv,Ti,Tm}
+    if ispec==0
+        nspec=num_species(sys)
+        nspec=nspec+1
+    else
+        nspec=ispec
+    end
     enable_boundary_species!(sys,nspec,regions)
     InterfaceQuantity{Ti}(nspec)
 end

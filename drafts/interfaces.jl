@@ -11,6 +11,7 @@ begin
 	Pkg.add("Revise")
 	using Revise
 Pkg.add(url="https://github.com/j-fu/VoronoiFVM.jl.git", rev="discontinouos_quantities")
+#Pkg.develop(name="VoronoiFVM")
 Pkg.add(["ExtendableGrids","GridVisualize","PlutoVista","PlutoUI"])
 	using VoronoiFVM
 using ExtendableGrids
@@ -364,7 +365,7 @@ We define a grid with N subregions
 """
 
 # ╔═╡ d44407de-8c9c-42fa-b1a2-ae02b826eccc
-N=4
+N=5
 
 # ╔═╡ ae268316-c058-4db8-9b71-57b0d9425274
 begin
@@ -395,19 +396,19 @@ system6=VoronoiFVM.System(grid2,unknown_storage=:sparse)
 
 # ╔═╡ 673e9320-ea30-4831-ad85-ba7936293ee2
 md"""
-First, we introduce a continuous quantity which we name "cspec". Note that the "species number" is assigned automatically.
+First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitely.
 """
 
 # ╔═╡ f35f419a-94dd-4051-a533-4b1ec9a4c9ec
-cspec=ContinuousQuantity(system6,1:N)
+cspec=ContinuousQuantity(system6,1:N;ispec=1)
 
 # ╔═╡ 9661e4fc-55e1-4c2c-a3ad-515cdac3b514
 md"""
-A discontinuous quantity is introduced as well:
+A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.
 """
 
 # ╔═╡ 90298676-fda7-4168-8a40-7ff53e7c761b
-dspec=DiscontinuousQuantity(system6,1:N)
+dspec=DiscontinuousQuantity(system6,1:N; regionspec=[2+i%2 for i=1:N])
 
 # ╔═╡ cebabf33-e769-47bd-b6f1-ddf525fea895
 md"""
@@ -485,7 +486,7 @@ md"""
 ## Open problems
 - Testfunctions: this will be a another problem to be handeled
 - Alternative is "glueing together" systems
-- Forwarddiff sees the full species matrix
+- Forwarddiff sees the full species matrix. A slight remedy is the possibility to assign species numbers by the user.
 """
 
 # ╔═╡ Cell order:
@@ -556,4 +557,4 @@ md"""
 # ╠═5d8aca85-f12d-4a6e-84e4-781d45b65742
 # ╠═b8cd6ad1-d323-4888-bbd1-5deba5a5870d
 # ╠═441a39a0-a7de-47db-8539-12dee30b8312
-# ╠═6203d95b-13d2-48a6-a69f-39e33e2edcdb
+# ╟─6203d95b-13d2-48a6-a69f-39e33e2edcdb
