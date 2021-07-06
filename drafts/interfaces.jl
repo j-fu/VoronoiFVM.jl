@@ -6,20 +6,26 @@ using InteractiveUtils
 
 # ╔═╡ 4b75cde6-db35-11eb-1b95-bba4e05edb2f
 begin
-	using Pkg
-	Pkg.activate(mktempdir())
-	Pkg.add("Revise")
-	using Revise
-Pkg.add(url="https://github.com/j-fu/VoronoiFVM.jl.git", rev="discontinouos_quantities")
-#Pkg.develop(name="VoronoiFVM")
-Pkg.add(["ExtendableGrids","GridVisualize","PlutoVista","PlutoUI"])
-	using VoronoiFVM
-using ExtendableGrids
-using GridVisualize
-using PlutoVista
-using PlutoUI
-GridVisualize.default_plotter!(PlutoVista);
-end;
+    using Pkg
+    Pkg.activate(mktempdir())
+    Pkg.add("Revise")
+	develop=false
+    using Revise
+    if haskey(ENV,"JULIA_PLUTO_DEVELOP") 
+        Pkg.develop(name="VoronoiFVM")
+   	    develop=true
+    else
+        Pkg.add(url="https://github.com/j-fu/VoronoiFVM.jl.git", rev="discontinouos_quantities")
+    end
+    Pkg.add(["ExtendableGrids","GridVisualize","PlutoVista","PlutoUI"])
+    using VoronoiFVM
+    using ExtendableGrids
+    using GridVisualize
+    using PlutoVista
+    using PlutoUI
+    GridVisualize.default_plotter!(PlutoVista)
+	develop
+end
 
 # ╔═╡ 3fa189e4-9e1c-470c-bf26-15b631945d2d
 md"""

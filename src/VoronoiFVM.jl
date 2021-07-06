@@ -59,10 +59,6 @@ export value
 export check_allocs!
 export physics!
 
-include("vfvm_quantities.jl")
-export ContinuousQuantity
-export DiscontinuousQuantity
-export InterfaceQuantity
 
 include("vfvm_geometryitems.jl")
 include("vfvm_formfactors.jl")
@@ -89,6 +85,13 @@ include("vfvm_integrals.jl")
 include("vfvm_testfunctions.jl")
 export integrate
 export testfunction
+
+include("vfvm_quantities.jl")
+export ContinuousQuantity
+export DiscontinuousQuantity
+export InterfaceQuantity
+
+
 
 include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
