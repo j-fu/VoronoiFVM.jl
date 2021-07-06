@@ -347,6 +347,14 @@ Increase number of species in system to maxspec by adding new rows to all  relev
 matrices.
 """
 function increase_num_species!(system,maxspec)
+    if maxspec<=num_species(system)
+        return
+    end
+    
+    if isdefined(system,:matrix)
+        error("Unable to increase number of species to $(maxspec).\nPlease add species before first solver run.")
+    end
+    
     system.region_species=addzrows(system.region_species,maxspec)
     system.bregion_species=addzrows(system.bregion_species,maxspec)
     system.node_dof=addzrows(system.node_dof,maxspec)
@@ -404,9 +412,7 @@ Add species `ispec` to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
 """
 function enable_species!(system::AbstractSystem,ispec::Integer, regions::AbstractVector)
-    if ispec>num_species(system)
-        increase_num_species!(system,ispec)
-    end
+    increase_num_species!(system,ispec)
     
     if is_boundary_species(system,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
@@ -439,9 +445,8 @@ bulk and boundary species have to be distinct.
 
 """
 function enable_boundary_species!(system::AbstractSystem, ispec::Integer, bregions::AbstractVector)
-    if ispec>num_species(system)
-        increase_num_species!(system,ispec)
-    end
+    increase_num_species!(system,ispec)
+
     if is_bulk_species(system,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
@@ -596,6 +601,7 @@ Set Dirichlet boundary condition for species ispec at boundary ibc:
 ``u_{ispec}=v`` on ``\\Gamma_{ibc}``
 """
 function boundary_dirichlet!(system::AbstractSystem, ispec::Integer, ibc, v)
+    increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=Dirichlet
     system.boundary_values[ispec,ibc]=v
 end
@@ -611,6 +617,7 @@ Set Neumann boundary condition for species ispec at boundary ibc:
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n=v`` on ``\\Gamma_{ibc}``
 """
 function boundary_neumann!(system::AbstractSystem, ispec, ibc, v)
+    increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=0.0
     system.boundary_values[ispec,ibc]=v
 end
@@ -626,6 +633,7 @@ Set Robin boundary condition for species ispec at boundary ibc:
 
 """
 function boundary_robin!(system::AbstractSystem, ispec, ibc, α, v)
+    increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=α
     system.boundary_values[ispec,ibc]=v
 end

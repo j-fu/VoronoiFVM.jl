@@ -484,7 +484,7 @@ Wrapper struct for viewing unknowns passed to callback functions
 $(TYPEDFIELDS)
 """
 struct VectorUnknowns{T} <:AbstractVector{T} 
-    u::Vector{T}
+    val::Vector{T}
     n::Int64
     offset::Int64
 end
@@ -496,7 +496,7 @@ $(TYPEDSIGNATURES)
 Construct vector unknowns on edge.
 """
 unknowns(edge::AbstractEdge, u::Vector{T},i) where T = VectorUnknowns{T}(u,edge.nspec,(i-1)*(edge.nspec))
-Base.getindex(u::VectorUnknowns,i)=@inbounds u.u[u.offset+i]
+Base.getindex(u::VectorUnknowns,i)=@inbounds u.val[u.offset+i]
 Base.size(u::VectorUnknowns)=(u.n,)
 
 
@@ -504,7 +504,7 @@ Base.size(u::VectorUnknowns)=(u.n,)
 # For backward compatibility
 unknowns(edge,u::AbstractEdgeData)=u
 # For backward compatibility
-unknowns(edge::Edge, u::AbstractEdgeData{T},i) where T = VectorUnknowns{T}(u.u,edge.nspec,(i-1)*(edge.nspec))
+unknowns(edge::Edge, u::AbstractEdgeData{T},i) where T = VectorUnknowns{T}(u.val,edge.nspec,(i-1)*(edge.nspec))
 
 """
 $(TYPEDSIGNATURES)
