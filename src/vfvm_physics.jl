@@ -283,7 +283,7 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
             
             global fluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).flux( rhs(     $(esc(edge)),y),
+                $(esc(physics)).flux( rhs($(esc(edge)),y),
                                       unknowns($(esc(edge)),u),
                                       $(esc(edge)),
                                       data)
@@ -293,44 +293,44 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
             global reactionwrap=function (y, u)
                 y.=0
                 ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-                $(esc(physics)).reaction(y,u,$(esc(node)),data)
+                $(esc(physics)).reaction(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)),data)
                 ## for ii in .. y[ii]=y[node.speclist[ii]]
                 nothing
             end
             
             global storagewrap= function(y, u)
                 y.=0
-                $(esc(physics)).storage(y,u,$(esc(node)),data)
+                $(esc(physics)).storage(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)),data)
                 nothing
             end
         
             global sourcewrap=function(y)
                 y.=0
-                $(esc(physics)).source(y,$(esc(node)),data)
+                $(esc(physics)).source(rhs($(esc(node)),y),$(esc(node)),data)
                 nothing
             end
 
             global bfluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).bflux(y,unknowns($(esc(bedge)),u),$(esc(bedge)),data)
+                $(esc(physics)).bflux(rhs($(esc(bedge)),y),unknowns($(esc(bedge)),u),$(esc(bedge)),data)
                 nothing
             end
             
             global breactionwrap=function(y, u)
                 y.=0
-                $(esc(physics)).breaction(y,u,$(esc(bnode)),data)
+                $(esc(physics)).breaction(rhs($(esc(bnode)),y),unknowns($(esc(bnode)),u),$(esc(bnode)),data)
                 nothing
             end
 
             global bsourcewrap=function(y)
                 y.=0
-                $(esc(physics)).bsource(y,$(esc(bnode)),data)
+                $(esc(physics)).bsource(rhs($(esc(bnode)),y),$(esc(bnode)),data)
                 nothing
             end
             
             global bstoragewrap=function(y, u)
                 y.=0
-                $(esc(physics)).bstorage(y,u,$(esc(bnode)),data)
+                $(esc(physics)).bstorage(rhs($(esc(bnode)),y),unknowns($(esc(bnode)),u),$(esc(bnode)),data)
                 nothing
             end
         
@@ -353,26 +353,26 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
             global reactionwrap=function(y, u)
                 y.=0
                 ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-                $(esc(physics)).reaction(y,u,$(esc(node)))
+                $(esc(physics)).reaction(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)))
                 ## for ii in .. y[ii]=y[node.speclist[ii]]
                 nothing
             end
             
             global storagewrap= function(y, u)
                 y.=0
-                $(esc(physics)).storage(y,u,$(esc(node)))
+                $(esc(physics)).storage(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)))
                 nothing
             end
             
             global sourcewrap=function(y)
                 y.=0
-                $(esc(physics)).source(y,$(esc(node)))
+                $(esc(physics)).source(rhs($(esc(node)),y),$(esc(node)))
                 nothing
             end
 
             global bfluxwrap=function(y, u)
                 y.=0
-                $(esc(physics)).bflux(y,unknowns($(esc(bedge)),u),$(esc(bedge)))
+                $(esc(physics)).bflux(rhs($(esc(bedge)),y),unknowns($(esc(bedge)),u),$(esc(bedge)))
                 nothing
             end
             
@@ -384,13 +384,13 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
 
             global bsourcewrap=function(y)
                 y.=0
-                $(esc(physics)).bsource(y,$(esc(bnode)))
+                $(esc(physics)).bsource(rhs($(esc(bnode)),y),$(esc(bnode)))
                 nothing
             end
             
             global bstoragewrap=function(y, u)
                 y.=0
-                $(esc(physics)).bstorage(y,u,$(esc(bnode)))
+                $(esc(physics)).bstorage(rhs($(esc(bnode)),y),unknowns($(esc(bnode)),u),$(esc(bnode)))
                 nothing
             end
             

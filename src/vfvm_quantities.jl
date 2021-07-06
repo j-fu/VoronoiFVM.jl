@@ -127,20 +127,22 @@ end
 
 
 
+Base.getindex(q::AbstractQuantity,node::AbstractNode)=q.ispec
+Base.getindex(q::AbstractQuantity,edge::AbstractEdge)=q.ispec
 
-Base.getindex(u::EdgeUnknowns,q::AbstractQuantity,j)=@inbounds u[q[u.edge],j]
-Base.getindex(f::EdgeRHS,q::AbstractQuantity)=f[q[f.edge]]
-Base.setindex!(f::EdgeRHS,v,q::AbstractQuantity)=@inbounds f.f[q[f.edge]]=v
+Base.getindex(q::DiscontinuousQuantity,edge::Edge)=@inbounds q.regionspec[edge.region]
+Base.getindex(q::DiscontinuousQuantity,edge::BEdge)=nothing
+Base.getindex(q::DiscontinuousQuantity,node::Node)=@inbounds q.regionspec[node.region]
+Base.getindex(q::DiscontinuousQuantity,bnode::BNode,j)=@inbounds q.regionspec[bnode.cellregions[j]]
 
 
-Base.getindex(q::DiscontinuousQuantity,bnode::BNode,j)=q.regionspec[bnode.cellregions[j]]
-Base.getindex(u::BNodeUnknowns,q::DiscontinuousQuantity,j)=@inbounds u[q[u.bnode,j]]
-Base.getindex(f::BNodeRHS,q::DiscontinuousQuantity,j)=f[q[f.bnode,j]]
-Base.setindex!(f::BNodeRHS,v,q::DiscontinuousQuantity,j)=@inbounds f[q[f.bnode,j]]=v
-Base.getindex(q::DiscontinuousQuantity,edge::Edge)=q.regionspec[edge.region]
 
-Base.getindex(q::ContinuousQuantity,bnode::BNode)=q.ispec
-Base.getindex(u::BNodeUnknowns,q::ContinuousQuantity)=@inbounds u[q[u.bnode]]
-Base.getindex(f::BNodeRHS,q::ContinuousQuantity)=f[q[f.bnode]]
-Base.setindex!(f::BNodeRHS,v,q::ContinuousQuantity)=@inbounds f[q[f.bnode]]=v
-Base.getindex(q::ContinuousQuantity,edge::Edge)=q.ispec
+
+Base.getindex(u::AbstractEdgeData,q::AbstractQuantity,j)=@inbounds u[q[u.geom],j]
+Base.getindex(f::AbstractNodeData,q::AbstractQuantity)=@inbounds f[q[f.geom]]
+Base.setindex!(f::AbstractNodeData,v,q::AbstractQuantity)=@inbounds f[q[f.geom]]=v
+
+
+Base.getindex(u::BNodeUnknowns,q::DiscontinuousQuantity,j)=@inbounds u[q[u.geom,j]]
+Base.getindex(f::BNodeRHS,q::DiscontinuousQuantity,j)=@inbounds f[q[f.geom,j]]
+Base.setindex!(f::BNodeRHS,v,q::DiscontinuousQuantity,j)=@inbounds f[q[f.geom,j]]=v

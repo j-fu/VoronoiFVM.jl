@@ -79,7 +79,7 @@ Create a grid with two subdomins and an interface in the center.
 """
 
 # ╔═╡ 670c78c1-d0be-4362-975b-2c944620681f
-nref=1
+nref=2
 
 # ╔═╡ 79193d53-9dfa-47b7-aed2-c7eb43769b5f
 begin

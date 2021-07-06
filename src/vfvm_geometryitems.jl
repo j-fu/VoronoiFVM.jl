@@ -1,6 +1,31 @@
 abstract type AbstractGeometryItem{Tv<:Number, Ti <:Integer} end
 
+
+
+abstract type AbstractNode{Tv<:Number, Ti <:Integer}  <: AbstractGeometryItem{Tv, Ti} end
+Base.size(node::AbstractNode)=(size(node.coord)[1],)
+Base.getindex(node::AbstractNode, idim)=@inbounds  node.coord[idim,node.index]
+
+abstract type AbstractNodeData{T<: Number} <: AbstractVector{T} end
+
+
+Base.size(u::AbstractNodeData)=size(u.val)
+Base.getindex(u::AbstractNodeData,i)=@inbounds u.val[i]
+Base.setindex!(f::AbstractNodeData,v,i)=@inbounds f.val[i]=v
+
+
+
+
+
 abstract type AbstractEdge{Tv<:Number, Ti <:Integer}  <: AbstractGeometryItem{Tv, Ti} end
+
+Base.size(edge::AbstractEdge)=(size(edge.coord)[1],2)
+Base.getindex(edge::AbstractEdge, idim,inode)=@inbounds  edge.coord[idim,edge.node[inode]]
+
+abstract type AbstractEdgeData{T<: Number} <: AbstractMatrix{T} end
+Base.size(u::AbstractEdgeData)=(u.n1,2)
+Base.getindex(u::AbstractEdgeData,i,j)=@inbounds u.val[(j-1)*u.n1+i]
+
 
 ##################################################################
 """
@@ -10,7 +35,7 @@ Structure holding local boundary  node information.
 
 $(TYPEDFIELDS)
 """
-mutable struct BNode{Tv, Ti} <: AbstractGeometryItem{Tv, Ti}
+mutable struct BNode{Tv, Ti} <: AbstractNode{Tv, Ti}
 
     """
     Index in grid
@@ -89,37 +114,20 @@ end
 
 
 
-
-Base.size(bnode::BNode)=(size(bnode.coord)[1],)
-Base.getindex(bnode::BNode, idim)= bnode.coord[idim,bnode.index]
-
-
-
-
-struct BNodeUnknowns{T} <:AbstractMatrix{T} 
-    u::Vector{T}
-    bnode::BNode
+struct BNodeUnknowns{T} <:AbstractNodeData{T} 
+    val::Vector{T}
+    geom::BNode
 end
 
 unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode)
-Base.getindex(u::BNodeUnknowns,i)=@inbounds u.u[i]
 
 
-struct BNodeRHS{T} <:AbstractVector{T}
-    f::Vector{T}
-    bnode::BNode
+struct BNodeRHS{T} <:AbstractNodeData{T} 
+    val::Vector{T}
+    geom::BNode
 end
 
-Base.size(f::BNodeRHS)=size(f.f)
-
-
-rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS(f,bnode)
-Base.getindex(f::BNodeRHS,i)=@inbounds f.f[i]
-
-
-
-
-Base.setindex!(f::BNodeRHS,v,i)=@inbounds f.f[i]=v
+rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS{T}(f,bnode)
 
 
 
@@ -131,7 +139,7 @@ Structure holding local node information.
 
 $(TYPEDFIELDS)
 """
-mutable struct Node{Tv,Ti} <: AbstractGeometryItem{Tv, Ti} 
+mutable struct Node{Tv,Ti} <: AbstractNode{Tv, Ti} 
 
     """
     Index in grid
@@ -181,9 +189,21 @@ end
 end
 
 
-Base.size(node::Node)=(size(node.coord)[1],)
+struct NodeUnknowns{T} <:AbstractNodeData{T} 
+    val::Vector{T}
+    geom::Node
+end
 
-Base.getindex(node::Node, idim)= node.coord[idim,node.index]
+unknowns(node::Node,u::Vector{T}) where T = NodeUnknowns{T}(u,node)
+
+
+struct NodeRHS{T} <:AbstractNodeData{T}
+    val::Vector{T}
+    geom::Node
+end
+
+rhs(node::Node, f::Vector{T}) where T = NodeRHS{T}(f,node)
+
 
 ##################################################################
 """
@@ -297,31 +317,21 @@ function _fill!(edge::Edge,cellx,edgenodes,cellregions,iedge,icell, has_celledge
 end
 
 
-Base.size(edge::Edge)=(size(edge.coord)[1],2)
-Base.getindex(edge::Edge, idim,inode)= edge.coord[idim,edge.node[inode]]
-
-struct EdgeUnknowns{T} <:AbstractMatrix{T} 
-    u::Vector{T}
+struct EdgeUnknowns{T} <:AbstractEdgeData{T} 
+    val::Vector{T}
     n1::Int64
-    edge::AbstractEdge
+    geom::AbstractEdge
 end
 
-Base.size(u::EdgeUnknowns)=(u.n1,2)
-
-unknowns(edge::AbstractEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
-Base.getindex(u::EdgeUnknowns,i,j)=@inbounds u.u[(j-1)*u.n1+i]
+unknowns(edge::Edge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
 
 
-struct EdgeRHS{T} <:AbstractVector{T} 
-    f::Vector{T}
-    edge::Edge
+struct EdgeRHS{T} <:AbstractNodeData{T} 
+    val::Vector{T}
+    geom::AbstractEdge
 end
 
-
-rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS(f,edge)
-Base.getindex(f::EdgeRHS,i)=@inbounds f.f[i]
-
-Base.setindex!(f::EdgeRHS,v,i)=@inbounds f.f[i]=v
+rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
 
 
 
@@ -407,8 +417,22 @@ end
     nothing
 end
 
-Base.size(bedge::BEdge)=(size(edge.coord)[1],2)
-Base.getindex(bedge::BEdge, idim,inode)= bedge.coord[idim,bedge.node[inode]]
+struct BEdgeUnknowns{T} <:AbstractEdgeData{T} 
+    val::Vector{T}
+    n1::Int64
+    geom::AbstractEdge
+end
+
+unknowns(edge::BEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
+
+
+struct BEdgeRHS{T} <:AbstractNodeData{T} 
+    val::Vector{T}
+    geom::AbstractEdge
+end
+
+rhs(edge::BEdge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
+
 
 ##################################################################
 """
@@ -416,7 +440,7 @@ $(TYPEDSIGNATURES)
 
 Return number of species for edge
 """
-num_species(edge::Edge)=edge.nspec
+num_species(edge::AbstractEdge)=edge.nspec
 
 
 ##################################################################
@@ -450,7 +474,8 @@ end
 
 
 
-##################################################################
+###############################################################
+# Deprecation warnings here ?
 """
 $(TYPEDEF)
 
@@ -470,40 +495,23 @@ $(TYPEDSIGNATURES)
 
 Construct vector unknowns on edge.
 """
-unknowns(edge::Edge, u::Vector{T},i) where T = VectorUnknowns{T}(u,edge.nspec,(i-1)*(edge.nspec))
+unknowns(edge::AbstractEdge, u::Vector{T},i) where T = VectorUnknowns{T}(u,edge.nspec,(i-1)*(edge.nspec))
 Base.getindex(u::VectorUnknowns,i)=@inbounds u.u[u.offset+i]
 Base.size(u::VectorUnknowns)=(u.n,)
 
 
-"""
-$(TYPEDSIGNATURES)
-
-Construct vector unknowns on node
-"""
-unknowns(node::Node, u)=u
-
-"""
-$(TYPEDSIGNATURES)
-
-Construct vector unknowns on bnode
-"""
-unknowns(node::BNode, u)=u
-
-
-################################################
-# Deprecation warnings here!
 
 # For backward compatibility
-unknowns(edge,u::EdgeUnknowns)=u
+unknowns(edge,u::AbstractEdgeData)=u
 # For backward compatibility
-unknowns(edge::Edge, u::EdgeUnknowns{T},i) where T = VectorUnknowns{T}(u.u,edge.nspec,(i-1)*(edge.nspec))
+unknowns(edge::Edge, u::AbstractEdgeData{T},i) where T = VectorUnknowns{T}(u.u,edge.nspec,(i-1)*(edge.nspec))
 
 """
 $(TYPEDSIGNATURES)
 
 Solution view on first edge node
 """
-viewK(edge::Edge,u)=unknowns(edge,u,1)
+viewK(edge::AbstractEdge,u)=unknowns(edge,u,1)
 
 
 """
@@ -511,5 +519,5 @@ $(TYPEDSIGNATURES)
 
 Solution view on second edge node
 """
-viewL(edge::Edge,u)=unknowns(edge,u,2)
+viewL(edge::AbstractEdge,u)=unknowns(edge,u,2)
 
