@@ -1,30 +1,143 @@
+"""
+   $(TYPEDEF)
+
+Abstract type for geometry items (node,bnode,edge, bedge)
+"""
 abstract type AbstractGeometryItem{Tv<:Number, Ti <:Integer} end
 
+"""
+   $(TYPEDEF)
 
+Abstract type for nodes. 
 
+`node[idim]` gives the the corresponding coordinate.
+"""
 abstract type AbstractNode{Tv<:Number, Ti <:Integer}  <: AbstractGeometryItem{Tv, Ti} end
 Base.size(node::AbstractNode)=(size(node.coord)[1],)
 Base.getindex(node::AbstractNode, idim)=@inbounds  node.coord[idim,node.index]
 
+
+"""
+    $(TYPEDEF)
+
+Abstract type for data on nodes.
+`u[ispec]` accesses value of species at this node.
+"""
 abstract type AbstractNodeData{T<: Number} <: AbstractVector{T} end
-
-
 Base.size(u::AbstractNodeData)=size(u.val)
 Base.getindex(u::AbstractNodeData,i)=@inbounds u.val[i]
 Base.setindex!(f::AbstractNodeData,v,i)=@inbounds f.val[i]=v
 
+"""
+   $(TYPEDEF)
 
+Abstract type for edges 
 
-
-
+`edge[idim,inode]` gives coordinate of node.
+"""
 abstract type AbstractEdge{Tv<:Number, Ti <:Integer}  <: AbstractGeometryItem{Tv, Ti} end
-
 Base.size(edge::AbstractEdge)=(size(edge.coord)[1],2)
 Base.getindex(edge::AbstractEdge, idim,inode)=@inbounds  edge.coord[idim,edge.node[inode]]
 
+"""
+    $(TYPEDEF)
+
+Abstract type for data on edges.
+`u[ispec,inode]` accesses value of species at corresponding node.
+"""
 abstract type AbstractEdgeData{T<: Number} <: AbstractMatrix{T} end
 Base.size(u::AbstractEdgeData)=(u.n1,2)
 Base.getindex(u::AbstractEdgeData,i,j)=@inbounds u.val[(j-1)*u.n1+i]
+
+
+##################################################################
+"""
+$(TYPEDEF)
+
+Structure holding local node information.
+
+$(TYPEDFIELDS)
+"""
+mutable struct Node{Tv,Ti} <: AbstractNode{Tv, Ti} 
+
+    """
+    Index in grid
+
+    """
+    index::Ti
+    """
+    Inner region number
+    """
+    region::Ti
+
+    """
+    Number of species defined in node
+    """
+    nspec::Ti
+
+    """
+    Number of discretization cell the node is invoked from
+    """
+    icell::Ti
+
+    """
+    Grid coordinates
+    """
+    coord::Matrix{Tv}
+
+
+    """
+    Grid cell nodes
+    """
+    cellnodes::Array{Ti,2}
+
+    
+    """
+    Grid cell regions
+    """
+    cellregions::Vector{Ti}
+
+    
+    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,
+                                                                num_species(sys),0,
+                                                                coordinates(sys.grid),
+                                                                sys.grid[CellNodes],
+                                                                sys.grid[CellRegions]
+                                                                )
+end
+
+
+@inline function _fill!(node::Node,inode,icell)
+    node.region=node.cellregions[icell]
+    node.index=node.cellnodes[inode,icell]
+    node.icell=icell
+    nothing
+end
+
+
+"""
+    $(TYPEDEF)
+
+Unknown data on node. 
+"""
+struct NodeUnknowns{T} <:AbstractNodeData{T} 
+    val::Vector{T}
+    geom::Node
+end
+
+@inline unknowns(node::Node,u::Vector{T}) where T = NodeUnknowns{T}(u,node)
+
+"""
+    $(TYPEDEF)
+
+RHS data on node. 
+"""
+struct NodeRHS{T} <:AbstractNodeData{T}
+    val::Vector{T}
+    geom::Node
+end
+
+@inline rhs(node::Node, f::Vector{T}) where T = NodeRHS{T}(f,node)
 
 
 ##################################################################
@@ -101,7 +214,7 @@ end
 end
 
 
-function _fill!(node::BNode,ibnode,ibface)
+@inline function _fill!(node::BNode,ibnode,ibface)
     _fill0!(node,ibnode,ibface)
     node.cellregions[1]=0
     node.cellregions[2]=0
@@ -119,7 +232,7 @@ struct BNodeUnknowns{T} <:AbstractNodeData{T}
     geom::BNode
 end
 
-unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode)
+@inline unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode)
 
 
 struct BNodeRHS{T} <:AbstractNodeData{T} 
@@ -127,82 +240,9 @@ struct BNodeRHS{T} <:AbstractNodeData{T}
     geom::BNode
 end
 
-rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS{T}(f,bnode)
+@inline rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS{T}(f,bnode)
 
 
-
-##################################################################
-"""
-$(TYPEDEF)
-
-Structure holding local node information.
-
-$(TYPEDFIELDS)
-"""
-mutable struct Node{Tv,Ti} <: AbstractNode{Tv, Ti} 
-
-    """
-    Index in grid
-
-    """
-    index::Ti
-    """
-    Inner region number
-    """
-    region::Ti
-
-    """
-    Number of species defined in node
-    """
-    nspec::Ti
-
-    """
-    Number of discretization cell the node is invoked from
-    """
-    icell::Ti
-
-    """
-    Grid coordinates
-    """
-    coord::Matrix{Tv}
-
-
-    cellnodes::Array{Ti,2}
-
-    cellregions::Vector{Ti}
-
-    
-    Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,
-                                                                num_species(sys),0,
-                                                                coordinates(sys.grid),
-                                                                sys.grid[CellNodes],
-                                                                sys.grid[CellRegions]
-                                                                )
-end
-
-
-@inline function _fill!(node::Node,inode,icell)
-    node.region=node.cellregions[icell]
-    node.index=node.cellnodes[inode,icell]
-    node.icell=icell
-    nothing
-end
-
-
-struct NodeUnknowns{T} <:AbstractNodeData{T} 
-    val::Vector{T}
-    geom::Node
-end
-
-unknowns(node::Node,u::Vector{T}) where T = NodeUnknowns{T}(u,node)
-
-
-struct NodeRHS{T} <:AbstractNodeData{T}
-    val::Vector{T}
-    geom::Node
-end
-
-rhs(node::Node, f::Vector{T}) where T = NodeRHS{T}(f,node)
 
 
 ##################################################################
@@ -298,24 +338,6 @@ end
     nothing
 end
 
-function _fill!(edge::Edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges) where Tv
-    if has_celledges #  cellx==celledges, edgenodes==global_edgenodes
-        # If we work with projections of fluxes onto edges,
-        # we need to ensure that the edges are accessed with the
-        # same orientation without regard of the orientation induced
-        # by local cell numbering
-        edge.index=cellx[iedge,icell]
-        edge.node[1]=edgenodes[1,edge.index]
-        edge.node[2]=edgenodes[2,edge.index]
-    else # cx==cellnodes, edgenodes== local_edgenodes
-        edge.index=0
-        edge.node[1]=cellx[edgenodes[1,iedge],icell]
-        edge.node[2]=cellx[edgenodes[2,iedge],icell]
-    end
-    edge.region=cellregions[icell]
-    edge.icell=icell
-end
-
 
 struct EdgeUnknowns{T} <:AbstractEdgeData{T} 
     val::Vector{T}
@@ -323,7 +345,7 @@ struct EdgeUnknowns{T} <:AbstractEdgeData{T}
     geom::AbstractEdge
 end
 
-unknowns(edge::Edge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
+@inline unknowns(edge::Edge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
 
 
 struct EdgeRHS{T} <:AbstractNodeData{T} 
@@ -331,7 +353,7 @@ struct EdgeRHS{T} <:AbstractNodeData{T}
     geom::AbstractEdge
 end
 
-rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
+@inline rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
 
 
 
@@ -423,7 +445,7 @@ struct BEdgeUnknowns{T} <:AbstractEdgeData{T}
     geom::AbstractEdge
 end
 
-unknowns(edge::BEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
+@inline unknowns(edge::BEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
 
 
 struct BEdgeRHS{T} <:AbstractNodeData{T} 
@@ -431,7 +453,7 @@ struct BEdgeRHS{T} <:AbstractNodeData{T}
     geom::AbstractEdge
 end
 
-rhs(edge::BEdge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
+@inline rhs(edge::BEdge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
 
 
 ##################################################################
@@ -440,7 +462,7 @@ $(TYPEDSIGNATURES)
 
 Return number of species for edge
 """
-num_species(edge::AbstractEdge)=edge.nspec
+@inline num_species(edge::AbstractEdge)=edge.nspec
 
 
 ##################################################################
