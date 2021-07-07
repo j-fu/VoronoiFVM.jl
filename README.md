@@ -14,7 +14,7 @@ This Julia package merges the ideas behind [pdelib](http://www.wias-berlin.de/so
 
 
 API changes:
-- [v0.12](https://j-fu.github.io/VoronoiFVM.jl/v0.12/changes) (cleaned up API, maintaining backwards compatibility)
+- [v0.12](https://j-fu.github.io/VoronoiFVM.jl/v0.12/changes) (cleaned internals, discontinuous quantities)
 - [v0.11](https://j-fu.github.io/VoronoiFVM.jl/v0.11/changes) (Requiring Julia 1.5 now)
 - [v0.10](https://j-fu.github.io/VoronoiFVM.jl/v0.10/changes)
 - [v0.9](https://j-fu.github.io/VoronoiFVM.jl/v0.9/changes/) (Some are breaking)

@@ -1,4 +1,11 @@
 # Changes
+## v0.12.2, July 7, 2021
+Introduce the notion of quantities which can be continuous or discontinuous at interfaces.
+
+- Quantity handling is implemented on top of species handlin
+- Unknowns u and rhs y now passed to callbacks as wrapper types, 
+  and can be indexed by quantity or by species numbers. 
+  Moreover, this will allow to abstract parameters, gradients etc. in future versions.
 
 ## v0.12.0, July 2 2021
 -  By default, the `u` parameter in flux callbacks is now a  `nspec x 2` array
