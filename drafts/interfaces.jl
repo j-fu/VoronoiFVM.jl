@@ -15,7 +15,7 @@ begin
         Pkg.develop(name="VoronoiFVM")
    	    develop=true
     else
-        Pkg.add(url="https://github.com/j-fu/VoronoiFVM.jl.git", rev="discontinouos_quantities")
+        Pkg.add(name="VoronoiFVM",version="0.12.2")
     end
     Pkg.add(["ExtendableGrids","GridVisualize","PlutoVista","PlutoUI"])
     using VoronoiFVM
