@@ -274,11 +274,11 @@ end
 
 """
 ````
-freqdomain_impedance(impedance_system,ω, U0 ,
-                              excited_spec, excited_bc, excited_bcval,
-                              dmeas_stdy,
-                              dmeas_tran 
-                              )
+impedance(impedance_system,ω, U0 ,
+          excited_spec, excited_bc, excited_bcval,
+           dmeas_stdy,
+           dmeas_tran 
+           )
     
 ````
 

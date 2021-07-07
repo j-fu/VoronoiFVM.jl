@@ -50,12 +50,15 @@ include("vfvm_system.jl")
 export unknowns
 export enable_species!
 export enable_boundary_species!
+export enable_discontinuous_species!
 export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!
 export value
 export check_allocs!
+export physics!
+
 
 include("vfvm_geometryitems.jl")
 include("vfvm_formfactors.jl")
@@ -82,6 +85,13 @@ include("vfvm_integrals.jl")
 include("vfvm_testfunctions.jl")
 export integrate
 export testfunction
+
+include("vfvm_quantities.jl")
+export ContinuousQuantity
+export DiscontinuousQuantity
+export InterfaceQuantity
+
+
 
 include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance

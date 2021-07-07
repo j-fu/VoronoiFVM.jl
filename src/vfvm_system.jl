@@ -61,18 +61,6 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     """
     node_dof::TSpecMat
 
-
-    """
-    WIP
-    """
-    quantspec::Array{Ti,2}
-
-    """
-    WIP
-    """
-    bquantspec::Array{Ti,2}
-
-    
     """
     Jacobi matrix for nonlinear problem
     """
@@ -132,7 +120,7 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     Hash value of latest unknowns vector the assembly was called with
     """
     uhash::UInt64
-
+    
     """
     Data for allocation check
     """
@@ -177,7 +165,16 @@ Create Finite Volume System.
 - `matrixindextype` : Index type for sparse matrices created in the system
 """
 function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
+    system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
+    physics!(system,physics)
+end
 
+function physics!(system::System,physics)
+    system.physics=physics
+    system
+end
+
+function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype
@@ -192,12 +189,9 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
 
     maxspec=0
     system.grid=grid
-    system.physics=physics
     system.region_species=spzeros(Ti,Int16,maxspec,num_cellregions(grid))
     system.bregion_species=spzeros(Ti,Int16,maxspec,num_bfaceregions(grid))
     system.node_dof=spzeros(Ti,Tm,maxspec,num_nodes(grid))
-    system.quantspec=spzeros(Ti,0,num_cellregions(grid))
-    system.bquantspec=spzeros(Ti,0,num_cellregions(grid))
     system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.species_homogeneous=false
@@ -207,6 +201,9 @@ function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=I
     check_allocs!(system,check_allocs)
     return system
 end
+
+
+
 
 """
 $(SIGNATURES)
@@ -350,6 +347,14 @@ Increase number of species in system to maxspec by adding new rows to all  relev
 matrices.
 """
 function increase_num_species!(system,maxspec)
+    if maxspec<=num_species(system)
+        return
+    end
+    
+    if isdefined(system,:matrix)
+        error("Unable to increase number of species to $(maxspec).\nPlease add species before first solver run.")
+    end
+    
     system.region_species=addzrows(system.region_species,maxspec)
     system.bregion_species=addzrows(system.bregion_species,maxspec)
     system.node_dof=addzrows(system.node_dof,maxspec)
@@ -358,41 +363,7 @@ function increase_num_species!(system,maxspec)
 end
 
 
-function add_continuous_quantity(sys,iquant,regions)
-    addzrows(sys.quantspec,iquant)
-    nspec=num_species(sys)
-    nspec=nspec+1
-    enable_species!(sys,nspec,regions)
-    for ireg ∈ regions
-        sys.quantspec[iquant,ireg]=nspec
-    end
-end
 
-function add_boundary_quantity(sys,iquant,bregions)
-    addzrows(sys.bquantspec,iquant)
-    nspec=num_species(sys)
-    nspec=nspec+1
-    enable_boundary_species!(sys,nspec,regions)
-    for ireg ∈ regions
-        sys.bquantspec[iquant,ireg]=nspec
-    end
-end
-
-
-# """
-
-# For a discontinuous quantity, we need to have a different
-# species number for each region.
-# """
-function add_discontinuous_quantity(sys,iquant,regions)
-    addzrows(sys.quantspec,iquant)
-    nspec=num_species(sys)
-    for ireg ∈ regions
-        nspec=nspec+1
-        enable_species!(sys,nspec,[ireg])
-        sys.quantspec[iquant,ireg]=nspec
-    end
-end
 
 
 ##################################################################
@@ -441,9 +412,7 @@ Add species `ispec` to a list of bulk regions. Species numbers for
 bulk and boundary species have to be distinct.
 """
 function enable_species!(system::AbstractSystem,ispec::Integer, regions::AbstractVector)
-    if ispec>num_species(system)
-        increase_num_species!(system,ispec)
-    end
+    increase_num_species!(system,ispec)
     
     if is_boundary_species(system,ispec)
         throw(DomainError(ispec,"Species is already boundary species"))
@@ -476,9 +445,8 @@ bulk and boundary species have to be distinct.
 
 """
 function enable_boundary_species!(system::AbstractSystem, ispec::Integer, bregions::AbstractVector)
-    if ispec>num_species(system)
-        increase_num_species!(system,ispec)
-    end
+    increase_num_species!(system,ispec)
+
     if is_bulk_species(system,ispec)
         throw(DomainError(ispec,"Species is already bulk species"))
     end
@@ -629,13 +597,15 @@ data(system::AbstractSystem) = system.physics.data
 $(SIGNATURES)
 
 Set Dirichlet boundary condition for species ispec at boundary ibc:
-
+    
 ``u_{ispec}=v`` on ``\\Gamma_{ibc}``
 """
-function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
+function boundary_dirichlet!(system::AbstractSystem, ispec::Integer, ibc, v)
+    increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=Dirichlet
     system.boundary_values[ispec,ibc]=v
 end
+
 
 
 ##################################################################
@@ -647,6 +617,7 @@ Set Neumann boundary condition for species ispec at boundary ibc:
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n=v`` on ``\\Gamma_{ibc}``
 """
 function boundary_neumann!(system::AbstractSystem, ispec, ibc, v)
+    increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=0.0
     system.boundary_values[ispec,ibc]=v
 end
@@ -662,6 +633,7 @@ Set Robin boundary condition for species ispec at boundary ibc:
 
 """
 function boundary_robin!(system::AbstractSystem, ispec, ibc, α, v)
+    increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=α
     system.boundary_values[ispec,ibc]=v
 end
@@ -739,9 +711,6 @@ function _initialize_inactive_dof!(U::DenseSolutionArray,system::DenseSystem)
         end
     end
 end
-
-
-
 
 
 function Base.show(io::IO,sys::AbstractSystem)
