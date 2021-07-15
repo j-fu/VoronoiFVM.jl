@@ -80,7 +80,6 @@ export embed!
 export solve!,solve
 
 
-
 include("vfvm_integrals.jl")
 include("vfvm_testfunctions.jl")
 export integrate
@@ -90,7 +89,6 @@ include("vfvm_quantities.jl")
 export ContinuousQuantity
 export DiscontinuousQuantity
 export InterfaceQuantity
-
 
 
 include("vfvm_impedance.jl")

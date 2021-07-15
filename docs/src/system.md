@@ -18,6 +18,5 @@ Grids for VoronoiFVM are managed by the package
 ```@autodocs
 Modules = [VoronoiFVM]
 Pages = ["vfvm_system.jl"]
-Order = [:type, :constant, :function]
 ```
 

@@ -1,8 +1,12 @@
 # Changes
+## v0.12.3, July 7, 2021
+- Add quantity id
+- Document quantities
+
 ## v0.12.2, July 7, 2021
 Introduce the notion of quantities which can be continuous or discontinuous at interfaces.
 
-- Quantity handling is implemented on top of species handlin
+- Quantity handling is implemented on top of species handling
 - Unknowns u and rhs y now passed to callbacks as wrapper types, 
   and can be indexed by quantity or by species numbers. 
   Moreover, this will allow to abstract parameters, gradients etc. in future versions.

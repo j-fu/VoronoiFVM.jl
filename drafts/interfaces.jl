@@ -1,30 +1,36 @@
 ### A Pluto.jl notebook ###
-# v0.15.0
+# v0.15.1
 
 using Markdown
 using InteractiveUtils
 
 # ╔═╡ 4b75cde6-db35-11eb-1b95-bba4e05edb2f
 begin
-    using Pkg
-    Pkg.activate(mktempdir())
-    Pkg.add("Revise")
-	develop=false
-    using Revise
-    if haskey(ENV,"JULIA_PLUTO_DEVELOP") 
-        Pkg.develop(name="VoronoiFVM")
+    develop=false
+    if isdefined(Main,:PlutoRunner)
+        using Pkg
+        Pkg.activate(mktempdir())
+        Pkg.add("Revise")
+        using Revise
+        if haskey(ENV,"JULIA_PLUTO_DEVELOP") 
+            Pkg.develop(name="VoronoiFVM")
    	    develop=true
-    else
-        Pkg.add(name="VoronoiFVM",version="0.12.2")
+        else
+            Pkg.add(name="VoronoiFVM",version="0.12.2")
+        end
+        Pkg.add(["ExtendableGrids","GridVisualize","PlutoVista","PlutoUI"])
+        using PlutoVista
     end
-    Pkg.add(["ExtendableGrids","GridVisualize","PlutoVista","PlutoUI"])
+    
     using VoronoiFVM
     using ExtendableGrids
     using GridVisualize
-    using PlutoVista
     using PlutoUI
-    GridVisualize.default_plotter!(PlutoVista)
-	develop
+	using LinearAlgebra
+    if isdefined(Main,:PlutoRunner)
+        GridVisualize.default_plotter!(PlutoVista)
+    end
+    develop
 end
 
 # ╔═╡ 3fa189e4-9e1c-470c-bf26-15b631945d2d
@@ -228,7 +234,7 @@ Note that the "no reaction" case is just a special case where ``k_1,k_2=0``.
 """
 
 # ╔═╡ d027ff24-3ad1-4528-b5cf-10814caf30db
-k1=1; k2=0.1;
+k1=0; k2=10;
 
 # ╔═╡ 1328b4bf-2d64-4b02-a910-1995da8be28b
 function mal_reaction(f,u,node)
@@ -292,7 +298,7 @@ Acoording to the mass action law, this is implemented via
 """
 
 # ╔═╡ f2490f99-04ca-4f42-af2a-53adae51ca68
-k_r=1.0
+k_r=1000
 
 # ╔═╡ 39a0db1b-3a4e-4108-b43f-d4e578c92608
 function recombination(f,u,node)
@@ -335,7 +341,7 @@ and therefore another special case of the mass action law condition.
 """
 
 # ╔═╡ a2d919a5-a395-40fb-8f93-db742f8a77c2
-d=0.5
+d=1
 
 # ╔═╡ 58d8831b-ad66-4f77-a33a-933c15c46a52
 function thinlayer(f,u,node)
@@ -371,12 +377,12 @@ We define a grid with N subregions
 """
 
 # ╔═╡ d44407de-8c9c-42fa-b1a2-ae02b826eccc
-N=5
+N=6
 
 # ╔═╡ ae268316-c058-4db8-9b71-57b0d9425274
 begin
 	XX=collect(0:0.1:1)
-	xcoord=XX
+	local xcoord=XX
 	for i=1:N-1
 		xcoord=glue(xcoord,XX.+i)
 	end
@@ -398,7 +404,7 @@ To work with quantities, we first introduce a new constructor call without the "
 """
 
 # ╔═╡ 29f36902-e355-4b02-b7b0-c4db12c47d33
-system6=VoronoiFVM.System(grid2,unknown_storage=:sparse)
+system6=VoronoiFVM.System(grid2)
 
 # ╔═╡ 673e9320-ea30-4831-ad85-ba7936293ee2
 md"""
@@ -406,7 +412,7 @@ First, we introduce a continuous quantity which we name "cspec". Note that the "
 """
 
 # ╔═╡ f35f419a-94dd-4051-a533-4b1ec9a4c9ec
-cspec=ContinuousQuantity(system6,1:N;ispec=1)
+cspec=ContinuousQuantity(system6,1:N,ispec=1)
 
 # ╔═╡ 9661e4fc-55e1-4c2c-a3ad-515cdac3b514
 md"""
@@ -415,6 +421,9 @@ A discontinuous quantity can be introduced as well. by default, each reagion get
 
 # ╔═╡ 90298676-fda7-4168-8a40-7ff53e7c761b
 dspec=DiscontinuousQuantity(system6,1:N; regionspec=[2+i%2 for i=1:N])
+
+# ╔═╡ 7a819522-55e4-4547-a3e0-e047e74cfb6b
+system6
 
 # ╔═╡ cebabf33-e769-47bd-b6f1-ddf525fea895
 md"""
@@ -451,7 +460,7 @@ function plot2(U,subgrids,system6)
 end
 
 # ╔═╡ b8cd6ad1-d323-4888-bbd1-5deba5a5870d
-d1=1
+d1=0.1
 
 # ╔═╡ 441a39a0-a7de-47db-8539-12dee30b8312
 q1=0.2
@@ -483,8 +492,11 @@ begin
 	subgrids=VoronoiFVM.subgrids(dspec,system6)
 end;
 
+# ╔═╡ de119a22-b695-4b4f-8e04-b7d68ec1e91b
+subgrids;sol6=solve(unknowns(system6,inival=0),system6)
+
 # ╔═╡ 5d8aca85-f12d-4a6e-84e4-781d45b65742
-plot2(solve(unknowns(system6,inival=0),system6),subgrids,system6)
+plot2(sol6,subgrids,system6)
 
 # ╔═╡ 6203d95b-13d2-48a6-a69f-39e33e2edcdb
 md"""
@@ -494,6 +506,9 @@ md"""
 - Alternative is "glueing together" systems
 - Forwarddiff sees the full species matrix. A slight remedy is the possibility to assign species numbers by the user.
 """
+
+# ╔═╡ 4d8e81c1-dbec-4379-9ab7-a585a369582d
+norm(system6,sol6,2)==7.0215437706445245
 
 # ╔═╡ Cell order:
 # ╟─3fa189e4-9e1c-470c-bf26-15b631945d2d
@@ -552,6 +567,7 @@ md"""
 # ╠═f35f419a-94dd-4051-a533-4b1ec9a4c9ec
 # ╟─9661e4fc-55e1-4c2c-a3ad-515cdac3b514
 # ╠═90298676-fda7-4168-8a40-7ff53e7c761b
+# ╠═7a819522-55e4-4547-a3e0-e047e74cfb6b
 # ╟─cebabf33-e769-47bd-b6f1-ddf525fea895
 # ╠═719f206a-5b9f-4d78-8778-1d89edb2bc4d
 # ╟─1d7f442f-c057-4379-8a40-c6ce3646ad5c
@@ -559,8 +575,10 @@ md"""
 # ╟─da41b22e-114d-4eee-81d0-73e6f3b45242
 # ╠═59c83a22-a4cc-4b51-a1cc-5eb39588eacd
 # ╠═0c3ca093-e011-409c-be58-e617e02f5d4c
+# ╠═de119a22-b695-4b4f-8e04-b7d68ec1e91b
 # ╠═5d8aca85-f12d-4a6e-84e4-781d45b65742
 # ╠═b8cd6ad1-d323-4888-bbd1-5deba5a5870d
 # ╠═441a39a0-a7de-47db-8539-12dee30b8312
 # ╟─6203d95b-13d2-48a6-a69f-39e33e2edcdb
+# ╠═4d8e81c1-dbec-4379-9ab7-a585a369582d
 # ╠═4b75cde6-db35-11eb-1b95-bba4e05edb2f

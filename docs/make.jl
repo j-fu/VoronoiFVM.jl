@@ -56,6 +56,7 @@ function make_all()
                 "solver.md",
                 "post.md",
                 "misc.md",
+                "quantities.md",
                 "allindex.md",
             ],
             "Examples" => generated_examples

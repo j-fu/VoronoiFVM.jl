@@ -77,6 +77,11 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     species_homogeneous::Bool
 
     """
+    Number of quantities defined on system
+    """
+    num_quantities::Ti
+    
+    """
     Solution vector holding Newton update
     """
     update::TSolArray
@@ -195,6 +200,7 @@ function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs
     system.boundary_values=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.boundary_factors=zeros(Tv,maxspec,num_bfaceregions(grid))
     system.species_homogeneous=false
+    system.num_quantities=0
     system.uhash=0x0
     system.allocs=-1000
     system.factorization=nothing

@@ -14,6 +14,7 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
+
 function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     XX=collect(0:0.1:1)
     xcoord=XX
@@ -27,14 +28,37 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     for i=1:N-1
 	bfacemask!(grid2,[i],[i],i+2)
     end
+
+    params=zeros(2,num_cellregions(grid2))
+    for i=1:num_cellregions(grid2)
+        params[1,i]=i
+        params[2,i]=10*i
+    end
+
     
     system=VoronoiFVM.System(grid2,unknown_storage=unknown_storage)
 
     ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitely.
-    cspec=ContinuousQuantity(system,1:N;ispec=1)
+    cspec=ContinuousQuantity(system,1:N;ispec=1,id=1)
 
     ## A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.
-    dspec=DiscontinuousQuantity(system,1:N; regionspec=[2+i%2 for i=1:N])
+    dspec=DiscontinuousQuantity(system,1:N; regionspec=[2+i%2 for i=1:N],id=2)
+
+
+    for i=1:num_cellregions(grid2)
+        @assert params[cspec,i] == i
+        @assert params[dspec,i] == 10*i
+    end
+
+    for i=1:num_cellregions(grid2)
+        params[cspec,i] = -i
+        params[dspec,i] = -10*i
+    end
+
+    for i=1:num_cellregions(grid2)
+        @assert params[1,i] == -i
+        @assert params[2,i] == -10*i
+    end
 
     
     ##For both quantities, we define simple diffusion fluxes:
