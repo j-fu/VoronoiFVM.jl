@@ -289,7 +289,7 @@ Base.getindex(u::AbstractEdgeData,q::AbstractQuantity,j)=@inbounds u[q[u.geom],j
     u[q]
 Return value of quantity in unknowns on node in  node callbacks.
 """
-Base.getindex(u::AbstractNodeData,q::AbstractQuantity)=@inbounds f[q[u.geom]]
+Base.getindex(u::AbstractNodeData,q::AbstractQuantity)=@inbounds u[q[u.geom]]
 
 """
     f[q]=value

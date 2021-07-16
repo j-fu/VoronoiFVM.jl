@@ -78,8 +78,7 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
             react=(u[dspec,1]-u[dspec,2])/d1
             f[dspec,1]= react
             f[dspec,2]= -react
-	    
-	    f[cspec]=-q1
+	    f[cspec]=-q1*u[cspec]
         end
     end
     
@@ -93,8 +92,8 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     ## Set boundary conditions
     boundary_dirichlet!(system,dspec,1,1)
     boundary_dirichlet!(system,dspec,2,0.1)
-    boundary_dirichlet!(system,cspec,1,0)
-    boundary_dirichlet!(system,cspec,2,0)
+    boundary_dirichlet!(system,cspec,1,0.1)
+    boundary_dirichlet!(system,cspec,2,1.0)
     subgrids=VoronoiFVM.subgrids(dspec,system)
 
 
@@ -113,7 +112,7 @@ end
 
 
 function test()
-    testval=5.5527020449507285
+    testval=8.884764592190459
     main(unknown_storage=:sparse) ≈ testval &&
         main(unknown_storage=:dense) ≈ testval
 end
