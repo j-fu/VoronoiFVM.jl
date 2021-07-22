@@ -35,18 +35,18 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     cspec=ContinuousQuantity(system,1:N;ispec=1,id=1)
 
     # A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.
-    dspec=DiscontinuousQuantity(system,1:N; regionspec=[2+i%2 for i=1:N],id=2)
-
-    carrierList = [cspec dspec]
+    dspec=DiscontinuousQuantity(system,1:N; regionspec=[2+i%2 for i=1:N],id=2)</code></pre><p>check 1D array acces with quantities</p><pre><code class="language-julia hljs">    carrierList = [cspec dspec]
     numberCarriers = length(carrierList)
 
     params2=zeros(1, numberCarriers)
 
-    for icc in carrierList
+    for icc ∈ carrierList
         params2[icc] = 2
     end
 
-    for i=1:num_cellregions(grid2)
+    for i=1:numberCarriers
+        @assert params2[i] == 2
+    end</code></pre><p>check 2D array acces with quantities</p><pre><code class="language-julia hljs">    for i=1:num_cellregions(grid2)
         @assert params[cspec,i] == i
         @assert params[dspec,i] == 10*i
     end
@@ -60,6 +60,10 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
         @assert params[1,i] == -i
         @assert params[2,i] == -10*i
     end
+
+
+
+
 
 
     ##For both quantities, we define simple diffusion fluxes:
@@ -118,4 +122,4 @@ function test()
         main(unknown_storage=:dense) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example410_ManySpecies/">« 410: Many Species</a><a class="docs-footer-nextpage" href="../TestDiffEq/">Comparison with DifferentialEquations.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.4 on <span class="colophon-date" title="Thursday 22 July 2021 11:20">Thursday 22 July 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example410_ManySpecies/">« 410: Many Species</a><a class="docs-footer-nextpage" href="../TestDiffEq/">Comparison with DifferentialEquations.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.4 on <span class="colophon-date" title="Thursday 22 July 2021 11:28">Thursday 22 July 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
