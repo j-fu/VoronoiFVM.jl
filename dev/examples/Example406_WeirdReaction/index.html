@@ -11,7 +11,7 @@ u_B&amp;=0
 R_{AB}(u_A, u_B)&amp;=k_{AB}^+exp(u_A&#39;(0))u_A - k_{AB}^-exp(-u_A&#39;(0))u_B\\
 - D_A \nabla u_A  +  R_{AB}(u_A, u_B)&amp; =0 \\
 - D_B \nabla u_B  -  R_{AB}(u_A, u_B)&amp; =0 \\
-\end{aligned}\]</p><pre><code class="language-julia">module Example406_WeirdReaction
+\end{aligned}\]</p><pre><code class="language-julia hljs">module Example406_WeirdReaction
 using Printf
 using VoronoiFVM
 using SparseArrays
@@ -80,7 +80,7 @@ function main(;n=10,
     function generic_operator!(f,u,sys)
         f.=0
         f[idx[iC,1]]=u[idx[iC,1]]  + 0.1*(u[idx[iA,1]]-u[idx[iA,2]])/(X[2]-X[1])
-    end</code></pre><p>If we know the sparsity pattern, we can here create a sparse matrix with values set to 1 in the nonzero slots. This allows to circumvent the autodetection which may takes some time.</p><pre><code class="language-julia">    function generic_operator_sparsity(sys)
+    end</code></pre><p>If we know the sparsity pattern, we can here create a sparse matrix with values set to 1 in the nonzero slots. This allows to circumvent the autodetection which may takes some time.</p><pre><code class="language-julia hljs">    function generic_operator_sparsity(sys)
         idx=unknown_indices(unknowns(sys))
         sparsity=spzeros(num_dof(sys),num_dof(sys))
         sparsity[idx[iC,1],idx[iC,1]]=1
@@ -163,4 +163,4 @@ function test()
         main(unknown_storage=:dense,autodetect_sparsity=false) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example405_GenericOperator/">« 405: Generic Operator: 1D Nonlinear Poisson equation</a><a class="docs-footer-nextpage" href="../Example410_ManySpecies/">410: Many Species »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.3 on <span class="colophon-date" title="Friday 16 July 2021 09:09">Friday 16 July 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example405_GenericOperator/">« 405: Generic Operator: 1D Nonlinear Poisson equation</a><a class="docs-footer-nextpage" href="../Example410_ManySpecies/">410: Many Species »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.4 on <span class="colophon-date" title="Thursday 22 July 2021 11:20">Thursday 22 July 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
