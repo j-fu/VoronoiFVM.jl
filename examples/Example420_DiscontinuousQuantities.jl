@@ -44,6 +44,14 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     ## A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.
     dspec=DiscontinuousQuantity(system,1:N; regionspec=[2+i%2 for i=1:N],id=2)
 
+    carrierList = [cspec dspec]
+    numberCarriers = length(carrierList)
+
+    params2=zeros(1, numberCarriers)
+
+    for icc in carrierList
+        params2[icc] = 2
+    end
 
     for i=1:num_cellregions(grid2)
         @assert params[cspec,i] == i
