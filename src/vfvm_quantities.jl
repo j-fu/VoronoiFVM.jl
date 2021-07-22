@@ -263,12 +263,20 @@ end
     edge[quantity]
 Return species number on [`AbstractNode`](@ref) or [`AbstractEdge`](@ref)
 """
-Base.getindex(q::AbstractQuantity,node::AbstractNode)=q.ispec
+Base.getindex(q::ContinuousQuantity,node::AbstractNode)=q.ispec
 Base.getindex(q::AbstractQuantity,edge::AbstractEdge)=q.ispec
 
 Base.getindex(q::DiscontinuousQuantity,edge::Edge)=@inbounds q.regionspec[edge.region]
 Base.getindex(q::DiscontinuousQuantity,edge::BEdge)=nothing
 Base.getindex(q::DiscontinuousQuantity,node::Node)=@inbounds q.regionspec[node.region]
+
+
+"""
+    bnode[quantity]
+Return species number of discontinuous quantity region `ireg`  adjacent
+to  [`BoundaryNode`](@ref) for outer boundary nodes.
+"""
+Base.getindex(q::DiscontinuousQuantity,bnode::BNode)=@inbounds q.regionspec[bnode.cellregions[1]]
 
 
 """

@@ -92,13 +92,19 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     d1=1
     q1=0.2
 
-    ## Define a thin layer inteface condition for `dspec` and an interface source for `cspec`.
-    function breaction(f,u,node)
-	if node.region>2
+    function breaction(f,u,bnode)
+
+        # left outer boundary value for dspec 
+        if bnode.region == 1
+            f[dspec] = u[dspec] + 0.5
+        end
+
+        ## Define a thin layer inteface condition for `dspec` and an interface source for `cspec`.
+        if bnode.region>2
             react=(u[dspec,1]-u[dspec,2])/d1
             f[dspec,1]= react
             f[dspec,2]= -react
-	    f[cspec]=-q1*u[cspec]
+            f[cspec]=-q1*u[cspec]
         end
     end
     
@@ -110,7 +116,6 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     
     
     ## Set boundary conditions
-    boundary_dirichlet!(system,dspec,1,1)
     boundary_dirichlet!(system,dspec,2,0.1)
     boundary_dirichlet!(system,cspec,1,0.1)
     boundary_dirichlet!(system,cspec,2,1.0)
@@ -132,7 +137,7 @@ end
 
 
 function test()
-    testval=8.884764592190459
+    testval=7.812799873197911
     main(unknown_storage=:sparse) ≈ testval &&
         main(unknown_storage=:dense) ≈ testval
 end
