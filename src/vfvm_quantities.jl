@@ -325,3 +325,18 @@ Base.getindex(m::AbstractMatrix,q::AbstractQuantity,j)= m[q.id,j]
 Set element of `M` using id of quantity `q`
 """
 Base.setindex!(m::AbstractMatrix,v,q::AbstractQuantity,j)= m[q.id,j]=v
+
+
+"""
+    A[q]
+
+Access columns  of Array `A` using id of quantity `q`
+"""
+Base.getindex(A::AbstractArray,q::AbstractQuantity)= A[q.id]
+
+"""
+    A[q]
+
+Set element of `A` using id of quantity `q`
+"""
+Base.setindex!(A::AbstractMatrix,v,q::AbstractQuantity)= A[q.id]=v
