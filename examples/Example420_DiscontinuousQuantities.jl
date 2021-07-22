@@ -44,15 +44,23 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     ## A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.
     dspec=DiscontinuousQuantity(system,1:N; regionspec=[2+i%2 for i=1:N],id=2)
 
+    # check 1D array acces with quantities
     carrierList = [cspec dspec]
     numberCarriers = length(carrierList)
 
     params2=zeros(1, numberCarriers)
 
-    for icc in carrierList
+    for icc ∈ carrierList
         params2[icc] = 2
     end
 
+    for i=1:numberCarriers
+        @assert params2[i] == 2
+    end
+
+    
+
+    # check 2D array acces with quantities
     for i=1:num_cellregions(grid2)
         @assert params[cspec,i] == i
         @assert params[dspec,i] == 10*i
@@ -67,6 +75,10 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
         @assert params[1,i] == -i
         @assert params[2,i] == -10*i
     end
+
+
+
+
 
     
     ##For both quantities, we define simple diffusion fluxes:
