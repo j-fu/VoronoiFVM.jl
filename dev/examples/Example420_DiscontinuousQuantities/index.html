@@ -77,13 +77,16 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     d1=1
     q1=0.2
 
-    # Define a thin layer inteface condition for `dspec` and an interface source for `cspec`.
-    function breaction(f,u,node)
-	if node.region&gt;2
+    function breaction(f,u,bnode)</code></pre><p>left outer boundary value for dspec</p><pre><code class="language-julia hljs">        if bnode.region == 1
+            f[dspec] = u[dspec] + 0.5
+        end
+
+        # Define a thin layer inteface condition for `dspec` and an interface source for `cspec`.
+        if bnode.region&gt;2
             react=(u[dspec,1]-u[dspec,2])/d1
             f[dspec,1]= react
             f[dspec,2]= -react
-	    f[cspec]=-q1*u[cspec]
+            f[cspec]=-q1*u[cspec]
         end
     end
 
@@ -95,7 +98,6 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
 
 
     # Set boundary conditions
-    boundary_dirichlet!(system,dspec,1,1)
     boundary_dirichlet!(system,dspec,2,0.1)
     boundary_dirichlet!(system,cspec,1,0.1)
     boundary_dirichlet!(system,cspec,2,1.0)
@@ -117,9 +119,9 @@ end
 
 
 function test()
-    testval=8.884764592190459
+    testval=7.812799873197911
     main(unknown_storage=:sparse) ≈ testval &amp;&amp;
         main(unknown_storage=:dense) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example410_ManySpecies/">« 410: Many Species</a><a class="docs-footer-nextpage" href="../TestDiffEq/">Comparison with DifferentialEquations.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.4 on <span class="colophon-date" title="Thursday 22 July 2021 11:28">Thursday 22 July 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example410_ManySpecies/">« 410: Many Species</a><a class="docs-footer-nextpage" href="../TestDiffEq/">Comparison with DifferentialEquations.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.4 on <span class="colophon-date" title="Thursday 22 July 2021 21:52">Thursday 22 July 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
