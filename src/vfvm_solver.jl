@@ -729,7 +729,7 @@ with error.
 """
 function embed!(
     solution::AbstractMatrix{Tv}, # Solution
-    xinival::AbstractMatrix{Tv},   # Initial value 
+    inival::AbstractMatrix{Tv},   # Initial value 
     system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,p) end,       # Function for preparing step
