@@ -97,44 +97,47 @@ function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell,no
     nothing
 end
     
-function cellfactors!(::Type{Triangle2D},::Type{Cartesian2D},coord,cellnodes,icell,npar,epar)
-    i1=cellnodes[1,icell]
-    i2=cellnodes[2,icell]
-    i3=cellnodes[3,icell]
-
+function cellfactors!(T::Type{Triangle2D},::Type{Cartesian2D},coord,cellnodes,icell,npar,epar)
+#    cen=local_celledgenodes(T)
+    
+    @views n=SVector{3}(cellnodes[:,icell])
+    V=@MMatrix zeros(2,3)
+    dd=@MVector zeros(3)
+    
     # Fill matrix of edge vectors
-    V11= coord[1,i2]- coord[1,i1]
-    V21= coord[2,i2]- coord[2,i1]
+    V[1,3]= coord[1,n[2]]- coord[1,n[1]]
+    V[2,3]= coord[2,n[2]]- coord[2,n[1]]
     
-    V12= coord[1,i3]- coord[1,i1]
-    V22= coord[2,i3]- coord[2,i1]
+    V[1,2]= coord[1,n[3]]- coord[1,n[1]]
+    V[2,2]= coord[2,n[3]]- coord[2,n[1]]
     
-    V13= coord[1,i3]- coord[1,i2]
-    V23= coord[2,i3]- coord[2,i2]
+    V[1,1]= coord[1,n[3]]- coord[1,n[2]]
+    V[2,1]= coord[2,n[3]]- coord[2,n[2]]
     
     
     # Compute determinant 
-    det=V11*V22 - V12*V21
+    det=V[1,3]*V[2,2] - V[1,2]*V[2,3]
     vol=0.5*det
     
     ivol = 1.0/vol
     
     # squares of edge lengths
-    dd1=V13*V13+V23*V23 # l32
-    dd2=V12*V12+V22*V22 # l31
-    dd3=V11*V11+V21*V21 # l21
+    dd[3]=V[1,3]*V[1,3]+V[2,3]*V[2,3] # l32
+    dd[2]=V[1,2]*V[1,2]+V[2,2]*V[2,2] # l31
+    dd[1]=V[1,1]*V[1,1]+V[2,1]*V[2,1] # l21
     
     
     # contributions to \sigma_kl/h_kl
-    epar[1]= (dd2+dd3-dd1)*0.125*ivol
-    epar[2]= (dd3+dd1-dd2)*0.125*ivol
-    epar[3]= (dd1+dd2-dd3)*0.125*ivol
+    epar[1]= (dd[2]+dd[3]-dd[1])*0.125*ivol
+    epar[2]= (dd[3]+dd[1]-dd[2])*0.125*ivol
+    epar[3]= (dd[1]+dd[2]-dd[3])*0.125*ivol
     
     
     # contributions to \omega_k
-    npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
-    npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
-    npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
+    npar[1]= (epar[3]*dd[3]+epar[2]*dd[2])*0.25
+    npar[2]= (epar[1]*dd[1]+epar[3]*dd[3])*0.25
+    npar[3]= (epar[2]*dd[2]+epar[1]*dd[1])*0.25
+
     nothing
 end                              
 
