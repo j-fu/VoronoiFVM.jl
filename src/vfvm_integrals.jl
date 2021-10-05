@@ -5,8 +5,8 @@ integrate(system,F,U; boundary=false)
 ````
 
 Integrate node function (same signature as reaction or storage)
- `F` of  solution vector over domain or boundary 
-The result contains the integral for each species separately.
+ `F` of  solution vector region-wise over domain or boundary.
+The result is  `nspec x nregion` vector.
 """
 function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti,Tm}
     grid=system.grid

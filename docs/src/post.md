@@ -4,6 +4,13 @@
 
 Plotting can be performed using the package [GridVisualize.jl](https://github.com/j-fu/GridVisualize.jl).
 
+## Solution integrals
+
+```@autodocs
+Modules = [VoronoiFVM]
+Pages = ["vfvm_intergrals.jl"]
+```
+
 ## Boundary flux calculation
 
 ```@autodocs
