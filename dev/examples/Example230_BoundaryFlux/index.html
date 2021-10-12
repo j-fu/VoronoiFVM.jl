@@ -9,7 +9,8 @@ using GridVisualize
 function main(;n = 2 * 10, # n musst be an even number
               d1 = 5.0, db = 5.0, # prefactors (before diffusive part)
               kmax = 2.0, cmax = 3.0,
-              Plotter = nothing)
+              Plotter = nothing,
+              unknown_storage=:sparse)
 
     ###########################################################################
     ######################          1D problem           ######################
@@ -119,7 +120,8 @@ function main(;n = 2 * 10, # n musst be an even number
     end
 
     sys_2D    = VoronoiFVM.System(grid_2D, VoronoiFVM.Physics(flux = flux2D!, reaction = reaction2D!, source = source2D!,
-                                                              bflux = bflux!, breaction = breaction!, bsource = bsource!) )</code></pre><p>enable species in only region</p><pre><code class="language-julia hljs">    enable_species!(         sys_2D, ispec_2D,       [bulk_2D]        )
+                                                              bflux = bflux!, breaction = breaction!, bsource = bsource!),
+                                  unknown_storage=unknown_storage)</code></pre><p>enable species in only region</p><pre><code class="language-julia hljs">    enable_species!(         sys_2D, ispec_2D,       [bulk_2D]        )
     enable_boundary_species!(sys_2D, ispec_boundary, [active_boundary])
 
     inival_2D  = unknowns(sys_2D);        inival_2D .= 0.0
@@ -127,7 +129,7 @@ function main(;n = 2 * 10, # n musst be an even number
 
     solve!(sol_2D, inival_2D, sys_2D, control = control)</code></pre><p>this is for variable transformation, since we consider right outer boundary and want to transform to x-axis.</p><pre><code class="language-julia hljs">    function tran32!(a,b)
         a[1] = b[2]
-    end</code></pre><p>note that if adjusting active_boundary to 3 or 4, then tranform need to be deleted.</p><pre><code class="language-julia hljs">    bgrid_2D  = subgrid(grid_2D, [active_boundary], boundary = true, transform = tran32!)
+    end</code></pre><p>note that if adjusting active_boundary to 3 or 4, then transform needs to be deleted.</p><pre><code class="language-julia hljs">    bgrid_2D  = subgrid(grid_2D, [active_boundary], boundary = true, transform = tran32!)
     sol_bound = view(sol_2D[ispec_boundary, :], bgrid_2D)
 
     scalarplot!(p[2,1], bgrid_2D, sol_bound, show = true, cellwise = true, title = &quot;Active boundary in 2D (db = $db, kb = $kmax, cb = $cmax)&quot;)
@@ -139,9 +141,9 @@ function main(;n = 2 * 10, # n musst be an even number
 end # main
 
 function test()
-    testval = 3.2023728339893768e-15
-    main() ≈ testval
+    main(unknown_storage=:dense)&lt;1.0e-14 &amp;&amp;
+    main(unknown_storage=:sparse)&lt;1.0e-14
 end
 
 
-end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.7 on <span class="colophon-date" title="Tuesday 12 October 2021 10:16">Tuesday 12 October 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.7 on <span class="colophon-date" title="Tuesday 12 October 2021 12:05">Tuesday 12 October 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
