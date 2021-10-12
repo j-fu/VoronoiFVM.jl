@@ -163,7 +163,7 @@ end
 
 function test()
 
-    tval=57.927104220385495 + 23.163943705749645im
+    tval=57.92710529960438 + 23.163942324911723im
     main(unknown_storage=:dense) ≈ tval  &&  main(unknown_storage=:sparse) ≈ tval
 end
 
