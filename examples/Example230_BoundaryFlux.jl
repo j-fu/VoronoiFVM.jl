@@ -33,7 +33,8 @@ using GridVisualize
 function main(;n = 2 * 10, # n musst be an even number
               d1 = 5.0, db = 5.0, # prefactors (before diffusive part)
               kmax = 2.0, cmax = 3.0, 
-              Plotter = nothing)
+              Plotter = nothing,
+              unknown_storage=:sparse)
 
     ###########################################################################
     ######################          1D problem           ######################
@@ -149,7 +150,8 @@ function main(;n = 2 * 10, # n musst be an even number
     end
     
     sys_2D    = VoronoiFVM.System(grid_2D, VoronoiFVM.Physics(flux = flux2D!, reaction = reaction2D!, source = source2D!,
-                                                              bflux = bflux!, breaction = breaction!, bsource = bsource!) )
+                                                              bflux = bflux!, breaction = breaction!, bsource = bsource!),
+                                  unknown_storage=unknown_storage)
 
     # enable species in only region 
     enable_species!(         sys_2D, ispec_2D,       [bulk_2D]        )
@@ -165,7 +167,7 @@ function main(;n = 2 * 10, # n musst be an even number
         a[1] = b[2]
     end
 
-    # note that if adjusting active_boundary to 3 or 4, then tranform need to be deleted.
+    # note that if adjusting active_boundary to 3 or 4, then transform needs to be deleted.
     bgrid_2D  = subgrid(grid_2D, [active_boundary], boundary = true, transform = tran32!)
     sol_bound = view(sol_2D[ispec_boundary, :], bgrid_2D)
 
@@ -178,8 +180,8 @@ function main(;n = 2 * 10, # n musst be an even number
 end # main
 
 function test()
-    testval = 3.2023728339893768e-15
-    main() ≈ testval
+    main(unknown_storage=:dense)<1.0e-14 &&
+    main(unknown_storage=:sparse)<1.0e-14
 end
 
 
