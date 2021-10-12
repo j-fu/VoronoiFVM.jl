@@ -1,4 +1,7 @@
 # Changes
+## v0.13, Oct 13, 2021
+- various bug fixes, explicit numbering of edge nodes
+
 ## v0.12.3, July 7, 2021
 - Add quantity id
 - Document quantities
