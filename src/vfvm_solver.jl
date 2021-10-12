@@ -563,19 +563,19 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 end
 
                 _fill!(bedge,ibedge,ibface)
-                @views UKL[1:nspecies]            .= U[:, edge.node[1]]
-                @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
+                @views UKL[1:nspecies]            .= U[:, bedge.node[1]]
+                @views UKL[nspecies+1:2*nspecies] .= U[:, bedge.node[2]]
 
                 Y.=zero(Tv)
                 ForwardDiff.vector_mode_jacobian!(result_bflx, bfluxwrap, Y, UKL, cfg_bflx)
                 res = DiffResults.value(result_bflx)
                 jac = DiffResults.jacobian(result_bflx)
                 
-                K   = edge.node[1]
-                L   = edge.node[2]
+                K   = bedge.node[1]
+                L   = bedge.node[2]
             
                 fac = bfaceedgefactors[ibedge, ibface]
-
+                #@show fac
                 for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
                     ispec =_spec(F, idofK, K)
                     idofL = dof(F, ispec, L)

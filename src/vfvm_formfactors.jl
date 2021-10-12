@@ -331,16 +331,18 @@ function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibfac
 end
 
 function bfacefactors!(T::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac, edgefac)
-    en=local_celledgenodes(T)
-    i1=bfacenodes[en[1,1],ibface]
-    i2=bfacenodes[en[2,1],ibface]
-    dx=coord[1,i1]-coord[1,i2]
-    dy=coord[2,i1]-coord[2,i2]
-    d=0.5*sqrt(dx*dx+dy*dy)
-    nodefac[1]=d
-    nodefac[2]=d
+    en         = local_celledgenodes(T)
+    i1         = bfacenodes[en[1,1],ibface]
+    i2         = bfacenodes[en[2,1],ibface]
+    dx         = coord[1,i1]-coord[1,i2]
+    dy         = coord[2,i1]-coord[2,i2]
+    d          = sqrt(dx*dx+dy*dy)
+    nodefac[1] = d/2
+    nodefac[2] = d/2
+    edgefac[1] = 1/d
     nothing
 end
+
 
 function bfacefactors!(T::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface,nodefac,edgefac)
     en=local_celledgenodes(T)
