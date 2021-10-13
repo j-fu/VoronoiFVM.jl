@@ -118,7 +118,7 @@ function nodeflux(system::AbstractSystem{Tv,Ti},U::AbstractArray{Tu,2}) where {T
 
     UKL=Array{Tu,1}(undef,2*nspecies)
     geom=grid[CellGeometries][1]
-    @show xsigma
+
     for icell=1:num_cells(grid)
         for iedge=1:num_edges(geom)
             _fill!(edge,iedge,icell)
