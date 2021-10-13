@@ -11,7 +11,6 @@ module Example201_Laplace2D
 using VoronoiFVM,ExtendableGrids
 using GridVisualize
 
-
 ## Flux function which describes the flux
 ## between neigboring control volumes
 function g!(f,u,edge)
@@ -24,6 +23,8 @@ function main(;Plotter=nothing,n=5)
     ispec=1    
     X=collect(0:1.0/n:1)
     grid=VoronoiFVM.Grid(X,X)
+
+
     physics=VoronoiFVM.Physics(flux=g!)
     sys=VoronoiFVM.System(grid,physics)
     enable_species!(sys,ispec,[1])
@@ -32,7 +33,11 @@ function main(;Plotter=nothing,n=5)
     inival=unknowns(sys,inival=0)
     solution=unknowns(sys)
     solve!(solution,inival,sys)
-    scalarplot(grid,solution[1,:],Plotter=Plotter)
+    nf=nodeflux(sys,solution)
+    vis=GridVisualizer(Plotter=Plotter)
+    scalarplot!(vis,grid,solution[1,:],clear=true,colormap=:summer)
+    vectorplot!(vis,grid,nf[:,1,:],clear=false,spacing=0.1,vscale=0.5)
+    reveal(vis)
     return solution[7]
 end
 
