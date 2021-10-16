@@ -193,9 +193,9 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 ExtendableGrids = "~0.8.3"
-GridVisualize = "~0.3.4"
+GridVisualize = "~0.3.5"
 PlutoUI = "~0.7.16"
-PlutoVista = "~0.8.1"
+PlutoVista = "~0.8.2"
 PyPlot = "~2.10.0"
 SimplexGridFactory = "~0.5.8"
 Triangulate = "~2.1.0"
@@ -248,9 +248,9 @@ version = "0.3.9"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "74e8234fb738c45e2af55fdbcd9bfbe00c2446fa"
+git-tree-sha1 = "2f294fae04aa5069a67964a3366e151e09ea7c09"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.8.0"
+version = "1.9.0"
 
 [[deps.ColorSchemes]]
 deps = ["ColorTypes", "Colors", "FixedPointNumbers", "Random"]
@@ -391,10 +391,10 @@ uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
 
 [[deps.ForwardDiff]]
-deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "LinearAlgebra", "NaNMath", "Printf", "Random", "SpecialFunctions", "StaticArrays"]
-git-tree-sha1 = "c4203b60d37059462af370c4f3108fb5d155ff13"
+deps = ["CommonSubexpressions", "DiffResults", "DiffRules", "LinearAlgebra", "NaNMath", "Preferences", "Printf", "Random", "SpecialFunctions", "StaticArrays"]
+git-tree-sha1 = "63777916efbcb0ab6173d09a658fb7f2783de485"
 uuid = "f6369f11-7733-5829-9624-2563aa707210"
-version = "0.10.20"
+version = "0.10.21"
 
 [[deps.GeometryBasics]]
 deps = ["EarCut_jll", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
@@ -404,9 +404,9 @@ version = "0.4.1"
 
 [[deps.GridVisualize]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "ElasticArrays", "ExtendableGrids", "GeometryBasics", "LinearAlgebra", "Observables", "OrderedCollections", "PkgVersion", "Printf", "Requires", "StaticArrays"]
-git-tree-sha1 = "0cf1ee93e7b6e88eb0b7e5122e72c7d88102bbc5"
+git-tree-sha1 = "063aa184cec6aff22f7c2f6a498075a93b5fa304"
 uuid = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
-version = "0.3.4"
+version = "0.3.5"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -575,9 +575,9 @@ version = "1.4.1"
 
 [[deps.Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "a8709b968a1ea6abc2dc1967cb1db6ac9a00dfb6"
+git-tree-sha1 = "98f59ff3639b3d9485a03a72f3ab35bab9465720"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.0.5"
+version = "2.0.6"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -596,10 +596,10 @@ uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 version = "0.7.16"
 
 [[deps.PlutoVista]]
-deps = ["ColorSchemes", "Colors", "GridVisualize", "UUIDs"]
-git-tree-sha1 = "05c4f4f1a94ff2cfb6d442cced5965c8ab422e92"
+deps = ["ColorSchemes", "Colors", "DocStringExtensions", "GridVisualize", "UUIDs"]
+git-tree-sha1 = "ce59550b517ab41b5e687174f93f57c76f872b6d"
 uuid = "646e1f28-b900-46d7-9d87-d554eb38a413"
-version = "0.8.1"
+version = "0.8.2"
 
 [[deps.Preferences]]
 deps = ["TOML"]
