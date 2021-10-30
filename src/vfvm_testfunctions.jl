@@ -266,3 +266,23 @@ function integrate_tran(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
     end
     return integral
 end
+
+
+
+# function checkdelaunay(grid)
+#     nreg=num_cellregions(grid)
+#     D=ones(nreg)
+    
+
+#     physics=Physics( 
+#         flux=function(f,u,edge)
+#         f[1]=Du[1]-u[2]
+#         end,
+#         storage=function(f,u,node)
+#         f[1]=0
+#         end
+#     )
+#     tfsystem=System(system.grid,physics,unknown_storage=:dense)
+#     enable_species!(tfsystem,1,[i for i=1:num_cellregions(system.grid)])
+#     return TestFunctionFactory{Tv}(system,tfsystem)
+# end
