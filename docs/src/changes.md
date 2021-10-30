@@ -1,5 +1,10 @@
 # Changes
-## v0.13, Oct 13, 2021
+## v0.13.2 Oct 29, 2021
+- Bernoulli function overhaul
+## v0.13.1
+- sorted things with ExtendableGrids
+- nodal flux reconstruction (e.g. for visualization)
+## v0.13.0, Oct 13, 2021
 - various bug fixes, explicit numbering of edge nodes
 
 ## v0.12.3, July 7, 2021
