@@ -4,140 +4,520 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        el
+    end
+end
+
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
 begin 
-    using PlutoVista
-    using VoronoiFVM
-	using PlutoUI
+    using PlutoUI
+	using ExtendableGrids
+	using PlutoVista
+	using GridVisualize
+	using VoronoiFVM
+	default_plotter!(PlutoVista)
 end
+
+# ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
+TableOfContents(title="")
 
 # ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
 md"""
-# Bernoulli function test
+# Some problems with Voronoi FVM
 
-We test the implementation of the Bernoulli function in VoronoiFVM against the evaluation
-with BigFloat. This allows to optimize thresholds for switching between evaluation expressions.
+Draft. J. Fuhrmann, Oct. 29. 2021
+
 """
 
-# ╔═╡ 20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
-TableOfContents(title="")
-
-# ╔═╡ 1774defe-1939-45f9-95e5-6a9fff70f3f2
+# ╔═╡ fae47c55-eef8-4428-bb5f-45824978753d
 md"""
-## The candidates
+## Transient problem
+
+This problem was suggested by R. Eymard.
 """
 
-# ╔═╡ b47b781b-ec11-485a-9de6-061ad0957f46
-"""
-Benchmark implementation  using BigFloat
-"""
-function B_Big(x)
-	bx=BigFloat(x)
-	Float64(bx/(exp(bx)-one(bx)))
-end
-
-# ╔═╡ 01dd7870-45a7-42e5-ad26-7933bdec0c60
-"""
-Naive implementation using FLoat64
-"""
-B_Float64(x)=x/(exp(x)-1)
-
-# ╔═╡ 36158a4c-4a4b-44c8-9226-448713304335
-"""
-Approximation for large positive and negative arguments
-"""
-B_large(x)= x>0 ? 0.0 : -x
-
-# ╔═╡ 54de85ff-8d61-4d15-b7c6-939ce0ea10fc
-"""
-Taylor scheme approximation for small  positive and negative arguments
-"""
-B_taylor(x)=VoronoiFVM.bernoulli_horner(x)
-
-# ╔═╡ 8e77f24b-b3fd-4069-82ba-799dc6aa602a
-"""
-Implementation  in VoronoiFVM
-"""
-B_vfvm(x)=VoronoiFVM.fbernoulli(x)
-
-# ╔═╡ 984bd562-271b-4e7e-b289-95d95e92ec2b
+# ╔═╡ 8ba2300c-17ff-44e1-b33a-c5bdf1ce12fe
 md"""
-This implementation uses `B_taylor` if  `|exp(x)-1|<` $(VoronoiFVM.bernoulli_small_threshold) and 
-`B_large` if `|x|>` $(VoronoiFVM.bernoulli_large_threshold).
+Regard the following problem coupling Darcy's equation with Fick's law and transport:
 """
 
-# ╔═╡ c3fd0ff2-7111-4165-ad93-d6d7257301fa
+# ╔═╡ 51c9517c-8797-4406-b053-301694fb0484
 md"""
-## Approximation for small x
-
-For small values of x, a Taylor approximation implementd using a Horner scheme is utilized, as the exponential expression runs into errors in the vicinity of zero and fails to evaluate at zero.. As as long as its error is large than that of the Taylor approximation calculated with the Taylor scheme, we should use the later one. 
+```math
+  \begin{aligned}
+    \vec v &= k \nabla p \\
+    \nabla \cdot \vec v &= 0\\
+    \partial_t (\phi c) - \nabla \cdot (D\nabla c + c \vec v) &= 0
+  \end{aligned}
+```
 """
 
-# ╔═╡ 56ff3f5c-6fe9-4d44-a5ae-449c42efca62
-smallX=collect(-0.5:1.0e-4+1.0e-8:0.5);
-
-# ╔═╡ 6e7c197b-8ad2-4b9d-a0bc-40a48db32387
-let
-	p=PlutoVistaPlot(resolution=(500,200),legend=:ct,xlabel="x",ylabel="error")
-    plot!(p,smallX,abs.(B_Big.(smallX).-B_Float64.(smallX)),yscale=:log,label="|B_Big(x)-B_Float64(x)|")
-    plot!(p,smallX,abs.(B_Big.(smallX).- B_taylor.(smallX)),label="|B_Big(x)-B_taylor(x)|")
-end
-
-# ╔═╡ 65aecf78-f88b-4399-abac-717c3c62a285
+# ╔═╡ 99341e32-9c78-4e31-bec0-d1ffbc85ec32
 md"""
-## Approximation for large x
-
-
-Here, an important aspect is to prevent floating point overflow for large x.
+The domain is described by the following discretization grid:
 """
 
-# ╔═╡ 26cdb920-291a-4b54-963f-fd9bd610662f
-largeX=-100:1.00001e-3:100;
-
-# ╔═╡ 8633969b-33cb-486a-8731-2ec7dcb881d7
-let
-	p=PlutoVistaPlot(resolution=(500,200),legend=:lt)
-    plot!(p,largeX,abs.(B_Big.(largeX).-B_Float64.(largeX)) ,yscale=:log,label="|B_Big(x)-B_Float64(x)|")
-    plot!(p,largeX,abs.(B_Big.(largeX).-B_large.(largeX)),label="|B_Big(x)-B_large(x)|")
-end
-
-# ╔═╡ 5a293797-beb9-493e-af12-d978c50d6148
+# ╔═╡ cd013964-f329-4d2c-ae4b-305093f0ac56
 md"""
-## Test of the Implementation in VoronoiFVM
+### Results
+
+In the calculations, we ramp up the inlet concentration and  measure  the amount  of solute flowing  through the outlet - the breaktrough curve.
 """
 
-# ╔═╡ ed8f172e-1d74-4514-b1e6-815ec9c87ae5
-maxerror(X)=maximum(abs.(B_Big.(X).-B_vfvm.(X)));
+# ╔═╡ afccbadb-2ca8-4c3e-8c6d-c78df59d8d7e
+nref=1
 
-# ╔═╡ feb21ce6-0ddc-45fb-90f4-1e46261a9110
-plot(smallX,abs.(B_Big.(smallX).-B_vfvm.(smallX)),label="|B_Big(x)-B_vfvm(x)|",legend=:lt,yscale=:log,resolution=(500,200),color=:red,xlabel="x",ylabel="error", title="Max error for small x: $(maxerror(smallX))" )
+# ╔═╡ dd9f8d38-8812-40ba-88c8-f873ec7d6121
+tend=100
 
-# ╔═╡ 91d3b907-9053-4467-a8ab-be9c5597741a
-plot(largeX,abs.(B_Big.(largeX).-B_vfvm.(largeX)),label="|B_Big(x)-B_vfvm(x)|",legend=:lb,yscale=:log,resolution=(500,200),color=:red,xlabel="x",ylabel="error", title="Max error for large x: $(maxerror(largeX))" )
+# ╔═╡ 5f6ac608-b1a0-450e-910e-d7d8ea2ffae0
+ε_fix=1.0e-4
 
-# ╔═╡ 12f268d2-baa6-4c1b-bed5-e9df53b469fc
-html"<hr>"
-
-# ╔═╡ 80263ff2-a7c5-42c1-bd3e-ee7799622f76
+# ╔═╡ 5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 md"""
+Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
+"""
+
+# ╔═╡ f6abea66-1e42-4201-8433-5d092989749d
 begin
+	vis_n=GridVisualizer(dim=2,resolution=(210,150))
+	vis_f=GridVisualizer(dim=2,resolution=(210,150))
+	(vis_n,vis_f)
+end
+
+# ╔═╡ 98ae56dd-d42d-4a93-bb0b-5956b6e981a3
+md"""
+Time: $(@bind t Slider(1:tend/100:tend,show_value=true,default=tend*0.1))
+"""
+
+# ╔═╡ 99c3b54b-d458-482e-8aa0-d2c2b51fdf25
+md"""
+## Reaction-Diffusion problem
+
+Here we solve the following problem:
+
+```math
+    -\nabla D \nabla u + R u = 0
+```
+where D is large in the high permeability region and small otherwise. R is a constant.
+
+"""
+
+# ╔═╡ eef85cd7-eba4-4c10-9e1d-38411179314d
+md"""
+### Results
+"""
+
+# ╔═╡ fcd066f1-bcd8-4479-a4e4-7b8c235336c4
+md"""
+## Discussion
+
+### Transient case
+As there will be nearly no flow
+in  y-direction, we should  get the  very same  results in  all four
+cases for small permeability values in the low permeability region.  
+
+In the `grid_n` case,  the heterogeneous control volumina  ovrestimate the storage
+capacity which shows itself  in a underestimation  of the
+transferred solute.
+
+With  the high  permeability contrast,  the results  for heterogeneous
+domain should be essentially equal to those for 1D domain.
+ However,   with  a   coarse  resolution   in
+y-direction, we see large  differences in the transient behaviour of
+the breaktrough curve compared to the 1D case.
+The introduction of a thin  protection layer leads  to  reasonable   results.  
+
+
+Alternatively, the porosity of the low permeability region can be modified.
+Arguably, this is the case in practice, see e.g.
+[Ackerer et al, Transport in Porous Media35:345–373, 1999](https://link.springer.com/content/pdf/10.1023/A:1006564309167.pdf)
+(eq. 7).
+
+### Reaction diffusion case
+In this case, we look at a homogeneous reaction in a domain divided
+into a high and low diffusion region. With high contrast in the diffusion
+coefficients, the reasonable assumption is that the reaction takes place only
+in the high diffusion region, and the un-consumed share of species leaves at the outlet.
+
+In this case we observe a similar related problem which can be fixed by adding a thin layer
+of control volumes at the boundary. No problem occurs if the reaction rate at in the low diffusion
+region is zero.
+
+
+### Conclusion
+
+Here, we indeed observe problem with the Voronoi approach: care must be taken to handle the case
+of hetero interfaces in connection with transient processes and/or homogeneous reactions.
+In these cases it should be analyzed if the problem occurs, and why, and it appears, that the discussion
+should not be had without reference to the correct physical models. A remedy based on meshing
+is available at least for straight interfaces. 
+
+### Opinion
+
+With standard ways of using finite elements, the issue described here will occur in a similar way, so
+the discussion is indeed with the alternative "cell centered" finite volume approach which places interfaces
+at the boundaries of the control volumes rather than along the edges of a underlying triangulation.
+
+#### Drawbacks of two point flux Voronoi methods based on simplicial meshes (as tested here):
+- Anisotropic diffusion is only correct with aligned meshes
+- Reliance on boundary conforming Delaunay property of the underyling mesh, thus narrowing the available meshing strategies
+- The issue described  in the present notebook. However, in both cases discussed here, IMHO it might  "go  away"  depending on the correct physics.
+  There should be more discussions with relevant application problems at hand.
+
+#### Advantages (compared to the cell centered approach placing collocation points away from interfaces)
+- Availability of P1 interpolant on simplices for visualization, interpolation, coupling etc.
+- Mesh generators tend to place interfaces at triangle edges.
+- Dirichlet BC can be applied exactly 
+- There is a straighforward way to link interface processes with bulk processes, e.g. an adsorption reaction is easily described by a reaction term at the boundary which involves interface and bulk value available at the same mesh node.
+
+
+"""
+
+# ╔═╡ c9d92201-813c-499b-b863-b138c30eb634
+md"""
+## Appendix
+"""
+
+# ╔═╡ a372ac90-c871-4dc0-a44b-a5bddef71823
+md"""
+### Domain data
+"""
+
+# ╔═╡ 124b2a0a-ef19-453e-9e3a-5b5ce7db5fac
+md"""
+Sizes:
+"""
+
+# ╔═╡ 1ad18670-e7cb-4f7a-be0f-3db98cdeb6a4
+begin
+L=10   # length of the high perm layer
+W=0.5  # width of high perm layer
+Wlow=2 # width of adjacent low perm layers
+end;
+
+# ╔═╡ cc325b2c-6174-4b8d-8e39-202ac68b5705
+md"""
+In the center of the domain, we assume a layer with high permeability.
+
+As  boundary  conditions for the pressure ``p`` we choose  fixed pressure values at  the left
+and right boundaries of the  domain, triggering a constant pressure gradient throughout the domain.
+
+At the inlet of the high  permeability layer, we set ``c=1``, and at the
+outlet, we set ``c=0``.
+
+The high permeability layer has length `L`=$( L) and width `W`= $(W).
+
+We solve the time dependent problem on three types of  rectangular grids with the same
+resolution in   $x$ direction and different variants to to handle the  high permeability
+layer. 
+
+
+- `grid_n` - a "naive" grid which just resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids
+- `grid_1` - a 1D grid  of the high permeability layer. With high permeability contrast, the solution of the 2D case at y=0 should conincide with the 1D solution
+- `grid_f` - a "fixed" 2D grid which resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids and "protection layers" of width `ε_fix`=$(ε_fix)  correcting the size of high permeability control volumes
+
+
+"""
+
+# ╔═╡ 47bc8e6a-e296-42c9-bfc5-967edfb0feb7
+md"""
+Boundary conditions:
+"""
+
+# ╔═╡ d1d5bad2-d282-4e7d-adb9-baf21f58155e
+begin 
+Γ_top=3
+Γ_bot=1
+Γ_left=4
+Γ_right=2
+Γ_in=5
+Γ_out=2
+end;
+
+# ╔═╡ 9d736062-6821-46d9-9e49-34b43b78e814
+begin
+    Ω_low=1
+    Ω_high=2
+end;
+
+# ╔═╡ 83b9931f-9020-4400-8aeb-31ad391184db
+function grid_2d(;nref=0,ε_fix=0.0)
+    nx=10*2^nref
+    ny=1*2^nref
+    nylow=3*2^nref	
+    xc=linspace(0,L,nx+1)
+    y0=linspace(-W/2,W/2,ny+1)
+    if ε_fix>0.0
+        yfix=[W/2,W/2+ε_fix]
+	ytop=glue(yfix,linspace(yfix[end],Wlow,nylow+1))
+    else
+        ytop=linspace(W/2,Wlow,nylow+1)
+    end
+    yc=glue(-reverse(ytop),glue(y0,ytop))
+    grid=simplexgrid(xc,yc)
+    cellmask!(grid, [0,-W/2],[L,W/2],Ω_high)
+    bfacemask!(grid, [0,-W/2],[0,W/2],Γ_in)
+    bfacemask!(grid, [L,-W/2],[L,W/2],Γ_out)
+end
+
+# ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
+gridplot(grid_2d(),resolution=(400,300))
+
+# ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
+gridplot(grid_2d(;ε_fix=1.0e-1),resolution=(400,300))
+
+# ╔═╡ c402f03c-746a-45b8-aaac-902a2f196094
+function grid_1d(;nref=0)
+    nx=10*2^nref
+    xc=linspace(0,L,nx+1)
+    grid=simplexgrid(xc)
+    cellmask!(grid, [0],[L],Ω_high)
+    bfacemask!(grid, [0],[0],Γ_in)
+    bfacemask!(grid, [L],[L],Γ_out)
+    grid
+end
+
+# ╔═╡ e33bf4b7-7b9a-4c5c-be4f-874af949c5ef
+md"""
+### Solvers
+"""
+
+# ╔═╡ a63a655c-e48b-4969-9409-31cd3db3bdaa
+md"""
+Pressure index in solution
+"""
+
+# ╔═╡ d7009231-4b43-44bf-96ba-9a203c0b5f5a
+ip=1;
+
+# ╔═╡ 26965e38-91cd-4022-bdff-4c503f724bfe
+md"""
+Concentration index in solution
+"""
+
+# ╔═╡ c904c921-fa10-43eb-bd46-b2869fa7f431
+ic=2;
+
+# ╔═╡ b143c846-2294-47f7-a2d1-8a6eabe942a3
+md"""
+Generate breaktrough courve from transient solution
+"""
+
+# ╔═╡ 92e4e4ab-3485-4cb9-9b41-e702a211a477
+function breakthrough(sys,tf,sol)
+	of=similar(sol.t)
+	t=sol.t
+	of[1]=0
+	for i=2:length(sol.t)
+	 of[i]=-integrate(sys,tf,sol[i],sol[i-1],t[i]-t[i-1])[ic]
+	end
+	of
+end
+
+# ╔═╡ 3df8bace-b4f1-4052-84f7-dff21d3a35f0
+md"""
+Transient solver:
+"""
+
+# ╔═╡ e866db69-9388-4691-99f7-879cf0658418
+function trsolve(grid;
+	κ=[1.0e-3,5], 
+	D=[1.0e-12,1.0e-12],
+	Δp=1,
+	ϕ=[1,1],
+	tend=100)
+    
+    function flux(y,u,edge)
+        y[ip]=κ[edge.region]*(u[ip,1]-u[ip,2])
+	bp,bm=fbernoulli_pm(y[ip]/D[edge.region]) 
+        y[ic]=D[edge.region]*(bm*u[ic,1]-bp*u[ic,2])
+    end
+    
+    function stor(y,u,node)
+        y[ip]=0
+        y[ic]=ϕ[node.region]*u[ic]
+    end
+    physics=VoronoiFVM.Physics(flux=flux,storage=stor)
+    sys=VoronoiFVM.System(grid,physics)
+    enable_species!(sys,ip,[1,2])
+    enable_species!(sys,ic,[1,2])
+	dim=dim_space(grid)
+	
+	for ibc ∈ (dim == 1 ? [Γ_in] : [Γ_left,Γ_in])
+		boundary_dirichlet!(sys,ip,ibc,Δp)
+    end
+
+	for ibc ∈ (dim == 1 ? [Γ_out] : [Γ_right,Γ_out])
+      boundary_dirichlet!(sys,ip,ibc,0)
+    end
+	
+    boundary_dirichlet!(sys,ic,Γ_in,0)
+    boundary_dirichlet!(sys,ic,Γ_out,0)
+
+    control=VoronoiFVM.NewtonControl()
+    control.Δt=1.0e-4
+    control.Δt_min=1.0e-6
+    control.verbose=false
+
+
+	
+    inival=VoronoiFVM.solve(unknowns(sys,inival=0),sys;control=control)
+    factory=VoronoiFVM.TestFunctionFactory(sys)
+    tfc=testfunction(factory,[Γ_in,Γ_left,Γ_top,Γ_bot],[Γ_out])
+    
+    function pre(sol,t)
+	cin=min(1.0,1.0e3*t)
+	boundary_dirichlet!(sys,ic,Γ_in,cin)
+    end
+    
+    
+    sol=VoronoiFVM.solve(inival,sys,[0,tend]; pre=pre,control=control)
+    
+    bt=breakthrough(sys,tfc,sol)
+    if dim==1
+		bt=bt*W
+	end
+    
+    grid,sol,bt
+end
+
+# ╔═╡ cd88123a-b042-43e2-99b9-ec925a8794ed
+grid_n,sol_n,bt_n=trsolve(grid_2d(nref=nref),tend=tend);
+
+# ╔═╡ 61ed054e-7116-4a51-9d13-e07279acb2a4
+scalarplot!(vis_n,grid_n,sol_n(t)[ic,:],levels=0:0.2:1,resolution=(400,150),show=true)
+
+# ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
+grid_1,sol_1,bt_1=trsolve(grid_1d(nref=nref),tend=tend);
+
+# ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
+scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
+xlabel="x",ylabel="c",title="1D calculation, t=$t")
+
+# ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
+grid_f,sol_f,bt_f=trsolve(grid_2d(nref=nref,ε_fix=ε_fix),tend=tend);
+
+# ╔═╡ d1ce7f69-3703-4cb2-9bf3-4c5efccb479e
+scalarplot!(vis_f,grid_f,sol_f(t)[ic,:],levels=0:0.2:1,resolution=(400,150),show=true)
+
+# ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
+grid_ϕ,sol_ϕ,bt_ϕ=trsolve(grid_2d(nref=nref), ϕ=[1.0e-3,1],tend=tend);
+
+# ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
+let
+    p=PlutoVistaPlot(resolution=(500,200),xlabel="t",ylabel="outflow",
+                     legend=:rb,
+                     title="Breakthrough Curves")
+    plot!(p, sol_n.t,bt_n,label="naive grid")
+    plot!(p, sol_1.t,bt_1,label="1D grid",markertype=:x)
+    plot!(p, sol_f.t,bt_f,label="grid with fix",markertype=:circle)
+    plot!(p, sol_ϕ.t,bt_ϕ,label="modified ϕ",markertype=:cross)
+end
+
+# ╔═╡ 78d92b4a-bdb1-4117-ab9c-b422eac403b1
+md"""
+Reaction-Diffusion solver
+"""
+
+# ╔═╡ bb3a50ed-32e7-4305-87d8-4093c054a4d2
+function rdsolve(grid;D=[1.0e-12,1.0],R=[1,0.1])
+    
+    function flux(y,u,edge)
+        y[1]=D[edge.region]*(u[1,1]-u[1,2])
+    end
+
+	function rea(y,u,node)
+        y[1]=R[node.region]*u[1]
+    end
+    
+    physics=VoronoiFVM.Physics(flux=flux,reaction=rea)
+    sys=VoronoiFVM.System(grid,physics)
+    enable_species!(sys,1,[1,2])
+  	dim=dim_space(grid)
+	
+    boundary_dirichlet!(sys,1,Γ_in,1)
+    boundary_dirichlet!(sys,1,Γ_out,0)
+
+    sol=VoronoiFVM.solve(unknowns(sys,inival=0),sys)
+    factory=VoronoiFVM.TestFunctionFactory(sys)
+    tf=testfunction(factory,[Γ_in,Γ_left,Γ_top,Γ_bot],[Γ_out])
+   	of=integrate(sys,tf,sol) 
+	    fac=1.0
+	if dim==1
+		fac=W
+	end
+    grid,sol[1,:],of[1]*fac
+
+end
+
+# ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
+rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref))
+
+# ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
+scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
+
+# ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
+rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref))
+
+# ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
+ rdgrid_f,rdsol_f,of_f=rdsolve(grid_2d(nref=nref,ε_fix=ε_fix))
+
+# ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
+scalarplot(rdgrid_n,rdsol_n,resolution=(210,200)),
+scalarplot(rdgrid_f,rdsol_f,resolution=(210,200))
+
+# ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
+ rdgrid_r,rdsol_r,of_r=rdsolve(grid_2d(nref=nref),R=[0,0.1])
+
+# ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
+md"""
+We measure the outflow at the outlet. As a result, we obtain:
+   - 1D case: $(of_1)
+   - 2D case, naive grid: $(of_n)
+   - 2D case, grid with "protective layer": $(of_f)
+   - 2D case, naive grid, "modified" R: $(of_r)
+ 
+"""
+
+
+# ╔═╡ 0cc1c511-f351-421f-991a-a27f26a8db4f
+  html"<hr>"
+
+# ╔═╡ 99c8458a-a584-4825-a983-ae1a05e50000
+md"""
+"Un-markdown" the next cell for debugging/developing
+"""
+
+# ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
+md"""
+  begin
     using Pkg
     Pkg.activate(".testenv")
     Pkg.add("Revise")
     using Revise
     Pkg.develop("VoronoiFVM")
-    Pkg.add(["PlutoVista", "PlutoUI"])
+    Pkg.add(["PlutoVista", "PlutoUI","GridVisualize","ExtendableGrids"])
 end
 """;
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
+GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
+ExtendableGrids = "~0.8.7"
+GridVisualize = "~0.3.9"
 PlutoUI = "~0.7.16"
 PlutoVista = "~0.8.7"
 VoronoiFVM = "~0.13.2"
@@ -718,26 +1098,62 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
+# ╠═556480e0-94f1-4e47-be9a-3e1e0e99555c
 # ╟─5e13b3db-570c-4159-939a-7e2268f0a102
-# ╟─20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
-# ╟─1774defe-1939-45f9-95e5-6a9fff70f3f2
-# ╠═b47b781b-ec11-485a-9de6-061ad0957f46
-# ╠═01dd7870-45a7-42e5-ad26-7933bdec0c60
-# ╠═36158a4c-4a4b-44c8-9226-448713304335
-# ╠═54de85ff-8d61-4d15-b7c6-939ce0ea10fc
-# ╠═8e77f24b-b3fd-4069-82ba-799dc6aa602a
-# ╟─984bd562-271b-4e7e-b289-95d95e92ec2b
-# ╟─c3fd0ff2-7111-4165-ad93-d6d7257301fa
-# ╠═56ff3f5c-6fe9-4d44-a5ae-449c42efca62
-# ╠═6e7c197b-8ad2-4b9d-a0bc-40a48db32387
-# ╠═65aecf78-f88b-4399-abac-717c3c62a285
-# ╠═26cdb920-291a-4b54-963f-fd9bd610662f
-# ╠═8633969b-33cb-486a-8731-2ec7dcb881d7
-# ╟─5a293797-beb9-493e-af12-d978c50d6148
-# ╠═ed8f172e-1d74-4514-b1e6-815ec9c87ae5
-# ╟─feb21ce6-0ddc-45fb-90f4-1e46261a9110
-# ╟─91d3b907-9053-4467-a8ab-be9c5597741a
-# ╟─12f268d2-baa6-4c1b-bed5-e9df53b469fc
-# ╠═80263ff2-a7c5-42c1-bd3e-ee7799622f76
+# ╟─fae47c55-eef8-4428-bb5f-45824978753d
+# ╟─8ba2300c-17ff-44e1-b33a-c5bdf1ce12fe
+# ╟─51c9517c-8797-4406-b053-301694fb0484
+# ╟─99341e32-9c78-4e31-bec0-d1ffbc85ec32
+# ╟─46a0f078-4165-4e37-9e69-e69af8584f6e
+# ╟─cc325b2c-6174-4b8d-8e39-202ac68b5705
+# ╠═3f693666-4026-4c01-a7aa-8c7dcbc32372
+# ╟─cd013964-f329-4d2c-ae4b-305093f0ac56
+# ╠═afccbadb-2ca8-4c3e-8c6d-c78df59d8d7e
+# ╠═dd9f8d38-8812-40ba-88c8-f873ec7d6121
+# ╠═5f6ac608-b1a0-450e-910e-d7d8ea2ffae0
+# ╠═cd88123a-b042-43e2-99b9-ec925a8794ed
+# ╠═b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
+# ╠═76b77ec0-27b0-4a02-9ae4-43d756eb09dd
+# ╠═904b36f0-10b4-4db6-9252-21668305de9c
+# ╟─ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
+# ╟─5b60c7d4-7bdb-4989-b055-6695b9fdeedc
+# ╟─f6abea66-1e42-4201-8433-5d092989749d
+# ╟─e36d2aef-1b5a-45a7-9289-8d1e544bcedd
+# ╟─98ae56dd-d42d-4a93-bb0b-5956b6e981a3
+# ╟─61ed054e-7116-4a51-9d13-e07279acb2a4
+# ╟─d1ce7f69-3703-4cb2-9bf3-4c5efccb479e
+# ╟─99c3b54b-d458-482e-8aa0-d2c2b51fdf25
+# ╟─eef85cd7-eba4-4c10-9e1d-38411179314d
+# ╠═2f560406-d169-4027-9cfe-7689494edf45
+# ╠═a6714eac-9e7e-4bdb-beb7-aca354664ad6
+# ╠═20d7624b-f43c-4ac2-bad3-383a9e4e1b42
+# ╠═c0fc1f71-52ba-41a9-92d1-74e82ac7826c
+# ╟─c08e86f6-b5c2-4762-af23-382b1b153f45
+# ╠═34228382-4b1f-4897-afdd-19db7d5a7c59
+# ╟─6a6d0e94-8f0d-4119-945c-dd48ec0798fd
+# ╟─fcd066f1-bcd8-4479-a4e4-7b8c235336c4
+# ╟─c9d92201-813c-499b-b863-b138c30eb634
+# ╟─a372ac90-c871-4dc0-a44b-a5bddef71823
+# ╟─124b2a0a-ef19-453e-9e3a-5b5ce7db5fac
+# ╠═1ad18670-e7cb-4f7a-be0f-3db98cdeb6a4
+# ╟─47bc8e6a-e296-42c9-bfc5-967edfb0feb7
+# ╠═d1d5bad2-d282-4e7d-adb9-baf21f58155e
+# ╠═9d736062-6821-46d9-9e49-34b43b78e814
+# ╠═83b9931f-9020-4400-8aeb-31ad391184db
+# ╠═c402f03c-746a-45b8-aaac-902a2f196094
+# ╟─e33bf4b7-7b9a-4c5c-be4f-874af949c5ef
+# ╟─a63a655c-e48b-4969-9409-31cd3db3bdaa
+# ╠═d7009231-4b43-44bf-96ba-9a203c0b5f5a
+# ╟─26965e38-91cd-4022-bdff-4c503f724bfe
+# ╠═c904c921-fa10-43eb-bd46-b2869fa7f431
+# ╟─b143c846-2294-47f7-a2d1-8a6eabe942a3
+# ╠═92e4e4ab-3485-4cb9-9b41-e702a211a477
+# ╟─3df8bace-b4f1-4052-84f7-dff21d3a35f0
+# ╠═e866db69-9388-4691-99f7-879cf0658418
+# ╟─78d92b4a-bdb1-4117-ab9c-b422eac403b1
+# ╠═bb3a50ed-32e7-4305-87d8-4093c054a4d2
+# ╟─0cc1c511-f351-421f-991a-a27f26a8db4f
+# ╟─99c8458a-a584-4825-a983-ae1a05e50000
+# ╠═b6b826a1-b52f-41d3-8feb-b6464f76352e
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
