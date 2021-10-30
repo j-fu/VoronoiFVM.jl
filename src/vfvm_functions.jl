@@ -21,6 +21,9 @@ function bernoulli_horner(x)
 end
 
 
+# Bernoulli thresholds optimized for Float64
+const bernoulli_small_threshold=0.25
+const bernoulli_large_threshold=40.0
 ##############################################################
 """
 $(SIGNATURES)
@@ -34,31 +37,22 @@ with Bernoulli from JuliaStats/Distributions.jl
 Returns a real number containing the result.
 """
 function fbernoulli(x)
-    expx=exp(x)
-    if expx<0.99999
-        return x/(expx-1)
-    elseif expx < 1.00001
-        return bernoulli_horner(x)
+    if x<-bernoulli_large_threshold
+        -x
+    elseif x>bernoulli_large_threshold
+	zero(x)
     else
-        return x/(expx-1)
+        expx=exp(x)
+        expxm1=expx-1.0
+        if abs(expxm1)>bernoulli_small_threshold
+            x/expxm1
+        else
+            bernoulli_horner(x)
+        end
     end
 end
 
 ##############################################################
-
-
-const etruncmax = 100.0
-const etruncmin = -100.0
-
-function trexp(x)
-  if(x<etruncmin)
-    return 1.0/(exp(etruncmin)*(-x+etruncmin+1.0));
-  elseif (x<etruncmax)
-    return exp(x);
-  else
-      return exp(etruncmax)*(x-etruncmax+1.0);
-  end
-end
 
 
 """ 
@@ -74,15 +68,24 @@ and it is cheaper to calculate them together.
 Returns two real numbers containing the result for argument
 `x` and argument `-x`.
 
+The error in comparison with the evaluation of the original expression
+with BigFloat is less than 1.0e-15
 """
 function fbernoulli_pm(x)
-    expx=exp(x)
-    if abs(expx-1)>0.00001
-        bp=x/(expx-1)
-        bm=x/(1-1/expx)
-        return bp,bm
+    if x< -bernoulli_large_threshold
+        return -x, zero(x)
+    elseif x>bernoulli_large_threshold
+	return zero(x),x
     else
-        y=bernoulli_horner(x)
-        return y,x+y
+        expx=exp(x)
+        expxm1=expx-1.0
+        if abs(expxm1)>bernoulli_small_threshold
+            bp=x/expxm1
+            bm=x/(1.0-1.0/expx)
+            return bp,bm
+        else
+            y=bernoulli_horner(x)
+            return y,x+y
+        end
     end
 end
