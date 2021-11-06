@@ -96,6 +96,8 @@ include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
 export measurement_derivative
 
+include("vfvm_simpleapi.jl")
+export NeumannBC, RobinBC, DirichletBC, BoundaryCondition, boundary_conditions!,system
 
 end
 
