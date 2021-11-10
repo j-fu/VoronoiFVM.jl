@@ -60,35 +60,6 @@ function test()
 end
 
 #=
-Ideas here:
-
-- [ ] Use artificial diffusion expression to handle convectio-diffusion
-- [ ] Constructors for various problem classes 
-- [ ] How to handle diffusion matrix ? 
-      We would know how to fill u and ∇u  before
-      => wir brauchen mean(u) and gradient(u), wir können das im fluxwrap füllen
-      Do this a the level of fluxwrap
-
-
-??? Diskussion mit Christian, Alireza, Manuel
-
-- [ ] 
-
-expfitflux(u1,u2, D, v,edge)
-end
-
-
-upwindflux(u1,u2,D,v,edge)
-
-end
-
-centralflux(u1,u2,D,v,edge)
-
-end
-
-function D(u, ∇c(u))
-
-end
 =#
 
 end
