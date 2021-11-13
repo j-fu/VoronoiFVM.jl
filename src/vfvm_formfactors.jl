@@ -24,7 +24,7 @@ function cellfactors!(T::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell,
     nothing
 end
 
-function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell,nodefac,edgefac)
+function cellfactors!(T::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell,nodefac,edgefac)
     en=local_celledgenodes(T)
     K=cellnodes[en[1,1],icell]
     L=cellnodes[en[2,1],icell]
@@ -263,12 +263,12 @@ $(SIGNATURES)
 Calculate node volume  contributions for boundary face.
 """ 
 
-function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac,edgefac)
+function bfacefactors!(T::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac,edgefac)
     nodefac[1]=1.0
     nothing
 end
 
-function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac, edgefac)
+function bfacefactors!(T::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac, edgefac)
     inode=bfacenodes[1,ibface]
     r=coord[1,inode]
     nodefac[1]=2*π*r
