@@ -4,21 +4,55 @@ using VoronoiFVM
 using GridVisualize
 using ExtendableGrids
 
+"""
 
+- Keep the mutating functions, just document them better and  provide tools for standard cases
+- Develop patterns for wrapper functions
+- This solves parameter handling for BC and the case of nonatonomous systems! 
+   t=time(node)
+   node.time
+   or pass t as a parameter: todo: square this with the impedance stuff.
+    
+- Find pattern for parameter, species, quantity naming
+- For natural BC no problem: just use breaction
+- For Dirichlet:  Extra function type ? No, just give a pattern how to do this.
+   function breaction!(y,u,bnode,data)
+        boundary_dirichlet!(y,bnode,ispec,ireg,val)
+        boundary_neumann!(y,bnode,ispec,ireg,val)
+        boundary_robin!(y,bnode,ispec,ireg,fac,val)
+   end
+ 
+   This will allow at once to handle impedance for drift-diffusion and space + time + parameter dependent bc!
+
+   General impedance approach just uses a parameter for excitation, and we will 
+   get general impedance handling from this.
+- Provide tools for building elementary flux functions: diffusion, upwind, scharfetter_gummel
+- Work with species
+
+Reply to rveltz:
+Constraints: 
+- callbacks able to work without allocations and with forwarddiff
+- species numbers etc. at runtime => difficult to work with static arrays etc. in API
+- => Mutating callbacks
+
+Simplifying changes: kwargs in solver, system creation
+Improved interface: bc now in breaction callback.
+"""
 
 function xmain(;Plotter=nothing,n=50)
     X=0:1.0/n:1
     grid=simplexgrid(X,X)
+    ispec=1
 
-    flux(u,edge)= u[1,1]-u[1,2]
-    reaction(u,node)=  u[1,1]^3-10
-
-    bc=[
-        DirichletBC(species=1,boundary=1,value=0),
-        DirichletBC(species=1,boundary=3,value=1),
-    ]
     
-    sys=system(grid; num_species=1,flux=flux,reaction=reaction,bc=bc)
+    flux!(y,u,edge)= y[1]= u[1,1]-u[1,2]
+    reaction!(y,u,node)=  y[1]= u[1,1]^3-10
+    function bc!(args...)
+        boundary_dirichlet!(args...,region=1,value=0)
+        boundary_dirichlet!(args...,region=3,value=1)
+    end
+    
+    sys=system(grid; num_species=1,flux=flux!,reaction=reaction!,breaction=bc!)
     solution=solve(sys; verbose=true, damp_initial=0.01)
     scalarplot(grid,solution[1,:]; Plotter=Plotter, clear=true,colormap=:summer,show=true)
     return sum(solution)
@@ -63,4 +97,4 @@ end
 =#
 
 end
-
+b

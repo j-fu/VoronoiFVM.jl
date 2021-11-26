@@ -4,39 +4,23 @@ isunknownsof(u::SparseSolutionArray, sys::SparseSystem) = size(u) == size(sys.no
 
 
 
+boundary_dirichlet!(y,u,bnode,ispec,ireg,val) =      bnode.region == ireg ? y[ispec] += Dirichlet*(u[ispec]-val) : nothing
+boundary_robin!(y,u,bnode,ispec,ireg,fac,val) =      bnode.region == ireg ? y[ispec] += fac*u[ispec]-val : nothing
+boundary_neumann!(y,u,bnode,ispec,ireg,fac,val) =    bnode.region == ireg ? y[ispec] -= val : nothing
 
-struct BoundaryCondition
-    ispec::Int64
-    ibreg::Int64
-    bcfac::Float64
-    bcval::Float64
-end
-
-
-function boundary_conditions!(sys,bcond)
-    for bc ∈ bcond
-        sys.boundary_factors[bc.ispec,bc.ibreg]=bc.bcfac
-        sys.boundary_values[bc.ispec,bc.ibreg]=bc.bcval
-    end
-end
+boundary_dirichlet!(y,u,bnode; species=1, region=1,value=0) =      bnode.region == region ? y[species] += Dirichlet*(u[species]-value) : nothing
 
 
 function system(grid::ExtendableGrid;
-                num_species=0,
-                flux::Tflux=nothing,
-                reaction::Treaction=nothing,
-                bc=[],
                 kwargs...
-              ) where {Tflux, Treaction}
-    myflux= isnothing(flux) ? VoronoiFVM.nofunc : (y,u,edge)-> (y.=flux(u,edge))
-    myreaction= isnothing(reaction) ? VoronoiFVM.nofunc : (y,u,node)-> (y.=reaction(u,node))
-    physics=Physics(flux=myflux, reaction =myreaction)
+                )
+    physics=Physics(; kwargs...)
     sys=System(grid,physics; kwargs...)
     allregions=collect(1:num_cellregions(grid))
+    num_species=kwargs[:num_species]
     for ispec=1:num_species
         enable_species!(sys,ispec,allregions)
     end
-    boundary_conditions!(sys,bc)
     sys
 end
 
@@ -62,9 +46,4 @@ function VoronoiFVM.solve(sys::VoronoiFVM.System; inival=0, kwargs...)
     end
     solve(inival,sys; control=control)
 end
-
-
-NeumannBC(;species=nothing, boundary=nothing, value=0)=BoundaryCondition(species,boundary,0,value)
-RobinBC(;species=nothing, boundary=nothing, factor=0,value=0)=BoundaryCondition(species,boundary,factor,value)
-DirichletBC(;species=nothing, boundary=nothing, value=0)=BoundaryCondition(species,boundary,VoronoiFVM.Dirichlet,value)
 
