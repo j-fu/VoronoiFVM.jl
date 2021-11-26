@@ -28,10 +28,10 @@ md"""
 # Handling of interfaces in VoronoiFVM
 
 Let ``\Omega=(-0.5,1.5)\times (0,2)`` be subdivided into two
-subregions, i.e. ``\Omega = \Omega_1\cap \Omega_2``. Let  ``\Gamma_{12}`` be the interface between them. Further, let ``Γ_1=(-0.5)\times (0,2)``,
-        ``Γ_2=(-1.5)\times (0,2)``, and ``Γ_N=\partial\Omega \setminus (Γ_1\cap Γ_2)``.
+subregions, i.e. ``\Omega = \Omega_1\cap \Omega_2``. Let  ``\Gamma_{12}`` be the interface between them. Further, let ``Γ_1=\{-0.5\}\times (0,2)``,
+        ``Γ_2=\{1.5\}\times (0,2)``, and ``Γ_N=\partial\Omega \setminus (Γ_1\cup Γ_2)``.
 We assume that ``\Omega`` is triangulated with a Delaunay triangulation which conforms to interior
-and exterior boundaries. The later property enssures, that subdomain boundaries are aligned
+and exterior boundaries. The later property ensures, that subdomain boundaries are aligned
 with triangle edges, and  that for $i=1,2$ the circumcenters
 of triangles from ``\Omega_i`` are situated  in ``\bar\Omega_i``.
 """
@@ -148,7 +148,7 @@ A P1 finite element discretization is straightforward if the interface is aligne
 # ╔═╡ d95afcb5-68f9-4d2e-9111-06fc38fe949a
 md"""
 ### Finite volume approach
-We introduce the following notation: Let $\omega_K$ be a respective controle volume. We denote by ``\sigma_{KL} = \partial \omega_K \cap \partial\omega_L`` the face between two adjacent control volumes. To each control volume we assign a collocation point ``x_K \in \omega_K``. The set of all neighbouring control volumes of ``\omega_K`` is given by ``\mathcal{N}(\omega_K)``. The euclidean distance between two collocation points is given by ``h_{KL} = \Vert x_L - x_K \Vert_2``. Note that ``h_{KL}`` and ``\sigma_{KL}`` are orthogonal to each other.
+We introduce the following notation: Let $\omega_K$ be a respective control volume. We denote by ``\sigma_{KL} = \partial \omega_K \cap \partial\omega_L`` the face between two adjacent control volumes. To each control volume we assign a collocation point ``x_K \in \omega_K``. The set of all neighbouring control volumes of ``\omega_K`` is given by ``\mathcal{N}(\omega_K)``. The Euclidean distance between two collocation points is given by ``h_{KL} = \Vert x_L - x_K \Vert_2``. Note that ``h_{KL}`` and ``\sigma_{KL}`` are orthogonal to each other.
 
 In the following we consider the integral over a control volume ``\omega_K``
 ```math
