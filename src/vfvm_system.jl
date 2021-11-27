@@ -169,7 +169,7 @@ Create Finite Volume System.
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 - `matrixindextype` : Index type for sparse matrices created in the system
 """
-function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
+function System(grid::ExtendableGrid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
     system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
     physics!(system,physics)
 end
@@ -179,11 +179,15 @@ function physics!(system::System,physics)
     system
 end
 
-function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
+
+
+function System(grid; species=Int[], unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype
-
+    
+    
+    
     if Symbol(unknown_storage)==:dense
         system=System{Tv,Ti,Tm,Matrix{Ti}, Matrix{Tv}}()
     elseif Symbol(unknown_storage)==:sparse
@@ -192,6 +196,7 @@ function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
 
+    
     maxspec=0
     system.grid=grid
     system.region_species=spzeros(Ti,Int16,maxspec,num_cellregions(grid))
@@ -205,6 +210,10 @@ function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs
     system.allocs=-1000
     system.factorization=nothing
     check_allocs!(system,check_allocs)
+
+
+    physics!(system,Physics(; kwargs...))
+    enable_species!(system;species)
     return system
 end
 
@@ -440,6 +449,22 @@ function enable_species!(system::AbstractSystem,ispec::Integer, regions::Abstrac
 end
 
 
+function enable_species!(sys::AbstractSystem; species=nothing, regions=nothing)
+    if regions==nothing
+        regions=collect(1:num_cellregions(sys.grid))
+    end
+    
+    if isa(species,Number)
+        species=[species]
+    end
+    
+    for ispec ∈ species
+        enable_species!(sys,ispec,regions)
+    end
+    sys
+end
+
+
 ##################################################################
 """
 ````
@@ -611,7 +636,22 @@ function boundary_dirichlet!(system::AbstractSystem, ispec::Integer, ibc, v)
     system.boundary_factors[ispec,ibc]=Dirichlet
     system.boundary_values[ispec,ibc]=v
 end
+boundary_dirichlet!(y,u,bnode,ispec,ireg,val) =  bnode.region == ireg ? y[ispec] += bnode.Dirichlet*(u[ispec]-val) : nothing
+boundary_dirichlet!(y,u,bnode,args...; species=1, region=bnode.region,value=0) = boundary_dirichlet!(y,u,bnode,species,region,value)
 
+
+
+
+function ramp(t;dt=(0,0.1),du=(0,0))
+    (t,ubegin,uend,tbegin,tend)=promote(Float64(t),du[1],du[2],dt[1],dt[2])
+    if t<tbegin
+        return ubegin
+    elseif t<tend
+        return ubegin+(uend-ubegin)*(t-tbegin)/(tend-tbegin)
+    else
+        return uend
+    end
+end
 
 
 ##################################################################
@@ -628,6 +668,9 @@ function boundary_neumann!(system::AbstractSystem, ispec, ibc, v)
     system.boundary_values[ispec,ibc]=v
 end
 
+boundary_neumann!(y,u,bnode,ispec,ireg,val) =    bnode.region == ireg ? y[ispec] -= val : nothing
+boundary_neumann!(y,u,bnode,args...; species=1, region=1,value=0) = boundary_neumann!(y,u,bnode,species,region,value)
+
 
 ##################################################################
 """
@@ -643,6 +686,9 @@ function boundary_robin!(system::AbstractSystem, ispec, ibc, α, v)
     system.boundary_factors[ispec,ibc]=α
     system.boundary_values[ispec,ibc]=v
 end
+
+boundary_robin!(y,u,bnode,ispec,ireg,fac,val) =      bnode.region == ireg ? y[ispec] += fac*u[ispec]-val : nothing
+boundary_robin!(y,u,bnode,args...; species=1, region=1,factor=0,value=0) = boundary_robin!(y,u,bnode,species,region,factor,value)
 
 ##################################################################
 """
@@ -754,6 +800,14 @@ function unknowns(system::AbstractSystem;inival=undef) end
 unknowns(sys::SparseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm}=unknowns(Tv,sys,inival=inival)
 
 unknowns(system::DenseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm} = unknowns(Tv,system,inival=inival)
+
+
+
+isunknownsof(u::Any, sys::AbstractSystem)=false
+isunknownsof(u::DenseSolutionArray, sys::DenseSystem) = size(u) == size(sys.node_dof)
+isunknownsof(u::SparseSolutionArray, sys::SparseSystem) = size(u) == size(sys.node_dof)
+
+
 
 
 """

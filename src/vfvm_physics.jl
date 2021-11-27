@@ -168,7 +168,7 @@ Physics(;num_species=0,
          bstorage,
          generic,
          generic_sparsity
-)
+    )
 ````
 
 Constructor for physics data. For the meaning of the optional function
@@ -192,7 +192,8 @@ function Physics(;num_species=0,
                  bsource::Function=nosrc,
                  bstorage::Function=nofunc,
                  generic::Function=nofunc_generic,
-                 generic_sparsity::Function=nofunc_generic_sparsity
+                 generic_sparsity::Function=nofunc_generic_sparsity,
+                 kwargs...
                  )
     if !isdata(data)
         flux==nofunc ? flux=nofunc2 : true
@@ -396,4 +397,15 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
             
         end
     end
+end
+
+
+##########################################################
+
+
+
+
+# "Generate" a flux function
+function diffusion_flux(D::T) where T
+    (y,u,args...)-> y[1]=D(u[1,1]+u[1,2])*(u[1,1]-u[1,2])
 end
