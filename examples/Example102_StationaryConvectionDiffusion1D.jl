@@ -38,8 +38,7 @@ using GridVisualize
 ## number v*h/D>1, the monotonicity property is lost.  Grid refinement
 ## can fix this situation by decreasing $h$.
 
-function central_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function central_flux!(f,u,edge,data)
     f_diff=data.D*(u[1,1]-u[1,2])
     vh=project(edge,data.v)
     f[1]=f_diff+vh*(u[1,1]+u[1,2])/2
@@ -49,8 +48,7 @@ end
 ## via brute force and loses one order of convergence for small $h$ compared
 ## to the central flux.
 
-function upwind_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function upwind_flux!(f,u,edge,data)
     fdiff=data.D*(u[1,]-u[1,2])
     vh=project(edge,data.v)
     if vh>0
@@ -73,8 +71,7 @@ function bernoulli(x)
     return x/(exp(x)-1)
 end
 
-function exponential_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function exponential_flux!(f,u,edge,data)
     vh=project(edge,data.v)
     Bplus= data.D*bernoulli(vh/data.D)
     Bminus=data.D*bernoulli(-vh/data.D)

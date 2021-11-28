@@ -14,22 +14,26 @@ using GridVisualize
 
 ## Flux function which describes the flux
 ## between neigboring control volumes
-function g!(f,u0,edge)
-    u=unknowns(edge,u0)
+function g!(f,u,edge)
     f[1]=u[1,1]-u[1,2]
 end
 
+function s(f,node)
+    n=view(node.coord,:,node.index)
+    f[1]=n[1]*sin(5.0*n[2])*exp(n[3])
+end
 
-function main(;Plotter=nothing)
+
+function main(;Plotter=nothing,n=5)
     nspecies=1 
     ispec=1    
-    X=collect(0:0.2:1)
+    X=collect(0:1/n:1)
     grid=VoronoiFVM.Grid(X,X,X)
-    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
+    physics=VoronoiFVM.Physics(flux=g!,source=s)
     sys=VoronoiFVM.System(grid,physics)
     enable_species!(sys,ispec,[1])
     boundary_dirichlet!(sys,ispec,5,0.0)
-    boundary_dirichlet!(sys,ispec,6,1.0)
+    boundary_dirichlet!(sys,ispec,6,0.0)
     inival=unknowns(sys,inival=0)
     solution=unknowns(sys)
     solve!(solution,inival,sys)
@@ -40,7 +44,7 @@ end
 ## Called by unit test
 
 function test()
-    main() ≈ 0.2
+    main() ≈ 0.012234524449380824 
 end
 
 end

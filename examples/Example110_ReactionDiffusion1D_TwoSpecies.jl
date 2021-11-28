@@ -28,17 +28,16 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     grid=VoronoiFVM.Grid(collect(0:h:1))
     
     
-    eps=[1.0,1.0]
+    eps::Vector{Float64}=[1.0,1.0]
     
-    physics=VoronoiFVM.Physics(num_species=2,
+    physics=VoronoiFVM.Physics(
                                
                                reaction=function(f,u,node)
                                f[1]=u[1]*u[2]
                                f[2]=-u[1]*u[2]
                                end,
                                
-                               flux=function(f,u0,edge)
-                               u=unknowns(edge,u0)
+                               flux=function(f,u,edge)
 
                                nspecies=2
                                f[1]=eps[1]*(u[1,1]-u[1,2])*(0.01+u[2,1]+u[2,2])
@@ -57,7 +56,7 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
                                )
     
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
-    
+
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
 

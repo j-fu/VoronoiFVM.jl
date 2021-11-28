@@ -19,11 +19,9 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
 
     grid=VoronoiFVM.Grid(X,Y)
     
-    
     k=1.0
-    eps=1.0
+    eps::Float64=1.0
     physics=VoronoiFVM.Physics(
-    num_species=3,
     breaction=function(f,u,node)
         if  node.region==2
             f[1]=k*(u[1]-u[3])
@@ -39,8 +37,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     end,
     
     
-    flux=function(f,u0,edge)
-        u=unknowns(edge,u0)
+    flux=function(f,u,edge)
         f[1]=eps*(u[1,1]-u[1,2])
         f[2]=eps*(u[2,1]-u[2,2])
     end,
@@ -58,7 +55,7 @@ function main(;n=10,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     )
     
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
-    
+
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1])
     enable_boundary_species!(sys,3,[2])

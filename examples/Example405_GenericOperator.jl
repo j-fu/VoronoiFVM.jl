@@ -79,7 +79,6 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
 
     sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
 
-    
     ## Add species 1 to region 1
     enable_species!(sys,1,[1])
 

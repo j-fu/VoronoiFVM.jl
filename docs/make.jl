@@ -34,13 +34,15 @@ function make_all()
                               preprocess=preprocess)
         end
     end
+
+
     generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     
     makedocs(
         sitename="VoronoiFVM.jl",
         modules = [VoronoiFVM],
         clean = false, 
-        doctest = false,
+        doctest = true,
         authors = "J. Fuhrmann",
         repo="https://github.com/j-fu/VoronoiFVM.jl",
         pages=[ 
@@ -54,6 +56,7 @@ function make_all()
                 "solver.md",
                 "post.md",
                 "misc.md",
+                "quantities.md",
                 "allindex.md",
             ],
             "Examples" => generated_examples

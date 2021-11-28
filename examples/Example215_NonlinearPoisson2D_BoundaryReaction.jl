@@ -7,8 +7,10 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+using ExtendableSparse
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=100)
+function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=100,max_lureuse=0,
+              factorization=LUFactorization())
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -18,7 +20,6 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=
     
     eps=1.0e-2
     physics=VoronoiFVM.Physics(
-        num_species=2,
         breaction=function(f,u,node)
         if  node.region==2
             f[1]=1*(u[1]-u[2])
@@ -29,8 +30,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=
         end
         end,
     
-    flux=function(f,u0,edge)
-        u=unknowns(edge,u0)
+    flux=function(f,u,edge)
         f[1]=eps*(u[1,1]-u[1,2])
         f[2]=eps*(u[2,1]-u[2,2])
     end,
@@ -54,7 +54,9 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.tol_linear=1.0e-5
-    control.max_lureuse=0
+    control.max_lureuse=max_lureuse
+    control.factorization=factorization
+    
     tstep=0.01
     time=0.0
     istep=0

@@ -1,4 +1,48 @@
 # Changes
+## v0.13.2 Oct 29, 2021
+- Bernoulli function overhaul
+## v0.13.1
+- sorted things with ExtendableGrids
+- nodal flux reconstruction (e.g. for visualization)
+## v0.13.0, Oct 13, 2021
+- various bug fixes, explicit numbering of edge nodes
+
+## v0.12.3, July 7, 2021
+- Add quantity id
+- Document quantities
+
+## v0.12.2, July 7, 2021
+Introduce the notion of quantities which can be continuous or discontinuous at interfaces.
+
+- Quantity handling is implemented on top of species handling
+- Unknowns u and rhs y now passed to callbacks as wrapper types, 
+  and can be indexed by quantity or by species numbers. 
+  Moreover, this will allow to abstract parameters, gradients etc. in future versions.
+
+## v0.12.0, July 2 2021
+-  By default, the `u` parameter in flux callbacks is now a  `nspec x 2` array
+- `unknowns(edge,u)`, `viewK, viewL` are obsolete, they still work for backward compatibility
+- `physics.num_species` is now meaningless, num_species is automatically detected.
+- `SparseSystem` and `DenseSystem` are now type aliases of a parametrized type instead of two
+   independent subtypes of `System`
+
+## v0.11.8
+- increase chunk size threshold to match argument length in calls to vector_mode_jacobian
+
+## v0.11.7
+- First attempts on surface flux
+
+## v0.11.1, April 13, 2021
+- Assembly loops cleaned from type instabilities
+- Optionally check for allocations due to type instabilities introduced in physics callbacks.
+  See [`check_allocs!`](@ref) for more information.
+
+## v0.11, April 12, 2021
+- Depending on Julia 1.5 now
+- Lineaer solvers now based on factorize! from ExtendableSparse 0.5
+- Documentation overhaul
+- Re-checking impedance calculation
+
 ## v0.10.13 April 1, 2021
 - Outflow boundary conditions
 

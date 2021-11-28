@@ -136,8 +136,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
         f.=u
     end
     
-    function flux(f,_u,edge)
-	u=unknowns(edge,_u)
+    function flux(f,u,edge)
 	f[1]=u[1,1]-u[1,2]
 	f[2]=u[2,1]-u[2,2]
     end
@@ -154,13 +153,13 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
 	f[1]=1.0
     end
     
-    physics=VoronoiFVM.Physics(num_species=2,
-	                       flux=flux,
+    physics=VoronoiFVM.Physics(flux=flux,
 	                       storage=storage,
 	                       reaction=reaction,
 	                       source=source)
     
     system=VoronoiFVM.System(grid,physics)
+
     enable_species!(system,1,[1])
     enable_species!(system,2,[1])
     boundary_dirichlet!(system,2,2,0.0);
@@ -168,11 +167,11 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     
     inival=unknowns(system,inival=0.0)
     
-    u=solve(inival,system)
+    sol=solve(inival,system)
     
     vis=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(600,300),fignumber=1)
-    scalarplot!(vis[1,1],grid,u[1,:],flimits=(0,1.5),title="u_1")
-    scalarplot!(vis[1,2],grid,u[2,:],flimits=(0,1.5),title="u_2",show=true)
+    scalarplot!(vis[1,1],grid,sol[1,:],flimits=(0,1.5),title="u_1")
+    scalarplot!(vis[1,2],grid,sol[2,:],flimits=(0,1.5),title="u_2",show=true)
     
     """
         The `integrate` method of `VoronoiFVM`  provides a possibility to calculate
@@ -184,23 +183,23 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     """
         Amount of u_1 and u_2 in the domain aka integral over identity storage function:
     """
-    U=integrate(system,storage,u)
+    U=integrate(system,storage,sol)
 
     """
     Amount of species created by source term per unit time:
     """
-    F=integrate(system,(f,u,node)->source(f,node),u)
+    F=integrate(system,(f,u,node)->source(f,node),sol)
     
     """
     Amount of  reaction per unit time:
     """
-    R=integrate(system,reaction,u)
+    R=integrate(system,reaction,sol)
     
 
     tf=VoronoiFVM.TestFunctionFactory(system)
     T=testfunction(tf,Γ_where_T_equal_0,Γ_where_T_equal_1)
     
-    I=integrate(system,T,u)
+    I=integrate(system,T,sol)
     
     
     t0=0.0

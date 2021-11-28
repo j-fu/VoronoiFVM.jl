@@ -31,7 +31,6 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     k=[1,1,1]
 
     physics=VoronoiFVM.Physics(
-    num_species=3,
     reaction=function(f,u,node)
         if node.region==1
             f[1]=k[1]*u[1]
@@ -44,8 +43,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         end
     end,
     
-        flux=function(f,u0,edge)
-            u=unknowns(edge,u0)
+        flux=function(f,u,edge)
         
         if edge.region==1
             f[1]=eps[1]*(u[1,1]-u[1,2])
@@ -107,6 +105,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
                   title=@sprintf("three regions t=%.3g",time))
         scalarplot!(p[1,1],subgrid2, U2,label="spec2", color=(0.0,0.5,0),clear=false)
         scalarplot!(p[1,1],subgrid3, U3,label="spec3", color=(0.0,0.0,0.5),clear=false,show=true)
+        sleep(1.0e-2)
     end
     return testval
 end

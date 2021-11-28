@@ -40,8 +40,7 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
 
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    function flux!(f,u0,edge)
-        u=unknowns(edge,u0)
+    function flux!(f,u,edge)
         f[1]=u[1,1]-u[1,2]
     end
 
@@ -76,28 +75,29 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
 
     ## Broadcast the initial value
     inival[1,:].=map(x->barenblatt(x,t0,m)^m,X)
-    solution.=inival
 
     ## Create solver control info
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
-    time=t0
-    p=GridVisualizer(Plotter=Plotter,layout=(2,1))
-    while time<tend
-        time=time+tstep
-        solve!(solution,inival,sys,control=control,tstep=tstep)
-        inival.=solution
-        scalarplot!(p[1,1],grid,solution[1,:],title=@sprintf("numerical, t=%.5f",time),clear=true)
-        scalarplot!(p[2,1],grid,map(x->barenblatt(x,time,m)^m,grid),title=@sprintf("exact, t=%.4f",time),clear=true)
-        sleep(1.0e-5)
-#        yield()
+    control.Δu_opt=0.1
+    control.force_first_step=true
+    tsol=solve(inival,sys,[t0,tend],control=control)
+
+    p=GridVisualizer(Plotter=Plotter,layout=(1,1),fast=true)
+    for i=1:length(tsol)
+        time=tsol.t[i]
+        scalarplot!(p[1,1],grid,tsol[1,:,i],title=@sprintf("t=%.3g",time),color=:red,label="numerical")
+        scalarplot!(p[1,1],grid,map(x->barenblatt(x,time,m)^m,grid),clear=false,color=:green,label="exact")
+        reveal(p)
+        sleep(1.0e-2)
     end
-    return sum(solution)
+
+    return sum(tsol[end])
 end
 
 
 function test()
-    testval=173.84998139534142
+    testval=175.20261258406686
     main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
 end
 

@@ -2,61 +2,6 @@
 Form factor + edge velocity calculation
 =#
 
-##################################################################
-"""
-$(SIGNATURES)
-
-Find the circumcenter of a triangle.                 
-									 
-Created from C source of Jonathan R Shewchuk <jrs@cs.cmu.edu>
-
-Modified to return absolute coordinates.
-"""
-function tricircumcenter!(circumcenter,a,b,c)
-
-    # Use coordinates relative to point `a' of the triangle.
-    xba = b[1] - a[1]
-    yba = b[2] - a[2]
-    xca = c[1] - a[1]
-    yca = c[2] - a[2]
-
-    # Squares of lengths of the edges incident to `a'.
-    balength = xba * xba + yba * yba
-    calength = xca * xca + yca * yca
-    
-    # Calculate the denominator of the formulae.
-    # if EXACT
-    #    Use orient2d() from http://www.cs.cmu.edu/~quake/robust.html	 
-    #    to ensure a correctly signed (and reasonably accurate) result, 
-    #    avoiding any possibility of division by zero.		    
-    #  denominator = 0.5 / orient2d((double*) b, (double*) c, (double*) a)
-    
-    
-    # Take your chances with floating-point roundoff
-    denominator = 0.5 / (xba * yca - yba * xca)
-
-    # Calculate offset (from `a') of circumcenter. 
-    xcirca = (yca * balength - yba * calength) * denominator  
-    ycirca = (xba * calength - xca * balength) * denominator  
-
-
-# The result is returned both in terms of x-y coordinates and xi-eta	 
-# coordinates, relative to the triangle's point `a' (that is, `a' is	 
-# the origin of both coordinate systems).	 Hence, the x-y coordinates	 
-# returned are NOT absolute; one must add the coordinates of `a' to	 
-# find the absolute coordinates of the circumcircle.  However, this means	 
-# that the result is frequently more accurate than would be possible if	 
-# absolute coordinates were returned, due to limited floating-point	 
-# precision.  In general, the circumradius can be computed much more	 
-# accurately.								 
-    
-
-    circumcenter[1] = xcirca+a[1]
-    circumcenter[2] = ycirca+a[2]
-
-    return circumcenter
-end
-
 
 
 ################################################
@@ -66,9 +11,10 @@ $(SIGNATURES)
 Calculate node volume  and voronoi surface contributions for cell.
 """ 
 
-function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell,nodefac,edgefac)
-    K=cellnodes[1,icell]
-    L=cellnodes[2,icell]
+function cellfactors!(T::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell,nodefac,edgefac)
+    en=local_celledgenodes(T)
+    K=cellnodes[en[1,1],icell]
+    L=cellnodes[en[2,1],icell]
     xK=coord[1,K]
     xL=coord[1,L]
     d=abs(xL[1]-xK[1])
@@ -78,9 +24,10 @@ function cellfactors!(::Type{Edge1D},::Type{Cartesian1D},coord,cellnodes,icell,n
     nothing
 end
 
-function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell,nodefac,edgefac)
-    K=cellnodes[1,icell]
-    L=cellnodes[2,icell]
+function cellfactors!(T::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell,nodefac,edgefac)
+    en=local_celledgenodes(T)
+    K=cellnodes[en[1,1],icell]
+    L=cellnodes[en[2,1],icell]
     xK=coord[1,K]
     xL=coord[1,L]
     r0=xK[1]
@@ -96,61 +43,149 @@ function cellfactors!(::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell,no
     edgefac[1]= 2.0*π*rhalf/(r1-r0);     # circular surface / width
     nothing
 end
-    
-function cellfactors!(::Type{Triangle2D},::Type{Cartesian2D},coord,cellnodes,icell,npar,epar)
-    i1=cellnodes[1,icell]
-    i2=cellnodes[2,icell]
-    i3=cellnodes[3,icell]
 
+
+
+function cellfactors!(T::Type{Triangle2D},::Type{Cartesian2D},coord,cellnodes,icell,npar,epar)
+    en=local_celledgenodes(T)
+    @views n=SVector{3}(cellnodes[:,icell])
+    V=@MMatrix zeros(2,3)
+    dd=@MVector zeros(3)
+
+    
+    
     # Fill matrix of edge vectors
-    V11= coord[1,i2]- coord[1,i1]
-    V21= coord[2,i2]- coord[2,i1]
+    V[1,3]= coord[1,n[en[1,3]]]- coord[1,n[en[2,3]]]
+    V[2,3]= coord[2,n[en[1,3]]]- coord[2,n[en[2,3]]]
     
-    V12= coord[1,i3]- coord[1,i1]
-    V22= coord[2,i3]- coord[2,i1]
+    V[1,2]= coord[1,n[en[1,2]]]- coord[1,n[en[2,2]]]
+    V[2,2]= coord[2,n[en[1,2]]]- coord[2,n[en[2,2]]]
     
-    V13= coord[1,i3]- coord[1,i2]
-    V23= coord[2,i3]- coord[2,i2]
+    V[1,1]= coord[1,n[en[1,1]]]- coord[1,n[en[2,1]]]
+    V[2,1]= coord[2,n[en[1,1]]]- coord[2,n[en[2,1]]]
     
     
     # Compute determinant 
-    det=V11*V22 - V12*V21
-    vol=0.5*det
-    
+    det=V[1,3]*V[2,2] - V[1,2]*V[2,3]
+    vol=abs(0.5*det)
     ivol = 1.0/vol
     
     # squares of edge lengths
-    dd1=V13*V13+V23*V23 # l32
-    dd2=V12*V12+V22*V22 # l31
-    dd3=V11*V11+V21*V21 # l21
+    dd[3]=V[1,3]*V[1,3]+V[2,3]*V[2,3] 
+    dd[2]=V[1,2]*V[1,2]+V[2,2]*V[2,2] 
+    dd[1]=V[1,1]*V[1,1]+V[2,1]*V[2,1] 
     
     
     # contributions to \sigma_kl/h_kl
-    epar[1]= (dd2+dd3-dd1)*0.125*ivol
-    epar[2]= (dd3+dd1-dd2)*0.125*ivol
-    epar[3]= (dd1+dd2-dd3)*0.125*ivol
-    
+    epar[1]= (dd[2]+dd[3]-dd[1])*0.125*ivol
+    epar[2]= (dd[3]+dd[1]-dd[2])*0.125*ivol
+    epar[3]= (dd[1]+dd[2]-dd[3])*0.125*ivol
     
     # contributions to \omega_k
-    npar[1]= (epar[3]*dd3+epar[2]*dd2)*0.25
-    npar[2]= (epar[1]*dd1+epar[3]*dd3)*0.25
-    npar[3]= (epar[2]*dd2+epar[1]*dd1)*0.25
+
+    npar.=0.0
+    for i=1:3
+        npar[en[1,i]]+=epar[i]*dd[i]*0.25
+        npar[en[2,i]]+=epar[i]*dd[i]*0.25
+    end
+    
     nothing
 end                              
 
 
-function cellfactors!(::Type{Tetrahedron3D},::Type{Cartesian3D},coord,cellnodes,icell,npar,epar)
+function cellfactors!(T::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes,icell,npar,epar)
+
+    function area2d(coord1, coord2, coord3)
+        V11= coord2[1]- coord1[1]
+        V21= coord2[2]- coord1[2]
+        
+        V12= coord3[1]- coord1[1]
+        V22= coord3[2]- coord1[2]
+        
+        V13= coord3[1]- coord2[1]
+        V23= coord3[2]- coord2[2]
+        
+        # Compute determinant 
+        det=V11*V22 - V12*V21
+        area=abs(0.5*det)
+    end
+
+    
+    en=local_celledgenodes(T)
+    
+    @views n=SVector{3}(cellnodes[:,icell])
+    V=@MMatrix zeros(2,3)
+    dd=@MVector zeros(3)
+    cc=@MVector zeros(2)
+    emid=@MMatrix zeros(2,3)
+
+
+
+    # Fill matrix of edge vectors
+    V[1,3]= coord[1,n[en[1,3]]]- coord[1,n[en[2,3]]]
+    V[2,3]= coord[2,n[en[1,3]]]- coord[2,n[en[2,3]]]
+    
+    V[1,2]= coord[1,n[en[1,2]]]- coord[1,n[en[2,2]]]
+    V[2,2]= coord[2,n[en[1,2]]]- coord[2,n[en[2,2]]]
+    
+    V[1,1]= coord[1,n[en[1,1]]]- coord[1,n[en[2,1]]]
+    V[2,1]= coord[2,n[en[1,1]]]- coord[2,n[en[2,1]]]
+    
+    
+    # Compute determinant 
+    det=V[1,3]*V[2,2] - V[1,2]*V[2,3]
+    area=abs(0.5*det)
+
+    
+    # Integrate R over triangle (via quadrature rule)
+    vol=2.0*π*area*(coord[1,n[1]]+coord[1,n[2]]+coord[1,n[3]])/3.0
+    
+    # squares of edge lengths
+    dd[3]=V[1,3]*V[1,3]+V[2,3]*V[2,3] 
+    dd[2]=V[1,2]*V[1,2]+V[2,2]*V[2,2] 
+    dd[1]=V[1,1]*V[1,1]+V[2,1]*V[2,1] 
+
+    for i=1:3
+        emid[1,i]=0.5*(coord[1,n[en[1,i]]]+coord[1,n[en[2,i]]])
+        emid[2,i]=0.5*(coord[2,n[en[1,i]]]+coord[2,n[en[2,i]]])
+    end
+    @views tricircumcenter!(cc,coord[:,n[1]],coord[:,n[2]],coord[:,n[3]])
+
+    r(p)=p[1]
+    z(p)=p[2]
+
+    for i=1:3
+        @views epar[i]= π*(r(cc)+r(emid[:,i]))*sqrt((r(cc)-r(emid[:,i]))^2+(z(cc)-z(emid[:,i]))^2)/sqrt(dd[i]);
+    end
+    
+    rintegrate(coord1, coord2, coord3)=2.0*π*area2d(coord1,coord2,coord3)*(coord1[1]+coord2[1]+coord3[1])/3.0
+
+    npar.=0.0
+    for i=1:3
+        @views npar[en[1,i]]+=rintegrate(coord[:,n[en[1,i]]],cc,emid[:,i])
+        @views npar[en[2,i]]+=rintegrate(coord[:,n[en[2,i]]],cc,emid[:,i])
+    end
+    nothing
+end                              
+
+
+
+
+function cellfactors!(T::Type{Tetrahedron3D},::Type{Cartesian3D},coord,cellnodes,icell,npar,epar)
     # Transferred from WIAS/pdelib, (c) J. Fuhrmann, H. Langmach, I. Schmelzer
     es=@MVector zeros(6)
     dd=@MVector zeros(6)
-    i1=cellnodes[1,icell]
-    i2=cellnodes[2,icell]
-    i3=cellnodes[3,icell]
-    i4=cellnodes[4,icell]
+    @views n=SVector{4}(cellnodes[:,icell])
+    
 
-    #-> celledgenodes
-    pp1=(1,1,1,2,2,3)
-    pp2=(2,3,4,3,4,4)
+
+    en=local_celledgenodes(T)
+    
+    @views pp1=SVector{6}(en[1,:])
+    @views pp2=SVector{6}(en[2,:])
+    
+#    pp1=(1,1,1,2,2,3)
+#    pp2=(2,3,4,3,4,4)
     
     pi1=(5,6,5,1)
     pi2=(6,3,1,4)
@@ -159,7 +194,8 @@ function cellfactors!(::Type{Tetrahedron3D},::Type{Cartesian3D},coord,cellnodes,
     po1=(2,1,2,6)
     po2=(1,4,6,3)
     po3=(3,5,4,5)
-    pedge=(6,5,4,3,2,1)
+#    pedge=(6,5,4,3,2,1)
+
 
     for i=1:6
         p1=cellnodes[pp1[i],icell]
@@ -172,17 +208,17 @@ function cellfactors!(::Type{Tetrahedron3D},::Type{Cartesian3D},coord,cellnodes,
         epar[i]=0.0
     end
     
-    x1=coord[1,i2]-coord[1,i1]
-    y1=coord[2,i2]-coord[2,i1]
-    z1=coord[3,i2]-coord[3,i1]
+    x1=coord[1,n[2]]-coord[1,n[1]]
+    y1=coord[2,n[2]]-coord[2,n[1]]
+    z1=coord[3,n[2]]-coord[3,n[1]]
     
-    x2=coord[1,i3]-coord[1,i1]
-    y2=coord[2,i3]-coord[2,i1]
-    z2=coord[3,i3]-coord[3,i1]
+    x2=coord[1,n[3]]-coord[1,n[1]]
+    y2=coord[2,n[3]]-coord[2,n[1]]
+    z2=coord[3,n[3]]-coord[3,n[1]]
     
-    x3=coord[1,i4]-coord[1,i1]
-    y3=coord[2,i4]-coord[2,i1]
-    z3=coord[3,i4]-coord[3,i1]
+    x3=coord[1,n[4]]-coord[1,n[1]]
+    y3=coord[2,n[4]]-coord[2,n[1]]
+    z3=coord[3,n[4]]-coord[3,n[1]]
     
     det= (x1*(y2*z3-y3*z2) + x2*(y3*z1-y1*z3) + x3*(y1*z2-y2*z1))
 
@@ -210,7 +246,7 @@ function cellfactors!(::Type{Tetrahedron3D},::Type{Cartesian3D},coord,cellnodes,
     end
     
     for i=1:6
-        epar[pedge[i]] = 6*es[i]/dd[i]
+        epar[i] = 6*es[i]/dd[i]
         npar[pp1[i]] += es[i]
         npar[pp2[i]] += es[i]
     end
@@ -218,75 +254,6 @@ function cellfactors!(::Type{Tetrahedron3D},::Type{Cartesian3D},coord,cellnodes,
 end
 
 
-function cellfactors!(::Type{Triangle2D},::Type{<:Cylindrical2D},coord,cellnodes,icell,npar,epar)
-    function area2d(coord1, coord2, coord3)
-        V11= coord2[1]- coord1[1]
-        V21= coord2[2]- coord1[2]
-        
-        V12= coord3[1]- coord1[1]
-        V22= coord3[2]- coord1[2]
-        
-        V13= coord3[1]- coord2[1]
-        V23= coord3[2]- coord2[2]
-        
-        # Compute determinant 
-        det=V11*V22 - V12*V21
-        area=abs(0.5*det)
-    end
-        
-
-    i1=cellnodes[1,icell]
-    i2=cellnodes[2,icell]
-    i3=cellnodes[3,icell]
-    
-    
-    # Fill matrix of edge vectors
-    V11= coord[1,i2]- coord[1,i1]
-    V21= coord[2,i2]- coord[2,i1]
-    
-    V12= coord[1,i3]- coord[1,i1]
-    V22= coord[2,i3]- coord[2,i1]
-    
-    V13= coord[1,i3]- coord[1,i2]
-    V23= coord[2,i3]- coord[2,i2]
-    
-    # Compute determinant 
-    det=V11*V22 - V12*V21
-    area=0.5*det
-    
-    # Integrate R over triangle (via quadrature rule)
-    vol=2.0*π*area*(coord[1,i1]+coord[1,i2]+coord[1,i3])/3.0
-    
-    # squares of edge lengths
-    dd1=V13*V13+V23*V23 # l32
-    dd2=V12*V12+V22*V22 # l31
-    dd3=V11*V11+V21*V21 # l21
-    
-    emid23=[0.5*(coord[1,i3]+coord[1,i2]),
-            0.5*(coord[2,i3]+coord[2,i2])]
-    
-    emid13=[0.5*(coord[1,i1]+coord[1,i3]),
-            0.5*(coord[2,i1]+coord[2,i3])]
-    
-    emid12=[0.5*(coord[1,i1]+coord[1,i2]),
-            0.5*(coord[2,i1]+coord[2,i2])]
-    
-    cc=@MVector zeros(2)
-    tricircumcenter!(cc,coord[:,i1],coord[:,i2],coord[:,i3])
-    
-    r(p)=p[1]
-    z(p)=p[2]
-    sq(x)=x*x
-    epar[1]= π*(r(cc)+r(emid23))*sqrt(sq(r(cc)-r(emid23))+sq(z(cc)-z(emid23)))/sqrt(dd1);
-    epar[2]= π*(r(cc)+r(emid13))*sqrt(sq(r(cc)-r(emid13))+sq(z(cc)-z(emid13)))/sqrt(dd2);
-    epar[3]= π*(r(cc)+r(emid12))*sqrt(sq(r(cc)-r(emid12))+sq(z(cc)-z(emid12)))/sqrt(dd3);
-    
-    rintegrate(coord1, coord2, coord3)=2.0*π*area2d(coord1,coord2,coord3)*(coord1[1]+coord2[1]+coord3[1])/3.0
-    npar[1]=rintegrate(coord[:,i1],cc,emid13)+rintegrate(coord[:,i1],cc,emid12)
-    npar[2]=rintegrate(coord[:,i2],cc,emid23)+rintegrate(coord[:,i2],cc,emid12)
-    npar[3]=rintegrate(coord[:,i3],cc,emid13)+rintegrate(coord[:,i3],cc,emid23)
-    nothing
-end                              
 
 
 ################################################
@@ -296,32 +263,36 @@ $(SIGNATURES)
 Calculate node volume  contributions for boundary face.
 """ 
 
-function bfacefactors!(::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(T::Type{Vertex0D},::Type{Cartesian1D},coord,bfacenodes,ibface,nodefac,edgefac)
     nodefac[1]=1.0
     nothing
 end
 
-function bfacefactors!(::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac)
+function bfacefactors!(T::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibface,nodefac, edgefac)
     inode=bfacenodes[1,ibface]
     r=coord[1,inode]
     nodefac[1]=2*π*r
     nothing
 end
 
-function bfacefactors!(::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac)
-    i1=bfacenodes[1,ibface]
-    i2=bfacenodes[2,ibface]
-    dx=coord[1,i1]-coord[1,i2]
-    dy=coord[2,i1]-coord[2,i2]
-    d=0.5*sqrt(dx*dx+dy*dy)
-    nodefac[1]=d
-    nodefac[2]=d
+function bfacefactors!(T::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac, edgefac)
+    en         = local_celledgenodes(T)
+    i1         = bfacenodes[en[1,1],ibface]
+    i2         = bfacenodes[en[2,1],ibface]
+    dx         = coord[1,i1]-coord[1,i2]
+    dy         = coord[2,i1]-coord[2,i2]
+    d          = sqrt(dx*dx+dy*dy)
+    nodefac[1] = d/2
+    nodefac[2] = d/2
+    edgefac[1] = 1/d
     nothing
 end
 
-function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface,nodefac)
-    i1=bfacenodes[1,ibface]
-    i2=bfacenodes[2,ibface]
+
+function bfacefactors!(T::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,ibface,nodefac,edgefac)
+    en=local_celledgenodes(T)
+    i1=bfacenodes[en[1,1],ibface]
+    i2=bfacenodes[en[2,1],ibface]
     r1=coord[1,i1]
     r2=coord[1,i2]
     z1=coord[2,i1]
@@ -336,38 +307,38 @@ function bfacefactors!(::Type{Edge1D},::Type{<:Cylindrical2D},coord,bfacenodes,i
 end
 
 
-function bfacefactors!(::Type{Triangle2D},::Type{<:Cartesian3D},coord,bfacenodes,ibface,npar)
+function bfacefactors!(T::Type{Triangle2D}, ::Type{<:Cartesian3D}, coord, bfacenodes, ibface, npar, epar)
 
+    en=local_celledgenodes(T)
+    @views n=SVector{3}(bfacenodes[:,ibface])
+    dd = @MVector zeros(3)
+    
+    
     # Transferred from WIAS/pdelib, (c) J. Fuhrmann, H. Langmach, I. Schmelzer
-    i1=bfacenodes[1,ibface]
-    i2=bfacenodes[2,ibface]
-    i3=bfacenodes[3,ibface]
-    dd=@MVector zeros(3)
-    epar=@MVector zeros(3)
     for j=1:3
-        d= coord[j,i1] - coord[j,i3];  dd[2]+= d*d;
-        d= coord[j,i2] - coord[j,i1];  dd[3]+= d*d;
-        d= coord[j,i3] - coord[j,i2];  dd[1]+= d*d;
+        d = coord[j,n[en[1,1]]] - coord[j,n[en[2,1]]];  dd[1]+= d*d;
+        d = coord[j,n[en[1,2]]] - coord[j,n[en[2,2]]];  dd[2]+= d*d;
+        d = coord[j,n[en[1,3]]] - coord[j,n[en[2,3]]];  dd[3]+= d*d;
     end
     
     
     # Kanten-Flaechenanteile (ohne Abschneiden); epar als Hilfsfeld benutzt
-    epar[1]= (dd[2]+dd[3]-dd[1])*dd[1];
-    epar[2]= (dd[3]+dd[1]-dd[2])*dd[2];
-    epar[3]= (dd[1]+dd[2]-dd[3])*dd[3];
-    vol= sqrt(epar[1]+epar[2]+epar[3])*0.25;
+    epar[1] = (dd[2]+dd[3]-dd[1])*dd[1];
+    epar[2] = (dd[3]+dd[1]-dd[2])*dd[2];
+    epar[3] = (dd[1]+dd[2]-dd[3])*dd[3];
+    vol     = sqrt(epar[1]+epar[2]+epar[3])*0.25;
     
     d = 1.0/(8*vol);
         
     # Knoten-Flaechenanteile (ohne Abschneiden)
-    npar[1]= (epar[3]+epar[2])*d*0.25;
-    npar[2]= (epar[1]+epar[3])*d*0.25;
-    npar[3]= (epar[2]+epar[1])*d*0.25;
+    npar[1] = (epar[3]+epar[2])*d*0.25;
+    npar[2] = (epar[1]+epar[3])*d*0.25;
+    npar[3] = (epar[2]+epar[1])*d*0.25;
     
     # Kantengewichte 
-    # epar[1]= epar[1]*d/dd[1];
-    # epar[2]= epar[2]*d/dd[2];
-    # epar[3]= epar[3]*d/dd[3];
+    epar[1] = epar[1]*d/dd[1];
+    epar[2] = epar[2]*d/dd[2];
+    epar[3] = epar[3]*d/dd[3];
     nothing
 end
 

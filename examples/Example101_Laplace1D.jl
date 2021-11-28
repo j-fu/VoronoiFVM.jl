@@ -99,8 +99,7 @@ using VoronoiFVM
 
 ## Flux function which describes the flux
 ## between neigboring control volumes
-function g!(f,u0,edge)
-    u=unknowns(edge,u0)
+function g!(f,u,edge)
     f[1]=u[1,1]-u[1,2]
 end
 
@@ -117,7 +116,7 @@ function main()
     grid=VoronoiFVM.Grid(X)
 
     ## Create a physics structure
-    physics=VoronoiFVM.Physics(num_species=nspecies,flux=g!)
+    physics=VoronoiFVM.Physics(flux=g!)
 
     ## Create a finite volume system 
     sys=VoronoiFVM.System(grid,physics)

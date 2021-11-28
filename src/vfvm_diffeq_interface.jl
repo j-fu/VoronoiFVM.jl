@@ -18,7 +18,6 @@ function _eval_res_jac!(sys,u)
     else
         global nd
         nd=nd+1
-        @printf(" nd:%d %x\n",nf,uhash)
     end
 end
 
@@ -31,7 +30,6 @@ rhs function for DifferentialEquations.jl.
 function eval_rhs!(du, u, sys,t)
     global nf
     nf=nf+1
-    @printf("  f:%d\n",nf)
     _eval_res_jac!(sys,u)
     du.=-vec(sys.residual)
     nothing
@@ -49,7 +47,6 @@ jacobi matrix calculation function for DifferentialEquations.jl.
 function eval_jacobian!(J, u, sys,t)
     global njac
     njac=njac+1
-    @printf("jac:%d\n",njac)
     _eval_res_jac!(sys,u)
     # Need to implement broadcast for ExtendableSparse.
     J.=-sys.matrix.cscmatrix
@@ -71,8 +68,6 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     cellnodefactors=system.cellnodefactors
     bfacenodefactors=system.bfacenodefactors
     bgeom=grid[BFaceGeometries][1]
-    bfacenodes=grid[BFaceNodes]
-    bfaceregions=grid[BFaceRegions]
     nbfaces=num_bfaces(grid)
 
     if isdata(data)
@@ -121,7 +116,7 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
 
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
+            _fill!(node,inode,icell)
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,node.index]
             end
@@ -139,7 +134,7 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     if isbstorage
         for ibface=1:nbfaces
             for ibnode=1:num_nodes(bgeom)
-                _fill!(bnode,bfacenodes,bfaceregions,ibnode,ibface)
+                _fill!(bnode,ibnode,ibface)
                 for ispec=1:nspecies
                     UK[ispec]=U[ispec,bnode.index]
                 end
@@ -191,14 +186,14 @@ solve(DifferentialEquations, inival, system, tspan;
       kwargs...)
 ````
 
-Use a  timesteping scheme  from `DifferentialEquations.jl`  to perform
+Use a  timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) to perform
 transient solution  of the  system. 
 
 The system must have a constant diagonal mass matrix.
 
 Any stiff solver  capable to work with mass matrices  is possible.  If
 the system  contains elliptic equations, it  needs to be a  DAE solver
-able to work with.  See a list
+able to work with mass matrices.  See a list
 [here](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).
 
 

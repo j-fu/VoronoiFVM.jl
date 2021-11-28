@@ -26,8 +26,7 @@ function bernoulli(x)
     return x/(exp(x)-1)
 end
 
-function exponential_flux!(f,u0,edge,data)
-    u=unknowns(edge,u0)
+function exponential_flux!(f,u,edge,data)
     vh=project(edge,data.v)
     Bplus= data.D*bernoulli(vh/data.D)
     Bminus=data.D*bernoulli(-vh/data.D)
@@ -71,7 +70,8 @@ function main(;n=10,Plotter=nothing,D=0.01,v=1.0,tend=100)
 
     vis=GridVisualizer(Plotter=Plotter)
     for i=1:length(tsol.t)
-        scalarplot!(vis[1,1],grid,tsol[1,:,i],flimits=(0,1))
+        scalarplot!(vis[1,1],grid,tsol[1,:,i],flimits=(0,1),title="t=$(tsol.t[i])",show=true)
+        sleep(0.01)
     end
     tsol
 end

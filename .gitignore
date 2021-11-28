@@ -1,11 +1,9 @@
 QUARRY
+quarry
 startup.jl
 docs/build
 docs/src/examples
 *~
 Manifest.toml
-deps/build.log
-deps/deps.jl
-deps/usr
 .repl_history.jl
-
+.vscode

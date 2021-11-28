@@ -29,8 +29,7 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
         end
     end
 
-    function flux!(f,u0,edge)
-        u=unknowns(edge,u0)
+    function flux!(f,u,edge)
         f[1]=u[1,1]-u[1,2]
     end
     
@@ -43,7 +42,7 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     end
     
     # Create a physics structure
-    physics=VoronoiFVM.Physics(num_species=1,flux=flux!,source=source!)
+    physics=VoronoiFVM.Physics(flux=flux!,source=source!)
     sys=VoronoiFVM.System(grid,physics,unknown_storage=:dense)
     ispec=1
     enable_species!(sys,ispec,[1])
@@ -64,9 +63,11 @@ function main(;nref=0,r1=0.0, r2=5.0, dim=2,Plotter=nothing)
     # Solve stationary problem
     solve!(solution,inival,sys)
 
-    scalarplot(grid,solution[1,:],Plotter=Plotter)
-
     exact=symlapcyl.(coordinates(grid)[1,:])
+    vis=GridVisualizer(Plotter=Plotter,layout=(2,1))
+    scalarplot!(vis[1,1],grid,solution[1,:],title="numerical")
+    scalarplot!(vis[2,1],grid,exact,title="exact",show=true)
+
     err=norm(solution[1,:]-exact,Inf)
 end
 

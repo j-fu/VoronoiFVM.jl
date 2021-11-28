@@ -6,18 +6,33 @@ Extract value from dual number. Use to debug physics callbacks.
 Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
+
+##################################################################
+"""
+$(SIGNATURES)
+
+Extract derivatives from dual number.
+"""
 const partials=ForwardDiff.partials
+
+##################################################################
+"""
+$(SIGNATURES)
+
+Extract number of derivatives from dual number.
+"""
 const npartials=ForwardDiff.npartials
 
 
-
-# Add value to matrix if it is nonzero
+"""
+Add value to matrix if it is nonzero
+"""
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if isnan(v)
         error("trying to assemble NaN")
     end
     if v!=zero(Tv)
-        updateindex!(matrix,+,v*fac,i,j)
+        rawupdateindex!(matrix,+,v*fac,i,j)
     end
 end
 
@@ -56,6 +71,9 @@ struct EmbeddingError <: Exception
 end
 
 
+"""
+Print error when catching exceptions
+"""
 function _print_error(err,st)
     println()
     println(err)
@@ -77,25 +95,30 @@ function _print_error(err,st)
     println()
 end
 
-################################################################
+"""
+Solve time step problem. This is the core routine
+for implicit Euler and stationary solve
+"""
 function _solve!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    this::AbstractSystem{Tv}, # Finite volume system
+    system::AbstractSystem{Tv}, # Finite volume system
     control::NewtonControl,
     tstep::Tv,
     log::Bool
 ) where Tv
 
-    _complete!(this, create_newtonvectors=true)
+    _complete!(system, create_newtonvectors=true)
     nlhistory=zeros(0)
     
     solution.=oldsol
-    residual=this.residual
-    update=this.update
-    _initialize!(solution,this)
+    residual=system.residual
+    update=system.update
+    _initialize!(solution,system)
     SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
-
+    if typeof(control.factorization)!=typeof(system.factorization)
+        system.factorization=control.factorization
+    end
     oldnorm=1.0
     converged=false
     if control.verbose
@@ -103,14 +126,13 @@ function _solve!(
     end
     nlu=0
     nround=0
-    lufact=nothing
     damp=control.damp_initial
     tolx=0.0
     rnorm=LinearAlgebra.norm(values(solution),1)
 
     for ii=1:control.max_iterations
         try
-            eval_and_assemble(this,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
+            eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -120,62 +142,50 @@ function _solve!(
             end
         end
 
-        mtx=this.matrix
+        mtx=system.matrix
         
         nliniter=0
         # Sparse LU factorization
-        # Here, we seem miss the possibility to re-use the 
-        # previous symbolic information
-        # We however reuse the factorization control.max_lureuse times.
-        if nlu==0
+        if nlu==0 # (re)factorize, if possible reusing old factorization data
             try
-                lufact=LinearAlgebra.lu(mtx)
+                factorize!(system.factorization,mtx)
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))
                     throw(FactorizationError())
                 else
                     rethrow(err)
-                end
-            end
-            # LU triangular solve gives Newton update
-            try
-                ldiv!(values(update),lufact,values(residual))
-            catch err
-                if (control.handle_exceptions)
-                    _print_error(err,stacktrace(catch_backtrace()))
-                    throw(FactorizationError())
-                else
-                    rethrow(err)
-                end
-            end
-        else
-            # When reusing lu factorization, we may try to iterate
-            # Genericly, this is advisable.
-            if control.tol_linear <1.0
-                (sol,history)= bicgstabl!(values(update),
-                                          mtx,
-                                          values(residual),
-                                          1,
-                                          Pl=lufact,
-                                          reltol=control.tol_linear,
-                                          max_mv_products=100,
-                                          log=true)
-                nliniter=history.iters
-            else
-                try
-                    ldiv!(values(update),lufact,values(residual))
-                catch err
-                    if (control.handle_exceptions)
-                        _print_error(err,stacktrace(catch_backtrace()))
-                        throw(FactorizationError())
-                    else
-                        rethrow(err)
-                    end
                 end
             end
         end
-        
+        if issolver(system.factorization) && nlu==0
+            # Direct solution via LU solve
+            try
+                ldiv!(values(update),system.factorization,values(residual))
+            catch err
+                if (control.handle_exceptions)
+                    _print_error(err,stacktrace(catch_backtrace()))
+                    throw(FactorizationError())
+                else
+                    rethrow(err)
+                end
+            end
+        elseif !issolver(system.factorization) || nlu>0
+            # Iterative solution
+            update.=zero(Tv)
+            (sol,history)= bicgstabl!(values(update),
+                                      mtx,
+                                      values(residual),
+                                      1,
+                                      Pl=system.factorization,
+                                      reltol=control.tol_linear,
+                                      max_mv_products=100,
+                                      log=true)
+            nliniter=history.iters
+        else
+            error("This should not happen")
+        end
+
         nlu=min(nlu+1,control.max_lureuse)
         solval=values(solution)
         solval.-=damp*values(update)
@@ -184,7 +194,6 @@ function _solve!(
         if tolx==0.0
             tolx=norm*control.tol_relative
         end
-
         dnorm=1.0
         rnorm_new=LinearAlgebra.norm(values(solution),1)
         if rnorm>1.0e-50
@@ -236,6 +245,8 @@ function _solve!(
     return nlhistory
 end
 
+
+
 ################################################################
 """
 $(SIGNATURES)
@@ -243,7 +254,7 @@ $(SIGNATURES)
 Main assembly method.
 
 Evaluate solution with result in right hand side F and 
-assemble matrix into system.matrix.
+assemble Jacobi matrix into system.matrix.
 """
 function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
@@ -256,180 +267,101 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
     _complete!(system) # needed here as well for test function system which does not use newton
     
-    grid=system.grid
-    physics=system.physics
-    data=physics.data
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    nspecies=num_species(system)
-    matrix=system.matrix
-    cellnodefactors=system.cellnodefactors
-    celledgefactors=system.celledgefactors
-    bfacenodefactors=system.bfacenodefactors
+    grid    = system.grid
+    physics = system.physics
+    node    = Node{Tv,Ti}(system)
+    bnode   = BNode{Tv,Ti}(system)
+    edge    = Edge{Tv,Ti}(system)
+    bedge   = BEdge{Tv,Ti}(system)
     
+    @create_physics_wrappers(physics, node, bnode, edge, bedge)
+
+
+    nspecies::Int = num_species(system)
+    matrix        = system.matrix
     
-    # splatting would work but costs allocations
-    if isdata(data)
-        issource=(physics.source!=nofunc)
-        isreaction=(physics.reaction!=nofunc)
-        isbreaction=(physics.breaction!=nofunc)
-        isbstorage=(physics.bstorage!=nofunc)
-
-        fluxwrap=function(y, u)
-            y.=0
-            physics.flux(y,u,edge,data)
-            nothing
-        end
-
-        reactionwrap=function (y, u)
-            y.=0
-            ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-            physics.reaction(y,u,node,data)
-            ## for ii in .. y[ii]=y[node.speclist[ii]]
-            nothing
-        end
-
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node,data)
-            nothing
-        end
-        
-        sourcewrap=function(y)
-            y.=0
-            physics.source(y,node,data)
-            nothing
-        end
-        
-         breactionwrap=function(y, u)
-            y.=0
-            physics.breaction(y,u,bnode,data)
-            nothing
-        end
-        
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode,data)
-            nothing
-        end
-        
-    else
-        issource=(physics.source!=nofunc2)
-        isreaction=(physics.reaction!=nofunc2)
-        isbreaction=(physics.breaction!=nofunc2)
-        isbstorage=(physics.bstorage!=nofunc2)
-
-        fluxwrap=function(y, u)
-            y.=0
-            physics.flux(y,u,edge)
-            nothing
-        end
-
-        reactionwrap=function(y, u)
-            y.=0
-            ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-            physics.reaction(y,u,node)
-            ## for ii in .. y[ii]=y[node.speclist[ii]]
-            nothing
-        end
-
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node)
-            nothing
-        end
-        
-        sourcewrap=function(y)
-            y.=0
-            physics.source(y,node)
-            nothing
-        end
-        
-         breactionwrap=function(y, u)
-            y.=0
-            physics.breaction(y,u,bnode)
-            nothing
-        end
-        
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode)
-            nothing
-        end
-
-    end        
+    cellnodefactors::Array{Tv,2}  = system.cellnodefactors
+    celledgefactors::Array{Tv,2}  = system.celledgefactors
+    bfacenodefactors::Array{Tv,2} = system.bfacenodefactors
+    bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors    
     
     # Reset matrix + rhs
-    nzv=nonzeros(matrix)
-    nzv.=0.0
-    F.=0.0
+    nzv  = nonzeros(matrix)
+    nzv .= 0.0
+    F   .= 0.0
 
     # structs holding diff results for storage, reaction,  flux ...
-    result_r=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    result_flx=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,2*nspecies))
-    
+    result_r    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies))
+    result_s    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies))
+    result_flx  = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies))
+    result_bflx = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies))  
     # Array holding function results
-    Y=Array{Tv,1}(undef,nspecies)
+    Y = Array{Tv,1}(undef,nspecies)
 
     # Arrays for gathering solution data
-    UK=Array{Tv,1}(undef,nspecies)
-    UKOld=Array{Tv,1}(undef,nspecies)
-    UKL=Array{Tv,1}(undef,2*nspecies)
+    UK    = Array{Tv,1}(undef,nspecies)
+    UKOld = Array{Tv,1}(undef,nspecies)
+    UKL   = Array{Tv,1}(undef,2*nspecies)
 
     # array holding source term
-    src=zeros(Tv,nspecies)
-
+    src   = zeros(Tv,nspecies)
+    bsrc  = zeros(Tv,nspecies)
     # arrays holding storage terms for old solution
-    oldstor=zeros(Tv,nspecies)
-    res_react=zeros(Tv,nspecies)
-    jac_react=zeros(Tv,nspecies,nspecies)
-    oldbstor=zeros(Tv,nspecies)
+    oldstor   = zeros(Tv, nspecies)
+    res_react = zeros(Tv, nspecies)
+    jac_react = zeros(Tv, nspecies, nspecies)
+    oldbstor  = zeros(Tv, nspecies)
 
-    cfg_r=ForwardDiff.JacobianConfig(reactionwrap, Y, UK)
-    cfg_s=ForwardDiff.JacobianConfig(storagewrap, Y, UK)
-    cfg_br=ForwardDiff.JacobianConfig(breactionwrap, Y, UK)
-    cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
-    cfg_flx=ForwardDiff.JacobianConfig(fluxwrap, Y, UKL)
+
+    # Due to
+
+    # https://github.com/JuliaDiff/ForwardDiff.jl/issues/516
+
+    # in   order   to  avoid   allocations,   we   directly  call   into
+    # vector_mode_jacobian!. However, by default,  this assumes that the
+    # length    of     the    argument     vector    is     less    than
+    # DEFAULT_CHUNK_THRESHOLD.
+
+    # This threshold can be increased by passing ForwardDiff.Chunk(UK,...).
+    
+    # See also https://juliadiff.org/ForwardDiff.jl/stable/user/advanced/#Configuring-Chunk-Size
+    
+    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    
+    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies))
+    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies))
 
     
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
-    # comes handy to write compact code here.
-    tstepinv=1.0/tstep 
+    # comes handy to write compact code here for the
+    # case of stationary problems.
+    tstepinv = 1.0/tstep 
 
     
-    boundary_factors=system.boundary_factors
-    boundary_values=system.boundary_values
-    
+    boundary_factors::Array{Tv,2} = system.boundary_factors
+    boundary_values::Array{Tv,2}  = system.boundary_values
+    bfaceregions::Vector{Ti} = grid[BFaceRegions]
+
+    nbfaces = num_bfaces(grid)
+    ncells  = num_cells(grid)
     geom=grid[CellGeometries][1]
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-    cellnodes=grid[CellNodes]
-    cellregions=grid[CellRegions]
-    bgeom=grid[BFaceGeometries][1]
-    bfacenodes=grid[BFaceNodes]
-    bfaceregions=grid[BFaceRegions]
-    nbfaces=num_bfaces(grid)
-    ncells=num_cells(grid)
-    
-    if haskey(grid,CellEdges)
-        cellx=grid[CellEdges]
-        edgenodes=grid[EdgeNodes]
-        has_celledges=true
-    else
-        cellx=grid[CellNodes]
-        edgenodes=local_celledgenodes(geom)
-        has_celledges=false
-    end
+    bgeom   = grid[BFaceGeometries][1]
 
-    # Main cell loop
-    for icell=1:ncells
-        for inode=1:num_nodes(geom)
-            _fill!(node,cellnodes,cellregions,inode,icell)
-            for ispec=1:nspecies
-                # xx gather:
+    
+    nn::Int = num_nodes(geom)
+    ne::Int = num_edges(geom)
+
+
+    ncalloc=@allocated  for icell=1:ncells
+        for inode=1:nn
+            _fill!(node,inode,icell)
+            @views UK    .= U[:,node.index]
+            @views UKOld .= UOld[:,node.index]
+            # xx gather:
                 # ii=0
                 # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
                 #    ispec=Fdof.rowval[idof]
@@ -439,9 +371,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 #   UK[1:nspecies]=U[:,node.index]
                 #   UKOld[1:nspecies]=UOld[:,node.index]
                 # Evaluate source term
-                UK[ispec]=U[ispec,node.index]
-                UKOld[ispec]=UOld[ispec,node.index]
-            end
 
             if issource
                 sourcewrap(src)
@@ -449,25 +378,22 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             
             if isreaction
                 # Evaluate & differentiate reaction term if present
-                Y.=zero(Tv)
-                ForwardDiff.jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
-                res_react=DiffResults.value(result_r)
-                jac_react=DiffResults.jacobian(result_r)
+                Y .= zero(Tv)
+                ForwardDiff.vector_mode_jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
+                res_react = DiffResults.value(result_r)
+                jac_react = DiffResults.jacobian(result_r)
             end
             
             # Evaluate & differentiate storage term
             Y.=zero(Tv)
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
-            res_stor=DiffResults.value(result_s)
-            jac_stor=DiffResults.jacobian(result_s)
+            ForwardDiff.vector_mode_jacobian!(result_s,storagewrap,Y,UK,cfg_s)
+            res_stor = DiffResults.value(result_s)
+            jac_stor = DiffResults.jacobian(result_s)
 
             # Evaluate storage term for old timestep
             oldstor.=zero(Tv)
             storagewrap(oldstor,UKOld)
-            
-            
             K=node.index
-
             for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idof,K)
                 _add(F,idof,cellnodefactors[inode,icell]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
@@ -477,27 +403,27 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 end
             end
         end
-        for iedge=1:num_edges(geom)
+
+        for iedge=1:ne
             if abs(celledgefactors[iedge,icell])<edge_cutoff
                 continue
             end
-
-            _fill!(edge,cellx,edgenodes,cellregions,iedge,icell, has_celledges)
+            _fill!(edge,iedge,icell)
 
             #Set up argument for fluxwrap
-            for ispec=1:nspecies
-                UKL[ispec]=U[ispec,edge.node[1]]
-                UKL[nspecies+ispec]=U[ispec,edge.node[2]]
-            end
+            @views UKL[1:nspecies]            .= U[:, edge.node[1]]
+            @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
 
             Y.=zero(Tv)
-            ForwardDiff.jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
+            ForwardDiff.vector_mode_jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
             res=DiffResults.value(result_flx)
             jac=DiffResults.jacobian(result_flx)
 
             K=edge.node[1]
             L=edge.node[2]
+            
             fac=celledgefactors[iedge,icell]
+            
             for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idofK,K)
                 idofL=dof(F,ispec,L)
@@ -518,33 +444,38 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                     _addnz(matrix,idofL,jdofK,-jac[ispec,jspec         ],fac)
                     _addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
                     _addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
-                    
-                end
+                 end
             end
         end
     end
 
+    nbn::Int = num_nodes(bgeom)
+    nbe::Int = num_edges(bgeom)
+
     # Assembly loop for boundary conditions
-    for ibface=1:nbfaces
-        # Obtain boundary region number
+    nballoc= @allocated for ibface=1:nbfaces
         ibreg=bfaceregions[ibface]
 
         # Loop over nodes of boundary face
-        for ibnode=1:num_nodes(bgeom)
-
+        for ibnode=1:nbn
             # Fill bnode data shuttle with data from grid
-            _fill!(bnode,bfacenodes,bfaceregions,ibnode,ibface)
+            _fill!(bnode,ibnode,ibface)
 
+            
             # Copy unknown values from solution into dense array
-            for ispec=1:nspecies
-                UK[ispec]=U[ispec,bnode.index]
-            end
+            @views UK.=U[:,bnode.index]
 
             # Measure of boundary face part assembled to node
-            bnode_factor=bfacenodefactors[ibnode,ibface]
+            bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
+
+            if isbsource
+                bsourcewrap(bsrc)
+            end
 
             # Global index of node
-            K=bnode.index
+            K::Int=bnode.index
+
+
             
             # Assemble "standard" boundary conditions: Robin or
             # Dirichlet
@@ -554,8 +485,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 # If species is present, assemble the boundary condition
                 if idof>0
                     # Get user specified data
-                    boundary_factor=boundary_factors[ispec,ibreg]
-                    boundary_value=boundary_values[ispec,ibreg]
+                    boundary_factor = boundary_factors[ispec,ibreg]
+                    boundary_value  = boundary_values[ispec,ibreg]
                     
                     if boundary_factor==Dirichlet
                         # Dirichlet is encoded in the boundary condition factor
@@ -578,17 +509,16 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             # Boundary reaction term has been given.
             # Valid for both boundary and interior species
             if isbreaction
-
                 # Evaluate function + derivative
                 Y.=zero(Tv)
-                ForwardDiff.jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
+                ForwardDiff.vector_mode_jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
                 res_breact=DiffResults.value(result_r)
                 jac_breact=DiffResults.jacobian(result_r)
                 
                 # Assemble RHS + matrix
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
-                    _add(F,idof,bnode_factor*res_breact[ispec])
+                    _add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
                         _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
@@ -598,19 +528,18 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             end
             
             # Boundary reaction term has been given.
-            # Valid only for boundary species, but this is currently not checked.
+            # Valid only for boundary species, but system is currently not checked.
             if isbstorage
                 
                 # Fetch data for old timestep
-                for ispec=1:nspecies
-                    UKOld[ispec]=UOld[ispec,K]
-                end
+                @views UKOld.=UOld[:,bnode.index]
+
                 # Evaluate storage term for old timestep
                 bstoragewrap(oldbstor,UKOld)
 
                 # Evaluate & differentiate storage term for new time step value
                 Y.=zero(Tv)
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
+                ForwardDiff.vector_mode_jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
                 res_bstor=DiffResults.value(result_s)
                 jac_bstor=DiffResults.jacobian(result_s)
                 
@@ -624,33 +553,90 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                         _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
                     end
                 end
-            end
+            end # if isbstorage
             
+        end # ibnode=1:nbn
+        if isbflux
+            for ibedge=1:nbe
+                if abs(bfaceedgefactors[ibedge,ibface]) < edge_cutoff
+                    continue
+                end
+
+                _fill!(bedge,ibedge,ibface)
+                @views UKL[1:nspecies]            .= U[:, bedge.node[1]]
+                @views UKL[nspecies+1:2*nspecies] .= U[:, bedge.node[2]]
+
+                Y.=zero(Tv)
+                ForwardDiff.vector_mode_jacobian!(result_bflx, bfluxwrap, Y, UKL, cfg_bflx)
+                res = DiffResults.value(result_bflx)
+                jac = DiffResults.jacobian(result_bflx)
+                
+                K   = bedge.node[1]
+                L   = bedge.node[2]
+            
+                fac = bfaceedgefactors[ibedge, ibface]
+                #@show fac
+                for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
+                    ispec =_spec(F, idofK, K)
+                    idofL = dof(F, ispec, L)
+                    if idofL == 0
+                        continue
+                    end
+                    _add(F, idofK,  fac*res[ispec])
+                    _add(F, idofL, -fac*res[ispec])
+                    
+                    for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
+                        jspec = _spec(F,jdofK,K)
+                        jdofL = dof(F,jspec,L)
+                        if jdofL == 0
+                            continue
+                        end
+                        
+                        _addnz(matrix, idofK, jdofK, +jac[ispec, jspec         ], fac)
+                        _addnz(matrix, idofL, jdofK, -jac[ispec, jspec         ], fac)
+                        _addnz(matrix, idofK, jdofL, +jac[ispec, jspec+nspecies], fac)
+                        _addnz(matrix, idofL, jdofL, -jac[ispec, jspec+nspecies], fac)
+                     end
+                end
+
+
+
+            end
         end
     end
-    _eval_and_assemble_generic_operator(system,U,F)
-    _eval_and_assemble_inactive_species(system,U,UOld,F)
+
+    # if  no new matrix entries have been created, we should see no allocations
+    # in the previous two loops
+    if isnothing(matrix.lnkmatrix) && !_check_allocs(system,ncalloc+nballoc)
+        error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
+                            See the documentation of `check_allocs!` for more information""")
+    end
+   _eval_and_assemble_generic_operator(system,U,F)
+   _eval_and_assemble_inactive_species(system,U,UOld,F)
 end
 
 
-function _eval_and_assemble_generic_operator(this::AbstractSystem,U,F)
+"""
+Evaluate and assemble jacobian for generic operator part.
+"""
+function _eval_and_assemble_generic_operator(system::AbstractSystem,U,F)
 
-    if !has_generic_operator(this)
+    if !has_generic_operator(system)
         return
     end
-    generic_operator(f,u)=this.physics.generic_operator(f,u,this)
+    generic_operator(f,u)=system.physics.generic_operator(f,u,system)
     vecF=values(F)
     vecU=values(U)
     y=similar(vecF)
     generic_operator(y,vecU)
     vecF.+=y
-    forwarddiff_color_jacobian!(this.generic_matrix, generic_operator, vecU, colorvec = this.generic_matrix_colors)
-    rowval=this.generic_matrix.rowval
-    colptr=this.generic_matrix.colptr
-    nzval=this.generic_matrix.nzval
+    forwarddiff_color_jacobian!(system.generic_matrix, generic_operator, vecU, colorvec = system.generic_matrix_colors)
+    rowval=system.generic_matrix.rowval
+    colptr=system.generic_matrix.colptr
+    nzval=system.generic_matrix.nzval
     for i=1:length(colptr)-1
         for j=colptr[i]:colptr[i+1]-1
-            updateindex!(this.matrix,+,nzval[j],i,rowval[j])
+            updateindex!(system.matrix,+,nzval[j],i,rowval[j])
         end
     end
 end
@@ -658,10 +644,13 @@ end
 ################################################################
 """
 ````
-solve!(solution, inival, system; control=NewtonControl(),tstep=Inf, log=false)
+solve!(solution, inival, system; 
+    control=NewtonControl(), 
+    tstep=Inf, 
+    log=false)
 ````
 
-Perform solution of stationary problem(if `tstep==Inf`) or one step
+Perform solution of stationary problem(if `tstep==Inf`) or of  one step
 of the implicit Euler method using Newton's method with `inival` as initial
 value. The method writes into `solution`. 
 
@@ -671,17 +660,17 @@ containing the residual history of Newton's method.
 function solve!(
     solution::AbstractMatrix{Tv}, # Solution
     inival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv};     # Finite volume system
+    system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
     log::Bool=false
 ) where Tv
     if control.verbose
         @time begin
-            history=_solve!(solution,inival,this,control,tstep,log)
+            history=_solve!(solution,inival,system,control,tstep,log)
         end
     else 
-        history=_solve!(solution,inival,this,control,tstep,log)
+        history=_solve!(solution,inival,system,control,tstep,log)
     end
     return log ? (solution,history) : solution
 end
@@ -690,24 +679,26 @@ end
 ################################################################
 """
 ````
-solve(inival, system; control=NewtonControl(), tstep=Inf, log=false)
+solve(inival, system; 
+      control=NewtonControl(), 
+      tstep=Inf, 
+      log=false)
 ````
 
 Perform solution of stationary problem(if `tstep==Inf`) or one step
 of the implicit Euler method using Newton's method with `inival` as initial
-value. The method writes into `solution`. 
-
+value.
 It returns a solution array or, if `log==true`, a tuple of solution and a vector
 containing the residual history of Newton's method.
 """
 function solve(
     inival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv};     # Finite volume system
+    system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
     log::Bool=false
 ) where Tv
-    solve!(unknowns(this),inival,this,control=control, tstep=tstep,log=log)
+    solve!(unknowns(system),inival,system,control=control, tstep=tstep,log=log)
 end
 
 ################################################################
@@ -722,22 +713,24 @@ function embed!(solution, inival, system;
 Solve stationary problem via parameter embedding, calling
 `solve!` for increasing values of the parameter p from interval
 (0,1). The user is responsible for the interpretation of
-the parameter. The optional `pre()` callback can be used
+the parameter. 
+
+The optional `pre()` callback can be used
 to communicate its value to the system.
+
 The optional `post()` callback method can be used to perform
 various postprocessing steps.
 
-If `control.handle_error` is true, `solve!`  throws an error, and
-stepsize `control.Δp` is lowered,
-and `solve!` is called again with a smaller  parameter
+If `control.handle_error` is true, if `solve!`  throws an error,
+stepsize `control.Δp` is lowered, and `solve!` is called again with a smaller  parameter
 value. If `control.Δp<control.Δp_min`, `embed!` is aborted
 with error.
 
 """
 function embed!(
     solution::AbstractMatrix{Tv}, # Solution
-    xinival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv};     # Finite volume system
+    inival::AbstractMatrix{Tv},   # Initial value 
+    system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,p) end,       # Function for preparing step
     post=function(sol,p) end      # Function for postprocessing successful step
@@ -757,7 +750,7 @@ function embed!(
             try
                 p=min(p0+Δp,1.0)
                 pre(solution,p)
-                solve!(solution,inival, this ,control=control)
+                solve!(solution,inival, system ,control=control)
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))
@@ -816,7 +809,7 @@ Callbacks:
 function evolve!(
     solution::AbstractMatrix{Tv}, # Solution
     inival::AbstractMatrix{Tv},   # Initial value 
-    this::AbstractSystem{Tv},    # Finite volume system
+    system::AbstractSystem{Tv},    # Finite volume system
     times::AbstractVector;
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,t) end,       # Function for preparing step
@@ -825,7 +818,7 @@ function evolve!(
     delta=(u,v,t, Δt)->norm(sys,u-v,Inf) # Time step error estimator
 ) where Tv
     inival=copy(inival)
-    _initialize_dirichlet!(inival,this)
+    _initialize_dirichlet!(inival,system)
     Δt=control.Δt
     if control.verbose
         @printf("  Evolution: start\n")
@@ -847,7 +840,7 @@ function evolve!(
                 try
                     t=t0+Δt
                     pre(solution,t)
-                    solve!(solution,inival, this ,control=control,tstep=Δt)
+                    solve!(solution,inival, system ,control=control,tstep=Δt)
                 catch err
                     if (control.handle_exceptions)
                         _print_error(err,stacktrace(catch_backtrace()))
@@ -914,8 +907,8 @@ function solve(inival, system, times;
 ````
 Use implicit Euler method  + damped   Newton's method  to 
 solve time dependent problem. Time step control is performed
-according to the data in `control`.  All times in `times`
-are reached exactly.
+according to the data in `control`.  All times in the vector
+`times` are reached exactly.
 
 Callbacks:
 - `pre` is invoked before each time step
@@ -925,10 +918,9 @@ Callbacks:
 `delta` is  used to control the time step.
 
 If `store_all==true`, all timestep solutions are stored. Otherwise,
-only solutions for the elements of `times` are stored.
+only solutions for the moments defined in `times` are stored.
 
-
-Returns a transient solution object `sol` containing stored solutions,
+Returns a transient solution object `sol` containing the stored solution,
 see [`TransientSolution`](@ref)
 
 """
@@ -965,77 +957,4 @@ function solve(inival::AbstractMatrix,
     tsol
 end
 
-
-################################################################
-"""
-````
-integrate(system,F,U; boundary=false)    
-````
-
-Integrate node function (same signature as reaction or storage)
- `F` of  solution vector over domain or boundary 
-The result contains the integral for each species separately.
-"""
-function integrate(this::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti,Tm}
-    grid=this.grid
-    data=this.physics.data
-    nspecies=num_species(this)
-    res=zeros(Tu,nspecies)
-    node=Node{Tv,Ti}(this)
-    nodeparams=(node,)
-    if isdata(data)
-        nodeparams=(node,data,)
-    end
-
-    
-
-    csys=grid[CoordinateSystem]
-    coord=grid[Coordinates]
-
-
-    if boundary
-        
-        geom=grid[BFaceGeometries][1]
-        bfacenodes=grid[BFaceNodes]
-        bfaceregions=grid[BFaceRegions]
-        nbfaceregions=maximum(bfaceregions)
-        integral=zeros(Tu,nspecies,nbfaceregions)
-        
-        
-        for ibface=1:num_bfaces(grid)
-            for inode=1:num_nodes(geom)
-                _fill!(node,bfacenodes,bfaceregions,inode,ibface)
-                res.=zero(Tv)
-                @views F(res,U[:,node.index],nodeparams...)
-                for ispec=1:nspecies
-                    if this.node_dof[ispec,node.index]==ispec
-                        integral[ispec,node.region]+=this.bfacenodefactors[inode,ibface]*res[ispec]
-                    end
-                end
-            end
-        end
-    else
-        geom=grid[CellGeometries][1]
-        cellnodes=grid[CellNodes]
-        cellregions=grid[CellRegions]
-        ncellregions=maximum(cellregions)
-        integral=zeros(Tu,nspecies,ncellregions)
-        
-        
-        for icell=1:num_cells(grid)
-            for inode=1:num_nodes(geom)
-                _fill!(node,cellnodes,cellregions,inode,icell)
-                res.=zero(Tv)
-                @views F(res,U[:,node.index],nodeparams...)
-                for ispec=1:nspecies
-                    if this.node_dof[ispec,node.index]==ispec
-                        integral[ispec,node.region]+=this.cellnodefactors[inode,icell]*res[ispec]
-                    end
-                end
-            end
-        end
-    end
-    
-    return integral
-end
 

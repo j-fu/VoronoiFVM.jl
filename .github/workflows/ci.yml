@@ -15,9 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.3' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
+          - '1.5' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
           - '1'   # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-#          - 'nightly' sparsity detection does not work here...
+          - 'nightly' 
         os:
           - ubuntu-latest
           - macos-latest
@@ -59,6 +59,8 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
+        env:
+          JULIA_PKG_SERVER: ""      
       # - run: |
       #     julia --project=docs -e '
       #       using Documenter: doctest
