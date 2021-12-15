@@ -3,6 +3,7 @@ quarry
 startup.jl
 docs/build
 docs/src/examples
+Manifest.toml
 *~
 .repl_history.jl
 .vscode
