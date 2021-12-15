@@ -1,4 +1,4 @@
-using Documenter, VoronoiFVM, Literate
+using Documenter, VoronoiFVM, Literate, PlutoSliderServer
 
 #
 # Replace SOURCE_URL marker with github url of source
@@ -16,6 +16,16 @@ end
 
 
 function make_all()
+
+    #
+    # Run notebooks
+    #
+    notebooks=["nbproto.jl"]
+    export_directory(joinpath(@__DIR__,"..","pluto-examples"),
+                     notebook_paths=notebooks,
+                     Export_output_dir=joinpath(@__DIR__,"src"),
+                     Export_offer_binder=true)
+
     #
     # Generate Markdown pages from examples
     #

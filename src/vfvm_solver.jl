@@ -104,6 +104,7 @@ function _solve!(
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
     system::AbstractSystem{Tv}, # Finite volume system
     control::NewtonControl,
+    time::Tv,
     tstep::Tv,
     log::Bool
 ) where Tv
@@ -132,7 +133,7 @@ function _solve!(
 
     for ii=1:control.max_iterations
         try
-            eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
+            eval_and_assemble(system,solution,oldsol,residual,time,tstep,edge_cutoff=control.edge_cutoff)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -260,6 +261,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
+                           time::Tv,
                            tstep::Tv; # time step size. Inf means stationary solution
                            edge_cutoff=0.0
                            ) where {Tv, Ti}
@@ -273,10 +275,16 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     bnode   = BNode{Tv,Ti}(system)
     edge    = Edge{Tv,Ti}(system)
     bedge   = BEdge{Tv,Ti}(system)
+
+    node.time=time
+    bnode.time=time
+    edge.time=time
+    bedge.time=time
     
     @create_physics_wrappers(physics, node, bnode, edge, bedge)
 
 
+    
     nspecies::Int = num_species(system)
     matrix        = system.matrix
     
@@ -344,6 +352,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2}  = system.boundary_values
+
+    hasbc = !iszero(boundary_factors) || !iszero(boundary_values)
+
     bfaceregions::Vector{Ti} = grid[BFaceRegions]
 
     nbfaces = num_bfaces(grid)
@@ -467,7 +478,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
-
+            bnode.Dirichlet=Dirichlet/bnode_factor
+            
             if isbsource
                 bsourcewrap(bsrc)
             end
@@ -476,36 +488,37 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             K::Int=bnode.index
 
 
-            
-            # Assemble "standard" boundary conditions: Robin or
-            # Dirichlet
-            # valid only for interior species, currently not checked
-            for ispec=1:nspecies
-                idof=dof(F,ispec,K)
-                # If species is present, assemble the boundary condition
-                if idof>0
-                    # Get user specified data
-                    boundary_factor = boundary_factors[ispec,ibreg]
-                    boundary_value  = boundary_values[ispec,ibreg]
-                    
-                    if boundary_factor==Dirichlet
-                        # Dirichlet is encoded in the boundary condition factor
-                        # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
+            if hasbc
+                # Assemble "standard" boundary conditions: Robin or
+                # Dirichlet
+                # valid only for interior species, currently not checked
+                for ispec=1:nspecies
+                    idof=dof(F,ispec,K)
+                    # If species is present, assemble the boundary condition
+                    if idof>0
+                        # Get user specified data
+                        boundary_factor = boundary_factors[ispec,ibreg]
+                        boundary_value  = boundary_values[ispec,ibreg]
                         
-                        # Add penalty*boundry_value to right hand side
-                        F[ispec,K]+=boundary_factor*(U[ispec,K]-boundary_value)
-                        
-                        # Add penalty to matrix main diagonal (without bnode factor, so penalty
-                        # is independent of h)
-                        _addnz(matrix,idof,idof,boundary_factor,1)
-                    else
-                        # Robin boundary condition
-                        F[ispec,K]+=bnode_factor*(boundary_factor*U[ispec,K]-boundary_value)
-                        _addnz(matrix,idof,idof,boundary_factor, bnode_factor)
+                        if boundary_factor==Dirichlet
+                            # Dirichlet is encoded in the boundary condition factor
+                            # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
+                            
+                            # Add penalty*boundry_value to right hand side
+                            F[ispec,K]+=boundary_factor*(U[ispec,K]-boundary_value)
+                            
+                            # Add penalty to matrix main diagonal (without bnode factor, so penalty
+                            # is independent of h)
+                            _addnz(matrix,idof,idof,boundary_factor,1)
+                        else
+                            # Robin boundary condition
+                            F[ispec,K]+=bnode_factor*(boundary_factor*U[ispec,K]-boundary_value)
+                            _addnz(matrix,idof,idof,boundary_factor, bnode_factor)
+                        end
                     end
                 end
             end
-
+            
             # Boundary reaction term has been given.
             # Valid for both boundary and interior species
             if isbreaction
@@ -662,15 +675,17 @@ function solve!(
     inival::AbstractMatrix{Tv},   # Initial value 
     system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
+    time::Tv=Inf,
     tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
-    log::Bool=false
+    log::Bool=false,
+    kwargs...
 ) where Tv
     if control.verbose
         @time begin
-            history=_solve!(solution,inival,system,control,tstep,log)
+            history=_solve!(solution,inival,system,control,time,tstep,log)
         end
     else 
-        history=_solve!(solution,inival,system,control,tstep,log)
+        history=_solve!(solution,inival,system,control,time,tstep,log)
     end
     return log ? (solution,history) : solution
 end
@@ -695,10 +710,12 @@ function solve(
     inival::AbstractMatrix{Tv},   # Initial value 
     system::AbstractSystem{Tv};     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
+    time::Tv=Inf,
     tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
-    log::Bool=false
+    log::Bool=false,
+    kwargs...
 ) where Tv
-    solve!(unknowns(system),inival,system,control=control, tstep=tstep,log=log)
+    solve!(unknowns(system),inival,system,control=control,time=Inf, tstep=tstep,log=log)
 end
 
 ################################################################
@@ -840,7 +857,7 @@ function evolve!(
                 try
                     t=t0+Δt
                     pre(solution,t)
-                    solve!(solution,inival, system ,control=control,tstep=Δt)
+                    solve!(solution,inival, system ,control=control,time=t,tstep=Δt)
                 catch err
                     if (control.handle_exceptions)
                         _print_error(err,stacktrace(catch_backtrace()))
@@ -933,7 +950,8 @@ function solve(inival::AbstractMatrix,
                sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
                delta=(u,v,t, Δt)->norm(sys,u-v,Inf), # Time step error estimator
                store_all=true, # if true, store all solutions, otherwise, store only at sampling times
-               in_memory=true
+               in_memory=true,
+               kwargs...
                )
     tsol=TransientSolution(Float64(times[1]),inival, in_memory=in_memory)
     solution=copy(inival)
@@ -957,4 +975,31 @@ function solve(inival::AbstractMatrix,
     tsol
 end
 
+
+
+
+
+function VoronoiFVM.solve(sys::VoronoiFVM.System; inival=0, kwargs...)
+    if isa(inival,Number)
+        inival=unknowns(sys,inival=inival)
+    elseif  !VoronoiFVM.isunknownsof(inival,sys)
+        @error "wrong type of inival: $(typeof(inival))"
+    end
+
+
+    control=VoronoiFVM.NewtonControl()
+    for k ∈ kwargs
+        if hasproperty(control,k[1])
+            setproperty!(control,k[1],k[2])
+        end
+    end
+
+    if haskey(kwargs,:times)
+        solve(inival,sys,kwargs[:times]; control=control, kwargs...)
+    elseif  haskey(kwargs,:tspan) && haskey(kwargs,:DifferentialEquations)
+        solve(kwargs[:DifferentialEquations],inival,sys,kwargs[:tspan]; kwargs...)
+    else
+        solve(inival,sys; control=control,kwargs...)
+    end
+end
 

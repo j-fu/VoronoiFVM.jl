@@ -1,3 +1,5 @@
+
+
 """
 $(README)
 
@@ -55,6 +57,7 @@ export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!
+export ramp
 export value
 export check_allocs!
 export physics!
@@ -95,6 +98,8 @@ export InterfaceQuantity
 include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
 export measurement_derivative
+
+include("precompile.jl")
 
 
 end
