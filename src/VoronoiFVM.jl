@@ -99,6 +99,8 @@ include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
 export measurement_derivative
 
+include("gridvisualize.jl")
+
 include("precompile.jl")
 
 

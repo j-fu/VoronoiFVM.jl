@@ -200,7 +200,8 @@ mutable struct BNode{Tv, Ti} <: AbstractNode{Tv, Ti}
 
     time::Tv
 
-
+    dirichlet_value::Vector{Tv}
+    
     BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,0,0,zeros(Ti,2),
                                                                  num_species(sys),
                                                                  coordinates(sys.grid),
@@ -208,7 +209,8 @@ mutable struct BNode{Tv, Ti} <: AbstractNode{Tv, Ti}
                                                                  sys.grid[BFaceRegions],
                                                                  sys.grid[CellRegions],
                                                                  sys.grid[BFaceCells],
-                                                                 Dirichlet,0
+                                                                 Dirichlet,0,
+                                                                 zeros(Tv,num_species(sys))
                                                                  )
 end
 

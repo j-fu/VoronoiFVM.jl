@@ -217,6 +217,9 @@ function System(grid; species=Int[], unknown_storage=:dense, matrixindextype=Int
     return system
 end
 
+System(X::AbstractVector; kwargs...)= System(simplexgrid(X); kwargs...)
+System(X::AbstractVector, Y::AbstractVector; kwargs...)= System(simplexgrid(X,Y); kwargs...)
+System(X::AbstractVector, Y::AbstractVector, Z::AbstractVector; kwargs...)= System(simplexgrid(X,Y,Z); kwargs...)
 
 
 
@@ -636,9 +639,16 @@ function boundary_dirichlet!(system::AbstractSystem, ispec::Integer, ibc, v)
     system.boundary_factors[ispec,ibc]=Dirichlet
     system.boundary_values[ispec,ibc]=v
 end
-boundary_dirichlet!(y,u,bnode,ispec,ireg,val) =  bnode.region == ireg ? y[ispec] += bnode.Dirichlet*(u[ispec]-val) : nothing
-boundary_dirichlet!(y,u,bnode,args...; species=1, region=bnode.region,value=0) = boundary_dirichlet!(y,u,bnode,species,region,value)
+function boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
+    if  bnode.region == ireg
+        y[ispec] += bnode.Dirichlet*(u[ispec]-val)
+        # just for call during initialization
+        bnode.dirichlet_value[ispec]=val
+    end
+    nothing
+end
 
+boundary_dirichlet!(y,u,bnode,args...; species=1, region=bnode.region,value=0) = boundary_dirichlet!(y,u,bnode,species,region,value)
 
 
 
@@ -710,9 +720,15 @@ num_species(a::AbstractArray)=size(a,1)
 function _initialize_dirichlet!(U::AbstractMatrix,system::AbstractSystem)
     _bfaceregions=bfaceregions(system.grid)
     _bfacenodes=bfacenodes(system.grid)
+    # set up bnode
     for ibface=1:num_bfaces(system.grid)
         ibreg=_bfaceregions[ibface]
+        # bnode.dirichlet_values.=Inf
+        # breaction(y,u,bnode,data)
         for ispec=1:num_species(system)
+            # if !isinf(bnode.dirichlet_value)
+            #    U[ispec,_bfacenodes[inode,ibface]]=bnode.dirichlet_value
+            # end
             if system.boundary_factors[ispec,ibreg]≈ Dirichlet
                 for inode=1:dim_grid(system.grid)
                     U[ispec,_bfacenodes[inode,ibface]]=system.boundary_values[ispec,ibreg]
