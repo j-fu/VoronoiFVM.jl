@@ -827,7 +827,7 @@ function evolve!(
     solution::AbstractMatrix{Tv}, # Solution
     inival::AbstractMatrix{Tv},   # Initial value 
     system::AbstractSystem{Tv},    # Finite volume system
-    times::AbstractVector;
+    times::Union{AbstractVector,Tuple};
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,t) end,       # Function for preparing step
     post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
@@ -943,7 +943,7 @@ see [`TransientSolution`](@ref)
 """
 function solve(inival::AbstractMatrix,
                sys::AbstractSystem,
-               times::AbstractVector;
+               times::Union{AbstractVector,Tuple};
                control=NewtonControl(),
                pre=function(sol,t) end,       # Function for preparing step
                post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step

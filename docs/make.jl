@@ -1,4 +1,4 @@
-using Documenter, VoronoiFVM, Literate, PlutoSliderServer
+using Documenter, VoronoiFVM, Literate, PlutoSliderServer, ExtendableGrids
 
 #
 # Replace SOURCE_URL marker with github url of source
@@ -15,38 +15,42 @@ end
 
 
 
-function make_all()
-
-    #
-    # Run notebooks
-    #
-    notebooks=["nbproto.jl"]
-    export_directory(joinpath(@__DIR__,"..","pluto-examples"),
-                     notebook_paths=notebooks,
-                     Export_output_dir=joinpath(@__DIR__,"src"),
-                     Export_offer_binder=true)
-
-    #
-    # Generate Markdown pages from examples
-    #
-    example_jl_dir = joinpath(@__DIR__,"..","examples")
-    example_md_dir  = joinpath(@__DIR__,"src","examples")
+function make_all(;with_examples=true)
     
-    for example_source in readdir(example_jl_dir)
-        base,ext=splitext(example_source)
-        if ext==".jl"
-            source_url="https://github.com/j-fu/VoronoiFVM.jl/raw/master/examples/"*example_source
-            preprocess(buffer)=replace_source_url(buffer,source_url)
-            Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
-                              example_md_dir,
-                              documenter=false,
-                              info=false,
-                              preprocess=preprocess)
+    generated_examples=[]
+    
+    if with_examples
+        #
+        # Run notebooks
+        #
+        notebooks=["nbproto.jl"]
+        export_directory(joinpath(@__DIR__,"..","pluto-examples"),
+                         notebook_paths=notebooks,
+                         Export_output_dir=joinpath(@__DIR__,"src"),
+                         Export_offer_binder=true)
+        
+        #
+        # Generate Markdown pages from examples
+        #
+        example_jl_dir = joinpath(@__DIR__,"..","examples")
+        example_md_dir  = joinpath(@__DIR__,"src","examples")
+        
+        for example_source in readdir(example_jl_dir)
+            base,ext=splitext(example_source)
+            if ext==".jl"
+                source_url="https://github.com/j-fu/VoronoiFVM.jl/raw/master/examples/"*example_source
+                preprocess(buffer)=replace_source_url(buffer,source_url)
+                Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
+                                  example_md_dir,
+                                  documenter=false,
+                                  info=false,
+                                  preprocess=preprocess)
+            end
         end
+        
+        
+        generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     end
-
-
-    generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     
     makedocs(
         sitename="VoronoiFVM.jl",
@@ -59,9 +63,9 @@ function make_all()
             "Home"=>"index.md",
             "changes.md",
             "method.md",
-            "API Documentation" => [
-                "physics.md",
+            "API Documentation" => [                
                 "system.md",
+                "physics.md",
                 "solutions.md",
                 "solver.md",
                 "post.md",
@@ -72,12 +76,14 @@ function make_all()
             "Examples" => generated_examples
         ]
     )
-    
-    rm(example_md_dir,recursive=true)
+
+    if with_examples
+        rm(example_md_dir,recursive=true)
+    end
     
     if !isinteractive()
         deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
     end
 end
 
-make_all()
+make_all(with_examples=false)

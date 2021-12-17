@@ -35,7 +35,7 @@ end
 function run_all_tests()
 
     ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
-    notebooks=["nbproto.jl"]
+    notebooks=["nbproto.jl", "api-update.jl"]
     
     @time begin
         @testset "basictest" begin

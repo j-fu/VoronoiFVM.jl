@@ -171,15 +171,7 @@ Physics(;num_species=0,
     )
 ````
 
-Constructor for physics data. For the meaning of the optional function
-callbacks, see [`Physics`](@ref).
-
-There are two variants of this constructor. It `data` is given, all callback functions
-should accept a last `data` argument. Otherwise, no data are passed explicitely, and it
-is assumed that constitutive callbacks take parameters from the closure where the function
-is defined.
-
-
+Constructor for physics data. For the meaning of the optional keyword arguments, see [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
 function Physics(;num_species=0,
                  data=nothing,
