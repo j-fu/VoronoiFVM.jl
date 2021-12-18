@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.16.1
+# v0.17.2
 
 using Markdown
 using InteractiveUtils
@@ -7,28 +7,67 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
 end
 
+# ╔═╡ 33365518-b403-4fad-aca8-1670a12ff715
+begin
+    using Pkg
+    inpluto=isdefined(Main,:PlutoRunner)
+    developing=false	
+    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	# We try to outsmart Pluto's cell parser here.
+	# This activates an environment in VoronoiFVM/pluto-examples
+	eval(:(Pkg.activate(joinpath(@__DIR__))))
+	# use Revise if we develop VoronoiFVM
+	using Revise
+	# This activates the checked out version of VoronoiFVM.jl for development
+	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
+	developing=true
+    end
+end;
+
+
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
-begin 
-    using PlutoUI,GridVisualize,SimplexGridFactory,Triangulate,ExtendableGrids,VoronoiFVM,PlutoVista,PlutoUI,PyPlot
-end
+begin
+    using Test
+    using SimplexGridFactory,Triangulate,ExtendableGrids,VoronoiFVM
+    if inpluto
+	using PlutoUI,GridVisualize,PlutoVista
+	GridVisualize.default_plotter!(PlutoVista)
+    end
+end;
 
 # ╔═╡ de468cb9-b34d-4d2e-b911-9b93920caca1
 md"""
 # Flux reconstruction and visualization for the Laplace operator
 """
 
-# ╔═╡ 928a70c5-4706-40a1-9387-abcb71c09443
+# ╔═╡ 531de061-d943-4b5a-85f2-cbd48bb049ce
+md"""
+We demonstrate the reconstruction of the gradient vector field from the solution of the Laplace operator and its visualization.
 """
+
+# ╔═╡ 184193b6-39ef-4d0c-92a3-157fa5809832
+inpluto && TableOfContents(title="")
+
+# ╔═╡ 30dc968f-44df-45ea-bdb3-c938a8026224
+md"""
+## Grid
+"""
+
+# ╔═╡ 4064355c-6367-4797-96f6-020bca9b854e
+md"""
 Define a "Swiss cheese domain" with punched-out holes, where each hole boundary corresponds to a different boundary condition.
 """
-function swiss_cheese_2d()
 
+# ╔═╡ 928a70c5-4706-40a1-9387-abcb71c09443
+function swiss_cheese_2d()
+    
     function circlehole!(builder, center, radius; n=20)
         points=[point!(builder, center[1]+radius*sin(t),center[2]+radius*cos(t)) for t in range(0,2π,length=n)]
         for i=1:n-1
@@ -37,13 +76,13 @@ function swiss_cheese_2d()
         facet!(builder,points[end],points[1])
         holepoint!(builder,center)
     end
-
-
+    
+    
     builder=SimplexGridBuilder(Generator=Triangulate)
     cellregion!(builder,1)
     maxvolume!(builder,0.1)
     regionpoint!(builder,0.1,0.1)
-
+    
     
     p1=point!(builder,0,0)
     p2=point!(builder,10,0)
@@ -55,11 +94,11 @@ function swiss_cheese_2d()
     facet!(builder,p2,p3)
     facet!(builder,p3,p4)
     facet!(builder,p4,p1)
-
+    
     holes=[1.0 2.0;
            8.0 9.0;
            2.0 8.0;
-  		   8.0 4.0;
+  	   8.0 4.0;
            9.0 1.0;
            3.0 4.0;
            4.0 6.0;
@@ -74,120 +113,160 @@ function swiss_cheese_2d()
            6.0 9.0;
            3.0 5.0;
            1.0 4.0]'
-
+    
     radii=[0.15, 0.15, 0.1, 0.35, 0.2, 0.3, 0.1, 0.4, 0.1, 0.4,  0.2, 0.2, 0.2, 0.35, 0.15, 0.25, 0.15, 0.25]
-
+    
     for i=1:length(radii)
         facetregion!(builder,i+1)
         circlehole!(builder,holes[:,i], radii[i])
     end
-
+    
     simplexgrid(builder)
 end
-
-# ╔═╡ 49f425a4-455c-40f5-b939-da704032cb88
-md"""
-Generate & plot grid
-"""
 
 # ╔═╡ bc304085-69c3-4974-beb4-6f2b981ac0f1
 grid=swiss_cheese_2d()
 
 # ╔═╡ ad0367e6-7308-46bc-a7ff-9c17dcfe470d
-gridplot(grid,Plotter=PlutoVista)
+inpluto && gridplot(grid)
 
-# ╔═╡ 236d6cd5-c190-49c7-98fe-021fae224455
+# ╔═╡ f27d80dc-ae41-4889-aede-daa9848488d4
+md"""
+## System + solution
 """
+
+# ╔═╡ 758ee64a-55f9-495c-ad0f-79ee6cb1c922
+mutable struct Params
+	val11::Float64
+end
+
+# ╔═╡ c71479bb-886c-443c-b8f6-9b7ad8b34cef
+params=Params(5)
+
+# ╔═╡ 62b300e4-8476-4531-8042-fdb199355fbb
+md"""
 Simple flux function for Laplace operator 
 """
-flux(y,u,edge)= y[1]=u[1,1]-u[1,2]
+
+# ╔═╡ 236d6cd5-c190-49c7-98fe-021fae224455
+flux(y,u,edge,data)= y[1]=u[1,1]-u[1,2];
+
+# ╔═╡ 6bd1c695-ff0d-46c8-bbe8-9a8e4eea9a23
+md"""
+At hole #11, the value will be bound to a slider defined below
+"""
+
+# ╔═╡ b3f92fa7-6510-49e0-8c0d-b6ef6e897bb3
+function bc(y,u,bnode,data)
+    boundary_dirichlet!(y,u,bnode,region=2,value=10.0)
+    boundary_dirichlet!(y,u,bnode,region=3,value=0.0)
+    boundary_dirichlet!(y,u,bnode,region=11,value=data.val11)
+end
 
 # ╔═╡ f4ebe6ad-4e04-4f33-9a66-6bec977adf4d
 md"""
 Define a finite volume system with Dirichlet boundary conditions at some of the holes
 """
 
-# ╔═╡ 934a98f1-9734-45bc-848e-4d4d8ad80e4e
-physics=VoronoiFVM.Physics(flux=flux)
-
 # ╔═╡ f3af20fb-c3cc-41af-9782-d40adf2371f7
-system=VoronoiFVM.System(grid,physics)
-
-# ╔═╡ 50ea0a7e-97e0-428d-b4ec-6bd4d7aef31f
-enable_species!(system,1,[1])
-
-# ╔═╡ 49d3c96b-f6b4-4581-8600-8aaf50bb07fc
-boundary_dirichlet!(system,1,2,10.0)
-
-# ╔═╡ fa5200ff-713e-48fb-b452-c6ee96935cfc
-boundary_dirichlet!(system,1,3,0.0)
-
-# ╔═╡ 6b09f75a-521b-40d9-9636-155e62ab0cac
-md"""
-At hole #11, the value will be bound to a slider defined below
-"""
+system=VoronoiFVM.System(grid,flux=flux,species=1,bcondition=bc,data=params)
 
 # ╔═╡ d86c43f3-ec2f-4fae-88d2-1068603e7044
 md"""
 Solve, and trigger solution upon boundary value change
 """
 
+# ╔═╡ 90bd1da0-c371-4889-a00f-a17a27463c88
+md"""
+## Flux reconstruction
+"""
+
 # ╔═╡ 41bd1230-c87c-47b0-8e58-67ad55609fd3
 md"""
 Reconstruct the node flux. It is a ``d\times n_{spec}\times n_{nodes}`` tensor.
 `nf[:,ispec,:]` then is a vector function representing the flux density of species `ispec` in each node of the domain. This readily can be fed into `GridVisualize.vectorplot`.
+
+The reconstruction is based on the  "magic formula"
+R. Eymard, T. Gallouet, R. Herbin, IMA Journal of Numerical Analysis (2006)
+26, 326−353 ([Arxive version](https://arxiv.org/abs/math/0505109v1)), Lemma 2.4 .
+
 """
 
 # ╔═╡ 17be52fb-f55b-4b3d-85e5-33f36134046b
-vis=GridVisualizer(Plotter=PlutoVista,dim=2,resolution=(400,400));vis
+if inpluto vis=GridVisualizer(dim=2,resolution=(400,400)) end
 
 # ╔═╡ 03f582ec-4e95-4ca4-8482-9c797027810d
-md"""
+if inpluto 
+	md"""
 ``v_{11}:`` $(@bind  val11 Slider(0:0.1:10,default=5,show_value=true))
 """
-
-# ╔═╡ e8ae2b22-ac60-449b-952f-d2c55852677c
-boundary_dirichlet!(system,1,11,val11)
+else
+	val11=5.0
+end
 
 # ╔═╡ 27efdcac-8ee4-47e4-905d-8d8c7313ddd1
-val11; sol=solve(unknowns(system,inival=0),system)
+begin
+    params.val11=val11
+    sol=solve(system)
+end;
+
+# ╔═╡ 18d5bc33-2578-41d0-a390-c164d754b8e1
+@test params.val11!=5.0 || isapprox(sum(sol),7842.2173682050525, rtol=1.0e-14)
 
 # ╔═╡ 41f427c1-b6ad-46d4-9151-1d872b4efeb6
 nf=nodeflux(system,sol)
 
-# ╔═╡ c9b9fdb1-5734-430f-949a-6e6126d2f091
+# ╔═╡ 0e34c818-021b-44c9-8ee4-1a737c3de9cb
+@test params.val11!=5.0 || isapprox(sum(nf),978.000534849034, rtol=1.0e-14)
+
+# ╔═╡ 9468db0c-e924-4737-9b75-6bec753aafa9
+md"""
+Joint plot of solution and flux reconstruction
 """
-Joint plot of solution and nodal flux of the solution
-"""
-function myplot(vis)
-	scalarplot!(vis,grid,sol[1,:],levels=9,colormap=:summer,clear=true)
-	vectorplot!(vis,grid,nf[:,1,:],clear=false,spacing=0.5,vscale=1.5)
-	reveal(vis)
-end
 
 # ╔═╡ 531edb71-6d32-4231-b117-5e36416d2fb1
-myplot(vis)
+if inpluto
+    scalarplot!(vis,grid,sol[1,:],levels=9,colormap=:summer,clear=true)
+    vectorplot!(vis,grid,nf[:,1,:],clear=false,spacing=0.5,vscale=1.5)
+    reveal(vis)
+end
 
-# ╔═╡ e0b92e00-dd0b-448b-baae-5cd4e0a2059a
+# ╔═╡ d3e64470-8e11-4ef7-af34-453088910fee
+html"""<hr><hr><hr>"""
+
+# ╔═╡ 00111b16-ac13-417d-93bf-cf908f620452
 md"""
-Plot with PyPlot: $(@bind use_pyplot CheckBox(default=false))
+# Appendix: Tests & Development
 """
 
-# ╔═╡ 1495eb67-12ec-4662-b0e7-049ffef569c0
-if use_pyplot
-	pyvis=GridVisualizer(Plotter=PyPlot,resolution=(400,400))
-	myplot(pyvis)
+# ╔═╡ ec03b394-d56f-4722-949d-93f5d63a29ac
+md"""
+This notebook is also run during the automatic unit tests. In this case, all interactive elements and visualizations should be deactivated.
+For this purposes, the next cell detects if the notebook is running under Pluto
+and sets the `inpluto` flag accordingly.
+
+Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
+"""
+
+# ╔═╡ 3cce3948-42b5-45dc-a2d5-e50fabfee5ea
+if developing 
+	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
+else
+	md""" Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"""
 end
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
-PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SimplexGridFactory = "57bfcd06-606e-45d6-baf4-4ba06da0efd5"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
@@ -196,7 +275,7 @@ ExtendableGrids = "~0.8.3"
 GridVisualize = "~0.3.5"
 PlutoUI = "~0.7.16"
 PlutoVista = "~0.8.2"
-PyPlot = "~2.10.0"
+Revise = "~3.2.1"
 SimplexGridFactory = "~0.5.8"
 Triangulate = "~2.1.0"
 VoronoiFVM = "~0.13.1"
@@ -206,7 +285,7 @@ VoronoiFVM = "~0.13.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.7.0-rc1"
+julia_version = "1.6.4"
 manifest_format = "2.0"
 
 [[deps.AbstractTrees]]
@@ -252,6 +331,12 @@ git-tree-sha1 = "2f294fae04aa5069a67964a3366e151e09ea7c09"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 version = "1.9.0"
 
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "9aa8a5ebb6b5bf469a7e0e2b5202cf6f8c291104"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.0.6"
+
 [[deps.ColorSchemes]]
 deps = ["ColorTypes", "Colors", "FixedPointNumbers", "Random"]
 git-tree-sha1 = "a851fec56cb73cfdf43762999ec72eff5b86882a"
@@ -285,12 +370,6 @@ version = "3.39.0"
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-
-[[deps.Conda]]
-deps = ["JSON", "VersionParsing"]
-git-tree-sha1 = "299304989a5e6473d985212c28928899c74e9421"
-uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
-version = "1.5.2"
 
 [[deps.DataAPI]]
 git-tree-sha1 = "cc70b17275652eb47bc9e5f81635981f13cea5c8"
@@ -371,6 +450,9 @@ deps = ["Pkg", "Requires", "UUIDs"]
 git-tree-sha1 = "3c041d2ac0a52a12a27af2782b34900d9c3ee68c"
 uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 version = "1.11.1"
+
+[[deps.FileWatching]]
+uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
 [[deps.FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]
@@ -478,10 +560,11 @@ git-tree-sha1 = "8076680b162ada2a031f707ac7b4953e30667a37"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.2"
 
-[[deps.LaTeXStrings]]
-git-tree-sha1 = "c7f1c695e06c01b95a67f0cd1d34994f3e7db104"
-uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
-version = "1.2.1"
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "e273807f38074f033d94207a201e6e827d8417db"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.8.21"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -509,7 +592,7 @@ uuid = "093fc24a-ae57-5d10-9952-331d41423f4d"
 version = "1.3.5"
 
 [[deps.LinearAlgebra]]
-deps = ["Libdl", "libblastrampoline_jll"]
+deps = ["Libdl"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LogExpFunctions]]
@@ -520,6 +603,12 @@ version = "0.3.3"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "491a883c4fef1103077a7f648961adbf9c8dd933"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "2.1.2"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -553,10 +642,6 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 git-tree-sha1 = "fe29afdef3d0c4a8286128d4e45cc50621b1e43d"
 uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
 version = "0.4.0"
-
-[[deps.OpenBLAS_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
-uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
 
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -611,18 +696,6 @@ version = "1.2.2"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
-[[deps.PyCall]]
-deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
-git-tree-sha1 = "169bb8ea6b1b143c5cf57df6d34d022a7b60c6db"
-uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
-version = "1.92.3"
-
-[[deps.PyPlot]]
-deps = ["Colors", "LaTeXStrings", "PyCall", "Sockets", "Test", "VersionParsing"]
-git-tree-sha1 = "14c1b795b9d764e1784713941e787e1384268103"
-uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
-version = "2.10.0"
-
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
@@ -652,6 +725,12 @@ deps = ["UUIDs"]
 git-tree-sha1 = "4036a3bd08ac7e968e27c203d45f5fff15020621"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.1.3"
+
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "e55f4c73ec827f96cd52db0bc6916a3891c726b5"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.2.1"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -775,11 +854,6 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
-[[deps.VersionParsing]]
-git-tree-sha1 = "80229be1f670524750d905f8fc8148e5a8c4537f"
-uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
-version = "1.2.0"
-
 [[deps.VertexSafeGraphs]]
 deps = ["LightGraphs"]
 git-tree-sha1 = "b9b450c99a3ca1cc1c6836f560d8d887bcbe356e"
@@ -802,10 +876,6 @@ git-tree-sha1 = "8c1a8e4dfacb1fd631745552c8db35d0deb09ea0"
 uuid = "700de1a5-db45-46bc-99cf-38207098b444"
 version = "0.2.2"
 
-[[deps.libblastrampoline_jll]]
-deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
-uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
@@ -817,29 +887,38 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 
 # ╔═╡ Cell order:
 # ╟─de468cb9-b34d-4d2e-b911-9b93920caca1
+# ╟─531de061-d943-4b5a-85f2-cbd48bb049ce
+# ╟─184193b6-39ef-4d0c-92a3-157fa5809832
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
+# ╟─30dc968f-44df-45ea-bdb3-c938a8026224
+# ╟─4064355c-6367-4797-96f6-020bca9b854e
 # ╠═928a70c5-4706-40a1-9387-abcb71c09443
-# ╟─49f425a4-455c-40f5-b939-da704032cb88
 # ╠═bc304085-69c3-4974-beb4-6f2b981ac0f1
-# ╠═ad0367e6-7308-46bc-a7ff-9c17dcfe470d
+# ╟─ad0367e6-7308-46bc-a7ff-9c17dcfe470d
+# ╟─f27d80dc-ae41-4889-aede-daa9848488d4
+# ╠═758ee64a-55f9-495c-ad0f-79ee6cb1c922
+# ╠═c71479bb-886c-443c-b8f6-9b7ad8b34cef
+# ╟─62b300e4-8476-4531-8042-fdb199355fbb
 # ╠═236d6cd5-c190-49c7-98fe-021fae224455
+# ╟─6bd1c695-ff0d-46c8-bbe8-9a8e4eea9a23
+# ╠═b3f92fa7-6510-49e0-8c0d-b6ef6e897bb3
 # ╟─f4ebe6ad-4e04-4f33-9a66-6bec977adf4d
-# ╠═934a98f1-9734-45bc-848e-4d4d8ad80e4e
 # ╠═f3af20fb-c3cc-41af-9782-d40adf2371f7
-# ╠═50ea0a7e-97e0-428d-b4ec-6bd4d7aef31f
-# ╠═49d3c96b-f6b4-4581-8600-8aaf50bb07fc
-# ╠═fa5200ff-713e-48fb-b452-c6ee96935cfc
-# ╟─6b09f75a-521b-40d9-9636-155e62ab0cac
-# ╠═e8ae2b22-ac60-449b-952f-d2c55852677c
 # ╟─d86c43f3-ec2f-4fae-88d2-1068603e7044
 # ╠═27efdcac-8ee4-47e4-905d-8d8c7313ddd1
+# ╠═18d5bc33-2578-41d0-a390-c164d754b8e1
+# ╟─90bd1da0-c371-4889-a00f-a17a27463c88
 # ╟─41bd1230-c87c-47b0-8e58-67ad55609fd3
 # ╠═41f427c1-b6ad-46d4-9151-1d872b4efeb6
-# ╠═c9b9fdb1-5734-430f-949a-6e6126d2f091
+# ╠═0e34c818-021b-44c9-8ee4-1a737c3de9cb
 # ╠═17be52fb-f55b-4b3d-85e5-33f36134046b
 # ╟─03f582ec-4e95-4ca4-8482-9c797027810d
+# ╟─9468db0c-e924-4737-9b75-6bec753aafa9
 # ╠═531edb71-6d32-4231-b117-5e36416d2fb1
-# ╟─e0b92e00-dd0b-448b-baae-5cd4e0a2059a
-# ╠═1495eb67-12ec-4662-b0e7-049ffef569c0
+# ╟─d3e64470-8e11-4ef7-af34-453088910fee
+# ╟─00111b16-ac13-417d-93bf-cf908f620452
+# ╟─ec03b394-d56f-4722-949d-93f5d63a29ac
+# ╠═33365518-b403-4fad-aca8-1670a12ff715
+# ╟─3cce3948-42b5-45dc-a2d5-e50fabfee5ea
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

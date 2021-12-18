@@ -97,52 +97,39 @@ module Example101_Laplace1D
 using VoronoiFVM
 
 
-## Flux function which describes the flux
-## between neigboring control volumes
-function g!(f,u,edge)
-    f[1]=u[1,1]-u[1,2]
-end
-
-
 function main()
-
-    nspecies=1 ## Number of species
     ispec=1    ## Index of species we are working with
+    
+    ## Flux function which describes the flux
+    ## between neigboring control volumes
+    function flux!(f,u,edge)
+        f[1]=u[1,1]-u[1,2]
+    end
+
+    function bcond!(args...)
+        boundary_dirichlet!(args...,region=1,value=0)
+        boundary_dirichlet!(args...,region=2,value=1)
+    end
 
     ## Create a one dimensional discretization grid
     ## Each grid cell belongs to a region marked by a region number
     ## By default, there is only one region numbered with 1
-    X=collect(0:0.2:1)
-    grid=VoronoiFVM.Grid(X)
-
-    ## Create a physics structure
-    physics=VoronoiFVM.Physics(flux=g!)
+    grid=VoronoiFVM.Grid(0:0.2:1)
 
     ## Create a finite volume system 
-    sys=VoronoiFVM.System(grid,physics)
-
-    ## Enable species 1 in region 1
-    enable_species!(sys,ispec,[1])
-
-    ## Set boundary conditions at boundary regions 1 and 2
-    boundary_dirichlet!(sys,ispec,1,0.0)
-    boundary_dirichlet!(sys,ispec,2,1.0)
+    sys=VoronoiFVM.System(grid; flux=flux!,breaction=bcond!,species=ispec)
     
-    ## Create & initialize array for solution and initial value
-    inival=unknowns(sys,inival=0)
-    solution=unknowns(sys)
-
     ## Solve stationary problem
-    solve!(solution,inival,sys)
+    solution=solve(sys;inival=0)
 
     ## Return test value
-    return solution[3]
+    return sum(solution)
 end
 
 ## Called by unit test
 
 function test()
-    main() ≈ 0.4
+    main() ≈ 3.0
 end
 
 end

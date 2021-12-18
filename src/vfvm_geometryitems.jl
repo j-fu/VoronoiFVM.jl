@@ -97,12 +97,15 @@ mutable struct Node{Tv,Ti} <: AbstractNode{Tv, Ti}
     """
     cellregions::Vector{Ti}
 
+
+    time::Tv
     
     Node{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(zero(Ti),0,
                                                                 num_species(sys),0,
                                                                 coordinates(sys.grid),
                                                                 sys.grid[CellNodes],
-                                                                sys.grid[CellRegions]
+                                                                sys.grid[CellRegions],
+                                                                0
                                                                 )
 end
 
@@ -193,6 +196,11 @@ mutable struct BNode{Tv, Ti} <: AbstractNode{Tv, Ti}
     
     bfacecells::ExtendableGrids.Adjacency{Ti}
     
+    Dirichlet::Tv
+
+    time::Tv
+
+    dirichlet_value::Vector{Tv}
     
     BNode{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}  =new(0,0,0,0,zeros(Ti,2),
                                                                  num_species(sys),
@@ -201,6 +209,8 @@ mutable struct BNode{Tv, Ti} <: AbstractNode{Tv, Ti}
                                                                  sys.grid[BFaceRegions],
                                                                  sys.grid[CellRegions],
                                                                  sys.grid[BFaceCells],
+                                                                 Dirichlet,0,
+                                                                 zeros(Tv,num_species(sys))
                                                                  )
 end
 
@@ -290,6 +300,9 @@ mutable struct Edge{Tv,Ti}  <: AbstractEdge{Tv, Ti}
     edgenodes::Array{Ti,2}
     cellregions::Vector{Ti}
     has_celledges::Bool
+
+    time::Tv
+
     
     Edge{Tv,Ti}(::Nothing) where {Tv,Ti}  =new()
 end
@@ -315,6 +328,7 @@ function  Edge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}
         edge.has_celledges=false
     end
     edge.cellregions=sys.grid[CellRegions]
+    time=0
     edge
 end
 
@@ -405,7 +419,8 @@ mutable struct BEdge{Tv,Ti}  <: AbstractEdge{Tv, Ti}
     bedgenodes::Array{Ti,2}
     bfaceedges::Array{Ti,2}
     bfaceregions::Vector{Ti}
-    
+
+    time::Tv
     BEdge{Tv,Ti}(::Nothing) where {Tv,Ti}  =new()
 end
 
@@ -423,6 +438,7 @@ function  BEdge{Tv,Ti}(sys::AbstractSystem{Tv,Ti}) where {Tv,Ti}
     bedge.bedgenodes=sys.grid[BEdgeNodes]
     bedge.bfaceedges=sys.grid[BFaceEdges]
     bedge.bfaceregions=sys.grid[BFaceRegions]
+    time=0
     bedge
 end
 

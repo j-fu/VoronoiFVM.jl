@@ -1,3 +1,5 @@
+
+
 """
 $(README)
 
@@ -55,6 +57,7 @@ export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!
+export ramp
 export value
 export check_allocs!
 export physics!
@@ -68,7 +71,7 @@ export edgevelocities,bfacevelocities
 
 
 include("vfvm_newtoncontrol.jl")
-export fixed_timesteps!,NewtonControl
+export fixed_timesteps!,NewtonControl,SolverControl
 export edgelength
 export viewK,viewL,data
 
@@ -95,6 +98,10 @@ export InterfaceQuantity
 include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
 export measurement_derivative
+
+include("gridvisualize.jl")
+
+include("precompile.jl")
 
 
 end
