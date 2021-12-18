@@ -104,7 +104,13 @@ Please note that interactive elements like sliders are disabled.
                 "allindex.md",
             ],
             "Examples" => generated_examples
+        ],
+        
+        assets = [
+            asset("https://cdn.plot.ly/plotly-1.58.4.min.js"),
+            asset("https://unpkg.com/vtk.js@20")
         ]
+        
     )
 
     if with_examples

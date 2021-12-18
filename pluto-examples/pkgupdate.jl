@@ -19,3 +19,15 @@ for notebook in notebooks
     println("Updating of  $(notebook) done\n")
     Pkg.activate(@__DIR__)
 end
+
+
+dirs=["test","pluto-examples","docs"]
+for dir in dirs 
+    println("updating $(dir) environment")
+    Pkg.activate(joinpath(@__DIR__,"..",dir))
+    Pkg.status()
+    Pkg.update()
+    Pkg.status()
+    Pkg.activate(@__DIR__)
+end
+

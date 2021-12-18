@@ -1,27 +1,16 @@
 # Changes
 ## v0.14.0
-Backward compatible API overhaul.
-
+Backward compatible API simplification
 - Boundary conditions are now specfied in breaction
   Advantages:
    - easy x/t dependency
    - unified (upcoming) interface for parameters
    - unified handling of standard and nonstandard boundary conditions
    - simpler documentation
-   
-function bc!(args...)
-    boundary_dirichlet!(args...,region=1,value=0)
-    boundary_dirichlet!(args...,region=3,value=1)
-end
-
 - System constructor now directly takes physics callback functions
     sys=VoronoiFVM.System(grid; species=1,flux=flux!,reaction=reaction!,breaction=bc!)
 -  solve() now takes "NewtonControl" parameters as kwargs
-
-solution=solve(sys; verbose=false, blob=true)
-
-
-
+- Notebooks as part of documentation
 ## v0.13.2 Oct 29, 2021
 - Bernoulli function overhaul
 ## v0.13.1
