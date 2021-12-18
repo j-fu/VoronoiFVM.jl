@@ -8,6 +8,7 @@ using InteractiveUtils
 begin
     using Pkg
     inpluto=isdefined(Main,:PlutoRunner)
+    indocumenter=haskey(ENV,"RUNNING_DOCUMENTER")
     developing=false	
     if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
 	# We try to outsmart Pluto's cell parser here.
@@ -15,6 +16,8 @@ begin
 	eval(:(Pkg.activate(joinpath(@__DIR__))))
         eval(:(Pkg.instantiate()))
 	# use Revise if we develop VoronoiFVM
+	using PyPlot
+        indocumenter && PyPlot.svg(true)
 	using Revise
 	# This activates the checked out version of VoronoiFVM.jl for development
 	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
@@ -29,9 +32,10 @@ begin
     using Test
     if inpluto
  	using PlutoUI
+ 	using PyPlot
 	using GridVisualize
 	using PlutoVista
-	GridVisualize.default_plotter!(PlutoVista)
+	GridVisualize.default_plotter!(indocumenter ? PyPlot : PlutoVista)
     end
 end;
 

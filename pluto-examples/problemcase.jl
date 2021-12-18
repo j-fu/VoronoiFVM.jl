@@ -18,13 +18,16 @@ end
 begin
     using Pkg
     inpluto=isdefined(Main,:PlutoRunner)
+    indocumenter=haskey(ENV,"RUNNING_DOCUMENTER")
     developing=false	
     if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
 	# We try to outsmart Pluto's cell parser here.
 	# This activates an environment in VoronoiFVM/pluto-examples
 	eval(:(Pkg.activate(joinpath(@__DIR__))))
-        eval(:(Pkg.instantiate()))
+    eval(:(Pkg.instantiate()))
 	# use Revise if we develop VoronoiFVM
+	using PyPlot
+        indocumenter && PyPlot.svg(true)
 	using Revise
 	# This activates the checked out version of VoronoiFVM.jl for development
 	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
@@ -41,7 +44,7 @@ begin
 	    using PlutoUI
 		using PlutoVista
 		using GridVisualize
-		default_plotter!(PlutoVista)
+		default_plotter!(indocumenter ? PyPlot : PlutoVista)
 	end
 end;
 
@@ -102,18 +105,6 @@ tend=100
 # ╔═╡ 5f6ac608-b1a0-450e-910e-d7d8ea2ffae0
 ε_fix=1.0e-4
 
-# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
-@test sum(bt_n)≈ 17.643110936180495
-
-# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
-@test sum(bt_1)≈ 20.412099101959157
-
-# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
-@test sum(bt_f)≈20.411131554885404
-
-# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
-@test sum(bt_ϕ)≈20.4122562994476
-
 # ╔═╡ 5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 md"""
 Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
@@ -150,18 +141,6 @@ where D is large in the high permeability region and small otherwise. R is a con
 md"""
 ### Results
 """
-
-# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
-@test of_1 ≈ -0.013495959676585267
-
-# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
-@test of_n ≈ -0.00023622450350365264
-
-# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
-@test of_f ≈ -0.013466874615165499
-
-# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
-@test of_r ≈ 	-0.013495959676764535
 
 # ╔═╡ fcd066f1-bcd8-4479-a4e4-7b8c235336c4
 md"""
@@ -431,8 +410,14 @@ grid_n,sol_n,bt_n=trsolve(grid_2d(nref=nref),tend=tend);
 # ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
 sum(bt_n)
 
+# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
+@test sum(bt_n)≈ 17.643110936180495
+
 # ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
 grid_1,sol_1,bt_1=trsolve(grid_1d(nref=nref),tend=tend);
+
+# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
+@test sum(bt_1)≈ 20.412099101959157
 
 # ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
 inpluto && scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
@@ -441,8 +426,20 @@ xlabel="x",ylabel="c",title="1D calculation, t=$t")
 # ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
 grid_f,sol_f,bt_f=trsolve(grid_2d(nref=nref,ε_fix=ε_fix),tend=tend);
 
+# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
+@test sum(bt_f)≈20.411131554885404
+
+# ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
+if inpluto
+scalarplot!(vis_n,grid_n,sol_n(t)[ic,:],resolution=(210,200),show=true),
+scalarplot!(vis_f,grid_f,sol_f(t)[ic,:],resolution=(210,200),show=true)
+end
+
 # ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
 grid_ϕ,sol_ϕ,bt_ϕ=trsolve(grid_2d(nref=nref), ϕ=[1.0e-3,1],tend=tend);
+
+# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
+@test sum(bt_ϕ)≈20.4122562994476
 
 # ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
 if inpluto
@@ -493,14 +490,23 @@ end
 # ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
 rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref));
 
+# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
+@test of_1 ≈ -0.013495959676585267
+
 # ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
 inpluto && scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
 
 # ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
 rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref));
 
+# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
+@test of_n ≈ -0.00023622450350365264
+
 # ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
  rdgrid_f,rdsol_f,of_f=rdsolve(grid_2d(nref=nref,ε_fix=ε_fix));
+
+# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
+@test of_f ≈ -0.013466874615165499
 
 # ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
 if inpluto
@@ -510,6 +516,9 @@ end
 
 # ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
  rdgrid_r,rdsol_r,of_r=rdsolve(grid_2d(nref=nref),R=[0,0.1]);
+
+# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
+@test of_r ≈ 	-0.013495959676764535
 
 # ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
 md"""
@@ -554,6 +563,7 @@ GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
@@ -563,6 +573,7 @@ ExtendableGrids = "~0.8.7"
 GridVisualize = "~0.3.9"
 PlutoUI = "~0.7.16"
 PlutoVista = "~0.8.7"
+PyPlot = "~2.10.0"
 Revise = "~3.2.1"
 VoronoiFVM = "~0.13.2"
 """
@@ -668,6 +679,12 @@ version = "3.41.0"
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+
+[[deps.Conda]]
+deps = ["Downloads", "JSON", "VersionParsing"]
+git-tree-sha1 = "6cdc8832ba11c7695f494c9d9a1c31e90959ce0f"
+uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
+version = "1.6.0"
 
 [[deps.DataAPI]]
 git-tree-sha1 = "cc70b17275652eb47bc9e5f81635981f13cea5c8"
@@ -876,6 +893,11 @@ git-tree-sha1 = "e273807f38074f033d94207a201e6e827d8417db"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
 version = "0.8.21"
 
+[[deps.LaTeXStrings]]
+git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
+uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+version = "1.3.0"
+
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
@@ -999,6 +1021,18 @@ version = "1.2.2"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.PyCall]]
+deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
+git-tree-sha1 = "4ba3651d33ef76e24fef6a598b63ffd1c5e1cd17"
+uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+version = "1.92.5"
+
+[[deps.PyPlot]]
+deps = ["Colors", "LaTeXStrings", "PyCall", "Sockets", "Test", "VersionParsing"]
+git-tree-sha1 = "14c1b795b9d764e1784713941e787e1384268103"
+uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+version = "2.10.0"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
@@ -1140,6 +1174,11 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
+[[deps.VersionParsing]]
+git-tree-sha1 = "e575cf85535c7c3292b4d89d89cc29e8c3098e47"
+uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
+version = "1.2.1"
+
 [[deps.VertexSafeGraphs]]
 deps = ["Graphs"]
 git-tree-sha1 = "8351f8d73d7e880bfc042a8b6922684ebeafb35c"
@@ -1200,6 +1239,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─f6abea66-1e42-4201-8433-5d092989749d
 # ╟─e36d2aef-1b5a-45a7-9289-8d1e544bcedd
 # ╟─98ae56dd-d42d-4a93-bb0b-5956b6e981a3
+# ╟─732e79fa-5b81-4401-974f-37ea3427e770
 # ╟─99c3b54b-d458-482e-8aa0-d2c2b51fdf25
 # ╟─eef85cd7-eba4-4c10-9e1d-38411179314d
 # ╠═2f560406-d169-4027-9cfe-7689494edf45

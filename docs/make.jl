@@ -22,7 +22,8 @@ function make_all(;with_examples=true)
     example_jl_dir = joinpath(@__DIR__,"..","examples")
     example_md_dir  = joinpath(@__DIR__,"src","examples")
     notebook_html_dir  = joinpath(@__DIR__,"src","nbhtml")
-    
+
+    ENV["RUNNING_DOCUMENTER"]=1
     if with_examples
         #
         # Run notebooks
@@ -104,13 +105,7 @@ Please note that interactive elements like sliders are disabled.
                 "allindex.md",
             ],
             "Examples" => generated_examples
-        ],
-        
-        assets = [
-            asset("https://cdn.plot.ly/plotly-1.58.4.min.js"),
-            asset("https://unpkg.com/vtk.js@20")
         ]
-        
     )
 
     if with_examples
