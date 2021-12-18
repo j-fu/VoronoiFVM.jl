@@ -16,15 +16,16 @@ end
 
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
-	using Pkg
-	inpluto=isdefined(Main,:PlutoRunner)
-	developing=false	
+    using Pkg
+    inpluto=isdefined(Main,:PlutoRunner)
+    developing=false	
     if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-		# We have to outsmart Plutos cell parser here.
-	    eval(:(Pkg.activate(joinpath(@__DIR__))))
-		using Revise
-		eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
-	    developing=true
+	# We have to outsmart Plutos cell parser here.
+	eval(:(Pkg.activate(joinpath(@__DIR__))))
+        eval(:(Pkg.instantiate()))
+	using Revise
+	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
+	developing=true
     end
 end;
 

@@ -13,6 +13,7 @@ begin
 	# We try to outsmart Pluto's cell parser here.
 	# This activates an environment in VoronoiFVM/pluto-examples
 	eval(:(Pkg.activate(joinpath(@__DIR__))))
+        eval(:(Pkg.instantiate()))
 	# use Revise if we develop VoronoiFVM
 	using Revise
 	# This activates the checked out version of VoronoiFVM.jl for development
@@ -23,15 +24,15 @@ end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin 
-	using VoronoiFVM
+    using VoronoiFVM
     using ExtendableGrids
-	using Test
-	if inpluto
- 	  using PlutoUI
-	  using GridVisualize
-	  using PlutoVista
-	  GridVisualize.default_plotter!(PlutoVista)
-   end
+    using Test
+    if inpluto
+ 	using PlutoUI
+	using GridVisualize
+	using PlutoVista
+	GridVisualize.default_plotter!(PlutoVista)
+    end
 end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0

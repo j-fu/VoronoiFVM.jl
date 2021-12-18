@@ -23,6 +23,7 @@ begin
 	# We try to outsmart Pluto's cell parser here.
 	# This activates an environment in VoronoiFVM/pluto-examples
 	eval(:(Pkg.activate(joinpath(@__DIR__))))
+        eval(:(Pkg.instantiate()))
 	# use Revise if we develop VoronoiFVM
 	using Revise
 	# This activates the checked out version of VoronoiFVM.jl for development
