@@ -26,10 +26,9 @@ function main(n=1)
 
     breg = 5 # boundary region number for surface diffusion
 
-    println("Surface diffusion example")
 
-    hmin   = 0.01 * 2.0^(-n+1)
-    hmax   = 0.1  * 2.0^(-n+1)
+    hmin   = 0.05 * 2.0^(-n+1)
+    hmax   = 0.2  * 2.0^(-n+1)
     XLeft  = geomspace(0.0, 0.5, hmax, hmin)
     XRight = geomspace(0.5, 1.0, hmin, hmax)
     X      = glue(XLeft, XRight)
@@ -99,7 +98,7 @@ function main(n=1)
 
 
     control             = VoronoiFVM.NewtonControl()
-    control.verbose     = true
+    control.verbose     = false
     control.tol_linear  = 1.0e-5
     control.max_lureuse = 10
 
@@ -113,22 +112,18 @@ function main(n=1)
         inival.=U
         U_surf=view(U[2,:],bgrid2)
 
-        if true
-            @printf("time=%g\n",time)
-        end
-
         tstep*=1.0
 
         step += 1
     end
 
-    nothing
+    U_surf=view(U[2,:],bgrid2)
+    sum(U_surf)
 end
 
 
 function test()
-    main()
-    true
+    isapprox(main(), 1463.3732804776039, rtol=1.0e-13)
 end
 
 end

@@ -4,20 +4,27 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
-    using Pkg
-    inpluto=isdefined(Main,:PlutoRunner)
-    developing=false	
+	using Pkg
+	inpluto=isdefined(Main,:PlutoRunner)
+	developing=false	
     if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We try to outsmart Pluto's cell parser here.
-	# This activates an environment in VoronoiFVM/pluto-examples
-	eval(:(Pkg.activate(joinpath(@__DIR__))))
-	# use Revise if we develop VoronoiFVM
-	using Revise
-	# This activates the checked out version of VoronoiFVM.jl for development
-	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
-	developing=true
+		# We have to outsmart Plutos cell parser here.
+	    eval(:(Pkg.activate(joinpath(@__DIR__))))
+		using Revise
+		eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
+	    developing=true
     end
 end;
 
@@ -36,17 +43,177 @@ end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
 md"""
-# Intro
+# v0.14.0 API update 
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
 inpluto && TableOfContents(title="")
 
-# ╔═╡ c8eda836-d719-4412-895e-c3a24fec21ec
+# ╔═╡ 3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
+md"""
+Here we describe some updates for the API of `VoronoiFVM.jl`. These have been implemented mostly on top of the existing API, whose functionality is not affected.
+"""
 
+# ╔═╡ 8a4f336c-2016-453e-9a9f-beac66533fc0
+md"""
+## `VoronoiFVM.System` constructor
+"""
 
-# ╔═╡ 3eef08af-f6ba-4874-82c0-65ff53e7f7da
-@test true
+# ╔═╡ 78e7c000-3a83-446a-b577-3a1809c664d2
+md"""
+### Implicit creation of physics
+
+The `VoronoiFVM.Physics` struct almost never was used outside of the constructor of `VoronoiFVM.System`. Now it is possible to specify the flux functions directly in the system constructor. By default, it is als possible to set a list of species which are attached to all interior and boundary regions of the grid.
+"""
+
+# ╔═╡ c59876bd-0cb1-4157-9ba4-bdbede151a44
+grid1=simplexgrid(0:0.1:1);
+
+# ╔═╡ 90bbf212-c6c8-44f0-8132-4a98f094750e
+multispecies_flux(y,u,edge)= @views @. y= u[:,1]-u[:,2]
+
+# ╔═╡ adff41d1-9398-4a66-9a8e-e03809973fa6
+function test_reaction(y,u,node)
+	y[1]=u[1]
+	y[2]=-u[1]
+end
+
+# ╔═╡ 5e6d83ab-65c7-4f33-b0a8-29cd5717b4d6
+begin
+   system1=VoronoiFVM.System(grid1,flux=multispecies_flux, 
+   reaction=test_reaction,species=[1,2])
+   boundary_dirichlet!(system1,species=1,region=1,value=1)
+   boundary_dirichlet!(system1,species=2,region=2,value=0)
+end;
+
+# ╔═╡ f11c03a3-7899-42fd-a2da-a257715815dc
+sol1=solve(system1);
+
+# ╔═╡ 2754d4c8-bbc1-4283-8156-c660c33cd62d
+if inpluto 
+	let
+	vis=GridVisualizer(resolution=(500,300),legend=:rt)
+	scalarplot!(vis,grid1,sol1[1,:],color=:red,label="species1")
+	scalarplot!(vis,grid1,sol1[2,:],color=:green,label="species2",clear=false)
+	reveal(vis)
+end
+end
+
+# ╔═╡ fbd75cf1-64e4-4f07-b54f-f90626f3f6ba
+@test isapprox(sum(sol1),11.323894375033476, rtol=1.0e-14) 
+
+# ╔═╡ b5f7e133-500d-4a27-8f78-11ff3582599c
+md"""
+### Boundary conditions as part of physics
+
+This makes the API more consistent and opens an easy possibility to have
+space and time dependent boundary conditions. One can specify them either in `breaction` or the synomymous `bcondition`.
+"""
+
+# ╔═╡ ec188c81-3374-4eed-9b7e-e22350886df2
+function bcond2(y,u,bnode)
+    boundary_neumann!(y,u,bnode,species=1,region=1,value=sin(bnode.time))
+    boundary_dirichlet!(y,u,bnode,species=2,region=2,value=0)
+end; 
+
+# ╔═╡ c86e8a0f-299f-42ab-96f8-0cd62d50f196
+system2=VoronoiFVM.System(grid1,flux=multispecies_flux, 
+   reaction=test_reaction,species=[1,2],bcondition=bcond2,check_allocs=true);
+
+# ╔═╡ b3d936fe-69ab-4013-b787-2f0b5410638a
+sol2=solve(system2, times=(0,10), Δt_max=0.01);
+
+# ╔═╡ 17749697-d5d8-4629-a625-e96590a5f0ac
+if inpluto
+   vis2=GridVisualizer(resolution=(500,300),limits=(-2,2),legend=:rt)
+end
+
+# ╔═╡ 0c916da5-2d6e-42df-ac4b-4a062f931ccd
+if inpluto
+	md"""time: $(@bind t2 Slider(0:0.01:10; default=5,show_value=true))"""
+end
+
+# ╔═╡ 783618f8-2470-4c7c-afc1-9800586625c1
+if inpluto
+    let
+	s=sol2(t2)
+	scalarplot!(vis2,grid1,s[1,:],color=:red,label="species1")
+	scalarplot!(vis2,grid1,s[2,:],color=:green,label="species2",clear=false,title="time=$(t2)")
+	reveal(vis2)
+end
+end
+
+# ╔═╡ 4cbea340-9c02-4e69-8f5e-62bf45312bdd
+@test isapprox(sum(sol2)/length(sol2),2.4908109508494247, rtol=1.0e-14) 
+
+# ╔═╡ 1c18b5a0-cca6-46a1-bb9f-b3d65b8043c5
+md"""
+### Implicit creation of grid
+"""
+
+# ╔═╡ 47280b56-e5ec-4345-b4a1-7c3c92536b2e
+md"""
+By passing data for grid creation (one  to thre abstract vectors) instead a grid, a tensor product grid is implicitely created.
+This example also demonstrates position dependent boundary values.
+"""
+
+# ╔═╡ a71086fa-4ec6-4842-a4e1-6a6b60441fc2
+function bcond3(y,u,bnode)
+	boundary_dirichlet!(y,u,bnode,region=4,value=bnode[2])
+	boundary_dirichlet!(y,u,bnode,region=2,value=-bnode[2])
+end;
+
+# ╔═╡ a514231a-e465-4f05-ba4c-b20aa968d96f
+system3=VoronoiFVM.System(-1:0.1:1, -1:0.1:1, flux=multispecies_flux,bcondition=bcond3,species=1);
+
+# ╔═╡ d55f615c-d586-4ef7-adf9-5faf052b75ac
+sol3=solve(system3);
+
+# ╔═╡ c17e5104-4d3a-4d54-81c1-d7253245a8bb
+@test isapprox(sum(sol3), 0.0, atol=1.0e-14)
+
+# ╔═╡ 087ea16d-742e-4398-acf5-37248af1b5b4
+md"""
+## GridVisualize API extended to System
+Instead of a grid, a system can be passed to `gridplot` and `scalarplot`.
+"""
+
+# ╔═╡ 34d465a5-7cc5-4348-b9ba-6d9381bb3a87
+inpluto && scalarplot(system3,sol3,resolution=(300,300),levels=10,colormap=:hot)
+
+# ╔═╡ ac48f5bd-fd1e-4aa7-a2c9-90f0f427143c
+md"""
+## Parameters of `solve`
+"""
+
+# ╔═╡ 69974c02-57e6-4eb5-acf4-b2d480fbd67d
+md"""
+The `solve` API has been simplified and made more Julian. All entries of `VoronoiFVM.NewtonControl` can be now passed as keyword arguments to `solve`.
+
+Another new keyword argument is `inival` which allows to pass an initial value which by default is initialized to zero. Therefore we now can write `solve(system)` as we already have seen above.
+"""
+
+# ╔═╡ 1e12afcf-cf46-4672-9434-44fa8af95ef7
+reaction4(y,u,bnode)= y[1]=-bnode[1]^2+u[1]^4;
+
+# ╔═╡ 938ef63c-58c4-41a0-b3dd-4eb76987a4d7
+bc4(args...)=boundary_dirichlet!(args...,value=0);
+
+# ╔═╡ fe424654-f070-46a9-850a-738b1d4aca8f
+system4=VoronoiFVM.System(-10:0.1:10,species=[1],
+	reaction=reaction4,flux=multispecies_flux,bcondition=bc4);
+
+# ╔═╡ 37fc8816-5ccd-436e-8335-ebb1218d8a35
+sol4,history=solve(system4,log=true,damp_initial=0.001,damp_growth=3);
+
+# ╔═╡ 6a256a29-f15f-4d82-8e84-7ceacb786715
+inpluto && scalarplot(system4,sol4,resolution=(500,300),xlabel="x",ylabel="u",title="solution")
+
+# ╔═╡ ea974ff6-6ed4-4320-972a-067a4372f547
+inpluto && scalarplot(1:length(history),history,yscale=:log,resolution=(500,200),xlabel="steps",ylabel="residual",title="convergence history")
+
+# ╔═╡ 5c2a3836-dc81-4950-88e5-7f603514b1c0
+@test isapprox(sum(sol4),418.58515700568535, rtol=1.0e-14)
 
 # ╔═╡ fc0245fe-1bf2-45a3-aa7c-9cce8d7eef37
 html"""<hr><hr><hr>"""
@@ -86,10 +253,10 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 ExtendableGrids = "~0.8.11"
-GridVisualize = "~0.4.3"
+GridVisualize = "~0.4.4"
 PlutoUI = "~0.7.23"
 PlutoVista = "~0.8.12"
-Revise = "~3.2.0"
+Revise = "~3.2.1"
 VoronoiFVM = "~0.13.4"
 """
 
@@ -313,9 +480,9 @@ version = "1.4.1"
 
 [[GridVisualize]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "ElasticArrays", "ExtendableGrids", "GeometryBasics", "HypertextLiteral", "LinearAlgebra", "Observables", "OrderedCollections", "PkgVersion", "Printf", "StaticArrays"]
-git-tree-sha1 = "51c93387ead382916e45e27113fab49562a98f8f"
+git-tree-sha1 = "eef34bda67d8ea865d7467a141b2c7d8eccd5592"
 uuid = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
-version = "0.4.3"
+version = "0.4.4"
 
 [[Hyperscript]]
 deps = ["Test"]
@@ -424,9 +591,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[LogExpFunctions]]
 deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
-git-tree-sha1 = "be9eef9f9d78cecb6f262f3c10da151a6c5ab827"
+git-tree-sha1 = "e5718a00af0ab9756305a0392832c8952c7426c1"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.3.5"
+version = "0.3.6"
 
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -458,9 +625,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 
 [[NaNMath]]
-git-tree-sha1 = "bfe47e760d60b82b66b61d2d44128b62e3a369fb"
+git-tree-sha1 = "f755f36b19a5116bb580de457cda0c140153f283"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
-version = "0.3.5"
+version = "0.3.6"
 
 [[NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
@@ -487,9 +654,9 @@ version = "1.4.1"
 
 [[Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "ae4bbcadb2906ccc085cf52ac286dc1377dceccc"
+git-tree-sha1 = "d7fa6237da8004be601e19bd6666083056649918"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.1.2"
+version = "2.1.3"
 
 [[Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -555,9 +722,9 @@ version = "1.2.0"
 
 [[Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
-git-tree-sha1 = "6f2bc8f1a444f93c52163e6f82270877224632d0"
+git-tree-sha1 = "e55f4c73ec827f96cd52db0bc6916a3891c726b5"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.2.0"
+version = "3.2.1"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -695,11 +862,44 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 """
 
 # ╔═╡ Cell order:
-# ╠═b285aca3-dee5-4b77-9276-537563e8643b
 # ╟─4ed0c302-26e4-468a-a40d-0e6406f802d0
 # ╟─7a104243-d3b9-421a-b494-5607c494b106
-# ╠═c8eda836-d719-4412-895e-c3a24fec21ec
-# ╠═3eef08af-f6ba-4874-82c0-65ff53e7f7da
+# ╟─3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
+# ╠═b285aca3-dee5-4b77-9276-537563e8643b
+# ╟─8a4f336c-2016-453e-9a9f-beac66533fc0
+# ╟─78e7c000-3a83-446a-b577-3a1809c664d2
+# ╠═c59876bd-0cb1-4157-9ba4-bdbede151a44
+# ╠═90bbf212-c6c8-44f0-8132-4a98f094750e
+# ╠═adff41d1-9398-4a66-9a8e-e03809973fa6
+# ╠═5e6d83ab-65c7-4f33-b0a8-29cd5717b4d6
+# ╠═f11c03a3-7899-42fd-a2da-a257715815dc
+# ╟─2754d4c8-bbc1-4283-8156-c660c33cd62d
+# ╠═fbd75cf1-64e4-4f07-b54f-f90626f3f6ba
+# ╟─b5f7e133-500d-4a27-8f78-11ff3582599c
+# ╠═ec188c81-3374-4eed-9b7e-e22350886df2
+# ╠═c86e8a0f-299f-42ab-96f8-0cd62d50f196
+# ╠═b3d936fe-69ab-4013-b787-2f0b5410638a
+# ╟─17749697-d5d8-4629-a625-e96590a5f0ac
+# ╟─0c916da5-2d6e-42df-ac4b-4a062f931ccd
+# ╟─783618f8-2470-4c7c-afc1-9800586625c1
+# ╠═4cbea340-9c02-4e69-8f5e-62bf45312bdd
+# ╟─1c18b5a0-cca6-46a1-bb9f-b3d65b8043c5
+# ╟─47280b56-e5ec-4345-b4a1-7c3c92536b2e
+# ╠═a71086fa-4ec6-4842-a4e1-6a6b60441fc2
+# ╠═a514231a-e465-4f05-ba4c-b20aa968d96f
+# ╠═d55f615c-d586-4ef7-adf9-5faf052b75ac
+# ╠═c17e5104-4d3a-4d54-81c1-d7253245a8bb
+# ╟─087ea16d-742e-4398-acf5-37248af1b5b4
+# ╠═34d465a5-7cc5-4348-b9ba-6d9381bb3a87
+# ╟─ac48f5bd-fd1e-4aa7-a2c9-90f0f427143c
+# ╟─69974c02-57e6-4eb5-acf4-b2d480fbd67d
+# ╠═1e12afcf-cf46-4672-9434-44fa8af95ef7
+# ╠═938ef63c-58c4-41a0-b3dd-4eb76987a4d7
+# ╠═fe424654-f070-46a9-850a-738b1d4aca8f
+# ╠═37fc8816-5ccd-436e-8335-ebb1218d8a35
+# ╟─6a256a29-f15f-4d82-8e84-7ceacb786715
+# ╟─ea974ff6-6ed4-4320-972a-067a4372f547
+# ╠═5c2a3836-dc81-4950-88e5-7f603514b1c0
 # ╟─fc0245fe-1bf2-45a3-aa7c-9cce8d7eef37
 # ╟─f50c6497-cba3-491a-bedd-5f94f88f76fb
 # ╟─ad899a81-baab-4433-8b7f-1e5c3b18dae6

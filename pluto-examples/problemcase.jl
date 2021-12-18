@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.17.0
+# v0.17.2
 
 using Markdown
 using InteractiveUtils
@@ -7,32 +7,55 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
 end
 
+# ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
+begin
+    using Pkg
+    inpluto=isdefined(Main,:PlutoRunner)
+    developing=false	
+    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	# We try to outsmart Pluto's cell parser here.
+	# This activates an environment in VoronoiFVM/pluto-examples
+	eval(:(Pkg.activate(joinpath(@__DIR__))))
+	# use Revise if we develop VoronoiFVM
+	using Revise
+	# This activates the checked out version of VoronoiFVM.jl for development
+	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
+	developing=true
+    end
+end;
+
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
 begin 
-    using PlutoUI
-	using ExtendableGrids
-	using PlutoVista
-	using GridVisualize
+	using Test
 	using VoronoiFVM
-	default_plotter!(PlutoVista)
-end
-
-# ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
-TableOfContents(title="")
+	using ExtendableGrids
+	if inpluto
+	    using PlutoUI
+		using PlutoVista
+		using GridVisualize
+		default_plotter!(PlutoVista)
+	end
+end;
 
 # ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
 md"""
 # Some problems with Voronoi FVM
 
-Draft. J. Fuhrmann, Oct. 29. 2021
+Draft. J. Fuhrmann, Oct. 29. 2021. Updated Dec 19, 2021.
 
+We discuss one of the critical cases for application the Voronoi finite volume method.
+We provide some practical fix and opine that the finite element method proably has the same problems.
 """
+
+# ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
+inpluto && TableOfContents(title="")
 
 # ╔═╡ fae47c55-eef8-4428-bb5f-45824978753d
 md"""
@@ -84,16 +107,18 @@ Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
 """
 
 # ╔═╡ f6abea66-1e42-4201-8433-5d092989749d
-begin
+if inpluto
 	vis_n=GridVisualizer(dim=2,resolution=(210,150))
 	vis_f=GridVisualizer(dim=2,resolution=(210,150))
 	(vis_n,vis_f)
 end
 
 # ╔═╡ 98ae56dd-d42d-4a93-bb0b-5956b6e981a3
+if inpluto
 md"""
 Time: $(@bind t Slider(1:tend/100:tend,show_value=true,default=tend*0.1))
 """
+end
 
 # ╔═╡ 99c3b54b-d458-482e-8aa0-d2c2b51fdf25
 md"""
@@ -232,12 +257,12 @@ Boundary conditions:
 
 # ╔═╡ d1d5bad2-d282-4e7d-adb9-baf21f58155e
 begin 
-Γ_top=3
-Γ_bot=1
-Γ_left=4
-Γ_right=2
-Γ_in=5
-Γ_out=2
+const Γ_top=3
+const Γ_bot=1
+const Γ_left=4
+const Γ_right=2
+const Γ_in=5
+const Γ_out=2
 end;
 
 # ╔═╡ 9d736062-6821-46d9-9e49-34b43b78e814
@@ -267,10 +292,10 @@ function grid_2d(;nref=0,ε_fix=0.0)
 end
 
 # ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
-gridplot(grid_2d(),resolution=(400,300))
+inpluto && gridplot(grid_2d(),resolution=(400,300))
 
 # ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
-gridplot(grid_2d(;ε_fix=1.0e-1),resolution=(400,300))
+inpluto && gridplot(grid_2d(;ε_fix=1.0e-1),resolution=(400,300))
 
 # ╔═╡ c402f03c-746a-45b8-aaac-902a2f196094
 function grid_1d(;nref=0)
@@ -283,9 +308,9 @@ function grid_1d(;nref=0)
     grid
 end
 
-# ╔═╡ e33bf4b7-7b9a-4c5c-be4f-874af949c5ef
+# ╔═╡ d772ac1b-3cda-4a2b-b0a9-b22b63b30653
 md"""
-### Solvers
+### Transient solver
 """
 
 # ╔═╡ a63a655c-e48b-4969-9409-31cd3db3bdaa
@@ -294,7 +319,7 @@ Pressure index in solution
 """
 
 # ╔═╡ d7009231-4b43-44bf-96ba-9a203c0b5f5a
-ip=1;
+const ip=1;
 
 # ╔═╡ 26965e38-91cd-4022-bdff-4c503f724bfe
 md"""
@@ -302,7 +327,7 @@ Concentration index in solution
 """
 
 # ╔═╡ c904c921-fa10-43eb-bd46-b2869fa7f431
-ic=2;
+const ic=2;
 
 # ╔═╡ b143c846-2294-47f7-a2d1-8a6eabe942a3
 md"""
@@ -329,7 +354,7 @@ Transient solver:
 function trsolve(grid;
 	κ=[1.0e-3,5], 
 	D=[1.0e-12,1.0e-12],
-	Δp=1,
+	Δp=1.0,
 	ϕ=[1,1],
 	tend=100)
     
@@ -343,41 +368,29 @@ function trsolve(grid;
         y[ip]=0
         y[ic]=ϕ[node.region]*u[ic]
     end
-    physics=VoronoiFVM.Physics(flux=flux,storage=stor)
-    sys=VoronoiFVM.System(grid,physics)
-    enable_species!(sys,ip,[1,2])
-    enable_species!(sys,ic,[1,2])
-	dim=dim_space(grid)
+
+ 	dim=dim_space(grid)
+	function bc(y,u,bnode)
+		c0=ramp(bnode.time,dt=(0,0.001),du=(0,1))
+	    boundary_dirichlet!(y,u,bnode,ic,Γ_in,c0)
+    	boundary_dirichlet!(y,u,bnode,ic,Γ_out,0)
 	
-	for ibc ∈ (dim == 1 ? [Γ_in] : [Γ_left,Γ_in])
-		boundary_dirichlet!(sys,ip,ibc,Δp)
-    end
-
-	for ibc ∈ (dim == 1 ? [Γ_out] : [Γ_right,Γ_out])
-      boundary_dirichlet!(sys,ip,ibc,0)
-    end
+		boundary_dirichlet!(y,u,bnode,ip,Γ_in,Δp)
+		boundary_dirichlet!(y,u,bnode,ip,Γ_out,0)
+		if dim>1
+			boundary_dirichlet!(y,u,bnode,ip,Γ_left,Δp)
+			boundary_dirichlet!(y,u,bnode,ip,Γ_right,0)
+		end
+	end
 	
-    boundary_dirichlet!(sys,ic,Γ_in,0)
-    boundary_dirichlet!(sys,ic,Γ_out,0)
-
-    control=VoronoiFVM.NewtonControl()
-    control.Δt=1.0e-4
-    control.Δt_min=1.0e-6
-    control.verbose=false
-
-
+    sys=VoronoiFVM.System(grid;check_allocs=true,flux=flux,storage=stor,bcondition=bc,species=[ip,ic])
 	
-    inival=VoronoiFVM.solve(unknowns(sys,inival=0),sys;control=control)
+    inival=VoronoiFVM.solve(sys,inival=0,time=0.0)
     factory=VoronoiFVM.TestFunctionFactory(sys)
     tfc=testfunction(factory,[Γ_in,Γ_left,Γ_top,Γ_bot],[Γ_out])
     
-    function pre(sol,t)
-	cin=min(1.0,1.0e3*t)
-	boundary_dirichlet!(sys,ic,Γ_in,cin)
-    end
     
-    
-    sol=VoronoiFVM.solve(inival,sys,[0,tend]; pre=pre,control=control)
+    sol=VoronoiFVM.solve(sys; inival=inival,times=[0,tend],Δt=1.0e-4,Δt_min=1.0e-6 )
     
     bt=breakthrough(sys,tfc,sol)
     if dim==1
@@ -390,39 +403,48 @@ end
 # ╔═╡ cd88123a-b042-43e2-99b9-ec925a8794ed
 grid_n,sol_n,bt_n=trsolve(grid_2d(nref=nref),tend=tend);
 
-# ╔═╡ 61ed054e-7116-4a51-9d13-e07279acb2a4
-scalarplot!(vis_n,grid_n,sol_n(t)[ic,:],levels=0:0.2:1,resolution=(400,150),show=true)
+# ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
+sum(bt_n)
+
+# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
+@test sum(bt_n)≈ 17.643110936180495
 
 # ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
 grid_1,sol_1,bt_1=trsolve(grid_1d(nref=nref),tend=tend);
 
+# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
+@test sum(bt_1)≈ 20.412099101959157
+
 # ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
-scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
+inpluto && scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
 xlabel="x",ylabel="c",title="1D calculation, t=$t")
 
 # ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
 grid_f,sol_f,bt_f=trsolve(grid_2d(nref=nref,ε_fix=ε_fix),tend=tend);
 
-# ╔═╡ d1ce7f69-3703-4cb2-9bf3-4c5efccb479e
-scalarplot!(vis_f,grid_f,sol_f(t)[ic,:],levels=0:0.2:1,resolution=(400,150),show=true)
+# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
+@test sum(bt_f)≈20.411131554885404
 
 # ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
 grid_ϕ,sol_ϕ,bt_ϕ=trsolve(grid_2d(nref=nref), ϕ=[1.0e-3,1],tend=tend);
 
+# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
+@test sum(bt_ϕ)≈20.4122562994476
+
 # ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
-let
-    p=PlutoVistaPlot(resolution=(500,200),xlabel="t",ylabel="outflow",
+if inpluto
+    p1=PlutoVistaPlot(resolution=(500,200),xlabel="t",ylabel="outflow",
                      legend=:rb,
                      title="Breakthrough Curves")
-    plot!(p, sol_n.t,bt_n,label="naive grid")
-    plot!(p, sol_1.t,bt_1,label="1D grid",markertype=:x)
-    plot!(p, sol_f.t,bt_f,label="grid with fix",markertype=:circle)
-    plot!(p, sol_ϕ.t,bt_ϕ,label="modified ϕ",markertype=:cross)
+    plot!(p1, sol_n.t,bt_n,label="naive grid")
+    plot!(p1, sol_1.t,bt_1,label="1D grid",markertype=:x)
+    plot!(p1, sol_f.t,bt_f,label="grid with fix",markertype=:circle)
+    plot!(p1, sol_ϕ.t,bt_ϕ,label="modified ϕ",markertype=:cross)
 end
 
 # ╔═╡ 78d92b4a-bdb1-4117-ab9c-b422eac403b1
 md"""
-Reaction-Diffusion solver
+### Reaction-Diffusion solver
 """
 
 # ╔═╡ bb3a50ed-32e7-4305-87d8-4093c054a4d2
@@ -435,16 +457,15 @@ function rdsolve(grid;D=[1.0e-12,1.0],R=[1,0.1])
 	function rea(y,u,node)
         y[1]=R[node.region]*u[1]
     end
-    
-    physics=VoronoiFVM.Physics(flux=flux,reaction=rea)
-    sys=VoronoiFVM.System(grid,physics)
-    enable_species!(sys,1,[1,2])
+	function bc(args...)
+	    boundary_dirichlet!(args...,1,Γ_in,1)
+   	    boundary_dirichlet!(args...,1,Γ_out,0)
+	end
+    sys=VoronoiFVM.System(grid,flux=flux,reaction=rea,species=1,bcondition=bc,check_allocs=true)
   	dim=dim_space(grid)
 	
-    boundary_dirichlet!(sys,1,Γ_in,1)
-    boundary_dirichlet!(sys,1,Γ_out,0)
 
-    sol=VoronoiFVM.solve(unknowns(sys,inival=0),sys)
+    sol=VoronoiFVM.solve(sys)
     factory=VoronoiFVM.TestFunctionFactory(sys)
     tf=testfunction(factory,[Γ_in,Γ_left,Γ_top,Γ_bot],[Γ_out])
    	of=integrate(sys,tf,sol) 
@@ -457,23 +478,37 @@ function rdsolve(grid;D=[1.0e-12,1.0],R=[1,0.1])
 end
 
 # ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
-rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref))
+rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref));
+
+# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
+@test of_1 ≈ -0.013495959676585267
 
 # ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
-scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
+inpluto && scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
 
 # ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
-rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref))
+rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref));
+
+# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
+@test of_n ≈ -0.00023622450350365264
 
 # ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
- rdgrid_f,rdsol_f,of_f=rdsolve(grid_2d(nref=nref,ε_fix=ε_fix))
+ rdgrid_f,rdsol_f,of_f=rdsolve(grid_2d(nref=nref,ε_fix=ε_fix));
+
+# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
+@test of_f ≈ -0.013466874615165499
 
 # ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
+if inpluto
 scalarplot(rdgrid_n,rdsol_n,resolution=(210,200)),
 scalarplot(rdgrid_f,rdsol_f,resolution=(210,200))
+end
 
 # ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
- rdgrid_r,rdsol_r,of_r=rdsolve(grid_2d(nref=nref),R=[0,0.1])
+ rdgrid_r,rdsol_r,of_r=rdsolve(grid_2d(nref=nref),R=[0,0.1]);
+
+# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
+@test of_r ≈ 	-0.013495959676764535
 
 # ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
 md"""
@@ -487,32 +522,39 @@ We measure the outflow at the outlet. As a result, we obtain:
 
 
 # ╔═╡ 0cc1c511-f351-421f-991a-a27f26a8db4f
-  html"<hr>"
+  html"<hr><hr><hr>"
+
+# ╔═╡ 523f8b46-850b-4aab-a571-cc20024431d9
+md"""
+### Tests & Development
+"""
 
 # ╔═╡ 99c8458a-a584-4825-a983-ae1a05e50000
 md"""
-"Un-markdown" the next cell for debugging/developing
+This notebook is also run during the automatic unit tests. In this case, all interactive elements and visualizations should be deactivated.
+For this purposes, the next cell detects if the notebook is running under Pluto
+and sets the `inpluto` flag accordingly.
+
+Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
 
-# ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
-md"""
-  begin
-    using Pkg
-    Pkg.activate(".testenv")
-    Pkg.add("Revise")
-    using Revise
-    Pkg.develop("VoronoiFVM")
-    Pkg.add(["PlutoVista", "PlutoUI","GridVisualize","ExtendableGrids"])
+# ╔═╡ 18d5cc77-e2de-4e14-a98d-a4a4b764b3b0
+if developing 
+	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
+else
+	md""" Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"""
 end
-""";
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
@@ -520,6 +562,7 @@ ExtendableGrids = "~0.8.7"
 GridVisualize = "~0.3.9"
 PlutoUI = "~0.7.16"
 PlutoVista = "~0.8.7"
+Revise = "~3.2.1"
 VoronoiFVM = "~0.13.2"
 """
 
@@ -527,7 +570,7 @@ VoronoiFVM = "~0.13.2"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.7.0-rc2"
+julia_version = "1.6.4"
 manifest_format = "2.0"
 
 [[deps.AbstractTrees]]
@@ -572,6 +615,12 @@ deps = ["Compat", "LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "3533f5a691e60601fe60c90d8bc47a27aa2907ec"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 version = "1.11.0"
+
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "9aa8a5ebb6b5bf469a7e0e2b5202cf6f8c291104"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.0.6"
 
 [[deps.ColorSchemes]]
 deps = ["ColorTypes", "Colors", "FixedPointNumbers", "Random"]
@@ -687,6 +736,9 @@ git-tree-sha1 = "2db648b6712831ecb333eae76dbfd1c156ca13bb"
 uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 version = "1.11.2"
 
+[[deps.FileWatching]]
+uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
+
 [[deps.FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]
 git-tree-sha1 = "8756f9935b7ccc9064c6eef0bff0ad643df733a3"
@@ -799,6 +851,12 @@ git-tree-sha1 = "8076680b162ada2a031f707ac7b4953e30667a37"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.2"
 
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "e273807f38074f033d94207a201e6e827d8417db"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.8.21"
+
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
@@ -825,7 +883,7 @@ uuid = "093fc24a-ae57-5d10-9952-331d41423f4d"
 version = "1.3.5"
 
 [[deps.LinearAlgebra]]
-deps = ["Libdl", "libblastrampoline_jll"]
+deps = ["Libdl"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LogExpFunctions]]
@@ -836,6 +894,12 @@ version = "0.3.4"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "491a883c4fef1103077a7f648961adbf9c8dd933"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "2.1.2"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -869,10 +933,6 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 git-tree-sha1 = "fe29afdef3d0c4a8286128d4e45cc50621b1e43d"
 uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
 version = "0.4.0"
-
-[[deps.OpenBLAS_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
-uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
 
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -932,7 +992,7 @@ deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 
 [[deps.Random]]
-deps = ["SHA", "Serialization"]
+deps = ["Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [[deps.RecipesBase]]
@@ -956,6 +1016,12 @@ deps = ["UUIDs"]
 git-tree-sha1 = "4036a3bd08ac7e968e27c203d45f5fff15020621"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.1.3"
+
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "e55f4c73ec827f96cd52db0bc6916a3891c726b5"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.2.1"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -1083,10 +1149,6 @@ git-tree-sha1 = "8c1a8e4dfacb1fd631745552c8db35d0deb09ea0"
 uuid = "700de1a5-db45-46bc-99cf-38207098b444"
 version = "0.2.2"
 
-[[deps.libblastrampoline_jll]]
-deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
-uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
@@ -1097,37 +1159,44 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 """
 
 # ╔═╡ Cell order:
-# ╠═60941eaa-1aea-11eb-1277-97b991548781
-# ╠═556480e0-94f1-4e47-be9a-3e1e0e99555c
 # ╟─5e13b3db-570c-4159-939a-7e2268f0a102
+# ╟─556480e0-94f1-4e47-be9a-3e1e0e99555c
+# ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─fae47c55-eef8-4428-bb5f-45824978753d
 # ╟─8ba2300c-17ff-44e1-b33a-c5bdf1ce12fe
 # ╟─51c9517c-8797-4406-b053-301694fb0484
 # ╟─99341e32-9c78-4e31-bec0-d1ffbc85ec32
 # ╟─46a0f078-4165-4e37-9e69-e69af8584f6e
 # ╟─cc325b2c-6174-4b8d-8e39-202ac68b5705
-# ╠═3f693666-4026-4c01-a7aa-8c7dcbc32372
+# ╟─3f693666-4026-4c01-a7aa-8c7dcbc32372
 # ╟─cd013964-f329-4d2c-ae4b-305093f0ac56
 # ╠═afccbadb-2ca8-4c3e-8c6d-c78df59d8d7e
 # ╠═dd9f8d38-8812-40ba-88c8-f873ec7d6121
 # ╠═5f6ac608-b1a0-450e-910e-d7d8ea2ffae0
 # ╠═cd88123a-b042-43e2-99b9-ec925a8794ed
+# ╠═1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
+# ╠═c52ed973-2250-423a-b427-e91972f7ce74
 # ╠═b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
+# ╠═02330841-fdf9-4ebe-9da6-cf96529b223c
 # ╠═76b77ec0-27b0-4a02-9ae4-43d756eb09dd
+# ╠═d23d6634-266c-43e3-9493-b61fb390bbe7
 # ╠═904b36f0-10b4-4db6-9252-21668305de9c
+# ╠═b260df8a-3721-4203-bc0c-a23bcab9a311
 # ╟─ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
 # ╟─5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 # ╟─f6abea66-1e42-4201-8433-5d092989749d
 # ╟─e36d2aef-1b5a-45a7-9289-8d1e544bcedd
 # ╟─98ae56dd-d42d-4a93-bb0b-5956b6e981a3
-# ╟─61ed054e-7116-4a51-9d13-e07279acb2a4
-# ╟─d1ce7f69-3703-4cb2-9bf3-4c5efccb479e
 # ╟─99c3b54b-d458-482e-8aa0-d2c2b51fdf25
 # ╟─eef85cd7-eba4-4c10-9e1d-38411179314d
 # ╠═2f560406-d169-4027-9cfe-7689494edf45
+# ╠═40850999-12da-46cd-b86c-45808592fb9e
 # ╠═a6714eac-9e7e-4bdb-beb7-aca354664ad6
+# ╠═d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
 # ╠═20d7624b-f43c-4ac2-bad3-383a9e4e1b42
+# ╠═5d407d63-8a46-4480-94b4-80510eac5166
 # ╠═c0fc1f71-52ba-41a9-92d1-74e82ac7826c
+# ╠═43622531-b7d0-44d6-b840-782021eb2ef0
 # ╟─c08e86f6-b5c2-4762-af23-382b1b153f45
 # ╠═34228382-4b1f-4897-afdd-19db7d5a7c59
 # ╟─6a6d0e94-8f0d-4119-945c-dd48ec0798fd
@@ -1141,7 +1210,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═9d736062-6821-46d9-9e49-34b43b78e814
 # ╠═83b9931f-9020-4400-8aeb-31ad391184db
 # ╠═c402f03c-746a-45b8-aaac-902a2f196094
-# ╟─e33bf4b7-7b9a-4c5c-be4f-874af949c5ef
+# ╟─d772ac1b-3cda-4a2b-b0a9-b22b63b30653
 # ╟─a63a655c-e48b-4969-9409-31cd3db3bdaa
 # ╠═d7009231-4b43-44bf-96ba-9a203c0b5f5a
 # ╟─26965e38-91cd-4022-bdff-4c503f724bfe
@@ -1153,7 +1222,9 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─78d92b4a-bdb1-4117-ab9c-b422eac403b1
 # ╠═bb3a50ed-32e7-4305-87d8-4093c054a4d2
 # ╟─0cc1c511-f351-421f-991a-a27f26a8db4f
+# ╟─523f8b46-850b-4aab-a571-cc20024431d9
 # ╟─99c8458a-a584-4825-a983-ae1a05e50000
 # ╠═b6b826a1-b52f-41d3-8feb-b6464f76352e
+# ╟─18d5cc77-e2de-4e14-a98d-a4a4b764b3b0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

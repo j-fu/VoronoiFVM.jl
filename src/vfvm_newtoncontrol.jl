@@ -4,14 +4,17 @@ const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
 """
 $(TYPEDEF)
 
-Control parameters for Newton method.
+Solver control parameters for time stepping, embedding, Newton method control.
+All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref)
 
 Newton's method solves ``F(u)=0`` by the iterative procedure ``u_{i+1}=u_{i} - d_i F'(u_i)^{-1}F(u_i)``
 starting with some inital value ``u_0``, where ``d_i`` is the damping. 
 
+
+
 $(TYPEDFIELDS)
 """
-mutable struct NewtonControl
+mutable struct SolverControl
 
     """
     Tolerance (in terms of norm of Newton update):  
@@ -192,7 +195,7 @@ mutable struct NewtonControl
     umfpack_pivot_tolerance::Float64
 
     
-    NewtonControl()=NewtonControl(new())
+    SolverControl()=SolverControl(new())
 end
 
 ################################################
@@ -201,7 +204,7 @@ $(TYPEDSIGNATURES)
     
 Default constructor
 """
-function NewtonControl(this)
+function SolverControl(this)
     this.tol_absolute=1.0e-10
     this.tol_relative=1.0e-10
     this.tol_round=1.0e-10
@@ -230,6 +233,8 @@ function NewtonControl(this)
 end
 
 
+
+
 """
 ````
 timesteps!(control,Δt; grow=1.0)
@@ -247,10 +252,19 @@ function fixed_timesteps!(control,Δt; grow=1.0)
     control
 end
 
-function Base.show(io::IO, this::NewtonControl)
+function Base.show(io::IO, this::SolverControl)
     for name in fieldnames(typeof(this))
         @printf("%16s = ",name)
         println(io,getfield(this,name))
     end
 end
-9
+
+
+"""
+    NewtonControl
+
+Legacy name of SolverControl
+"""
+const NewtonControl=SolverControl
+
+

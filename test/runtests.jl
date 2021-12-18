@@ -13,19 +13,17 @@ modname(fname)=splitext(basename(fname))[1]
 #
 function run_tests_from_directory(testdir,prefix)
     println("Directory $(testdir):")
-    @time begin
-        examples=modname.(readdir(testdir))
-        for example in examples
-            if length(example)>=length(prefix) &&example[1:length(prefix)]==prefix
-                println("  $(example):")
-                path=joinpath(testdir,"$(example).jl")
-                @eval begin
-                    include($path)
-                    # Compile + run test
-                    @test eval(Meta.parse("$($example).test()"))
-                    # Second run: pure execution time.
-                    @time eval(Meta.parse("$($example).test()"))
-                end
+    examples=modname.(readdir(testdir))
+    for example in examples
+        if length(example)>=length(prefix) &&example[1:length(prefix)]==prefix
+            println("  $(example):")
+            path=joinpath(testdir,"$(example).jl")
+            @eval begin
+                include($path)
+                # Compile + run test
+                @test eval(Meta.parse("$($example).test()"))
+                # Second run: pure execution time.
+                @time eval(Meta.parse("$($example).test()"))
             end
         end
     end
@@ -35,20 +33,24 @@ end
 function run_all_tests()
 
     ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
-    notebooks=["nbproto.jl", "api-update.jl"]
+    notebooks=["nbproto.jl",
+               "api-update.jl",
+               "flux-reconstruction.jl",
+               "problemcase.jl"
+               ]
     
     @time begin
         @testset "basictest" begin
             run_tests_from_directory(@__DIR__,"test_")
         end
-        @testset "pluto notebooks" begin
+        begin
             for notebook in notebooks
-                println("Notebook: $(notebook)")
-                include(joinpath(@__DIR__,"..","pluto-examples",notebook))
-                @test @eval notebooktest()
+                @testset "$(notebook)" begin
+                    include(joinpath(@__DIR__,"..","pluto-examples",notebook))
+                end
             end
         end
-
+        
         @testset "1D Examples" begin
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example1")
         end

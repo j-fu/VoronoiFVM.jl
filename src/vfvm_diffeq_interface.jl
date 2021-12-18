@@ -210,6 +210,10 @@ corresponding to that package is passed as the first argument.
 Returns a transient solution object `sol` containing stored solutions,
 see [`TransientSolution`](@ref).
 
+
+!!! info
+    It is planned to have one general `solve` method controlled by kwargs, see [`solve(system::AbstractSystem; kwargs...)`](@ref).
+
 """
 function solve(DiffEq::Module,
                inival::AbstractArray,

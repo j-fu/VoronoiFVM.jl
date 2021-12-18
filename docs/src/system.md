@@ -19,7 +19,6 @@ This type is not exported to avoid name clashes.
 
 ## System constructors
 
-
 ```@docs
 VoronoiFVM.System(grid::ExtendableGrid; kwargs...)
 VoronoiFVM.System(X::AbstractVector; kwargs...)
@@ -41,16 +40,26 @@ Boundary conditions are handeled in the  `bcondition` callback passed to the sys
 For being called in this callback, the following  functions are availabel
 
 ```@docs
-boundary_dirichlet!(y,u,bnode::VoronoiFVM.BNode,ispec,ireg,val)
-boundary_dirichlet!(y,u,bnode::VoronoiFVM.BNode;kwargs...)
-boundary_neumann!(y,u,bnode::VoronoiFVM.BNode,ispec,ireg,val)
-boundary_neumann!(y,u,bnode::VoronoiFVM.BNode;kwargs...)
-boundary_robin!(y,u,bnode::VoronoiFVM.BNode,ispec,ireg,fac,val)
-boundary_robin!(y,u,bnode::VoronoiFVM.BNode;kwargs...)
+boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
+boundary_dirichlet!(y,u,bnode;kwargs...)
+boundary_neumann!(y,u,bnode,ispec,ireg,val)
+boundary_neumann!(y,u,bnode;kwargs...)
+boundary_robin!(y,u,bnode,ispec,ireg,fac,val)
+boundary_robin!(y,u,bnode;kwargs...)
 ramp
 ```
 
 ## Various tools
+
+```@docs
+physics!
+```
+
+```@docs
+check_allocs!
+```
+
+
 ```@docs
 num_dof
 unknowns(system::VoronoiFVM.AbstractSystem; kwargs...)

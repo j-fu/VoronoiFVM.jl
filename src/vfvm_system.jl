@@ -10,9 +10,7 @@ abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 """
 $(TYPEDEF)
 
-Structure holding data for finite volume system
-
-$(TYPEDFIELDS)
+Structure holding data for finite volume system.
 """
 mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix} <: AbstractSystem{Tv,Ti, Tm}
 
@@ -237,30 +235,7 @@ function System(grid::ExtendableGrid;
     system.factorization=nothing
     check_allocs!(system,check_allocs)
 
-
-    ## Adapt physics parameters
-
-    kwdict=Dict(kwargs)
-
-    if haskey(kwdict,:bcondition)
-        if haskey(kwdict,:breaction)
-            error("specify either bcondition or breaction")
-        end
-        kwdict[:breaction]=kwdict[:bcondition]
-        delete!(kwdict,:bcondition)
-    end
-
-    if haskey(kwdict,:source) && isa(kwdict[:source], AbstractArray)
-        src=kwdict[:source]
-        if isa(src,AbstractVector)
-            kwdict[:source]= (y,node,args...) -> @views y[1]=src[node.index]
-        else
-            kwdict[:source]= (y,node,args...) -> @views y.=src[:,node.index]
-        end
-    end
-    
-
-    system.physics=Physics(; kwdict...)
+    physics!(system; kwargs...)
     enable_species!(system;species)
     return system
 end
@@ -291,6 +266,46 @@ System(X,Y, Z; kwargs...)
 Create a [3D grid from vectors X,Y,Z ](https://j-fu.github.io/ExtendableGrids.jl/stable/gridconstructors/) and call  [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
 System(X::AbstractVector, Y::AbstractVector, Z::AbstractVector; kwargs...)= System(simplexgrid(X,Y,Z); kwargs...)
+
+
+"""
+    physics!(system,physics)
+
+Replace System's physics data
+"""
+function physics!(system,physics)
+    system.physics=physics
+    system
+end
+
+"""
+   physics!(system; kwargs...)
+
+Replace System's physics data.
+"""
+function physics!(system; kwargs...)
+    kwdict=Dict(kwargs)
+
+    if haskey(kwdict,:bcondition)
+        if haskey(kwdict,:breaction)
+            error("specify either bcondition or breaction")
+        end
+        kwdict[:breaction]=kwdict[:bcondition]
+        delete!(kwdict,:bcondition)
+    end
+
+    if haskey(kwdict,:source) && isa(kwdict[:source], AbstractArray)
+        src=kwdict[:source]
+        if isa(src,AbstractVector)
+            kwdict[:source]= (y,node,args...) -> @views y[1]=src[node.index]
+        else
+            kwdict[:source]= (y,node,args...) -> @views y.=src[:,node.index]
+        end
+    end
+    
+    physics!(system,Physics(; kwdict...))
+end
+
 
 ###################################################################################################
 # Test if allocated is zero and if allocation check is enabled
@@ -695,6 +710,9 @@ $(SIGNATURES)
 Set Dirichlet boundary condition for species ispec at boundary ibc:
     
 ``u_{ispec}=v`` on ``\\Gamma_{ibc}``
+
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
     increase_num_species!(system,ispec)
@@ -708,6 +726,9 @@ Keyword argument version:
 - `species`: species number
 - `region`: region number
 - `value`: value
+
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 boundary_dirichlet!(system::AbstractSystem; species=0, region=0,value=0)=boundary_dirichlet!(system,species,region,value)
 
@@ -717,7 +738,7 @@ boundary_dirichlet!(system::AbstractSystem; species=0, region=0,value=0)=boundar
 
 Set Dirichlet boundary condition for species ispec at boundary ibc.
 """
-function boundary_dirichlet!(y,u,bnode::BNode,ispec,ireg,val)
+function boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
     if  bnode.region == ireg
         y[ispec] += bnode.Dirichlet*(u[ispec]-val)
         # just for call during initialization
@@ -733,7 +754,7 @@ Keyword argument version:
 - `region`: boundary region number. By default, all boundary regions.
 - `value`: value
 """
-boundary_dirichlet!(y,u,bnode::BNode,args...; species=1, region=bnode.region,value=0) = boundary_dirichlet!(y,u,bnode,species,region,value)
+boundary_dirichlet!(y,u,bnode,args...; species=1, region=bnode.region,value=0) = boundary_dirichlet!(y,u,bnode,species,region,value)
 
 
 """
@@ -763,6 +784,8 @@ $(SIGNATURES)
 Set Neumann boundary condition for species ispec at boundary ibc:
 
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n=v`` on ``\\Gamma_{ibc}``
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 function boundary_neumann!(system::AbstractSystem, ispec, ibc, v)
     increase_num_species!(system,ispec)
@@ -776,6 +799,8 @@ Keyword argument version:
 - `species`: species number
 - `region`: region number
 - `value`: value
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 boundary_neumann!(system::AbstractSystem; species=0, region=0,value=0)=boundary_neumann!(system,species,region,value)
 
@@ -805,6 +830,8 @@ Set Robin boundary condition for species ispec at boundary ibc:
 
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n + \\alpha u_{ispec}=v`` on ``\\Gamma_{ibc}``
 
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 function boundary_robin!(system::AbstractSystem, ispec, ibc, α, v)
     increase_num_species!(system,ispec)
@@ -819,6 +846,8 @@ Keyword argument version:
 - `region`: region number
 - `factor`: factor
 - `value`: value
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 boundary_robin!(system::AbstractSystem; species=0, region=0,factor=0,value=0)=boundary_robin!(system,species,region,factor,value)
 
@@ -1060,10 +1089,12 @@ LinearAlgebra.norm(system::SparseSystem,u,p)=LinearAlgebra.norm(u.node_dof.nzval
 System(grid,physics; kwargs...)
 ````
 Create system with physics record.
+!!! info  
+    Starting with version 0.14, all physics data can be passed directly to the system constructor
 """
 function System(grid::ExtendableGrid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
     system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
-    system.physics=physics
+    physics!(system,physics)
 end
 
 

@@ -18,22 +18,50 @@ end
 function make_all(;with_examples=true)
     
     generated_examples=[]
+    notebookmd=[]
+    example_jl_dir = joinpath(@__DIR__,"..","examples")
+    example_md_dir  = joinpath(@__DIR__,"src","examples")
+    notebook_html_dir  = joinpath(@__DIR__,"src","nbhtml")
     
     if with_examples
         #
         # Run notebooks
         #
-        notebooks=["nbproto.jl"]
-        export_directory(joinpath(@__DIR__,"..","pluto-examples"),
-                         notebook_paths=notebooks,
-                         Export_output_dir=joinpath(@__DIR__,"src"),
-                         Export_offer_binder=true)
+        notebooks=["api-update.jl",
+                   "flux-reconstruction.jl",
+                   "problemcase.jl"
+                   ]
         
+        # Use sliderserver to generate html
+        
+        export_directory(joinpath(@__DIR__,"..","pluto-examples"),
+                          notebook_paths=notebooks,
+                          Export_output_dir=joinpath(notebook_html_dir),
+                          Export_offer_binder=false)
+
+        # generate frame markdown for each notebook
+        for notebook in notebooks
+            base=split(notebook,".")[1]
+            mdstring=
+"""
+# $(notebook)
+
+Download this notebook: [$(notebook)](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook)).
+Please note that interactive elements like sliders are disabled.
+
+```@raw html
+<iframe style="height:15000px" width="100%" src="../$(base).html"> </iframe>
+```
+"""
+            mdname=base*".md"
+            push!(notebookmd,joinpath("nbhtml",mdname))
+            io=open(joinpath(notebook_html_dir,mdname),"w")
+            write(io,mdstring)
+            close(io)
+        end     
         #
         # Generate Markdown pages from examples
         #
-        example_jl_dir = joinpath(@__DIR__,"..","examples")
-        example_md_dir  = joinpath(@__DIR__,"src","examples")
         
         for example_source in readdir(example_jl_dir)
             base,ext=splitext(example_source)
@@ -51,6 +79,7 @@ function make_all(;with_examples=true)
         
         generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     end
+
     
     makedocs(
         sitename="VoronoiFVM.jl",
@@ -63,6 +92,7 @@ function make_all(;with_examples=true)
             "Home"=>"index.md",
             "changes.md",
             "method.md",
+            "notebooks"=> notebookmd,
             "API Documentation" => [                
                 "system.md",
                 "physics.md",
@@ -79,6 +109,7 @@ function make_all(;with_examples=true)
 
     if with_examples
         rm(example_md_dir,recursive=true)
+        rm(notebook_html_dir,recursive=true)
     end
     
     if !isinteractive()
@@ -86,4 +117,4 @@ function make_all(;with_examples=true)
     end
 end
 
-make_all(with_examples=false)
+make_all(with_examples=true)

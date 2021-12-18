@@ -71,7 +71,7 @@ export edgevelocities,bfacevelocities
 
 
 include("vfvm_newtoncontrol.jl")
-export fixed_timesteps!,NewtonControl
+export fixed_timesteps!,NewtonControl,SolverControl
 export edgelength
 export viewK,viewL,data
 
