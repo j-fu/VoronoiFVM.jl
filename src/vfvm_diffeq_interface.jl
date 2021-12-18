@@ -9,11 +9,11 @@
 # See https://github.com/SciML/DifferentialEquations.jl/issues/521
 # for discussion of another way to do this
 #
-function _eval_res_jac!(sys,u)
+function _eval_res_jac!(sys,u,t)
     uhash=hash(u)
     if uhash!=sys.uhash
         ur=reshape(u,sys)
-        eval_and_assemble(sys,ur,ur,sys.residual,Inf)
+        eval_and_assemble(sys,ur,ur,sys.residual,t,Inf)
         sys.uhash=uhash
     else
         global nd
@@ -30,7 +30,7 @@ rhs function for DifferentialEquations.jl.
 function eval_rhs!(du, u, sys,t)
     global nf
     nf=nf+1
-    _eval_res_jac!(sys,u)
+    _eval_res_jac!(sys,u,t)
     du.=-vec(sys.residual)
     nothing
 end
@@ -47,7 +47,7 @@ jacobi matrix calculation function for DifferentialEquations.jl.
 function eval_jacobian!(J, u, sys,t)
     global njac
     njac=njac+1
-    _eval_res_jac!(sys,u)
+    _eval_res_jac!(sys,u,t)
     # Need to implement broadcast for ExtendableSparse.
     J.=-sys.matrix.cscmatrix
     nothing
@@ -209,6 +209,10 @@ corresponding to that package is passed as the first argument.
 
 Returns a transient solution object `sol` containing stored solutions,
 see [`TransientSolution`](@ref).
+
+
+!!! info
+    It is planned to have one general `solve` method controlled by kwargs, see [`solve(system::AbstractSystem; kwargs...)`](@ref).
 
 """
 function solve(DiffEq::Module,

@@ -1,19 +1,23 @@
 # Solution methods
 
-    
-## Stationary and transient solvers
-```@autodocs
-Modules = [VoronoiFVM]
-Pages=["vfvm_solver.jl"]
-Order   = [:function, :type]
-Private = false
-```
+## Solve method
+
+```@docs
+solve(system::VoronoiFVM.AbstractSystem; kwargs...)
+solve(inival, system::VoronoiFVM.AbstractSystem, times; kwargs...)
+solve(inival, system::VoronoiFVM.AbstractSystem; kwargs...)
+solve!(solution,inival, system::VoronoiFVM.AbstractSystem; kwargs...)
+evolve!(solution, inival, system::VoronoiFVM.AbstractSystem, times; kwargs...)
+embed!(solution, inival,system::VoronoiFVM.AbstractSystem; kwargs...)
+``` 
+
 
 ## Solver control
-```@autodocs
-Modules = [VoronoiFVM]
-Pages=["vfvm_newtoncontrol.jl"]
+```@docs 
+SolverControl
+NewtonControl
 ```
+    
 
 ## [Interface to DifferentialEquations.jl](@id diffeq)
 

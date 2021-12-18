@@ -68,6 +68,7 @@ $(TYPEDEF)
 Exception thrown if embedding fails
 """
 struct EmbeddingError <: Exception
+    msg::String
 end
 
 
@@ -104,6 +105,7 @@ function _solve!(
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
     system::AbstractSystem{Tv}, # Finite volume system
     control::NewtonControl,
+    time::Tv,
     tstep::Tv,
     log::Bool
 ) where Tv
@@ -132,7 +134,7 @@ function _solve!(
 
     for ii=1:control.max_iterations
         try
-            eval_and_assemble(system,solution,oldsol,residual,tstep,edge_cutoff=control.edge_cutoff)
+            eval_and_assemble(system,solution,oldsol,residual,time,tstep,edge_cutoff=control.edge_cutoff)
         catch err
             if (control.handle_exceptions)
                 _print_error(err,stacktrace(catch_backtrace()))
@@ -260,6 +262,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
+                           time::Tv,
                            tstep::Tv; # time step size. Inf means stationary solution
                            edge_cutoff=0.0
                            ) where {Tv, Ti}
@@ -273,10 +276,16 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     bnode   = BNode{Tv,Ti}(system)
     edge    = Edge{Tv,Ti}(system)
     bedge   = BEdge{Tv,Ti}(system)
+
+    node.time=time
+    bnode.time=time
+    edge.time=time
+    bedge.time=time
     
     @create_physics_wrappers(physics, node, bnode, edge, bedge)
 
 
+    
     nspecies::Int = num_species(system)
     matrix        = system.matrix
     
@@ -344,6 +353,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2}  = system.boundary_values
+
+    hasbc = !iszero(boundary_factors) || !iszero(boundary_values)
+
     bfaceregions::Vector{Ti} = grid[BFaceRegions]
 
     nbfaces = num_bfaces(grid)
@@ -467,7 +479,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
-
+            bnode.Dirichlet=Dirichlet/bnode_factor
+            
             if isbsource
                 bsourcewrap(bsrc)
             end
@@ -476,36 +489,37 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             K::Int=bnode.index
 
 
-            
-            # Assemble "standard" boundary conditions: Robin or
-            # Dirichlet
-            # valid only for interior species, currently not checked
-            for ispec=1:nspecies
-                idof=dof(F,ispec,K)
-                # If species is present, assemble the boundary condition
-                if idof>0
-                    # Get user specified data
-                    boundary_factor = boundary_factors[ispec,ibreg]
-                    boundary_value  = boundary_values[ispec,ibreg]
-                    
-                    if boundary_factor==Dirichlet
-                        # Dirichlet is encoded in the boundary condition factor
-                        # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
+            if hasbc
+                # Assemble "standard" boundary conditions: Robin or
+                # Dirichlet
+                # valid only for interior species, currently not checked
+                for ispec=1:nspecies
+                    idof=dof(F,ispec,K)
+                    # If species is present, assemble the boundary condition
+                    if idof>0
+                        # Get user specified data
+                        boundary_factor = boundary_factors[ispec,ibreg]
+                        boundary_value  = boundary_values[ispec,ibreg]
                         
-                        # Add penalty*boundry_value to right hand side
-                        F[ispec,K]+=boundary_factor*(U[ispec,K]-boundary_value)
-                        
-                        # Add penalty to matrix main diagonal (without bnode factor, so penalty
-                        # is independent of h)
-                        _addnz(matrix,idof,idof,boundary_factor,1)
-                    else
-                        # Robin boundary condition
-                        F[ispec,K]+=bnode_factor*(boundary_factor*U[ispec,K]-boundary_value)
-                        _addnz(matrix,idof,idof,boundary_factor, bnode_factor)
+                        if boundary_factor==Dirichlet
+                            # Dirichlet is encoded in the boundary condition factor
+                            # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
+                            
+                            # Add penalty*boundry_value to right hand side
+                            F[ispec,K]+=boundary_factor*(U[ispec,K]-boundary_value)
+                            
+                            # Add penalty to matrix main diagonal (without bnode factor, so penalty
+                            # is independent of h)
+                            _addnz(matrix,idof,idof,boundary_factor,1)
+                        else
+                            # Robin boundary condition
+                            F[ispec,K]+=bnode_factor*(boundary_factor*U[ispec,K]-boundary_value)
+                            _addnz(matrix,idof,idof,boundary_factor, bnode_factor)
+                        end
                     end
                 end
             end
-
+            
             # Boundary reaction term has been given.
             # Valid for both boundary and interior species
             if isbreaction
@@ -649,28 +663,24 @@ solve!(solution, inival, system;
     tstep=Inf, 
     log=false)
 ````
-
-Perform solution of stationary problem(if `tstep==Inf`) or of  one step
-of the implicit Euler method using Newton's method with `inival` as initial
-value. The method writes into `solution`. 
-
-It returns `solution` or, if `log==true`, a tuple of solution and a vector
-containing the residual history of Newton's method.
+Mutating version of [`solve(inival,system)`](@ref)
 """
 function solve!(
-    solution::AbstractMatrix{Tv}, # Solution
-    inival::AbstractMatrix{Tv},   # Initial value 
-    system::AbstractSystem{Tv};     # Finite volume system
+    solution, # Solution
+    inival,   # Initial value 
+    system::VoronoiFVM.AbstractSystem;     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
-    tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
-    log::Bool=false
-) where Tv
+    time=Inf,
+    tstep=Inf,                # Time step size. Inf means  stationary solution
+    log::Bool=false,
+    kwargs...
+)
     if control.verbose
         @time begin
-            history=_solve!(solution,inival,system,control,tstep,log)
+            history=_solve!(solution,inival,system,control,time,tstep,log)
         end
     else 
-        history=_solve!(solution,inival,system,control,tstep,log)
+        history=_solve!(solution,inival,system,control,time,tstep,log)
     end
     return log ? (solution,history) : solution
 end
@@ -684,6 +694,8 @@ solve(inival, system;
       tstep=Inf, 
       log=false)
 ````
+Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the corresponding
+keyword arguments.  Calle
 
 Perform solution of stationary problem(if `tstep==Inf`) or one step
 of the implicit Euler method using Newton's method with `inival` as initial
@@ -692,13 +704,15 @@ It returns a solution array or, if `log==true`, a tuple of solution and a vector
 containing the residual history of Newton's method.
 """
 function solve(
-    inival::AbstractMatrix{Tv},   # Initial value 
-    system::AbstractSystem{Tv};     # Finite volume system
+    inival,   # Initial value 
+    system::AbstractSystem;     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
-    tstep::Tv=Inf,                # Time step size. Inf means  stationary solution
-    log::Bool=false
-) where Tv
-    solve!(unknowns(system),inival,system,control=control, tstep=tstep,log=log)
+    time=Inf,
+    tstep=Inf,                # Time step size. Inf means  stationary solution
+    log::Bool=false,
+    kwargs...
+)
+    solve!(unknowns(system),inival,system,control=control,time=time, tstep=tstep,log=log)
 end
 
 ################################################################
@@ -728,13 +742,13 @@ with error.
 
 """
 function embed!(
-    solution::AbstractMatrix{Tv}, # Solution
-    inival::AbstractMatrix{Tv},   # Initial value 
-    system::AbstractSystem{Tv};     # Finite volume system
+    solution, # Solution
+    inival,   # Initial value 
+    system::AbstractSystem;     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,p) end,       # Function for preparing step
     post=function(sol,p) end      # Function for postprocessing successful step
-) where Tv
+) 
     inival=copy(inival)
     p=0.0
     Δp=control.Δp
@@ -760,7 +774,7 @@ function embed!(
                 # here we reduce the embedding step and retry the solution
                 Δp=Δp*0.5
                 if Δp<control.Δp_min
-                    throw(EmbeddingError())
+                    throw(EmbeddingError("Δp=$(Δp) < control.Δp_min= $(control.Δp_min)"))
                 end
                 solved=false
                 if control.verbose
@@ -784,39 +798,23 @@ end
 
 ################################################################
 """
-````
-function evolve!(solution, inival, system, times;
-                 control=NewtonControl(), 
-                 pre=function(sol,t) end,   
-                 post=function(sol,oldsol, t, Δt) end,
-                 sample=function(sol,t) end,
-                 delta=(u,v,t, Δt)->norm(sys,u-v,Inf)
-)
-````
 
-Use implicit Euler method  + damped   Newton's method  to 
-solve time dependent problem. Time step control is performed
-according to the data in `control`.  All times in `times`
-are reached exactly.
+    evolve!(solution, inival, system, times; kwargs...)
 
-Callbacks:
-- `pre` is invoked before each time step
-- `post`  is invoked after each time step
-- `sample` is called for all times in `times[2:end]`.
-
-`delta` is  used to control the time step.
+Mutating version of alias for `solve(system; inival=inival, times=times, kwargs...)`, see [`solve(system::AbstractSystem, kwargs...)`](@ref).
+This method  just updates the `solution` vector, without recording the intermediate result.
 """
 function evolve!(
-    solution::AbstractMatrix{Tv}, # Solution
-    inival::AbstractMatrix{Tv},   # Initial value 
-    system::AbstractSystem{Tv},    # Finite volume system
-    times::AbstractVector;
+    solution, # Solution
+    inival,   # Initial value 
+    system::AbstractSystem,    # Finite volume system
+    times;
     control=NewtonControl(),      # Newton solver control information
     pre=function(sol,t) end,       # Function for preparing step
     post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
     sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
     delta=(u,v,t, Δt)->norm(sys,u-v,Inf) # Time step error estimator
-) where Tv
+)
     inival=copy(inival)
     _initialize_dirichlet!(inival,system)
     Δt=control.Δt
@@ -840,7 +838,7 @@ function evolve!(
                 try
                     t=t0+Δt
                     pre(solution,t)
-                    solve!(solution,inival, system ,control=control,tstep=Δt)
+                    solve!(solution,inival, system ,control=control,time=t,tstep=Δt)
                 catch err
                     if (control.handle_exceptions)
                         _print_error(err,stacktrace(catch_backtrace()))
@@ -859,9 +857,8 @@ function evolve!(
                     # reduce time step and retry  solution
                     Δt=Δt*0.5
                     if Δt<control.Δt_min
-                        @printf(" Δt_min=%.2g reached while Δu=%.2g >>  Δu_opt=%.2g\n",control.Δt_min, Δu,control.Δu_opt)
                         if !(control.force_first_step && istep==0)
-                            throw(EmbeddingError())
+                            throw(EmbeddingError(" Δt_min=$(control.Δt_min) reached while Δu=$(Δu) >>  Δu_opt=$(control.Δu_opt) "))
                         else
                             solved=true
                         end
@@ -894,46 +891,22 @@ end
 
 
 """
-````
-function solve(inival, system, times;
-               control=NewtonControl(), 
-               pre=function(sol,t) end,   
-               post=function(sol,oldsol, t, Δt) end,
-               sample=function(sol,t) end,
-               delta=(u,v,t, Δt)->norm(sys,u-v,Inf),
-               store_all=true,
-               in_memory=true
-)
-````
-Use implicit Euler method  + damped   Newton's method  to 
-solve time dependent problem. Time step control is performed
-according to the data in `control`.  All times in the vector
-`times` are reached exactly.
+    solve(inival, system, times; kwargs...)
 
-Callbacks:
-- `pre` is invoked before each time step
-- `post`  is invoked after each time step
-- `sample` is called for all times in `times[2:end]`.
-
-`delta` is  used to control the time step.
-
-If `store_all==true`, all timestep solutions are stored. Otherwise,
-only solutions for the moments defined in `times` are stored.
-
-Returns a transient solution object `sol` containing the stored solution,
-see [`TransientSolution`](@ref)
+Alias for `solve(system; inival=inival, times=times, kwargs...)`, see [`solve(system::AbstractSystem, kwargs...)`](@ref).
 
 """
-function solve(inival::AbstractMatrix,
-               sys::AbstractSystem,
-               times::AbstractVector;
+function solve(inival,
+               sys::VoronoiFVM.AbstractSystem,
+               times;
                control=NewtonControl(),
                pre=function(sol,t) end,       # Function for preparing step
                post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
                sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
                delta=(u,v,t, Δt)->norm(sys,u-v,Inf), # Time step error estimator
                store_all=true, # if true, store all solutions, otherwise, store only at sampling times
-               in_memory=true
+               in_memory=true,
+               kwargs...
                )
     tsol=TransientSolution(Float64(times[1]),inival, in_memory=in_memory)
     solution=copy(inival)
@@ -957,4 +930,69 @@ function solve(inival::AbstractMatrix,
     tsol
 end
 
+
+
+
+"""
+    solve(system; kwargs)
+
+Main solution method for VoronoiFVM.System.
+
+Keyword arguments:
+
+- `inival`: Array created via [`unknowns`](@ref) or  number giving the intial value.
+- Solver control:
+  All elements [`SolverControl`](@ref) can be passed for solver control.
+   - `control`: Alternatively pass instance of [`SolverControl`](@ref)
+
+- Stationary solver:
+  If neither `times` nor `tspan` are given as keyword argument, the stationary solver is invoked.
+  - `tstep`: `Inf`: if `tstep<Inf`, perform one step of implicit Euler method.
+  - `time`: `0` Set time value. 
+  - `log`: `false` if `log==true`, return vector of Newton convergence history along with solution
+    
+- Default transient solver:
+  Use implicit Euler method  + damped   Newton's method  to 
+  solve time dependent problem. Time step control is performed
+  according to solver control data.  kwargs an default values are:
+  - `times`: `nothing`: vector of time values to be reached exactly
+  - `pre`: `function(sol,t) end`  is invoked before each time step
+  - `post`: `function(sol,oldsol, t, Δt) end`  is invoked after each time step
+  - `sample`: `function(sol,t) end`  is called for all times in `times[2:end]`.
+  - `delta`: `(u,v,t, Δt)->norm(sys,u-v,Inf)` is  used to control the time step.
+  - `store_all`: `true`, all timestep solutions are stored. Otherwise,
+     only solutions for the moments defined in `times` are stored.
+  - `in_memory`: `true`, store solution in memory. If `false`, store it on disk.
+  Returns a transient solution object `sol` containing the stored solution,
+  see [`TransientSolution`](@ref).
+
+- Transient solver from `DifferentialEquations.jl`
+  - `DifferentialEquations`: DifferentialEquations module
+  - `tspan`: Time interval for differential equations.
+  For further information, see [`solve(DiffEq::Module, inival::AbstractArray, sys::AbstractSystem,tspan; kwargs...)`](@ref)
+  All kwargs are passed to that solver.
+  Returns a transient solution object `sol` containing the stored solution,
+  see [`TransientSolution`](@ref).
+"""
+function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, control=VoronoiFVM.NewtonControl(), kwargs...)
+    if isa(inival,Number)
+        inival=unknowns(sys,inival=inival)
+    elseif  !VoronoiFVM.isunknownsof(inival,sys)
+        @error "wrong type of inival: $(typeof(inival))"
+    end
+
+    for k ∈ kwargs
+        if hasproperty(control,k[1])
+            setproperty!(control,k[1],k[2])
+        end
+    end
+
+    if haskey(kwargs,:times)
+        solve(inival,sys,kwargs[:times]; control=control, kwargs...)
+    elseif  haskey(kwargs,:tspan) && haskey(kwargs,:DifferentialEquations)
+        solve(kwargs[:DifferentialEquations],inival,sys,kwargs[:tspan]; kwargs...)
+    else
+        solve(inival,sys; control=control,kwargs...)
+    end
+end
 

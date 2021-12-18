@@ -1,4 +1,4 @@
-using Documenter, VoronoiFVM, Literate
+using Documenter, VoronoiFVM, Literate, PlutoSliderServer, ExtendableGrids
 
 #
 # Replace SOURCE_URL marker with github url of source
@@ -15,28 +15,71 @@ end
 
 
 
-function make_all()
-    #
-    # Generate Markdown pages from examples
-    #
+function make_all(;with_examples=true)
+    
+    generated_examples=[]
+    notebookmd=[]
     example_jl_dir = joinpath(@__DIR__,"..","examples")
     example_md_dir  = joinpath(@__DIR__,"src","examples")
+    notebook_html_dir  = joinpath(@__DIR__,"src","nbhtml")
     
-    for example_source in readdir(example_jl_dir)
-        base,ext=splitext(example_source)
-        if ext==".jl"
-            source_url="https://github.com/j-fu/VoronoiFVM.jl/raw/master/examples/"*example_source
-            preprocess(buffer)=replace_source_url(buffer,source_url)
-            Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
-                              example_md_dir,
-                              documenter=false,
-                              info=false,
-                              preprocess=preprocess)
+    if with_examples
+        #
+        # Run notebooks
+        #
+        notebooks=["api-update.jl",
+                   "flux-reconstruction.jl",
+                   "problemcase.jl"
+                   ]
+        
+        # Use sliderserver to generate html
+        
+        export_directory(joinpath(@__DIR__,"..","pluto-examples"),
+                          notebook_paths=notebooks,
+                          Export_output_dir=joinpath(notebook_html_dir),
+                          Export_offer_binder=false)
+
+        # generate frame markdown for each notebook
+        for notebook in notebooks
+            base=split(notebook,".")[1]
+            mdstring=
+"""
+# $(notebook)
+
+Download this notebook: [$(notebook)](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook)).
+Please note that interactive elements like sliders are disabled.
+
+```@raw html
+<iframe style="height:15000px" width="100%" src="../$(base).html"> </iframe>
+```
+"""
+            mdname=base*".md"
+            push!(notebookmd,joinpath("nbhtml",mdname))
+            io=open(joinpath(notebook_html_dir,mdname),"w")
+            write(io,mdstring)
+            close(io)
+        end     
+        #
+        # Generate Markdown pages from examples
+        #
+        
+        for example_source in readdir(example_jl_dir)
+            base,ext=splitext(example_source)
+            if ext==".jl"
+                source_url="https://github.com/j-fu/VoronoiFVM.jl/raw/master/examples/"*example_source
+                preprocess(buffer)=replace_source_url(buffer,source_url)
+                Literate.markdown(joinpath(@__DIR__,"..","examples",example_source),
+                                  example_md_dir,
+                                  documenter=false,
+                                  info=false,
+                                  preprocess=preprocess)
+            end
         end
+        
+        
+        generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     end
 
-
-    generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     
     makedocs(
         sitename="VoronoiFVM.jl",
@@ -49,9 +92,10 @@ function make_all()
             "Home"=>"index.md",
             "changes.md",
             "method.md",
-            "API Documentation" => [
-                "physics.md",
+            "notebooks"=> notebookmd,
+            "API Documentation" => [                
                 "system.md",
+                "physics.md",
                 "solutions.md",
                 "solver.md",
                 "post.md",
@@ -62,12 +106,15 @@ function make_all()
             "Examples" => generated_examples
         ]
     )
-    
-    rm(example_md_dir,recursive=true)
+
+    if with_examples
+        rm(example_md_dir,recursive=true)
+        rm(notebook_html_dir,recursive=true)
+    end
     
     if !isinteractive()
         deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
     end
 end
 
-make_all()
+make_all(with_examples=true)
