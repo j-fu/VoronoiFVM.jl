@@ -4,6 +4,27 @@
 using Markdown
 using InteractiveUtils
 
+# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
+begin
+    using Pkg
+    inpluto=isdefined(Main,:PlutoRunner)
+    indocumenter=haskey(ENV,"RUNNING_DOCUMENTER")
+    developing=false	
+    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	# We try to outsmart Pluto's cell parser here.
+	# This activates an environment in VoronoiFVM/pluto-examples
+	eval(:(Pkg.activate(joinpath(@__DIR__))))
+        eval(:(Pkg.instantiate()))
+	# use Revise if we develop VoronoiFVM
+	using PyPlot
+        indocumenter && PyPlot.svg(true)
+	using Revise
+	# This activates the checked out version of VoronoiFVM.jl for development
+	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
+	developing=true
+    end
+end;
+
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin 
     using VoronoiFVM
@@ -11,7 +32,6 @@ begin
     using Test
     if inpluto
  	using PlutoUI
- 	using PyPlot
 	using GridVisualize
 	using PlutoVista
 	GridVisualize.default_plotter!(indocumenter ? PyPlot : PlutoVista)
@@ -49,27 +69,6 @@ and sets the `inpluto` flag accordingly.
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
 
-# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
-begin
-    using Pkg
-    inpluto=isdefined(Main,:PlutoRunner)
-    indocumenter=haskey(ENV,"RUNNING_DOCUMENTER")
-    developing=false	
-    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We try to outsmart Pluto's cell parser here.
-	# This activates an environment in VoronoiFVM/pluto-examples
-	eval(:(Pkg.activate(joinpath(@__DIR__))))
-        eval(:(Pkg.instantiate()))
-	# use Revise if we develop VoronoiFVM
-	using PyPlot
-        indocumenter && PyPlot.svg(true)
-	using Revise
-	# This activates the checked out version of VoronoiFVM.jl for development
-	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
-	developing=true
-    end
-end;
-
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
 if developing 
 	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
@@ -85,6 +84,7 @@ GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
@@ -94,6 +94,7 @@ ExtendableGrids = "~0.8.11"
 GridVisualize = "~0.4.3"
 PlutoUI = "~0.7.23"
 PlutoVista = "~0.8.12"
+PyPlot = "~2.10.0"
 Revise = "~3.2.0"
 VoronoiFVM = "~0.14.0"
 """
@@ -196,6 +197,12 @@ version = "3.41.0"
 [[CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+
+[[Conda]]
+deps = ["Downloads", "JSON", "VersionParsing"]
+git-tree-sha1 = "6cdc8832ba11c7695f494c9d9a1c31e90959ce0f"
+uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
+version = "1.6.0"
 
 [[DataAPI]]
 git-tree-sha1 = "cc70b17275652eb47bc9e5f81635981f13cea5c8"
@@ -404,6 +411,11 @@ git-tree-sha1 = "e273807f38074f033d94207a201e6e827d8417db"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
 version = "0.8.21"
 
+[[LaTeXStrings]]
+git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
+uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+version = "1.3.0"
+
 [[LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
@@ -527,6 +539,18 @@ version = "1.2.2"
 [[Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[PyCall]]
+deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
+git-tree-sha1 = "4ba3651d33ef76e24fef6a598b63ffd1c5e1cd17"
+uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+version = "1.92.5"
+
+[[PyPlot]]
+deps = ["Colors", "LaTeXStrings", "PyCall", "Sockets", "Test", "VersionParsing"]
+git-tree-sha1 = "14c1b795b9d764e1784713941e787e1384268103"
+uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+version = "2.10.0"
 
 [[REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
@@ -667,6 +691,11 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[VersionParsing]]
+git-tree-sha1 = "e575cf85535c7c3292b4d89d89cc29e8c3098e47"
+uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
+version = "1.2.1"
 
 [[VertexSafeGraphs]]
 deps = ["Graphs"]

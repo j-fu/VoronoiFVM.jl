@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.17.2
+# v0.17.3
 
 using Markdown
 using InteractiveUtils
@@ -180,9 +180,6 @@ md"""
 Solve, and trigger solution upon boundary value change
 """
 
-# ╔═╡ 18d5bc33-2578-41d0-a390-c164d754b8e1
-@test params.val11!=5.0 || isapprox(sum(sol),7842.2173682050525, rtol=1.0e-14)
-
 # ╔═╡ 90bd1da0-c371-4889-a00f-a17a27463c88
 md"""
 ## Flux reconstruction
@@ -198,9 +195,6 @@ R. Eymard, T. Gallouet, R. Herbin, IMA Journal of Numerical Analysis (2006)
 26, 326−353 ([Arxive version](https://arxiv.org/abs/math/0505109v1)), Lemma 2.4 .
 
 """
-
-# ╔═╡ 0e34c818-021b-44c9-8ee4-1a737c3de9cb
-@test params.val11!=5.0 || isapprox(sum(nf),978.000534849034, rtol=1.0e-14)
 
 # ╔═╡ 17be52fb-f55b-4b3d-85e5-33f36134046b
 if inpluto vis=GridVisualizer(dim=2,resolution=(400,400)) end
@@ -220,8 +214,14 @@ begin
     sol=solve(system)
 end;
 
+# ╔═╡ 18d5bc33-2578-41d0-a390-c164d754b8e1
+@test params.val11!=5.0 || isapprox(sum(sol),7842.2173682050525, rtol=1.0e-14)
+
 # ╔═╡ 41f427c1-b6ad-46d4-9151-1d872b4efeb6
 nf=nodeflux(system,sol)
+
+# ╔═╡ 0e34c818-021b-44c9-8ee4-1a737c3de9cb
+@test params.val11!=5.0 || isapprox(sum(nf),978.000534849034, rtol=1.0e-14)
 
 # ╔═╡ 9468db0c-e924-4737-9b75-6bec753aafa9
 md"""
