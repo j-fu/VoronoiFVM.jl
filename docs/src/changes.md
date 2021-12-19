@@ -8,9 +8,10 @@ Backward compatible API simplification
    - unified handling of standard and nonstandard boundary conditions
    - simpler documentation
 - System constructor now directly takes physics callback functions
-    sys=VoronoiFVM.System(grid; species=1,flux=flux!,reaction=reaction!,breaction=bc!)
--  solve() now takes "NewtonControl" parameters as kwargs
+- solve() now takes "SolverControl" parameters as kwargs
 - Notebooks as part of documentation
+- See also the pluto notebook [api-update.jl](https://j-fu.github.io/VoronoiFVM.jl/stable/nbhtml/api-update/)
+
 ## v0.13.2 Oct 29, 2021
 - Bernoulli function overhaul
 ## v0.13.1
