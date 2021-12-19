@@ -263,7 +263,7 @@ PlutoUI = "~0.7.23"
 PlutoVista = "~0.8.12"
 PyPlot = "~2.10.0"
 Revise = "~3.2.1"
-VoronoiFVM = "~0.13.4"
+VoronoiFVM = "~0.14.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -556,9 +556,9 @@ version = "1.0.0"
 
 [[JLD2]]
 deps = ["DataStructures", "FileIO", "MacroTools", "Mmap", "Pkg", "Printf", "Reexport", "TranscodingStreams", "UUIDs"]
-git-tree-sha1 = "46b7834ec8165c541b0b5d1c8ba63ec940723ffb"
+git-tree-sha1 = "5335c4c9a30b4b823d1776d2db09882cbfac9f1e"
 uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
-version = "0.4.15"
+version = "0.4.16"
 
 [[JLLWrappers]]
 deps = ["Preferences"]
@@ -686,10 +686,10 @@ uuid = "eebad327-c553-4316-9ea0-9fa01ccd7688"
 version = "0.1.1"
 
 [[PlutoUI]]
-deps = ["AbstractPlutoDingetjes", "Base64", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
-git-tree-sha1 = "5152abbdab6488d5eec6a01029ca6697dff4ec8f"
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
+git-tree-sha1 = "93cf0910f09a9607add290a3a2585aa376b4feb6"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.23"
+version = "0.7.25"
 
 [[PlutoVista]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "GridVisualize", "HypertextLiteral", "UUIDs"]
@@ -872,9 +872,9 @@ version = "0.2.0"
 
 [[VoronoiFVM]]
 deps = ["DiffResults", "DocStringExtensions", "ExtendableGrids", "ExtendableSparse", "ForwardDiff", "GridVisualize", "IterativeSolvers", "JLD2", "LinearAlgebra", "Printf", "RecursiveArrayTools", "SparseArrays", "SparseDiffTools", "SparsityDetection", "StaticArrays", "SuiteSparse", "Test"]
-git-tree-sha1 = "3e994ef993900aa9adbe666c39bfcae7f5675a6e"
+git-tree-sha1 = "0cf39adeb43883e0d33bde1c5a2afdbd34cbf330"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
-version = "0.13.4"
+version = "0.14.0"
 
 [[Zlib_jll]]
 deps = ["Libdl"]

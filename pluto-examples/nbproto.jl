@@ -1,29 +1,8 @@
 ### A Pluto.jl notebook ###
-# v0.17.2
+# v0.17.3
 
 using Markdown
 using InteractiveUtils
-
-# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
-begin
-    using Pkg
-    inpluto=isdefined(Main,:PlutoRunner)
-    indocumenter=haskey(ENV,"RUNNING_DOCUMENTER")
-    developing=false	
-    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We try to outsmart Pluto's cell parser here.
-	# This activates an environment in VoronoiFVM/pluto-examples
-	eval(:(Pkg.activate(joinpath(@__DIR__))))
-        eval(:(Pkg.instantiate()))
-	# use Revise if we develop VoronoiFVM
-	using PyPlot
-        indocumenter && PyPlot.svg(true)
-	using Revise
-	# This activates the checked out version of VoronoiFVM.jl for development
-	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
-	developing=true
-    end
-end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin 
@@ -70,6 +49,27 @@ and sets the `inpluto` flag accordingly.
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
 
+# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
+begin
+    using Pkg
+    inpluto=isdefined(Main,:PlutoRunner)
+    indocumenter=haskey(ENV,"RUNNING_DOCUMENTER")
+    developing=false	
+    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	# We try to outsmart Pluto's cell parser here.
+	# This activates an environment in VoronoiFVM/pluto-examples
+	eval(:(Pkg.activate(joinpath(@__DIR__))))
+        eval(:(Pkg.instantiate()))
+	# use Revise if we develop VoronoiFVM
+	using PyPlot
+        indocumenter && PyPlot.svg(true)
+	using Revise
+	# This activates the checked out version of VoronoiFVM.jl for development
+	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
+	developing=true
+    end
+end;
+
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
 if developing 
 	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
@@ -95,7 +95,7 @@ GridVisualize = "~0.4.3"
 PlutoUI = "~0.7.23"
 PlutoVista = "~0.8.12"
 Revise = "~3.2.0"
-VoronoiFVM = "~0.13.4"
+VoronoiFVM = "~0.14.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -508,9 +508,9 @@ version = "0.1.1"
 
 [[PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
-git-tree-sha1 = "6c9fa3e4880242c666dafa4901a34d8e1cd1b243"
+git-tree-sha1 = "93cf0910f09a9607add290a3a2585aa376b4feb6"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.24"
+version = "0.7.25"
 
 [[PlutoVista]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "GridVisualize", "HypertextLiteral", "UUIDs"]
@@ -676,9 +676,9 @@ version = "0.2.0"
 
 [[VoronoiFVM]]
 deps = ["DiffResults", "DocStringExtensions", "ExtendableGrids", "ExtendableSparse", "ForwardDiff", "GridVisualize", "IterativeSolvers", "JLD2", "LinearAlgebra", "Printf", "RecursiveArrayTools", "SparseArrays", "SparseDiffTools", "SparsityDetection", "StaticArrays", "SuiteSparse", "Test"]
-git-tree-sha1 = "3e994ef993900aa9adbe666c39bfcae7f5675a6e"
+git-tree-sha1 = "0cf39adeb43883e0d33bde1c5a2afdbd34cbf330"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
-version = "0.13.4"
+version = "0.14.0"
 
 [[Zlib_jll]]
 deps = ["Libdl"]
