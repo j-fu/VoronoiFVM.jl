@@ -18,7 +18,7 @@ end
 function make_all(;with_examples=true)
     
     generated_examples=[]
-    notebookmd=[]
+    notebooks=[]
     example_jl_dir = joinpath(@__DIR__,"..","examples")
     example_md_dir  = joinpath(@__DIR__,"src","examples")
     notebook_html_dir  = joinpath(@__DIR__,"src","nbhtml")
@@ -29,18 +29,37 @@ function make_all(;with_examples=true)
         # Run notebooks
         #
         notebooks=[
+            "Nonlinear solver control" => "nonlinear-solvers.jl",
             "0.14.0 API Update" => "api-update.jl",
             "Obtaining vector fields"=>"flux-reconstruction.jl",
             "A case for caution" => "problemcase.jl"
         ]
 
         notebookjl=last.(notebooks)
-        # Use sliderserver to generate html
+        notebookmd=[]
+
+
+        # function rendernotebook(name)
+        #     base=split(name,".")[1]
+        #     input=joinpath(@__DIR__,"..","pluto-examples",base*".jl")
+        #     output=joinpath(@__DIR__,"src","nbhtml",base*".html")
+        #     session = Pluto.ServerSession();
+        #     html_contents=PlutoStaticHTML.notebook2html(input;session)
+        #     write(output, html_contents)
+        # end
+
         
+        # for notebook in notebookjl
+        #     @info "Converting $(notebook)"
+        #     rendernotebook(notebook)
+        # end
+
+        
+        # Use sliderserver to generate html
         export_directory(joinpath(@__DIR__,"..","pluto-examples"),
-                         notebook_paths=notebookjl,
-                         Export_output_dir=joinpath(notebook_html_dir),
-                         Export_offer_binder=false)
+                          notebook_paths=notebookjl,
+                          Export_output_dir=joinpath(notebook_html_dir),
+                          Export_offer_binder=false)
         
         # generate frame markdown for each notebook
         for notebook in notebookjl
@@ -60,6 +79,11 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
             write(io,mdstring)
             close(io)
         end     
+
+        notebooks=first.(notebooks).=> notebookmd
+        pushfirst!(notebooks, "About the notebooks"=> "notebooks.md")
+
+
         #
         # Generate Markdown pages from examples
         #
@@ -81,8 +105,6 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
         generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     end
 
-    notebooks=first.(notebooks).=> notebookmd
-    pushfirst!(notebooks, "About the notebooks"=> "notebooks.md")
     makedocs(
         sitename="VoronoiFVM.jl",
         modules = [VoronoiFVM],
@@ -111,7 +133,7 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
 
     if with_examples
         rm(example_md_dir,recursive=true)
-#        rm(notebook_html_dir,recursive=true)
+        rm(notebook_html_dir,recursive=true)
     end
     
     if !isinteractive()
@@ -120,3 +142,4 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
 end
 
 make_all(with_examples=true)
+

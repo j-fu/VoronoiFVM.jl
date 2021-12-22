@@ -65,8 +65,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, exci
     # main part of the impedance matrix) is small. We also pass the steady state
     # value as the "old  timestep" value.
     # An advantage of this approach is the fact that this way, we get the
-    # nonzero pattern for the iω term right.
-    eval_and_assemble(system,U0,U0,residual,0.0,1.0e30)
+    # nonzero pattern for the iω term right (as opposite to passing Inf as time step size)
+    eval_and_assemble(system,U0,U0,residual,0.0,1.0e30,0.0)
 
     impedance_system=ImpedanceSystem{Tv}()
     impedance_system.grid=system.grid

@@ -1,5 +1,3 @@
-
-
 """
 $(README)
 
@@ -13,6 +11,8 @@ using LinearAlgebra
 using SparseArrays
 using SuiteSparse
 
+using Parameters
+using Statistics
 
 using ForwardDiff
 using DiffResults
@@ -43,6 +43,8 @@ export setdof!
 include("vfvm_transientsolution.jl")
 export transient_solution,TransientSolution
 
+include("vfvm_history.jl")
+export SolverHistory, SolverHistories,details
 
 include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmmetric!
@@ -61,16 +63,16 @@ export ramp
 export value
 export check_allocs!
 export physics!
-
+export history,history_summary,history_details
 
 include("vfvm_geometryitems.jl")
 include("vfvm_formfactors.jl")
 export meas,project
 export unknown_indices
 export edgevelocities,bfacevelocities
+export time,region,embedparam
 
-
-include("vfvm_newtoncontrol.jl")
+include("vfvm_solvercontrol.jl")
 export fixed_timesteps!,NewtonControl,SolverControl
 export edgelength
 export viewK,viewL,data

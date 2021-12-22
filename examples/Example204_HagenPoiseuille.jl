@@ -63,6 +63,7 @@ function main(;nref=0,Plotter=nothing,D=0.01,v=1.0,tend=100,cin=1.0)
     control.Δt=0.01*2.0^(-nref)
     control.Δt_min=0.01*2.0^(-nref)
     control.Δt_max=0.1*tend
+    control.force_first_step=true
     tsol=solve(inival,sys,[0,tend],control=control)
 
     vis=GridVisualizer(Plotter=Plotter)

@@ -27,7 +27,7 @@ Note that this example requires  PyPlot and DifferentialEquations to be installe
 module TestDiffEq
 
 using VoronoiFVM
-using DifferentialEquations
+using OrdinaryDiffEq
 using LinearAlgebra
 using Printf
 using PyPlot
@@ -60,32 +60,16 @@ function create_porous_medium_problem(n,m,unknown_storage)
     end
 
     storage!(f,u,node)= f[1]=u[1]
-    
-    physics=VoronoiFVM.Physics(flux=flux!,storage=storage!)
-    
-    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
-    enable_species!(sys,1,[1])
+    sys=VoronoiFVM.System(grid,flux=flux!,storage=storage!, species=1,unknown_storage=unknown_storage)
     sys,X
 end
 
 
 function run_vfvm(;n=20,m=2,t0=0.001, tend=0.01,tstep=1.0e-6,unknown_storage=:dense)
-    
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
-
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
-
-    solution=unknowns(sys)
-    control=VoronoiFVM.NewtonControl()
-    control.verbose=false
-    control.Δt=tstep
-    control.Δu_opt=0.05
-    control.Δt_min=tstep
-
-    times=collect(t0:t0:tend)
-    times=[t0,tend]
-    sol=VoronoiFVM.solve(inival,sys,times,control=control,store_all=true)
+    sol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt=tstep,Δu_opt=0.05,Δt_min=tstep,store_all=true)
     err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
     sol,X,err
 end
@@ -96,8 +80,7 @@ function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01, unknown_storage=:dense,solver
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
-    tspan = (t0,tend)
-    sol=VoronoiFVM.solve(DifferentialEquations,inival,sys,tspan,solver=solver)
+    sol=VoronoiFVM.solve(sys; diffeq=OrdinaryDiffEq,inival,tspan=(t0,tend),solver)
     err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
     sol, X,err
 end

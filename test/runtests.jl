@@ -34,6 +34,7 @@ function run_all_tests()
 
     ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
     notebooks=["nbproto.jl",
+               "nonlinear-solvers.jl",
                "api-update.jl",
                "flux-reconstruction.jl",
                "problemcase.jl"

@@ -119,6 +119,12 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     Data for allocation check
     """
     allocs::Int
+
+
+    """
+    History record for last solution process
+    """
+    history
     
     System{Tv,Ti,Tm, TSpecMat, TSolArray}() where {Tv,Ti,Tm, TSpecMat, TSolArray} = new()
 end
@@ -233,6 +239,8 @@ function System(grid::ExtendableGrid;
     system.uhash=0x0
     system.allocs=-1000
     system.factorization=nothing
+    system.history=nothing
+    
     check_allocs!(system,check_allocs)
 
     physics!(system; kwargs...)
@@ -1079,7 +1087,33 @@ end
 
 LinearAlgebra.norm(system::SparseSystem,u,p)=LinearAlgebra.norm(u.node_dof.nzval,p)
 
+######################################
+# History
+"""
+    history(sys)
 
+Return solver history from last `solve` call, if `log` was set to true.
+See  see [`SolverHistory`](@ref), [`SolverHistories`](@ref).
+"""
+history(sys::AbstractSystem)=sys.history
+
+
+"""
+    history_details(sys)
+
+Return details of solver history from last `solve` call, if `log` was set to true.
+See [`details`](@ref).
+"""
+history_details(sys::AbstractSystem)=details(sys.history)
+
+
+"""
+    history_summary(sys)
+
+Return summary of solver history from last `solve` call, if `log` was set to true.
+See [`summmary`](@ref).
+"""
+history_summary(sys::AbstractSystem)=summary(sys.history)
 
 ####################################################################
 # LEGACY
@@ -1116,4 +1150,7 @@ Constructor for SparseSystem.
     Will be removed in future versions
 """
 SparseSystem(grid,physics::Physics; matrixindextype=Int64)=System(grid,physics,matrixindextype=matrixindextype,unknown_storage=:sparse)
+
+
+
 

@@ -4,26 +4,19 @@
 using Markdown
 using InteractiveUtils
 
-# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
-macro bind(def, element)
-    quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
-        local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
-        el
-    end
-end
-
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
     using Pkg
     inpluto=isdefined(Main,:PlutoRunner)
     developing=false	
     if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We have to outsmart Plutos cell parser here.
+	# We try to outsmart Pluto's cell parser here.
+	# This activates an environment in VoronoiFVM/pluto-examples
 	eval(:(Pkg.activate(joinpath(@__DIR__))))
     eval(:(Pkg.instantiate()))
+	# use Revise if we develop VoronoiFVM
 	using Revise
+	# This activates the checked out version of VoronoiFVM.jl for development
 	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
 	developing=true
     end
@@ -31,187 +24,238 @@ end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin 
-	using VoronoiFVM
+    using VoronoiFVM
     using ExtendableGrids
-	using Test
-	if inpluto
- 	  using PlutoUI
-	  using GridVisualize
-	  using PlutoVista
-	  GridVisualize.default_plotter!(PlutoVista)
-   end
+    using Test
+    if inpluto
+ 	using PlutoUI
+	using LinearAlgebra
+	using GridVisualize
+	using PlutoVista
+	GridVisualize.default_plotter!(PlutoVista)
+    end
 end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
 md"""
-# v0.14.0 API update 
+# Nonlinear solver control
 """
 
-# ╔═╡ 3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
+# ╔═╡ eb9ea477-6122-4774-b4a4-04dd7346e2b6
 md"""
-Here we describe some updates for the API of `VoronoiFVM.jl`. These have been implemented mostly on top of the existing API, whose functionality is not affected.
+Generally, nonlinear systems in this package  are solved using Newton's method.  In many cases, the default settings provided by this package work well. However, the convergence of Newton's method is only guaranteed with initial values s7ufficiently close to the exact solution. This notebook describes how change the default settings for the solution of nonlinear problems with VoronoiFVM.jl. 
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
 inpluto && TableOfContents()
 
-# ╔═╡ 8a4f336c-2016-453e-9a9f-beac66533fc0
+# ╔═╡ 9843b65c-6ca8-4ef8-a896-2c8cec4bff7c
 md"""
-## `VoronoiFVM.System` constructor
+Define a nonlinear Poisson equation to have an example. Let ``Ω=(0,10)`` and define
+```math
+\begin{aligned}
+-Δ u + e^u-e^{-u} & = 0 & \text{in}\; Ω \\
+	u(0)&=100\\
+    u(10)&=0
+\end{aligned}
+```
 """
 
-# ╔═╡ 78e7c000-3a83-446a-b577-3a1809c664d2
-md"""
-### Implicit creation of physics
+# ╔═╡ a70b8d85-66aa-4da8-8157-dd0244e3e4f6
+X=0:0.001:1
 
-The `VoronoiFVM.Physics` struct almost never was used outside of the constructor of `VoronoiFVM.System`. Now it is possible to specify the flux functions directly in the system constructor. By default, it is als possible to set a list of species which are attached to all interior and boundary regions of the grid.
-"""
+# ╔═╡ c8eda836-d719-4412-895e-c3a24fec21ec
+flux(y,u,edge)=y[1]=u[1,1]-u[1,2];
 
-# ╔═╡ c59876bd-0cb1-4157-9ba4-bdbede151a44
-grid1=simplexgrid(0:0.1:1);
-
-# ╔═╡ 90bbf212-c6c8-44f0-8132-4a98f094750e
-multispecies_flux(y,u,edge)= @views @. y= u[:,1]-u[:,2]
-
-# ╔═╡ adff41d1-9398-4a66-9a8e-e03809973fa6
-function test_reaction(y,u,node)
-	y[1]=u[1]
-	y[2]=-u[1]
+# ╔═╡ c09f5dfc-fc47-4952-8051-54731ec2b00b
+function reaction(y,u,node)
+	eplus=exp(u[1])
+	eminus=1/eplus
+	y[1]=eplus-eminus
 end
 
-# ╔═╡ 5e6d83ab-65c7-4f33-b0a8-29cd5717b4d6
+# ╔═╡ eab04557-5084-4174-b275-b4d4399238e5
+function bc(y,u,node)
+	boundary_dirichlet!(y,u,node; region=1,value=100)
+	boundary_dirichlet!(y,u,node; region=2,value=0.0)
+end;
+
+# ╔═╡ 316112fd-6553-494a-8e4a-65b34829891d
+system=VoronoiFVM.System(X;
+						flux=flux,
+						reaction=reaction,
+						bcondition=bc,
+						species=1);
+
+# ╔═╡ 42e54ff9-fc11-4a31-ba10-32f8d817d50c
+md"""
+## Solution using default settings
+"""
+
+# ╔═╡ 050ed807-1bca-4015-85f3-d7347ecb7e6b
 begin
-   system1=VoronoiFVM.System(grid1,flux=multispecies_flux, 
-   reaction=test_reaction,species=[1,2])
-   boundary_dirichlet!(system1,species=1,region=1,value=1)
-   boundary_dirichlet!(system1,species=2,region=2,value=0)
+	sol=solve(system; log=true)
+	hist=history(system)
 end;
 
-# ╔═╡ f11c03a3-7899-42fd-a2da-a257715815dc
-sol1=solve(system1);
+# ╔═╡ b9bb8020-5470-4964-818c-7f9b3bf2a8b4
+inpluto && scalarplot(system,sol,resolution=(500,200),
+        xlabel="x",ylable="y", title="solution")
 
-# ╔═╡ 2754d4c8-bbc1-4283-8156-c660c33cd62d
-if inpluto 
-	let
-	vis=GridVisualizer(resolution=(500,300),legend=:rt)
-	scalarplot!(vis,grid1,sol1[1,:],color=:red,label="species1")
-	scalarplot!(vis,grid1,sol1[2,:],color=:green,label="species2",clear=false)
-	reveal(vis)
-end
-end
-
-# ╔═╡ fbd75cf1-64e4-4f07-b54f-f90626f3f6ba
-@test isapprox(sum(sol1),11.323894375033476, rtol=1.0e-14) 
-
-# ╔═╡ b5f7e133-500d-4a27-8f78-11ff3582599c
+# ╔═╡ b3124c06-1f40-46f5-abee-9c2e8e538162
 md"""
-### Boundary conditions as part of physics
-
-This makes the API more consistent and opens an easy possibility to have
-space and time dependent boundary conditions. One can specify them either in `breaction` or the synomymous `bcondition`.
+With `log=true`, the `solve` method in addition to the solution records the solution
+history which after finished solution can be obtatined as `history(system)`.
 """
 
-# ╔═╡ ec188c81-3374-4eed-9b7e-e22350886df2
-function bcond2(y,u,bnode)
-    boundary_neumann!(y,u,bnode,species=1,region=1,value=sin(bnode.time))
-    boundary_dirichlet!(y,u,bnode,species=2,region=2,value=0)
-end; 
-
-# ╔═╡ c86e8a0f-299f-42ab-96f8-0cd62d50f196
-system2=VoronoiFVM.System(grid1,flux=multispecies_flux, 
-   reaction=test_reaction,species=[1,2],bcondition=bcond2,check_allocs=true);
-
-# ╔═╡ b3d936fe-69ab-4013-b787-2f0b5410638a
-sol2=solve(system2, times=(0,10), Δt_max=0.01)
-
-# ╔═╡ 17749697-d5d8-4629-a625-e96590a5f0ac
-if inpluto
-   vis2=GridVisualizer(resolution=(500,300),limits=(-2,2),legend=:rt)
-end
-
-# ╔═╡ 0c916da5-2d6e-42df-ac4b-4a062f931ccd
-if inpluto
-	md"""time: $(@bind t2 Slider(0:0.01:10; default=5,show_value=true))"""
-end
-
-# ╔═╡ 783618f8-2470-4c7c-afc1-9800586625c1
-if inpluto
-    let
-	s=sol2(t2)
-	scalarplot!(vis2,grid1,s[1,:],color=:red,label="species1")
-	scalarplot!(vis2,grid1,s[2,:],color=:green,label="species2",clear=false,title="time=$(t2)")
-	reveal(vis2)
-end
-end
-
-# ╔═╡ 4cbea340-9c02-4e69-8f5e-62bf45312bdd
-@test isapprox(sum(sol2)/length(sol2),2.4908109508494247, rtol=1.0e-14) 
-
-# ╔═╡ 1c18b5a0-cca6-46a1-bb9f-b3d65b8043c5
+# ╔═╡ 973db266-eb91-46e8-a917-9beeeb2c1ea7
 md"""
-### Implicit creation of grid
+The history can be plotted:
 """
 
-# ╔═╡ 47280b56-e5ec-4345-b4a1-7c3c92536b2e
+# ╔═╡ 20e925f3-43fa-4db1-a656-79cf9c1c3303
+plothistory(h)=scalarplot(1:length(h),h,resolution=(500,200),
+             yscale=:log,
+	        xlabel="step",
+            ylabel="||δu||_∞",
+            title= "Maximum norm of Newton update");
+
+# ╔═╡ ebdc2c82-f72e-4e35-a63f-4ba5154e294f
+inpluto && plothistory(hist)
+
+# ╔═╡ 3d49aafd-79a6-4e2f-b422-24a5be7aa87a
 md"""
-By passing data for grid creation (one  to thre abstract vectors) instead a grid, a tensor product grid is implicitely created.
-This example also demonstrates position dependent boundary values.
+History can be summarized:
 """
 
-# ╔═╡ a71086fa-4ec6-4842-a4e1-6a6b60441fc2
-function bcond3(y,u,bnode)
-	boundary_dirichlet!(y,u,bnode,region=4,value=bnode[2])
-	boundary_dirichlet!(y,u,bnode,region=2,value=-bnode[2])
+# ╔═╡ a217a308-5569-41e4-9d9d-418217017030
+summary(hist)
+
+# ╔═╡ f951b78c-a3fb-432e-bf6e-b956049d6a0d
+md"""
+History can be explored in detail:
+"""
+
+# ╔═╡ fcd7beb6-51b2-4ca8-a184-43ba6b5d2c1a
+details(hist)
+
+# ╔═╡ baed6e43-747b-4557-95c3-d4805f12b3a1
+md"""
+With default solver settings, for this particular problem, Newton's method needs $(length(history(system))) iteration steps.
+"""
+
+# ╔═╡ ccef0590-d5f8-4ee2-bb7a-d48ccfbd4d99
+check(sol)= isapprox(sum(sol),2554.7106586964906,rtol=1.0e-12)
+
+# ╔═╡ c0432a54-85ec-4478-bd75-f5b43770a117
+@test check(sol)
+
+# ╔═╡ a4c1a2f5-dddb-4a45-bc03-e168cbd7d569
+md"""
+## Damping 
+"""
+
+# ╔═╡ 38539474-af65-4f0f-9aa1-2292f4f6331c
+md"""
+Try to use a damped version of Newton method. The damping scheme is rather simple: an initial damping value `damp_initial` is increased by a growth factor `damp_growth` in each iteration until it reaches 1.
+"""
+
+# ╔═╡ d961d026-0b55-46c2-8555-8ef0763d8016
+begin
+  sol1=solve(system,log=true,inival=1,damp=0.15,damp_grow=1.5) 
+  hist1=history(system)
+end
+
+# ╔═╡ e66d20f0-4987-471b-82ee-0c56160f9b01
+inpluto && plothistory(history(system))
+
+# ╔═╡ 35971019-fa07-4033-aebf-7872030a0cef
+details(hist1)
+
+# ╔═╡ 63ce84fc-e81b-4768-8122-36bfbd789727
+summary(hist1)
+
+# ╔═╡ bf3fe305-eecc-413e-956c-9737b9160f83
+md"""
+We see that the number of iterations decreased significantly.
+"""
+
+# ╔═╡ c8227ea2-2189-438f-bd02-e9d803031830
+@test check(sol1)
+
+# ╔═╡ f8cf5cdb-647c-4eb8-8bde-b12844f72b24
+md"""
+## Embedding
+"""
+
+# ╔═╡ eea852d0-937e-4af0-8688-f941e5d31697
+md"""
+Another possibility is the embedding (or homotopy) via a parameter: start with solving a simple problem and increase the level of complexity by increasing the parameter until the full problem is solved. This process is controlled by the parameters 
+- `Δp`: initial parameter step size
+- `Δp_min`: minimal parameter step size
+- `Δp_max`: maximum parameter step size
+- `Δp_grow`: maximum growth factor
+- `Δu_opt`: optimal difference of solutions between two embedding steps
+
+After successful solution of a parameter, the new parameter step size is calculated as
+`Δp_new=min(Δp_max, Δp_grow, Δp*Δu_opt/(|u-u_old|+1.0e-14))` and adjusted to the end of the parameter interval. 
+
+If the solution is unsuccessful, the parameter stepsize is halved and solution is retried, until the minimum step size is reached. 
+"""
+
+# ╔═╡ a71cbcd4-310e-47a8-94f9-1159995a7711
+function pbc(y,u,node)
+	boundary_dirichlet!(y,u,node; region=1,value=100*embedparam(node))
+	boundary_dirichlet!(y,u,node; region=2,value=0)
 end;
 
-# ╔═╡ a514231a-e465-4f05-ba4c-b20aa968d96f
-system3=VoronoiFVM.System(-1:0.1:1, -1:0.1:1, flux=multispecies_flux,bcondition=bcond3,species=1);
+# ╔═╡ 89435c65-0520-4430-8727-9d013df6182d
+system2=VoronoiFVM.System(X;
+							flux=flux,
+							reaction= function(y,u,node) 
+								         reaction(y,u,node)
+								         y[1]=y[1]*embedparam(node)
+							          end,
+							bcondition=pbc,
+							species=1);
 
-# ╔═╡ d55f615c-d586-4ef7-adf9-5faf052b75ac
-sol3=solve(system3);
+# ╔═╡ cb382145-c4f1-4222-aed7-32fa1e3bd7e4
+begin sol2=solve(system2, inival=0,
+					log=true,
+					embed=(0,1),
+					Δp=0.1,
+	                max_lureuse=0,
+					Δp_grow=1.2,
+					Δu_opt=15)
+	history2=history(system2)
+end
 
-# ╔═╡ c17e5104-4d3a-4d54-81c1-d7253245a8bb
-@test isapprox(sum(sol3), 0.0, atol=1.0e-14)
+# ╔═╡ a0b2aaf5-f7b1-40eb-ac4e-9790a8bbf09d
+summary(history2)
 
-# ╔═╡ 087ea16d-742e-4398-acf5-37248af1b5b4
+# ╔═╡ 0d2311aa-f79a-4a44-bac4-59d6c5457ca5
+inpluto && plothistory(vcat(history2...))
+
+# ╔═╡ 75ab714d-0251-42ef-a415-ba6bed4c688f
+@test check(sol2[end])
+
+# ╔═╡ fe22e2d8-fd70-49e2-8baf-d5ec3faead24
 md"""
-## GridVisualize API extended to System
-Instead of a grid, a system can be passed to `gridplot` and `scalarplot`.
+For this particular problem, embedding uses less overall Newton steps than the default settings, but the damped method is faster.
 """
 
-# ╔═╡ 34d465a5-7cc5-4348-b9ba-6d9381bb3a87
-inpluto && scalarplot(system3,sol3,resolution=(300,300),levels=10,colormap=:hot)
-
-# ╔═╡ ac48f5bd-fd1e-4aa7-a2c9-90f0f427143c
+# ╔═╡ 2cb7f0f4-7635-462c-89f8-93d18e7f24fb
 md"""
-## Parameters of `solve`
+## Solver control
 """
 
-# ╔═╡ 69974c02-57e6-4eb5-acf4-b2d480fbd67d
+# ╔═╡ 5f13831d-b73f-44fb-a870-16261f926ed5
 md"""
-The `solve` API has been simplified and made more Julian. All entries of `VoronoiFVM.NewtonControl` can be now passed as keyword arguments to `solve`.
-
-Another new keyword argument is `inival` which allows to pass an initial value which by default is initialized to zero. Therefore we now can write `solve(system)` as we already have seen above.
+Here we show the docsctring of `SolverControl` (formerly `NewtonControl`). This is a struct which can be passed to the `solve` method. Alternatively, as shown in this notebook, keyword arguments named like its entries can be passed directly to the `solve` method.
 """
 
-# ╔═╡ 1e12afcf-cf46-4672-9434-44fa8af95ef7
-reaction4(y,u,bnode)= y[1]=-bnode[1]^2+u[1]^4;
-
-# ╔═╡ 938ef63c-58c4-41a0-b3dd-4eb76987a4d7
-bc4(args...)=boundary_dirichlet!(args...,value=0);
-
-# ╔═╡ fe424654-f070-46a9-850a-738b1d4aca8f
-system4=VoronoiFVM.System(-10:0.1:10,species=[1],
-	reaction=reaction4,flux=multispecies_flux,bcondition=bc4);
-
-# ╔═╡ 37fc8816-5ccd-436e-8335-ebb1218d8a35
-sol4=solve(system4,log=true,damp_initial=0.001,damp_growth=3);
-
-# ╔═╡ 6a256a29-f15f-4d82-8e84-7ceacb786715
-inpluto && scalarplot(system4,sol4,resolution=(500,300),xlabel="x",ylabel="u",title="solution")
-
-# ╔═╡ 5c2a3836-dc81-4950-88e5-7f603514b1c0
-@test isapprox(sum(sol4),418.58515700568535, rtol=1.0e-14)
+# ╔═╡ 038d096a-1339-403c-aa9c-3112442d622d
+@doc SolverControl
 
 # ╔═╡ fc0245fe-1bf2-45a3-aa7c-9cce8d7eef37
 html"""<hr><hr><hr>"""
@@ -242,6 +286,7 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
@@ -251,10 +296,10 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 ExtendableGrids = "~0.8.11"
-GridVisualize = "~0.4.4"
+GridVisualize = "~0.4.3"
 PlutoUI = "~0.7.23"
 PlutoVista = "~0.8.12"
-Revise = "~3.2.1"
+Revise = "~3.2.0"
 VoronoiFVM = "~0.14.0"
 """
 
@@ -861,42 +906,49 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 
 # ╔═╡ Cell order:
 # ╟─4ed0c302-26e4-468a-a40d-0e6406f802d0
-# ╟─3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
+# ╟─eb9ea477-6122-4774-b4a4-04dd7346e2b6
 # ╟─7a104243-d3b9-421a-b494-5607c494b106
 # ╠═b285aca3-dee5-4b77-9276-537563e8643b
-# ╟─8a4f336c-2016-453e-9a9f-beac66533fc0
-# ╟─78e7c000-3a83-446a-b577-3a1809c664d2
-# ╠═c59876bd-0cb1-4157-9ba4-bdbede151a44
-# ╠═90bbf212-c6c8-44f0-8132-4a98f094750e
-# ╠═adff41d1-9398-4a66-9a8e-e03809973fa6
-# ╠═5e6d83ab-65c7-4f33-b0a8-29cd5717b4d6
-# ╠═f11c03a3-7899-42fd-a2da-a257715815dc
-# ╟─2754d4c8-bbc1-4283-8156-c660c33cd62d
-# ╠═fbd75cf1-64e4-4f07-b54f-f90626f3f6ba
-# ╟─b5f7e133-500d-4a27-8f78-11ff3582599c
-# ╠═ec188c81-3374-4eed-9b7e-e22350886df2
-# ╠═c86e8a0f-299f-42ab-96f8-0cd62d50f196
-# ╠═b3d936fe-69ab-4013-b787-2f0b5410638a
-# ╟─17749697-d5d8-4629-a625-e96590a5f0ac
-# ╟─0c916da5-2d6e-42df-ac4b-4a062f931ccd
-# ╟─783618f8-2470-4c7c-afc1-9800586625c1
-# ╠═4cbea340-9c02-4e69-8f5e-62bf45312bdd
-# ╟─1c18b5a0-cca6-46a1-bb9f-b3d65b8043c5
-# ╟─47280b56-e5ec-4345-b4a1-7c3c92536b2e
-# ╠═a71086fa-4ec6-4842-a4e1-6a6b60441fc2
-# ╠═a514231a-e465-4f05-ba4c-b20aa968d96f
-# ╠═d55f615c-d586-4ef7-adf9-5faf052b75ac
-# ╠═c17e5104-4d3a-4d54-81c1-d7253245a8bb
-# ╟─087ea16d-742e-4398-acf5-37248af1b5b4
-# ╠═34d465a5-7cc5-4348-b9ba-6d9381bb3a87
-# ╟─ac48f5bd-fd1e-4aa7-a2c9-90f0f427143c
-# ╟─69974c02-57e6-4eb5-acf4-b2d480fbd67d
-# ╠═1e12afcf-cf46-4672-9434-44fa8af95ef7
-# ╠═938ef63c-58c4-41a0-b3dd-4eb76987a4d7
-# ╠═fe424654-f070-46a9-850a-738b1d4aca8f
-# ╠═37fc8816-5ccd-436e-8335-ebb1218d8a35
-# ╟─6a256a29-f15f-4d82-8e84-7ceacb786715
-# ╠═5c2a3836-dc81-4950-88e5-7f603514b1c0
+# ╟─9843b65c-6ca8-4ef8-a896-2c8cec4bff7c
+# ╠═a70b8d85-66aa-4da8-8157-dd0244e3e4f6
+# ╠═c8eda836-d719-4412-895e-c3a24fec21ec
+# ╠═c09f5dfc-fc47-4952-8051-54731ec2b00b
+# ╠═eab04557-5084-4174-b275-b4d4399238e5
+# ╠═316112fd-6553-494a-8e4a-65b34829891d
+# ╟─42e54ff9-fc11-4a31-ba10-32f8d817d50c
+# ╠═050ed807-1bca-4015-85f3-d7347ecb7e6b
+# ╟─b9bb8020-5470-4964-818c-7f9b3bf2a8b4
+# ╟─b3124c06-1f40-46f5-abee-9c2e8e538162
+# ╟─973db266-eb91-46e8-a917-9beeeb2c1ea7
+# ╠═20e925f3-43fa-4db1-a656-79cf9c1c3303
+# ╠═ebdc2c82-f72e-4e35-a63f-4ba5154e294f
+# ╟─3d49aafd-79a6-4e2f-b422-24a5be7aa87a
+# ╠═a217a308-5569-41e4-9d9d-418217017030
+# ╟─f951b78c-a3fb-432e-bf6e-b956049d6a0d
+# ╟─fcd7beb6-51b2-4ca8-a184-43ba6b5d2c1a
+# ╟─baed6e43-747b-4557-95c3-d4805f12b3a1
+# ╠═ccef0590-d5f8-4ee2-bb7a-d48ccfbd4d99
+# ╠═c0432a54-85ec-4478-bd75-f5b43770a117
+# ╟─a4c1a2f5-dddb-4a45-bc03-e168cbd7d569
+# ╟─38539474-af65-4f0f-9aa1-2292f4f6331c
+# ╠═d961d026-0b55-46c2-8555-8ef0763d8016
+# ╟─e66d20f0-4987-471b-82ee-0c56160f9b01
+# ╠═35971019-fa07-4033-aebf-7872030a0cef
+# ╠═63ce84fc-e81b-4768-8122-36bfbd789727
+# ╟─bf3fe305-eecc-413e-956c-9737b9160f83
+# ╠═c8227ea2-2189-438f-bd02-e9d803031830
+# ╟─f8cf5cdb-647c-4eb8-8bde-b12844f72b24
+# ╟─eea852d0-937e-4af0-8688-f941e5d31697
+# ╠═a71cbcd4-310e-47a8-94f9-1159995a7711
+# ╠═89435c65-0520-4430-8727-9d013df6182d
+# ╠═cb382145-c4f1-4222-aed7-32fa1e3bd7e4
+# ╠═a0b2aaf5-f7b1-40eb-ac4e-9790a8bbf09d
+# ╟─0d2311aa-f79a-4a44-bac4-59d6c5457ca5
+# ╠═75ab714d-0251-42ef-a415-ba6bed4c688f
+# ╟─fe22e2d8-fd70-49e2-8baf-d5ec3faead24
+# ╟─2cb7f0f4-7635-462c-89f8-93d18e7f24fb
+# ╟─5f13831d-b73f-44fb-a870-16261f926ed5
+# ╠═038d096a-1339-403c-aa9c-3112442d622d
 # ╟─fc0245fe-1bf2-45a3-aa7c-9cce8d7eef37
 # ╟─f50c6497-cba3-491a-bedd-5f94f88f76fb
 # ╟─ad899a81-baab-4433-8b7f-1e5c3b18dae6

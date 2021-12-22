@@ -181,38 +181,12 @@ end
 
 """
 ````
-solve(DifferentialEquations, inival, system, tspan; 
-      solver=nothing, 
-      kwargs...)
+solve(DifferentialEquations, inival, system, tspan;  solver=nothing,   kwargs...)
 ````
 
-Use a  timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) to perform
-transient solution  of the  system. 
+Solve using timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
 
-The system must have a constant diagonal mass matrix.
-
-Any stiff solver  capable to work with mass matrices  is possible.  If
-the system  contains elliptic equations, it  needs to be a  DAE solver
-able to work with mass matrices.  See a list
-[here](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).
-
-
-The  constructed  solver should  be  passed  as `solver=`  kwarg.   By
-default (if `nothing` is passed), the `Rosenbrock23` solver is used.
-
-All other  kwargs are  passed to  `DifferentialEquations.solve()`, see
-[here](https://diffeq.sciml.ai/stable/basics/common_solver_opts/)  for
-an overview.
-
-In order to avoid a package dependency on DifferentialEquations,  the module
-corresponding to that package is passed as the first argument.
-
-Returns a transient solution object `sol` containing stored solutions,
-see [`TransientSolution`](@ref).
-
-
-!!! info
-    It is planned to have one general `solve` method controlled by kwargs, see [`solve(system::AbstractSystem; kwargs...)`](@ref).
+Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the corresponding keyword arguments.
 
 """
 function solve(DiffEq::Module,

@@ -107,144 +107,162 @@ function _solve!(
     control::NewtonControl,
     time::Tv,
     tstep::Tv,
-    log::Bool
+    embedparam::Tv
 ) where Tv
 
     _complete!(system, create_newtonvectors=true)
-    nlhistory=zeros(0)
-    
-    solution.=oldsol
-    residual=system.residual
-    update=system.update
-    _initialize!(solution,system)
-    SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
-    if typeof(control.factorization)!=typeof(system.factorization)
-        system.factorization=control.factorization
-    end
-    oldnorm=1.0
-    converged=false
-    if control.verbose
-        @printf("    Start Newton iteration\n")
-    end
-    nlu=0
-    nround=0
-    damp=control.damp_initial
-    tolx=0.0
-    rnorm=LinearAlgebra.norm(values(solution),1)
-
-    for ii=1:control.max_iterations
-        try
-            eval_and_assemble(system,solution,oldsol,residual,time,tstep,edge_cutoff=control.edge_cutoff)
-        catch err
-            if (control.handle_exceptions)
-                _print_error(err,stacktrace(catch_backtrace()))
-                throw(AssemblyError())
-            else
-                rethrow(err)
-            end
+    nlhistory=SolverHistory()
+    t=@elapsed begin
+        solution.=oldsol
+        residual=system.residual
+        update=system.update
+        _initialize!(solution,system)
+        SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
+        if typeof(control.factorization)!=typeof(system.factorization)
+            system.factorization=control.factorization
         end
-
-        mtx=system.matrix
-        
-        nliniter=0
-        # Sparse LU factorization
-        if nlu==0 # (re)factorize, if possible reusing old factorization data
-            try
-                factorize!(system.factorization,mtx)
-            catch err
-                if (control.handle_exceptions)
-                    _print_error(err,stacktrace(catch_backtrace()))
-                    throw(FactorizationError())
-                else
-                    rethrow(err)
-                end
-            end
-        end
-        if issolver(system.factorization) && nlu==0
-            # Direct solution via LU solve
-            try
-                ldiv!(values(update),system.factorization,values(residual))
-            catch err
-                if (control.handle_exceptions)
-                    _print_error(err,stacktrace(catch_backtrace()))
-                    throw(FactorizationError())
-                else
-                    rethrow(err)
-                end
-            end
-        elseif !issolver(system.factorization) || nlu>0
-            # Iterative solution
-            update.=zero(Tv)
-            (sol,history)= bicgstabl!(values(update),
-                                      mtx,
-                                      values(residual),
-                                      1,
-                                      Pl=system.factorization,
-                                      reltol=control.tol_linear,
-                                      max_mv_products=100,
-                                      log=true)
-            nliniter=history.iters
-        else
-            error("This should not happen")
-        end
-
-        nlu=min(nlu+1,control.max_lureuse)
-        solval=values(solution)
-        solval.-=damp*values(update)
-        damp=min(damp*control.damp_growth,1.0)
-        norm=LinearAlgebra.norm(values(update),Inf)
-        if tolx==0.0
-            tolx=norm*control.tol_relative
-        end
-        dnorm=1.0
-        rnorm_new=LinearAlgebra.norm(values(solution),1)
-        if rnorm>1.0e-50
-            dnorm=abs((rnorm-rnorm_new)/rnorm)
-        end
-        
-        if dnorm<control.tol_round
-            nround=nround+1
-        else
-            nround=0
-        end
-
-        push!(nlhistory,norm)
+        oldnorm=1.0
+        converged=false
         if control.verbose
-            if   control.tol_linear<1.0
-                itstring=@sprintf("it=% 3d(% 2d)",ii,nliniter)
-            else
-                itstring=@sprintf("it=% 3d",ii)
-            end
-            if control.max_round>0
-                @printf("    %s du=%.3e cont=%.3e dnorm=%.3e %d\n",itstring,norm, norm/oldnorm,dnorm,nround)
-            else
-                @printf("    %s du=%.3e cont=%.3e\n",itstring,norm, norm/oldnorm)
-            end
+            @printf("    Start Newton iteration\n")
         end
-        if ii>1 &&  norm/oldnorm > 1.0/control.tol_mono
-            converged=false
-            break
-        end
+        nlu_reuse=0
+        nround=0
+        damp=control.damp_initial
+        tolx=0.0
+        rnorm=LinearAlgebra.norm(values(solution),1)
         
-        if norm<control.tol_absolute || norm <tolx
-            converged=true
-            break
-        end
-        oldnorm=norm
-        rnorm=rnorm_new
+        for ii=1:control.max_iterations
+            try
+                eval_and_assemble(system,solution,oldsol,residual,time,tstep,embedparam,edge_cutoff=control.edge_cutoff)
+            catch err
+                if (control.handle_exceptions)
+                    _print_error(err,stacktrace(catch_backtrace()))
+                    throw(AssemblyError())
+                else
+                    rethrow(err)
+                end
+            end
+            
+            mtx=system.matrix
+            
+            nliniter=0
+            # Sparse LU factorization
+            if nlu_reuse==0 # (re)factorize, if possible reusing old factorization data
+                try
+                    factorize!(system.factorization,mtx)
+                catch err
+                    if (control.handle_exceptions)
+                        _print_error(err,stacktrace(catch_backtrace()))
+                        throw(FactorizationError())
+                    else
+                        rethrow(err)
+                    end
+                end
+                if control.log
+                    nlhistory.nlu+=1
+                end
+            end
+            if issolver(system.factorization) && nlu_reuse==0
+                # Direct solution via LU solve
+                try
+                    ldiv!(values(update),system.factorization,values(residual))
+                    if control.log
+                        nlhistory.nlin+=1
+                    end
+                catch err
+                    if (control.handle_exceptions)
+                        _print_error(err,stacktrace(catch_backtrace()))
+                        throw(FactorizationError())
+                    else
+                        rethrow(err)
+                    end
+                end
+            elseif !issolver(system.factorization) || nlu_reuse>0
+                # Iterative solution
+                update.=zero(Tv)
+                (sol,history)= bicgstabl!(values(update),
+                                          mtx,
+                                      values(residual),
+                                          1,
+                                          Pl=system.factorization,
+                                          reltol=control.tol_linear,
+                                          max_mv_products=100,
+                                          log=true)
+                nliniter=history.iters
+                if control.log
+                    nlhistory.nlin+=history.iters
+                end
+            else
+                error("This should not happen")
+            end
 
-        if nround>control.max_round
-            converged=true
+            if control.max_lureuse>0
+                nlu_reuse=(nlu_reuse+1)%control.max_lureuse
+            end
+            solval=values(solution)
+            solval.-=damp*values(update)
+            damp=min(damp*control.damp_growth,1.0)
+            norm=LinearAlgebra.norm(values(update),Inf)
+            if tolx==0.0
+                tolx=norm*control.tol_relative
+            end
+            dnorm=1.0
+            rnorm_new=LinearAlgebra.norm(values(solution),1)
+            if rnorm>1.0e-50
+                dnorm=abs((rnorm-rnorm_new)/rnorm)
+            end
+            
+            if dnorm<control.tol_round
+                nround=nround+1
+            else
+                nround=0
+            end
+
+            if control.log
+                push!(nlhistory.l1normdiff,dnorm)
+                push!(nlhistory.updatenorm,norm)
+            end
+            if control.verbose
+                if   control.tol_linear<1.0
+                itstring=@sprintf("it=% 3d(% 2d)",ii,nliniter)
+                else
+                    itstring=@sprintf("it=% 3d",ii)
+            end
+                if control.max_round>0
+                    @printf("    %s du=%.3e cont=%.3e dnorm=%.3e %d\n",itstring,norm, norm/oldnorm,dnorm,nround)
+                else
+                    @printf("    %s du=%.3e cont=%.3e\n",itstring,norm, norm/oldnorm)
+            end
+            end
+            if ii>1 &&  norm/oldnorm > 1.0/control.tol_mono
+                converged=false
             break
+            end
+            
+            if norm<control.tol_absolute || norm <tolx
+                converged=true
+                break
+            end
+            oldnorm=norm
+            rnorm=rnorm_new
+            
+            if nround>control.max_round
+            converged=true
+                break
+            end
+        end
+        if !converged
+            throw(ConvergenceError())
         end
     end
-    if !converged
-        throw(ConvergenceError())
+    if control.log
+        nlhistory.time=t
     end
     if control.verbose
-        @printf("    Newton iteration successful\n")
+       @printf("    Newton iteration successful\n")
     end
-    return nlhistory
+    system.history=nlhistory
 end
 
 
@@ -263,7 +281,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
                            time::Tv,
-                           tstep::Tv; # time step size. Inf means stationary solution
+                           tstep::Tv,# time step size. Inf means stationary solution
+                           embedparam::Tv;
                            edge_cutoff=0.0
                            ) where {Tv, Ti}
     
@@ -281,6 +300,13 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     bnode.time=time
     edge.time=time
     bedge.time=time
+
+    node.embedparam=embedparam
+    bnode.embedparam=embedparam
+    edge.embedparam=embedparam
+    bedge.embedparam=embedparam
+
+
     
     @create_physics_wrappers(physics, node, bnode, edge, bedge)
 
@@ -589,7 +615,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 L   = bedge.node[2]
             
                 fac = bfaceedgefactors[ibedge, ibface]
-                #@show fac
+
                 for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
                     ispec =_spec(F, idofK, K)
                     idofL = dof(F, ispec, L)
@@ -660,8 +686,7 @@ end
 ````
 solve!(solution, inival, system; 
     control=NewtonControl(), 
-    tstep=Inf, 
-    log=false)
+    tstep=Inf)
 ````
 Mutating version of [`solve(inival,system)`](@ref)
 """
@@ -672,36 +697,36 @@ function solve!(
     control=NewtonControl(),      # Newton solver control information
     time=Inf,
     tstep=Inf,                # Time step size. Inf means  stationary solution
-    log::Bool=false,
+    embedparam=0.0,
     kwargs...
 )
     if control.verbose
         @time begin
-            history=_solve!(solution,inival,system,control,time,tstep,log)
+            _solve!(solution,inival,system,control,time,tstep,embedparam)
         end
     else 
-        history=_solve!(solution,inival,system,control,time,tstep,log)
+        _solve!(solution,inival,system,control,time,tstep,embedparam)
     end
-    return log ? (solution,history) : solution
+    return solution
 end
+
+
+
+
+
+
+
 
 
 ################################################################
 """
 ````
-solve(inival, system; 
-      control=NewtonControl(), 
-      tstep=Inf, 
-      log=false)
+solve(inival, system; control=NewtonControl(), tstep=Inf)
 ````
-Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the corresponding
-keyword arguments.  Calle
+Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
-Perform solution of stationary problem(if `tstep==Inf`) or one step
-of the implicit Euler method using Newton's method with `inival` as initial
-value.
-It returns a solution array or, if `log==true`, a tuple of solution and a vector
-containing the residual history of Newton's method.
+Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
+value. Returns a solution array.
 """
 function solve(
     inival,   # Initial value 
@@ -709,136 +734,89 @@ function solve(
     control=NewtonControl(),      # Newton solver control information
     time=Inf,
     tstep=Inf,                # Time step size. Inf means  stationary solution
-    log::Bool=false,
     kwargs...
 )
-    solve!(unknowns(system),inival,system,control=control,time=time, tstep=tstep,log=log)
+    solve!(unknowns(system),inival,system,control=control,time=time, tstep=tstep)
 end
 
-################################################################
-"""
-````
-function embed!(solution, inival, system; 
-                control=NewtonControl(),
-                pre=function(sol,p) end,
-                post=function(sol,p) end
-)
-````
-Solve stationary problem via parameter embedding, calling
-`solve!` for increasing values of the parameter p from interval
-(0,1). The user is responsible for the interpretation of
-the parameter. 
 
-The optional `pre()` callback can be used
-to communicate its value to the system.
+Δλ_val(control,transient)= transient ? control.Δt : control.Δp
+Δλ_min(control,transient)= transient ? control.Δt_min : control.Δp_min
+Δλ_max(control,transient)= transient ? control.Δt_max : control.Δp_max
+Δλ_grow(control,transient)= transient ? control.Δt_grow : control.Δp_grow
 
-The optional `post()` callback method can be used to perform
-various postprocessing steps.
 
-If `control.handle_error` is true, if `solve!`  throws an error,
-stepsize `control.Δp` is lowered, and `solve!` is called again with a smaller  parameter
-value. If `control.Δp<control.Δp_min`, `embed!` is aborted
-with error.
 
 """
-function embed!(
-    solution, # Solution
-    inival,   # Initial value 
-    system::AbstractSystem;     # Finite volume system
-    control=NewtonControl(),      # Newton solver control information
-    pre=function(sol,p) end,       # Function for preparing step
-    post=function(sol,p) end      # Function for postprocessing successful step
-) 
-    inival=copy(inival)
-    p=0.0
-    Δp=control.Δp
-    if control.verbose
-        @printf("  Embedding: start\n")
+        solve(inival, system, times; kwargs...)
+
+Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
+
+"""
+function solve(inival,
+               system::VoronoiFVM.AbstractSystem,
+               lambdas;
+               control=NewtonControl(),
+               pre=function(sol,t) end,       # Function for preparing step
+               post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
+               sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
+               delta=(u,v,t, Δt)->norm(system,u-v,Inf), # Time step error estimator
+               transient=true, # choose between transient and stationary (embedding) case
+               time=0.0,
+               kwargs...
+               )
+    
+    λstr="t"
+    if !transient
+        λstr="p"
     end
-    istep=0
-    while p<1.0
-        solved=false
-        p0=p
-        while !solved
-            solved=true
-            try
-                p=min(p0+Δp,1.0)
-                pre(solution,p)
-                solve!(solution,inival, system ,control=control)
-            catch err
-                if (control.handle_exceptions)
-                    _print_error(err,stacktrace(catch_backtrace()))
-                else
-                    rethrow(err)
-                end
-                # here we reduce the embedding step and retry the solution
-                Δp=Δp*0.5
-                if Δp<control.Δp_min
-                    throw(EmbeddingError("Δp=$(Δp) < control.Δp_min= $(control.Δp_min)"))
-                end
-                solved=false
-                if control.verbose
-                    @printf("  Embedding: retry: Δp=%.3e\n",Δp)
-                end
-            end
-        end
-        istep=istep+1
-        if control.verbose
-            @printf("  Embedding: istep=%d p=%.3e\n",istep,p)
-        end
-        Δp=min(control.Δp_max,Δp*1.2)
-        post(solution,p)
-        inival.=solution
-    end
-    if control.verbose
-        @printf("  Embedding: success\n")
-    end
-    return solution
-end
 
-################################################################
-"""
-
-    evolve!(solution, inival, system, times; kwargs...)
-
-Mutating version of alias for `solve(system; inival=inival, times=times, kwargs...)`, see [`solve(system::AbstractSystem, kwargs...)`](@ref).
-This method  just updates the `solution` vector, without recording the intermediate result.
-"""
-function evolve!(
-    solution, # Solution
-    inival,   # Initial value 
-    system::AbstractSystem,    # Finite volume system
-    times;
-    control=NewtonControl(),      # Newton solver control information
-    pre=function(sol,t) end,       # Function for preparing step
-    post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
-    sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
-    delta=(u,v,t, Δt)->norm(sys,u-v,Inf) # Time step error estimator
-)
-    inival=copy(inival)
+    allhistory=SolverHistories()
+    
+    solution=copy(inival)
+    oldsolution=copy(inival)
     _initialize_dirichlet!(inival,system)
-    Δt=control.Δt
+    Δλ=Δλ_val(control,transient)
+    
+    if !transient
+        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]))
+        if control.log
+            push!(allhistory,system.history)
+            push!(allhistory.times,lambdas[1])
+            Δu=delta(solution, oldsolution,lambdas[1],0)
+            push!(allhistory.updates,Δu)
+        end
+        oldsolution.=solution
+    end
+    
+    tsol=TransientSolution(Float64(lambdas[1]),solution, in_memory=control.in_memory)
+    
     if control.verbose
         @printf("  Evolution: start\n")
     end
-    for i=1:length(times)-1
+    
+    for i=1:length(lambdas)-1
         
-        Δt=max(Δt,control.Δt_min)
-        tstart=times[i]
-        tend=times[i+1]
-        t=tstart
+        Δλ=max(Δλ,Δλ_min(control,transient))
+        λstart=lambdas[i]
+        λend=lambdas[i+1]
+        λ=Float64(λstart)
         istep=0
-
-        while t<tend
+        
+        while λ<λend
             solved=false
-            t0=t
+            λ0=λ
             Δu=0.0
             while !solved
                 solved=true
                 try
-                    t=t0+Δt
-                    pre(solution,t)
-                    solve!(solution,inival, system ,control=control,time=t,tstep=Δt)
+                    λ=λ0+Δλ
+                    pre(solution,λ)
+                    if transient
+                        solution=solve!(solution,oldsolution, system ,control=control,time=λ,tstep=Δλ)
+                    else
+                        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=λ)
+                    end
                 catch err
                     if (control.handle_exceptions)
                         _print_error(err,stacktrace(catch_backtrace()))
@@ -848,133 +826,123 @@ function evolve!(
                     solved=false
                 end
                 if solved
-                    Δu=delta(solution, inival,t, Δt)
+                    Δu=delta(solution, oldsolution,λ, Δλ)
                     if Δu>2.0*control.Δu_opt
                         solved=false
                     end
                 end
                 if !solved
                     # reduce time step and retry  solution
-                    Δt=Δt*0.5
-                    if Δt<control.Δt_min
+                    Δλ=Δλ*0.5
+                    if Δλ<Δλ_min(control,transient)
                         if !(control.force_first_step && istep==0)
-                            throw(EmbeddingError(" Δt_min=$(control.Δt_min) reached while Δu=$(Δu) >>  Δu_opt=$(control.Δu_opt) "))
+                            throw(EmbeddingError(" Δ$(λstr)_min=$(Δλ_min(control,transient)) reached while Δu=$(Δu) >>  Δu_opt=$(control.Δu_opt) "))
                         else
                             solved=true
                         end
                     end
                     if control.verbose
-                        @printf("  Evolution: retry: Δt=%.3e\n",Δt)
+                        @printf("  Evolution: retry: Δ%s=%.3e\n",λ_str,Δλ)
                     end
                 end
             end
             istep=istep+1
             if control.verbose
-                @printf("  Evolution: istep=%d t=%.3e Δu=%.3e\n",istep,t,Δu)
+                @printf("  Evolution: istep=%d λ=%.3e Δu=%.3e\n",istep,λ,Δu)
             end
-            post(solution,inival,t, Δt)
-            inival.=solution
-            if t<tend
-                Δt=min(control.Δt_max,
-                       Δt*control.Δt_grow,
-                       Δt*control.Δu_opt/(Δu+1.0e-14),
-                       tend-t)
+            if control.log
+                push!(allhistory,system.history)
+                push!(allhistory.updates,Δu)
+                push!(allhistory.times,λ)
+            end
+            if control.store_all
+                append!(tsol,λ,solution)
+            end
+            post(solution,oldsolution,λ, Δλ)
+            oldsolution.=solution
+            if λ<λend
+                Δλ=min(Δλ_max(control,transient),
+                       Δλ*Δλ_grow(control,transient),
+                       Δλ*control.Δu_opt/(Δu+1.0e-14),
+                       λend-λ)
             end
         end
-        sample(solution,times[i+1])
+        if !control.store_all
+            append!(tsol,lambdas[i+1],solution)
+        end
+        sample(solution,lambdas[i+1])
     end
     if control.verbose
         @printf("  Evolution: success\n")
     end
-    return solution
+    
+    system.history=allhistory
+    return tsol
 end
 
 
+module NoModule end
+
+#####################################################################
 """
-    solve(inival, system, times; kwargs...)
-
-Alias for `solve(system; inival=inival, times=times, kwargs...)`, see [`solve(system::AbstractSystem, kwargs...)`](@ref).
-
-"""
-function solve(inival,
-               sys::VoronoiFVM.AbstractSystem,
-               times;
-               control=NewtonControl(),
-               pre=function(sol,t) end,       # Function for preparing step
-               post=function(sol,oldsol, t, Δt) end,      # Function for postprocessing successful step
-               sample=function(sol,t) end,      # Function to be called for each t\in times[2:end]
-               delta=(u,v,t, Δt)->norm(sys,u-v,Inf), # Time step error estimator
-               store_all=true, # if true, store all solutions, otherwise, store only at sampling times
-               in_memory=true,
-               kwargs...
-               )
-    tsol=TransientSolution(Float64(times[1]),inival, in_memory=in_memory)
-    solution=copy(inival)
-    if store_all
-        evolve!(solution,inival,sys,times,
-                control=control,
-                post=(u,uold,t,Δt)->(post(u,uold,t,Δt);append!(tsol,t,u)),
-                pre=pre,
-                sample=sample,
-                delta=delta
-                )
-    else
-        evolve!(solution,inival,sys,times,
-                control=control,
-                post=post,
-                sample=(u,t)->(sample(u,t);append!(tsol,t,u)),
-                pre=pre,
-                delta=delta
-                )
-    end
-    tsol
-end
-
-
-
-
-"""
-    solve(system; kwargs)
+    solve(system; kwargs...)
 
 Main solution method for VoronoiFVM.System.
 
 Keyword arguments:
+- General: 
+  - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
+  -  All elements of [`SolverControl`](@ref) can be used as kwargs exept in the case of the DifferentialEquations based solver
+  - `damp` (default: 1): alias for `damp_initial`
+  - `damp_grow` (default: 1): alias for `damp_growth`
+  - `abstol`: alias for `tol_absolute`
+  - `reltol`: alias for `tol_relative`
+  - `control` (default: nothing): Alternatively pass instance of [`SolverControl`](@ref)
 
-- `inival`: Array created via [`unknowns`](@ref) or  number giving the intial value.
-- Solver control:
-  All elements [`SolverControl`](@ref) can be passed for solver control.
-   - `control`: Alternatively pass instance of [`SolverControl`](@ref)
+- Stationary/implicit timestep solver:
+  Invoked if neither `times` nor `embed`  nor `tspan` are given as keyword argument.
+  - `tstep` (default: `Inf`): if `tstep<Inf`, perform one  implicit Euler step, otherwise solve stationary problem.
+  - `time` (default: `0`): Set time value. 
+  Returns solution array.
 
-- Stationary solver:
-  If neither `times` nor `tspan` are given as keyword argument, the stationary solver is invoked.
-  - `tstep`: `Inf`: if `tstep<Inf`, perform one step of implicit Euler method.
-  - `time`: `0` Set time value. 
-  - `log`: `false` if `log==true`, return vector of Newton convergence history along with solution
-    
-- Default transient solver:
+
+- Embeding (homotopy) solver (if `embed` kwarg is given):
+  Use homotopy embedding + damped Newton's method  to 
+  solve stationary problem or to solve series of parameter dependent problems.
+  Parameter step control is performed according to solver control data.  kwargs and default values are:
+  - `embed` (default: `nothing` ): vector of parameter values to be reached exactly
+  In addition,  all kwargs of the implicit Euler solver (besides `times`) are handled.  
+  
+- Implicit Euler transient solver (if `times` kwarg is given):
   Use implicit Euler method  + damped   Newton's method  to 
   solve time dependent problem. Time step control is performed
-  according to solver control data.  kwargs an default values are:
-  - `times`: `nothing`: vector of time values to be reached exactly
-  - `pre`: `function(sol,t) end`  is invoked before each time step
-  - `post`: `function(sol,oldsol, t, Δt) end`  is invoked after each time step
-  - `sample`: `function(sol,t) end`  is called for all times in `times[2:end]`.
-  - `delta`: `(u,v,t, Δt)->norm(sys,u-v,Inf)` is  used to control the time step.
-  - `store_all`: `true`, all timestep solutions are stored. Otherwise,
-     only solutions for the moments defined in `times` are stored.
-  - `in_memory`: `true`, store solution in memory. If `false`, store it on disk.
+  according to solver control data.  kwargs and default values are:
+  - `times` (default: `nothing` ): vector of time values to be reached exactly
+  - `pre` (default: `(sol,t)->nothing` ):  invoked before each time step
+  - `post`  (default:  `(sol,oldsol, t, Δt)->nothing` ):  invoked after each time step
+  - `sample` (default:  `(sol,t)->nothing` ): invoked after timestep for all times in `times[2:end]`.
+  - `delta` (default:  `(u,v,t, Δt)->norm(sys,u-v,Inf)` ):  Value  used to control the time step size `Δu`
+  If `control.handle_error` is true, if step solution  throws an error,
+  stepsize  is lowered, and  step solution is called again with a smaller time value.
+  If `control.Δt<control.Δt_min`, solution is aborted
+  with error.
   Returns a transient solution object `sol` containing the stored solution,
   see [`TransientSolution`](@ref).
-
-- Transient solver from `DifferentialEquations.jl`
-  - `DifferentialEquations`: DifferentialEquations module
+  
+- Transient solver from `DifferentialEquations.jl`/`OrdinaryDiffEq.jl`
   - `tspan`: Time interval for differential equations.
-  For further information, see [`solve(DiffEq::Module, inival::AbstractArray, sys::AbstractSystem,tspan; kwargs...)`](@ref)
-  All kwargs are passed to that solver.
-  Returns a transient solution object `sol` containing the stored solution,
-  see [`TransientSolution`](@ref).
+  - `diffeq`: `DifferentialEquations` or `OrdinaryDiffEq` module made available via `import` or `using`.
+  - `solver`: specify solver from [DifferentialEquations](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).  
+     By default, [`Rosenbrock23()`](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Rosenbrock-W-Methods) is used. 
+     Any  stiff  solver   capable  to  work  with   mass  matrices  is possible. 
+     If the system contains  elliptic equations, it needs to be a DAE solver able to  work with mass matrices.
+     Currently, the mass matrix must  be constant and diagonal which  means that only storage terms  of the  form `s(u)=  c u`  are allowed.  
+  - All other kwargs   are  passed   to  `DifferentialEquations.solve()`,  see [here](https://diffeq.sciml.ai/stable/basics/common_solver_opts/)
+    for  an  overview.  
+  Returns  a transient  solution  object  `sol` containing stored solutions, see [`TransientSolution`](@ref).
+
 """
-function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, control=VoronoiFVM.NewtonControl(), kwargs...)
+function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, control=VoronoiFVM.NewtonControl(), diffeq::Module=NoModule, solver=nothing, kwargs...)
     if isa(inival,Number)
         inival=unknowns(sys,inival=inival)
     elseif  !VoronoiFVM.isunknownsof(inival,sys)
@@ -982,17 +950,23 @@ function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, control=Voro
     end
 
     for k ∈ kwargs
-        if hasproperty(control,k[1])
-            setproperty!(control,k[1],k[2])
+        key=k[1]
+        if key==:abstol key=:tol_absolute end
+        if key==:reltol key=:tol_relative end
+        if key==:damp key=:damp_initial end
+        if key==:damp_grow key=:damp_growth end
+        if hasproperty(control,key)
+            setproperty!(control,key,k[2])
         end
     end
-
-    if haskey(kwargs,:times)
-        solve(inival,sys,kwargs[:times]; control=control, kwargs...)
-    elseif  haskey(kwargs,:tspan) && haskey(kwargs,:DifferentialEquations)
-        solve(kwargs[:DifferentialEquations],inival,sys,kwargs[:tspan]; kwargs...)
+    
+    if isdefined(diffeq,:ODEProblem) &&  haskey(kwargs,:tspan)
+        solve(diffeq,inival,sys,kwargs[:tspan]; solver=solver, kwargs...)
+    elseif haskey(kwargs,:times)
+        solve(inival,sys,kwargs[:times]; control=control, transient=true, kwargs...)
+    elseif haskey(kwargs,:embed)
+        solve(inival,sys,kwargs[:embed]; control=control, transient=false, kwargs...)
     else
         solve(inival,sys; control=control,kwargs...)
     end
 end
-
