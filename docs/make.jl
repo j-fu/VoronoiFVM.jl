@@ -23,32 +23,35 @@ function make_all(;with_examples=true)
     example_md_dir  = joinpath(@__DIR__,"src","examples")
     notebook_html_dir  = joinpath(@__DIR__,"src","nbhtml")
 
-    ENV["RUNNING_DOCUMENTER"]=1
+
     if with_examples
         #
         # Run notebooks
         #
-        notebooks=["api-update.jl",
-                   "flux-reconstruction.jl",
-                   "problemcase.jl"
-                   ]
-        
+        notebooks=[
+            "0.14.0 API Update" => "api-update.jl",
+            "Obtaining vector fields"=>"flux-reconstruction.jl",
+            "A case for caution" => "problemcase.jl"
+        ]
+
+        notebookjl=last.(notebooks)
         # Use sliderserver to generate html
         
-        export_directory(joinpath(@__DIR__,"..","pluto-examples"),
-                          notebook_paths=notebooks,
-                          Export_output_dir=joinpath(notebook_html_dir),
-                          Export_offer_binder=false)
-
+        # export_directory(joinpath(@__DIR__,"..","pluto-examples"),
+        #                  notebook_paths=notebookjl,
+        #                  Export_output_dir=joinpath(notebook_html_dir),
+        #                  Export_offer_binder=false)
+        
         # generate frame markdown for each notebook
-        for notebook in notebooks
+        for notebook in notebookjl
             base=split(notebook,".")[1]
             mdstring=
 """
-# $(notebook)
+[Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
+this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
 
 Please note that in the html page, interactive elements like sliders are disabled.
-Download this notebook: [$(notebook)](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook)).
+
 
 ```@raw html
 <iframe style="height:15000px" width="100%" src="../$(base).html"> </iframe>
@@ -81,7 +84,8 @@ Download this notebook: [$(notebook)](https://github.com/j-fu/VoronoiFVM.jl/blob
         generated_examples=vcat(["runexamples.md"],joinpath.("examples",readdir(example_md_dir)))
     end
 
-    
+    notebooks=first.(notebooks).=> notebookmd
+    pushfirst!(notebooks, "About the notebooks"=> "notebooks.md")
     makedocs(
         sitename="VoronoiFVM.jl",
         modules = [VoronoiFVM],
@@ -93,7 +97,6 @@ Download this notebook: [$(notebook)](https://github.com/j-fu/VoronoiFVM.jl/blob
             "Home"=>"index.md",
             "changes.md",
             "method.md",
-            "notebooks"=> notebookmd,
             "API Documentation" => [                
                 "system.md",
                 "physics.md",
@@ -104,13 +107,14 @@ Download this notebook: [$(notebook)](https://github.com/j-fu/VoronoiFVM.jl/blob
                 "quantities.md",
                 "allindex.md",
             ],
+            "Tutorial Notebooks" => notebooks,
             "Examples" => generated_examples
         ]
     )
 
     if with_examples
         rm(example_md_dir,recursive=true)
-        rm(notebook_html_dir,recursive=true)
+#        rm(notebook_html_dir,recursive=true)
     end
     
     if !isinteractive()

@@ -122,7 +122,7 @@ system2=VoronoiFVM.System(grid1,flux=multispecies_flux,
    reaction=test_reaction,species=[1,2],bcondition=bcond2,check_allocs=true);
 
 # ╔═╡ b3d936fe-69ab-4013-b787-2f0b5410638a
-sol2=solve(system2, times=(0,10), Δt_max=0.01);
+sol2=solve(system2, times=(0,10), Δt_max=0.01)
 
 # ╔═╡ 17749697-d5d8-4629-a625-e96590a5f0ac
 if inpluto
@@ -864,8 +864,8 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 
 # ╔═╡ Cell order:
 # ╟─4ed0c302-26e4-468a-a40d-0e6406f802d0
-# ╟─7a104243-d3b9-421a-b494-5607c494b106
 # ╟─3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
+# ╟─7a104243-d3b9-421a-b494-5607c494b106
 # ╠═b285aca3-dee5-4b77-9276-537563e8643b
 # ╟─8a4f336c-2016-453e-9a9f-beac66533fc0
 # ╟─78e7c000-3a83-446a-b577-3a1809c664d2
