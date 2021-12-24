@@ -47,8 +47,8 @@ function make_all(;with_examples=true)
 """
 # $(notebook)
 
+Please note that in the html page, interactive elements like sliders are disabled.
 Download this notebook: [$(notebook)](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook)).
-Please note that interactive elements like sliders are disabled.
 
 ```@raw html
 <iframe style="height:15000px" width="100%" src="../$(base).html"> </iframe>
