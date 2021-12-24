@@ -37,10 +37,10 @@ function make_all(;with_examples=true)
         notebookjl=last.(notebooks)
         # Use sliderserver to generate html
         
-        # export_directory(joinpath(@__DIR__,"..","pluto-examples"),
-        #                  notebook_paths=notebookjl,
-        #                  Export_output_dir=joinpath(notebook_html_dir),
-        #                  Export_offer_binder=false)
+        export_directory(joinpath(@__DIR__,"..","pluto-examples"),
+                         notebook_paths=notebookjl,
+                         Export_output_dir=joinpath(notebook_html_dir),
+                         Export_offer_binder=false)
         
         # generate frame markdown for each notebook
         for notebook in notebookjl
@@ -49,9 +49,6 @@ function make_all(;with_examples=true)
 """
 [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
 this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
-
-Please note that in the html page, interactive elements like sliders are disabled.
-
 
 ```@raw html
 <iframe style="height:15000px" width="100%" src="../$(base).html"> </iframe>

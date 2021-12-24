@@ -47,13 +47,13 @@ md"""
 # v0.14.0 API update 
 """
 
-# ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-inpluto && TableOfContents()
-
 # ╔═╡ 3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
 md"""
 Here we describe some updates for the API of `VoronoiFVM.jl`. These have been implemented mostly on top of the existing API, whose functionality is not affected.
 """
+
+# ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
+inpluto && TableOfContents()
 
 # ╔═╡ 8a4f336c-2016-453e-9a9f-beac66533fc0
 md"""
