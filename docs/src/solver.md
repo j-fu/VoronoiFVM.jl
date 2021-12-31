@@ -14,8 +14,8 @@ steps is recorded and. For the respective previous solution step it can be obtai
 `history(system)`.
 
 ```@docs
-SolverHistory
-SolverHistories
+NewtonSolverHistory
+TransientSolverHistory
 Base.summary
 details
 history

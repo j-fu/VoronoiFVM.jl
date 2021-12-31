@@ -111,7 +111,7 @@ function _solve!(
 ) where Tv
 
     _complete!(system, create_newtonvectors=true)
-    nlhistory=SolverHistory()
+    nlhistory=NewtonSolverHistory()
     t=@elapsed begin
         solution.=oldsol
         residual=system.residual
@@ -771,7 +771,7 @@ function solve(inival,
         λstr="p"
     end
 
-    allhistory=SolverHistories()
+    allhistory=TransientSolverHistory()
     
     solution=copy(inival)
     oldsolution=copy(inival)
@@ -890,30 +890,36 @@ module NoModule end
 Main solution method for VoronoiFVM.System.
 
 Keyword arguments:
-- General: 
+- General for all solvers 
   - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
-  -  All elements of [`SolverControl`](@ref) can be used as kwargs exept in the case of the DifferentialEquations based solver
+  -  All elements of [`SolverControl`](@ref) can be used as kwargs except in the case of the DifferentialEquations based solver
   - `damp` (default: 1): alias for `damp_initial`
   - `damp_grow` (default: 1): alias for `damp_growth`
   - `abstol`: alias for `tol_absolute`
   - `reltol`: alias for `tol_relative`
-  - `control` (default: nothing): Alternatively pass instance of [`SolverControl`](@ref)
+  - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
 
-- Stationary/implicit timestep solver:
-  Invoked if neither `times` nor `embed`  nor `tspan` are given as keyword argument.
-  - `tstep` (default: `Inf`): if `tstep<Inf`, perform one  implicit Euler step, otherwise solve stationary problem.
+- __Stationary solver__:
+  Invoked if neither `times` nor `embed`  nor `tspan` nor `tstep` are given as keyword argument.
   - `time` (default: `0`): Set time value. 
-  Returns solution array.
+  Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
+
+- __Implicit Euler timestep solver__. Invoked if `tstep` kwarg is given.
+  - `time` (default: `0`): Set time value. 
+  - `tstep`: time step
+  Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 
 
-- Embeding (homotopy) solver (if `embed` kwarg is given):
+- __Embedding (homotopy) solver__: Invoked if `embed` kwarg is given.
   Use homotopy embedding + damped Newton's method  to 
   solve stationary problem or to solve series of parameter dependent problems.
   Parameter step control is performed according to solver control data.  kwargs and default values are:
   - `embed` (default: `nothing` ): vector of parameter values to be reached exactly
   In addition,  all kwargs of the implicit Euler solver (besides `times`) are handled.  
+  Returns a transient solution object `sol` containing the stored solution,
+  see [`TransientSolution`](@ref).
   
-- Implicit Euler transient solver (if `times` kwarg is given):
+- __Implicit Euler transient solver__: Invoked if `times` kwarg is given.
   Use implicit Euler method  + damped   Newton's method  to 
   solve time dependent problem. Time step control is performed
   according to solver control data.  kwargs and default values are:
@@ -929,7 +935,7 @@ Keyword arguments:
   Returns a transient solution object `sol` containing the stored solution,
   see [`TransientSolution`](@ref).
   
-- Transient solver from `DifferentialEquations.jl`/`OrdinaryDiffEq.jl`
+- __Transient solver via  `DifferentialEquations.jl`/`OrdinaryDiffEq.jl`__: invoked if `tspan` and `diffeq` kwargs are given.
   - `tspan`: Time interval for differential equations.
   - `diffeq`: `DifferentialEquations` or `OrdinaryDiffEq` module made available via `import` or `using`.
   - `solver`: specify solver from [DifferentialEquations](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).  

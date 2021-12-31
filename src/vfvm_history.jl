@@ -7,7 +7,7 @@ See [`summary`](@ref) and [`details`](@ref) for other ways to extract informatio
 
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct SolverHistory <: AbstractVector{Float64}
+@with_kw mutable struct NewtonSolverHistory <: AbstractVector{Float64}
     """ number of Jacobi matrix factorizations """
     nlu::Int=0
 
@@ -24,16 +24,16 @@ $(TYPEDFIELDS)
     l1normdiff=zeros(0)
 end
 
-Base.getindex(h::SolverHistory,i)=h.updatenorm[i]
-Base.size(h::SolverHistory)=size(h.updatenorm)
+Base.getindex(h::NewtonSolverHistory,i)=h.updatenorm[i]
+Base.size(h::NewtonSolverHistory)=size(h.updatenorm)
 
 
 """
-    summary(h::SolverHistory)
+    summary(h::NewtonSolverHistory)
 
 Return named tuple summarizing history.
 """
-Base.summary(h::SolverHistory)=(seconds=round(h.time,sigdigits=3),
+Base.summary(h::NewtonSolverHistory)=(seconds=round(h.time,sigdigits=3),
                                 iters=length(h.updatenorm),
                                 absnorm=round(h.updatenorm[end],sigdigits=3),
                                 relnorm=round(h.updatenorm[end]/h.updatenorm[1],sigdigits=3),
@@ -43,11 +43,11 @@ Base.summary(h::SolverHistory)=(seconds=round(h.time,sigdigits=3),
                                 )
 
 """
-    details(h::SolverHistory)
+    details(h::NewtonSolverHistory)
 
 Return array of named tuples  with info on each iteration step
 """
-function details(h::SolverHistory)
+function details(h::NewtonSolverHistory)
     a=[]
     for i=1:length(h)
         push!(a,(update=round(h[i],sigdigits=3),contraction= round( i>1 ? h[i]/h[i-1] : 1.0, sigdigits=3), round=round(h.l1normdiff[i],sigdigits=3) ))
@@ -71,9 +71,9 @@ See [`summary`](@ref) and [`details`](@ref) for other ways to extract informatio
 
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct SolverHistories  <: AbstractVector{SolverHistory}
+@with_kw mutable struct TransientSolverHistory  <: AbstractVector{NewtonSolverHistory}
     """ Histories of each implicit Euler Newton iteration """
-    histories=Vector{SolverHistory}(undef,0)
+    histories=Vector{NewtonSolverHistory}(undef,0)
 
     """ Time values """
     times=zeros(0)
@@ -82,16 +82,16 @@ $(TYPEDFIELDS)
     updates=zeros(0)
 end
 
-Base.getindex(h::SolverHistories,i)=h.histories[i]
-Base.size(h::SolverHistories)=size(h.histories)
-Base.push!(h::SolverHistories,hx)=push!(h.histories,hx)
+Base.getindex(h::TransientSolverHistory,i)=h.histories[i]
+Base.size(h::TransientSolverHistory)=size(h.histories)
+Base.push!(h::TransientSolverHistory,hx)=push!(h.histories,hx)
 
 """
-    summary(h::SolverHistories)
+    summary(h::TransientSolverHistory)
 
 Return named tuple summarizing history.
 """
-function Base.summary(hh::SolverHistories)
+function Base.summary(hh::TransientSolverHistory)
     hx=view(hh,2:length(hh))
     (
         seconds=round(sum(h->h.time,hx),sigdigits=3),
@@ -108,11 +108,11 @@ end
 
 
 """
-    details(h::SolverHistories)
+    details(h::TransientSolverHistory)
 
 Return array of details of each solver step
 """
-function details(hh::SolverHistories)
+function details(hh::TransientSolverHistory)
     a=[]
     for i=2:length(hh)
         push!(a,(t=round(hh.times[i],sigdigits=3), Δu=round(hh.updates[i],sigdigits=3),summary=sumup(hh[i],eol=""),detail=detailed(hh[i])))

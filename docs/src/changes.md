@@ -1,15 +1,28 @@
 # Changes
-## v0.14.0
-Backward compatible API simplification
-- Boundary conditions are now specfied in breaction
+## v0.15.0 Jan 1, 2022
+- __Breaking__: History is not anymore returned by `solve`, instead it can be accessed via [`history`](@ref) after the solution.
+- Cleaned API:
+  - [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) is now the main method of `solve` which allows to 
+    access stationary, transient, embedding and DifferentialEquations based solvers.
+  - Joint implementation for implicit Euler timestepping and parameter embedding
+  - Handle more kwargs via SolverControl (e.g. log)
+  - Use Parameters.jl in struct definition
+  - Add history types [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref)
+  - `detailed` and `summary` methods for both history types
+  - Nonlinear solver example notebook (under development): [nonlinear-solvers.jl](https://j-fu.github.io/VoronoiFVM.jl/stable/nbhtml/nonlinear-solvers//)
+
+## v0.14.0 Dec 24, 2021
+Backward compatible, hopefully nonbreaking API simplification
+- Boundary conditions are now specified in breaction.
   Advantages:
    - easy x/t dependency
    - unified (upcoming) interface for parameters
    - unified handling of standard and nonstandard boundary conditions
    - simpler documentation
-- System constructor now directly takes physics callback functions
-- solve() now takes "SolverControl" parameters as kwargs
-- Notebooks as part of documentation
+- Made NewtonControl alias of SolverControl, continue to work with SolverControl
+- System constructor now directly takes physics callback functions, no need anymore to work with extra physics struct
+- solve() now takes "SolverControl" parameters as kwargs,no need anymore to work with extra NewtonControl/SolverControl struct
+- Notebooks as part of documentation and CI
 - See also the pluto notebook [api-update.jl](https://j-fu.github.io/VoronoiFVM.jl/stable/nbhtml/api-update/)
 
 ## v0.13.2 Oct 29, 2021

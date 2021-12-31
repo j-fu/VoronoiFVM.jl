@@ -1,4 +1,4 @@
-# Solutions
+# Solution objects
 
 ## Dense solution arrays
 

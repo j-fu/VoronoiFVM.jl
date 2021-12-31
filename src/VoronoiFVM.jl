@@ -44,7 +44,7 @@ include("vfvm_transientsolution.jl")
 export transient_solution,TransientSolution
 
 include("vfvm_history.jl")
-export SolverHistory, SolverHistories,details
+export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmmetric!
