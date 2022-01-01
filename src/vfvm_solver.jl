@@ -107,7 +107,8 @@ function _solve!(
     control::NewtonControl,
     time::Tv,
     tstep::Tv,
-    embedparam::Tv
+    embedparam::Tv,
+    params::AbstractVector{Tv}
 ) where Tv
 
     _complete!(system, create_newtonvectors=true)
@@ -134,7 +135,7 @@ function _solve!(
         
         for ii=1:control.max_iterations
             try
-                eval_and_assemble(system,solution,oldsol,residual,time,tstep,embedparam,edge_cutoff=control.edge_cutoff)
+                eval_and_assemble(system,solution,oldsol,residual,time,tstep,embedparam,params,edge_cutoff=control.edge_cutoff)
             catch err
                 if (control.handle_exceptions)
                     _print_error(err,stacktrace(catch_backtrace()))
@@ -282,7 +283,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            F::AbstractMatrix{Tv},# Right hand side
                            time::Tv,
                            tstep::Tv,# time step size. Inf means stationary solution
-                           embedparam::Tv;
+                           embedparam::Tv,
+                           params::AbstractVector{Tv};
                            edge_cutoff=0.0
                            ) where {Tv, Ti}
     
@@ -324,20 +326,34 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     nzv  = nonzeros(matrix)
     nzv .= 0.0
     F   .= 0.0
-
+    nparams::Int=system.num_parameters
+    if nparams>0
+        dudp=system.dudp
+    end
+    for iparam=1:nparams
+        dudp[iparam].=0.0
+    end
+    
     # structs holding diff results for storage, reaction,  flux ...
-    result_r    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies))
-    result_s    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies))
-    result_flx  = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies))
-    result_bflx = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies))  
+    result_r    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies + nparams))
+    result_s    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies + nparams))
+    result_flx  = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies + nparams))
+    result_bflx = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies + nparams))  
     # Array holding function results
     Y = Array{Tv,1}(undef,nspecies)
 
     # Arrays for gathering solution data
-    UK    = Array{Tv,1}(undef,nspecies)
-    UKOld = Array{Tv,1}(undef,nspecies)
-    UKL   = Array{Tv,1}(undef,2*nspecies)
+    UK    = Array{Tv,1}(undef,nspecies + nparams)
+    UKOld = Array{Tv,1}(undef,nspecies + nparams)
+    UKL   = Array{Tv,1}(undef,2*nspecies + nparams)
 
+    @assert length(params)==nparams
+    if nparams>0
+        UK[nspecies+1:end].=params
+        UKOld[nspecies+1:end].=params
+        UKL[2*nspecies+1:end].=params
+    end
+    
     # array holding source term
     src   = zeros(Tv,nspecies)
     bsrc  = zeros(Tv,nspecies)
@@ -361,13 +377,13 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     
     # See also https://juliadiff.org/ForwardDiff.jl/stable/user/advanced/#Configuring-Chunk-Size
     
-    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
-    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
-    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
-    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies))
+    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
+    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
+    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
+    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
     
-    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies))
-    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies))
+    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies + nparams))
+    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies + nparams))
 
     
     # Inverse of timestep
@@ -397,8 +413,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     ncalloc=@allocated  for icell=1:ncells
         for inode=1:nn
             _fill!(node,inode,icell)
-            @views UK    .= U[:,node.index]
-            @views UKOld .= UOld[:,node.index]
+            @views UK[1:nspecies]    .= U[:,node.index]
+            @views UKOld[1:nspecies] .= UOld[:,node.index]
             # xx gather:
                 # ii=0
                 # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
@@ -438,6 +454,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                     jspec=_spec(F,jdof,K)
                     _addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,cellnodefactors[inode,icell])
+                end
+                for iparam=1:nparams
+                    jparam=nspecies+iparam
+                    dudp[iparam][idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*cellnodefactors[inode,icell]
                 end
             end
         end
@@ -482,7 +502,13 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                     _addnz(matrix,idofL,jdofK,-jac[ispec,jspec         ],fac)
                     _addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
                     _addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
-                 end
+                end
+                
+                for iparam=1:nparams
+                    jparam=2*nspecies+iparam
+                    dudp[iparam][idofK]+=fac*jac[ispec,jparam]
+                    dudp[iparam][idofL]-=fac*jac[ispec,jparam]
+                end
             end
         end
     end
@@ -563,6 +589,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                         jspec=_spec(F,jdof,K)
                         _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
                     end
+                    for iparam=1:nparams
+                        jparam=nspecies+iparam
+                        dudp[iparam][idof]+=jac_breact[ispec,jparam]*bnode_factor
+                    end
                 end
 
             end
@@ -591,6 +621,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
                         _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
+                    end
+                    for iparam=1:nparams
+                        jparam=nspecies+iparam
+                        dudp[iparam][idof]+=jac_bstor[ispec,jparam]*bnode_factor*tstepinv
                     end
                 end
             end # if isbstorage
@@ -698,14 +732,15 @@ function solve!(
     time=Inf,
     tstep=Inf,                # Time step size. Inf means  stationary solution
     embedparam=0.0,
+    params=zeros(0),
     kwargs...
 )
     if control.verbose
         @time begin
-            _solve!(solution,inival,system,control,time,tstep,embedparam)
+            _solve!(solution,inival,system,control,time,tstep,embedparam,params)
         end
     else 
-        _solve!(solution,inival,system,control,time,tstep,embedparam)
+        _solve!(solution,inival,system,control,time,tstep,embedparam,params)
     end
     return solution
 end
@@ -721,7 +756,7 @@ end
 ################################################################
 """
 ````
-solve(inival, system; control=NewtonControl(), tstep=Inf)
+solve(inival, system; control=NewtonControl(),params, tstep=Inf)
 ````
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
@@ -734,9 +769,10 @@ function solve(
     control=NewtonControl(),      # Newton solver control information
     time=Inf,
     tstep=Inf,                # Time step size. Inf means  stationary solution
+    params=zeros(0),
     kwargs...
 )
-    solve!(unknowns(system),inival,system,control=control,time=time, tstep=tstep)
+    solve!(unknowns(system),inival,system,control=control,time=time, tstep=tstep, params=params)
 end
 
 
@@ -763,6 +799,7 @@ function solve(inival,
                delta=(u,v,t, Δt)->norm(system,u-v,Inf), # Time step error estimator
                transient=true, # choose between transient and stationary (embedding) case
                time=0.0,
+               params=zeros(0),
                kwargs...
                )
     
@@ -779,7 +816,7 @@ function solve(inival,
     Δλ=Δλ_val(control,transient)
     
     if !transient
-        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]))
+        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]),params=params)
         if control.log
             push!(allhistory,system.history)
             push!(allhistory.times,lambdas[1])
@@ -813,9 +850,9 @@ function solve(inival,
                     λ=λ0+Δλ
                     pre(solution,λ)
                     if transient
-                        solution=solve!(solution,oldsolution, system ,control=control,time=λ,tstep=Δλ)
+                        solution=solve!(solution,oldsolution, system ,control=control,time=λ,tstep=Δλ,params=params)
                     else
-                        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=λ)
+                        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=λ,params=params)
                     end
                 catch err
                     if (control.handle_exceptions)
@@ -898,7 +935,8 @@ Keyword arguments:
   - `abstol`: alias for `tol_absolute`
   - `reltol`: alias for `tol_relative`
   - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
-
+  - `params`: Parameters
+    
 - __Stationary solver__:
   Invoked if neither `times` nor `embed`  nor `tspan` nor `tstep` are given as keyword argument.
   - `time` (default: `0`): Set time value. 
@@ -948,7 +986,7 @@ Keyword arguments:
   Returns  a transient  solution  object  `sol` containing stored solutions, see [`TransientSolution`](@ref).
 
 """
-function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, control=VoronoiFVM.NewtonControl(), diffeq::Module=NoModule, solver=nothing, kwargs...)
+function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros(0), control=VoronoiFVM.NewtonControl(), diffeq::Module=NoModule, solver=nothing, kwargs...)
     if isa(inival,Number)
         inival=unknowns(sys,inival=inival)
     elseif  !VoronoiFVM.isunknownsof(inival,sys)
@@ -969,10 +1007,10 @@ function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, control=Voro
     if isdefined(diffeq,:ODEProblem) &&  haskey(kwargs,:tspan)
         solve(diffeq,inival,sys,kwargs[:tspan]; solver=solver, kwargs...)
     elseif haskey(kwargs,:times)
-        solve(inival,sys,kwargs[:times]; control=control, transient=true, kwargs...)
+        solve(inival,sys,kwargs[:times]; control=control, transient=true, params=params,kwargs...)
     elseif haskey(kwargs,:embed)
-        solve(inival,sys,kwargs[:embed]; control=control, transient=false, kwargs...)
+        solve(inival,sys,kwargs[:embed]; control=control, transient=false,params=params, kwargs...)
     else
-        solve(inival,sys; control=control,kwargs...)
+        solve(inival,sys; control=control,params=params,kwargs...)
     end
 end

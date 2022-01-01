@@ -69,6 +69,17 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     Number of quantities defined on system
     """
     num_quantities::Ti
+
+
+    """
+    Number of parameter the system depnds on.
+    """
+    num_parameters::Ti
+
+    """
+    Parameter derivative (vector of solution arrays)
+    """
+    dudp::Vector{TSolArray}
     
     """
     Solution vector holding Newton update
@@ -200,6 +211,8 @@ Physics keyword arguments:
     is detected automatically  unless `generic_operator_sparsity` is given.
 -  `generic_operator_sparsity`:  Function defining the sparsity structure of the generic operator.
     This should return the sparsity pattern of the `generic_operator`.
+-  `nparams`: number of parameters the system is depending on, and with respect to which the derivatives
+    need to be obtained
 -  `data`:  User data (parameters).
     This allows to pass various parameters to the callback functions. If `data` is given, all callback functions
     should accept a last `data` argument. Otherwise, no data are passed explicitely, and constitutive callbacks can
@@ -210,6 +223,7 @@ function System(grid::ExtendableGrid;
                 unknown_storage=:dense,
                 matrixindextype=Int64,
                 check_allocs=default_check_allocs(),
+                nparams=0,
                 kwargs...)
 
     Tv=coord_type(grid)
@@ -240,6 +254,7 @@ function System(grid::ExtendableGrid;
     system.allocs=-1000
     system.factorization=nothing
     system.history=nothing
+    system.num_parameters=nparams
     
     check_allocs!(system,check_allocs)
 
@@ -610,10 +625,16 @@ function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false
     if (!species_added)
         error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
     end
+    
     if create_newtonvectors
         system.residual=unknowns(system)
         system.update=unknowns(system)
+        if system.num_parameters>0
+            system.dudp=[unknowns(system) for i=1:system.num_parameters]
+        end
     end
+
+    
     update_grid!(system)
     if has_generic_operator(system)
         if has_generic_operator_sparsity(system) 
@@ -749,8 +770,8 @@ Set Dirichlet boundary condition for species ispec at boundary ibc.
 function boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
     if  bnode.region == ireg
         y[ispec] += bnode.Dirichlet*(u[ispec]-val)
-        # just for call during initialization
-        bnode.dirichlet_value[ispec]=val
+        # just for call during initialization, so we can convert from dual number
+        bnode.dirichlet_value[ispec]=value(val)
     end
     nothing
 end

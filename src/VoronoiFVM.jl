@@ -70,7 +70,7 @@ include("vfvm_formfactors.jl")
 export meas,project
 export unknown_indices
 export edgevelocities,bfacevelocities
-export time,region,embedparam
+export time,region,embedparam,parameters
 
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!,NewtonControl,SolverControl

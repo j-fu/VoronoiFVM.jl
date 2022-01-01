@@ -30,9 +30,24 @@ Abstract type for data on nodes.
 `u[ispec]` accesses value of species at this node.
 """
 abstract type AbstractNodeData{T<: Number} <: AbstractVector{T} end
-Base.size(u::AbstractNodeData)=size(u.val)
+Base.size(u::AbstractNodeData)=(u.nspec,1)
 Base.getindex(u::AbstractNodeData,i)=@inbounds u.val[i]
 Base.setindex!(f::AbstractNodeData,v,i)=@inbounds f.val[i]=v
+
+
+struct DParameters{T<:Number} <: AbstractVector{T}
+    val::Vector{T}
+    offset::Int32
+end
+
+Base.size(p::DParameters)=(length(p.val)-p.offset,1)
+Base.getindex(p::DParameters,i)=@inbounds p.val[p.offset+i]
+
+function parameters(u::AbstractNodeData{T}) where {T<:Number}
+    DParameters(u.val,u.nspec)
+end
+
+
 
 """
    $(TYPEDEF)
@@ -54,6 +69,10 @@ Abstract type for data on edges.
 abstract type AbstractEdgeData{T<: Number} <: AbstractMatrix{T} end
 Base.size(u::AbstractEdgeData)=(u.n1,2)
 Base.getindex(u::AbstractEdgeData,i,j)=@inbounds u.val[(j-1)*u.n1+i]
+
+function parameters(u::AbstractEdgeData{T}) where {T<:Number}
+    DParameters(u.val,2*u.n1)
+end
 
 
 ##################################################################
@@ -138,10 +157,11 @@ Unknown data on node.
 """
 struct NodeUnknowns{T} <:AbstractNodeData{T} 
     val::Vector{T}
+    nspec::Int32
     geom::Node
 end
 
-@inline unknowns(node::Node,u::Vector{T}) where T = NodeUnknowns{T}(u,node)
+@inline unknowns(node::Node,u::Vector{T}) where T = NodeUnknowns{T}(u,node.nspec,node)
 
 """
     $(TYPEDEF)
@@ -150,10 +170,11 @@ RHS data on node.
 """
 struct NodeRHS{T} <:AbstractNodeData{T}
     val::Vector{T}
+    nspec::Int32
     geom::Node
 end
 
-@inline rhs(node::Node, f::Vector{T}) where T = NodeRHS{T}(f,node)
+@inline rhs(node::Node, f::Vector{T}) where T = NodeRHS{T}(f,node.nspec,node)
 
 
 ##################################################################
@@ -260,18 +281,20 @@ end
 
 struct BNodeUnknowns{T} <:AbstractNodeData{T} 
     val::Vector{T}
+    nspec::Int32
     geom::BNode
 end
 
-@inline unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode)
+@inline unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode.nspec,bnode)
 
 
 struct BNodeRHS{T} <:AbstractNodeData{T} 
     val::Vector{T}
+    nspec::Int32
     geom::BNode
 end
 
-@inline rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS{T}(f,bnode)
+@inline rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS{T}(f,bnode.nspec,bnode)
 
 
 
@@ -393,10 +416,11 @@ end
 
 struct EdgeRHS{T} <:AbstractNodeData{T} 
     val::Vector{T}
+    nspec::Int32
     geom::AbstractEdge
 end
 
-@inline rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
+@inline rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS{T}(f,edge.nspec,edge)
 
 
 
@@ -506,10 +530,11 @@ end
 
 struct BEdgeRHS{T} <:AbstractNodeData{T} 
     val::Vector{T}
+    nspec::Int32
     geom::AbstractEdge
 end
 
-@inline rhs(edge::BEdge, f::Vector{T}) where T = EdgeRHS{T}(f,edge)
+@inline rhs(edge::BEdge, f::Vector{T}) where T = EdgeRHS{T}(f,edge.nspec,edge)
 
 
 ##################################################################
