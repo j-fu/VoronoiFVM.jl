@@ -935,7 +935,7 @@ Keyword arguments:
   - `abstol`: alias for `tol_absolute`
   - `reltol`: alias for `tol_relative`
   - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
-  - `params`: Parameters
+  - `params`: Parameters (Parameter handling is experimental and may change)
     
 - __Stationary solver__:
   Invoked if neither `times` nor `embed`  nor `tspan` nor `tstep` are given as keyword argument.
@@ -993,6 +993,7 @@ function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros
         @error "wrong type of inival: $(typeof(inival))"
     end
 
+    # compatibility to names in SolverControl which cannot be deprecated.
     for k ∈ kwargs
         key=k[1]
         if key==:abstol key=:tol_absolute end

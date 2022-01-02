@@ -1,6 +1,6 @@
 #=
 
-# Comparison with DifferentialEquations.jl
+# 108: 1D Nonlinear Diffusion with OrdinaryDiffEq
 ([source code](SOURCE_URL))
 
 Solve the nonlinear diffusion equation
@@ -20,17 +20,16 @@ Here, we compare the implicit Euler approach in VoronoiFVM with the ODE solvers 
 operators compatible with its [ODEFunction](https://diffeq.sciml.ai/stable/features/performance_overloads/#ODEFunction)
 interface.
 
-Note that this example requires  PyPlot and DifferentialEquations to be installed.
 =#
 
 
-module TestDiffEq
+module Example108_NonlinearDiffusion1D_ODE
 
 using VoronoiFVM
 using OrdinaryDiffEq
 using LinearAlgebra
 using Printf
-using PyPlot
+using GridVisualize
 
 import Base:push!
 
@@ -69,9 +68,9 @@ function run_vfvm(;n=20,m=2,t0=0.001, tend=0.01,tstep=1.0e-6,unknown_storage=:de
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
-    sol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt=tstep,Δu_opt=0.05,Δt_min=tstep,store_all=true)
+    sol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt=tstep,Δu_opt=0.01,Δt_min=tstep,store_all=true)
     err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
-    sol,X,err
+    sol,sys,err
 end
 
 
@@ -80,36 +79,35 @@ function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01, unknown_storage=:dense,solver
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
-    sol=VoronoiFVM.solve(sys; diffeq=OrdinaryDiffEq,inival,tspan=(t0,tend),solver)
+    sol=VoronoiFVM.solve(sys; diffeq=OrdinaryDiffEq,inival,tspan=(t0,tend),solver,atol=1.0e-5)
     err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
-    sol, X,err
+    sol, sys,err
 end
 
 
-function main(;m=2,n=20, solver=nothing, unknown_storage=:dense)
-    function plotsol(sol,X)
-        f=sol[1,:,:]'
-        contourf(X,sol.t,f,0:0.1:10,cmap=:summer)
-        contour(X,sol.t,f,0:1:10,colors=:black)
-    end
+function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing)
 
-    clf()
-    subplot(121)
-    
+    vis=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(800,400))
     t=@elapsed begin
-        sol,X,err=run_vfvm(m=m,n=n, unknown_storage=unknown_storage)
+        sol1,sys,err=run_vfvm(m=m,n=n, unknown_storage=unknown_storage)
     end
-    title(@sprintf("VoronoiFVM: %.0f ms e=%.2e",t*1000,err))
-    plotsol(sol,X)
-    
-    subplot(122)
+    title=@sprintf("VoronoiFVM: %.0f ms e=%.2e",t*1000,err)
+    println(title)
+    scalarplot!(vis[1,1],sys,sol1,title=title,aspect=400)
+
     t=@elapsed begin
-        sol,X,err=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
+        sol2,sys,err=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
     end
-    plotsol(sol,X)
-    title(@sprintf("DifferentialEq: %.0f ms, e=%.2e",t*1000,err))
-    
-    gcf().set_size_inches(8,4)
-    gcf()
+
+    title=@sprintf("OrdinaryDiffEq: %.0f ms, e=%.2e",t*1000,err)
+    println(title)
+    scalarplot!(vis[1,2],sys,sol2,title=title,aspect=400)
+    reveal(vis)
+
+    norm(sol2[end]-sol1[end],Inf)<0.01
 end
+
+test()=main()
+
 end
+

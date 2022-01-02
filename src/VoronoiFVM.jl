@@ -20,7 +20,7 @@ using IterativeSolvers
 using JLD2
 using StaticArrays
 using SparseDiffTools
-using SparsityDetection
+using Symbolics
 using RecursiveArrayTools
 
 using ExtendableSparse

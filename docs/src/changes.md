@@ -10,7 +10,9 @@
   - Add history types [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref)
   - `detailed` and `summary` methods for both history types
   - Nonlinear solver example notebook (under development): [nonlinear-solvers.jl](https://j-fu.github.io/VoronoiFVM.jl/stable/nbhtml/nonlinear-solvers//)
-
+- OrdinaryDiffEq solver now in unittest
+- scalarplot for 1D transient solutions
+- Sparsity detection via Symbolics.jl
 ## v0.14.0 Dec 24, 2021
 Backward compatible, hopefully nonbreaking API simplification
 - Boundary conditions are now specified in breaction.

@@ -13,7 +13,7 @@ function _eval_res_jac!(sys,u,t)
     uhash=hash(u)
     if uhash!=sys.uhash
         ur=reshape(u,sys)
-        eval_and_assemble(sys,ur,ur,sys.residual,t,Inf)
+        eval_and_assemble(sys,ur,ur,sys.residual,t,Inf,0.0,zeros(0))
         sys.uhash=uhash
     else
         global nd
