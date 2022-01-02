@@ -644,7 +644,7 @@ function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false
             input=rand(num_dof(system))
             output=similar(input)
             tdetect=@elapsed begin
-                sparsity_pattern = jacobian_sparsity(generic_operator,output,input)
+                sparsity_pattern = Symbolics.jacobian_sparsity(generic_operator,output,input)
                 system.generic_matrix = Float64.(sparse(sparsity_pattern))
             end
             println("sparsity detection for generic operator: $(tdetect) s")
