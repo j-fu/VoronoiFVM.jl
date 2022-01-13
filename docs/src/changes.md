@@ -9,10 +9,11 @@
   - Use Parameters.jl in struct definition
   - Add history types [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref)
   - `detailed` and `summary` methods for both history types
-  - Nonlinear solver example notebook (under development): [nonlinear-solvers.jl](https://j-fu.github.io/VoronoiFVM.jl/stable/nbhtml/nonlinear-solvers//)
-- OrdinaryDiffEq solver now in unittest
+  - Nonlinear solver example notebook (under development): [nonlinear-solvers.jl](@ref nonlinear-solvers)
+- OrdinaryDiffEq solver now in CI
 - scalarplot for 1D transient solutions
-- Sparsity detection via Symbolics.jl
+- Sparsity detection via Symbolics.jl instead of the sunsetted SparsityDetection.jl
+
 ## v0.14.0 Dec 24, 2021
 Backward compatible, hopefully nonbreaking API simplification
 - Boundary conditions are now specified in breaction.
@@ -25,7 +26,7 @@ Backward compatible, hopefully nonbreaking API simplification
 - System constructor now directly takes physics callback functions, no need anymore to work with extra physics struct
 - solve() now takes "SolverControl" parameters as kwargs,no need anymore to work with extra NewtonControl/SolverControl struct
 - Notebooks as part of documentation and CI
-- See also the pluto notebook [api-update.jl](https://j-fu.github.io/VoronoiFVM.jl/stable/nbhtml/api-update/)
+- See also the pluto notebook [api-update.jl](@ref api-update)
 
 ## v0.13.2 Oct 29, 2021
 - Bernoulli function overhaul

@@ -15,7 +15,7 @@ end
 
 
 
-function make_all(;with_examples=true)
+function make_all(;with_examples=true,run_notebooks=true)
     
     generated_examples=[]
     notebooks=[]
@@ -56,16 +56,19 @@ function make_all(;with_examples=true)
 
         
         # Use sliderserver to generate html
-        export_directory(joinpath(@__DIR__,"..","pluto-examples"),
-                          notebook_paths=notebookjl,
-                          Export_output_dir=joinpath(notebook_html_dir),
-                          Export_offer_binder=false)
+        if run_notebooks
+            export_directory(joinpath(@__DIR__,"..","pluto-examples"),
+                             notebook_paths=notebookjl,
+                             Export_output_dir=joinpath(notebook_html_dir),
+                             Export_offer_binder=false)
+        end
         
         # generate frame markdown for each notebook
         for notebook in notebookjl
             base=split(notebook,".")[1]
             mdstring=
 """
+##### [$(base).jl](@id $(base))
 [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
 this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
 
@@ -131,7 +134,7 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
         ]
     )
 
-    if with_examples
+    if true
         rm(example_md_dir,recursive=true)
         rm(notebook_html_dir,recursive=true)
     end
@@ -141,5 +144,5 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
     end
 end
 
-make_all(with_examples=true)
+make_all(with_examples=true,run_notebooks=true)
 
