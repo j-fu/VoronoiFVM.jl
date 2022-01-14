@@ -189,7 +189,7 @@ Solve using timestepping scheme  from [DifferentialEquations.jl](https://github.
 Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the corresponding keyword arguments.
 
 """
-function solve(DiffEq::Module,
+@noinline function solve(DiffEq::Module,
                inival::AbstractArray,
                sys::AbstractSystem,
                tspan; solver=nothing, kwargs...)

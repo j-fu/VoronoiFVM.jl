@@ -258,8 +258,6 @@ function main105(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     return sum(solution)
 end
 
-function test()
-end
 
 
 function test()
@@ -269,8 +267,8 @@ function test()
 
     testval=1.5247901344230088
     @test main105(unknown_storage=:sparse) ≈ testval
-    @ŧest main105(unknown_storage=:dense) ≈ testval
-
+    @test main105(unknown_storage=:dense) ≈ testval
+    true
 end
 
 end

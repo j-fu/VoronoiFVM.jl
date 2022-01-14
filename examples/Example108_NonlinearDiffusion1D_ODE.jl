@@ -20,6 +20,7 @@ Here, we compare the implicit Euler approach in VoronoiFVM with the ODE solvers 
 operators compatible with its [ODEFunction](https://diffeq.sciml.ai/stable/features/performance_overloads/#ODEFunction)
 interface.
 
+At the moment, this code needs OrdinaryDiffEq v6.0.3.
 =#
 
 
