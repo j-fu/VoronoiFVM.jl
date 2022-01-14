@@ -1,7 +1,24 @@
 #
 # Interface to DifferentialEquations.jl
 #
+"""
+    $(TYPEDEF)
 
+History information for DiffEqHistory
+$(TYPEDFIELDS)
+"""
+@with_kw mutable struct DiffEqHistory 
+    """ number of combined jacobi/rhs evolutions"""
+    nd=0
+    """ number of combined jacobi evolutions"""
+    njac=0
+    """ number of rhs evolutions"""
+    nf=0
+end
+
+details(h::DiffEqHistory)=(nd=h.nd,njac=h.njac,nf=h.nf)
+Base.summary(h::DiffEqHistory)=details(h)
+    
 #
 # Evaluate function and Jacobian at u if they have not
 # been evaluated before at u.
@@ -13,11 +30,9 @@ function _eval_res_jac!(sys,u,t)
     uhash=hash(u)
     if uhash!=sys.uhash
         ur=reshape(u,sys)
-        eval_and_assemble(sys,ur,ur,sys.residual,t,Inf,0.0,zeros(0))
+        eval_and_assemble(sys,ur,ur,sys.residual,value(t),Inf,0.0,zeros(0))
         sys.uhash=uhash
-    else
-        global nd
-        nd=nd+1
+        sys.history.nd+=1
     end
 end
 
@@ -28,16 +43,12 @@ Interpret the  discrete problem as an ODE/DAE problem. Provide the
 rhs function for DifferentialEquations.jl.
 """
 function eval_rhs!(du, u, sys,t)
-    global nf
-    nf=nf+1
     _eval_res_jac!(sys,u,t)
     du.=-vec(sys.residual)
+    sys.history.nf+=1
     nothing
 end
 
-njac=0
-nf=0
-nd=0
 """
 $(SIGNATURES)
 
@@ -45,11 +56,10 @@ Interpret the  discrete problem as an ODE/DAE problem. Provide the
 jacobi matrix calculation function for DifferentialEquations.jl.
 """
 function eval_jacobian!(J, u, sys,t)
-    global njac
-    njac=njac+1
     _eval_res_jac!(sys,u,t)
     # Need to implement broadcast for ExtendableSparse.
     J.=-sys.matrix.cscmatrix
+    sys.history.njac+=1
     nothing
 end
 
@@ -152,16 +162,6 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     return Diagonal(vec(M))
 end
 
-"""
-$(SIGNATURES)
-
-Complete the system and provide the jacobi matrix as prototype
-for the jacobian for use with `DifferentialEquations.jl`.
-"""
-function jac_prototype(sys::AbstractSystem)
-    _complete!(sys, create_newtonvectors=true)
-    sys.matrix.cscmatrix
-end
 
 """
         solve mit Union{Module, Nothing}
@@ -197,18 +197,17 @@ Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the correspond
     if isnothing(solver)
         solver=DiffEq.Rosenbrock23()
     end
-    global njac
-    global nf
-    global nd
 
-    njac=0
-    nf=0
-    nd=0
+    sys.history=DiffEqHistory()
+    
+    _complete!(sys, create_newtonvectors=true)
+    _eval_res_jac!(sys,inival,tspan[1])
+    flush!(sys.matrix)
     f = DiffEq.ODEFunction(eval_rhs!,
                            jac=eval_jacobian!,
-                           jac_prototype=jac_prototype(sys),
+                           jac_prototype=sys.matrix,
                            mass_matrix=mass_matrix(sys))
-    
+
     prob = DiffEq.ODEProblem(f,vec(inival),tspan,sys)
     sol = DiffEq.solve(prob,solver; kwargs...)
     # Return solution as TransientSolution such that sol[i] adheres to the

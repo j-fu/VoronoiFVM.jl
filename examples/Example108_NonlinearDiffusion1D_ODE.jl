@@ -69,7 +69,7 @@ function run_vfvm(;n=20,m=2,t0=0.001, tend=0.01,tstep=1.0e-6,unknown_storage=:de
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
-    sol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt=tstep,Δu_opt=0.01,Δt_min=tstep,store_all=true)
+    sol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt=tstep,Δu_opt=0.01,Δt_min=tstep,store_all=true,log=true)
     err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
     sol,sys,err
 end
@@ -92,6 +92,7 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
     t=@elapsed begin
         sol1,sys,err=run_vfvm(m=m,n=n, unknown_storage=unknown_storage)
     end
+    println(history_summary(sys))
     title=@sprintf("VoronoiFVM: %.0f ms e=%.2e",t*1000,err)
     println(title)
     scalarplot!(vis[1,1],sys,sol1,title=title,aspect=400)
@@ -99,12 +100,12 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
     t=@elapsed begin
         sol2,sys,err=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
     end
-
+    println(history_summary(sys))
     title=@sprintf("OrdinaryDiffEq: %.0f ms, e=%.2e",t*1000,err)
     println(title)
     scalarplot!(vis[1,2],sys,sol2,title=title,aspect=400)
     reveal(vis)
-
+    
     norm(sol2[end]-sol1[end],Inf)<0.01
 end
 
