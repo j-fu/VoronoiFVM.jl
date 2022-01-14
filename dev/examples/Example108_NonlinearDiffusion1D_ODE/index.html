@@ -44,7 +44,7 @@ function run_vfvm(;n=20,m=2,t0=0.001, tend=0.01,tstep=1.0e-6,unknown_storage=:de
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x-&gt;barenblatt(x,t0,m),X)
-    sol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt=tstep,Δu_opt=0.01,Δt_min=tstep,store_all=true)
+    sol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt=tstep,Δu_opt=0.01,Δt_min=tstep,store_all=true,log=true)
     err=norm(sol[1,:,end]-map(x-&gt;barenblatt(x,tend,m),X))
     sol,sys,err
 end
@@ -67,6 +67,7 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
     t=@elapsed begin
         sol1,sys,err=run_vfvm(m=m,n=n, unknown_storage=unknown_storage)
     end
+    println(history_summary(sys))
     title=@sprintf(&quot;VoronoiFVM: %.0f ms e=%.2e&quot;,t*1000,err)
     println(title)
     scalarplot!(vis[1,1],sys,sol1,title=title,aspect=400)
@@ -74,7 +75,7 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
     t=@elapsed begin
         sol2,sys,err=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
     end
-
+    println(history_summary(sys))
     title=@sprintf(&quot;OrdinaryDiffEq: %.0f ms, e=%.2e&quot;,t*1000,err)
     println(title)
     scalarplot!(vis[1,2],sys,sol2,title=title,aspect=400)
@@ -85,4 +86,4 @@ end
 
 test()=main()
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example107_NonlinearStorage1D/">« 107: 1D Nonlinear Storage</a><a class="docs-footer-nextpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">110: 1D Reaction Diffusion equation with two species »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.10 on <span class="colophon-date" title="Friday 14 January 2022 12:26">Friday 14 January 2022</span>. Using Julia version 1.7.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example107_NonlinearStorage1D/">« 107: 1D Nonlinear Storage</a><a class="docs-footer-nextpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">110: 1D Reaction Diffusion equation with two species »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.10 on <span class="colophon-date" title="Friday 14 January 2022 21:37">Friday 14 January 2022</span>. Using Julia version 1.7.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
