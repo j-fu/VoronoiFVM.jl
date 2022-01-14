@@ -250,7 +250,7 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
     scalarplot!(vis[2, 1], biasval, Idspec, clear = false, color=:red)
 
     bgrid     = subgrid(grid, [bjunction], boundary = true)
-    sol_bound = views(sol[iphin_b.ispec, :], bgrid)
+    sol_bound = view(sol[iphin_b.ispec, :], bgrid)
 
     return sol_bound[1]
 

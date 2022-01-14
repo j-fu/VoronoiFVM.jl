@@ -71,7 +71,11 @@ The `VoronoiFVM.Physics` struct almost never was used outside of the constructor
 grid1=simplexgrid(0:0.1:1);
 
 # ╔═╡ 90bbf212-c6c8-44f0-8132-4a98f094750e
-multispecies_flux(y,u,edge)= @views @. y= u[:,1]-u[:,2]
+function multispecies_flux(y,u,edge)
+    for i=1:edge.nspec
+        y[i]=u[i,1]-u[i,2]
+    end
+end
 
 # ╔═╡ adff41d1-9398-4a66-9a8e-e03809973fa6
 function test_reaction(y,u,node)

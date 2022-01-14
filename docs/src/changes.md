@@ -1,4 +1,10 @@
 # Changes
+## v0.15.1 Jan 15, 2022
+- Documentation fixes
+- Fix OrdinaryDiffEq interface
+- added example for current calculation with Quantities
+- Fixed type instabilities in quantities interface 
+
 ## v0.15.0 Jan 1, 2022
 - __Breaking__: History is not anymore returned by `solve`, instead it can be accessed via [`history`](@ref) after the solution.
 - Cleaned API:

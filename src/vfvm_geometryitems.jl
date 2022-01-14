@@ -155,26 +155,26 @@ end
 
 Unknown data on node. 
 """
-struct NodeUnknowns{T} <:AbstractNodeData{T} 
+struct NodeUnknowns{T,Tv,Ti} <:AbstractNodeData{T} 
     val::Vector{T}
-    nspec::Int32
-    geom::Node
+    nspec::Ti
+    geom::Node{Tv,Ti}
 end
 
-@inline unknowns(node::Node,u::Vector{T}) where T = NodeUnknowns{T}(u,node.nspec,node)
+@inline unknowns(node::Node{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = NodeUnknowns{T,Tv,Ti}(u,node.nspec,node)
 
 """
     $(TYPEDEF)
 
 RHS data on node. 
 """
-struct NodeRHS{T} <:AbstractNodeData{T}
+struct NodeRHS{T,Tv,Ti} <:AbstractNodeData{T}
     val::Vector{T}
-    nspec::Int32
-    geom::Node
+    nspec::Ti
+    geom::Node{Tv,Ti}
 end
 
-@inline rhs(node::Node, f::Vector{T}) where T = NodeRHS{T}(f,node.nspec,node)
+@inline rhs(node::Node{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti} = NodeRHS{T,Tv,Ti}(f,node.nspec,node)
 
 
 ##################################################################
@@ -279,22 +279,22 @@ end
 
 
 
-struct BNodeUnknowns{T} <:AbstractNodeData{T} 
+struct BNodeUnknowns{T,Tv,Ti} <:AbstractNodeData{T} 
     val::Vector{T}
-    nspec::Int32
-    geom::BNode
+    nspec::Ti
+    geom::BNode{Tv,Ti}
 end
 
-@inline unknowns(bnode::BNode,u::Vector{T}) where T = BNodeUnknowns{T}(u,bnode.nspec,bnode)
+@inline unknowns(bnode::BNode{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = BNodeUnknowns{T,Tv,Ti}(u,bnode.nspec,bnode)
 
 
-struct BNodeRHS{T} <:AbstractNodeData{T} 
+struct BNodeRHS{T,Tv,Ti} <:AbstractNodeData{T} 
     val::Vector{T}
-    nspec::Int32
-    geom::BNode
+    nspec::Ti
+    geom::BNode{Tv,Ti}
 end
 
-@inline rhs(bnode::BNode, f::Vector{T}) where T = BNodeRHS{T}(f,bnode.nspec,bnode)
+@inline rhs(bnode::BNode{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti} = BNodeRHS{T,Tv,Ti}(f,bnode.nspec,bnode)
 
 
 
@@ -405,22 +405,22 @@ end
 end
 
 
-struct EdgeUnknowns{T} <:AbstractEdgeData{T} 
+struct EdgeUnknowns{T,Tv,Ti} <:AbstractEdgeData{T} 
     val::Vector{T}
-    n1::Int64
-    geom::AbstractEdge
+    n1::Ti
+    geom::Edge{Tv,Ti}
 end
 
-@inline unknowns(edge::Edge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
+@inline unknowns(edge::Edge{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = EdgeUnknowns{T,Tv,Ti}(u,edge.nspec,edge)
 
 
-struct EdgeRHS{T} <:AbstractNodeData{T} 
+struct EdgeRHS{T,Tv,Ti} <:AbstractNodeData{T} 
     val::Vector{T}
-    nspec::Int32
-    geom::AbstractEdge
+    nspec::Ti
+    geom::Edge{Tv,Ti}
 end
 
-@inline rhs(edge::Edge, f::Vector{T}) where T = EdgeRHS{T}(f,edge.nspec,edge)
+@inline rhs(edge::Edge{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti} = EdgeRHS{T,Tv,Ti}(f,edge.nspec,edge)
 
 
 
@@ -519,22 +519,22 @@ end
     nothing
 end
 
-struct BEdgeUnknowns{T} <:AbstractEdgeData{T} 
+struct BEdgeUnknowns{T,Tv,Ti} <:AbstractEdgeData{T} 
     val::Vector{T}
-    n1::Int64
-    geom::AbstractEdge
+    n1::Ti
+    geom::BEdge{Tv,Ti}
 end
 
-@inline unknowns(edge::BEdge,u::Vector{T}) where T = EdgeUnknowns{T}(u,edge.nspec,edge)
+@inline unknowns(edge::BEdge{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = BEdgeUnknowns{T,Tv,Ti}(u,edge.nspec,edge)
 
 
-struct BEdgeRHS{T} <:AbstractNodeData{T} 
+struct BEdgeRHS{T,Tv,Ti} <:AbstractNodeData{T} 
     val::Vector{T}
-    nspec::Int32
-    geom::AbstractEdge
+    nspec::Ti
+    geom::BEdge{Tv,Ti}
 end
 
-@inline rhs(edge::BEdge, f::Vector{T}) where T = EdgeRHS{T}(f,edge.nspec,edge)
+@inline rhs(edge::BEdge{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti}= BEdgeRHS{T,Tv,Ti}(f,edge.nspec,edge)
 
 
 ##################################################################
