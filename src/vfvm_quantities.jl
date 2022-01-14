@@ -89,15 +89,15 @@ automtically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions;ispec=1,id=0) where {Tv,Ti,Tm}
+function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions;ispec=0,id=0) where {Tv,Ti,Tm}
     if ispec==0
         nspec=num_species(sys)
         nspec=nspec+1
     else
         nspec=ispec
     end
-    enable_boundary_species!(sys,nspec,regions)
-    sys.num_quanties+=1
+    enable_boundary_species!(sys,nspec,[regions])
+    sys.num_quantities+=1
     if id==0
         id=sys.num_quantities
     end
@@ -264,6 +264,7 @@ end
 Return species number on [`AbstractNode`](@ref) or [`AbstractEdge`](@ref)
 """
 Base.getindex(q::ContinuousQuantity,node::AbstractNode)=q.ispec
+Base.getindex(q::InterfaceQuantity,node::AbstractNode)=q.ispec
 Base.getindex(q::AbstractQuantity,edge::AbstractEdge)=q.ispec
 
 Base.getindex(q::DiscontinuousQuantity,edge::Edge)=@inbounds q.regionspec[edge.region]
