@@ -879,7 +879,7 @@ function solve(inival,
                         end
                     end
                     if control.verbose
-                        @printf("  Evolution: retry: Δ%s=%.3e\n",λ_str,Δλ)
+                        @printf("  Evolution: retry: Δ%s=%.3e\n",λstr,Δλ)
                     end
                 end
             end
