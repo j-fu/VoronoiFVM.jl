@@ -1,3 +1,9 @@
+#!/bin/sh
+# -*-Julia-*-
+#=
+exec julia --startup-file=no --project=. "$0" "$@"
+=#
+
 using Pkg
 Pkg.activate(@__DIR__)
 
