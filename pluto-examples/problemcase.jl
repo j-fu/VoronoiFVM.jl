@@ -102,18 +102,6 @@ tend=100
 # ╔═╡ 5f6ac608-b1a0-450e-910e-d7d8ea2ffae0
 ε_fix=1.0e-4
 
-# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
-@test sum(bt_n)≈ 17.643110936180495
-
-# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
-@test sum(bt_1)≈ 20.412099101959157
-
-# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
-@test sum(bt_f)≈20.411131554885404
-
-# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
-@test sum(bt_ϕ)≈20.4122562994476
-
 # ╔═╡ 5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 md"""
 Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
@@ -151,17 +139,6 @@ md"""
 ### Results
 """
 
-# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
-@test of_1 ≈ -0.013495959676585267
-
-# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
-@test of_n ≈ -0.00023622450350365264
-
-# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
-@test of_f ≈ -0.013466874615165499
-
-# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
-@test of_r ≈ 	-0.013495959676764535
 
 # ╔═╡ fcd066f1-bcd8-4479-a4e4-7b8c235336c4
 md"""
@@ -527,6 +504,31 @@ We measure the outflow at the outlet. As a result, we obtain:
  
 """
 
+# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
+@test sum(bt_n)≈ 17.643110936180495
+
+# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
+@test sum(bt_1)≈ 20.412099101959157
+
+# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
+@test sum(bt_f)≈20.411131554885404
+
+# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
+@test sum(bt_ϕ)≈20.4122562994476
+
+
+
+# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
+@test of_1 ≈ -0.013495959676585267
+
+# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
+@test of_n ≈ -0.00023622450350365264
+
+# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
+@test of_f ≈ -0.013466874615165499
+
+# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
+@test of_r ≈ 	-0.013495959676764535
 
 # ╔═╡ 0cc1c511-f351-421f-991a-a27f26a8db4f
   html"<hr><hr><hr>"
