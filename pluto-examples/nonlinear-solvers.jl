@@ -47,7 +47,7 @@ Generally, nonlinear systems in this package  are solved using Newton's method. 
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-inpluto && TableOfContents()
+inpluto && TableOfContents(;aside=false)
 
 # ╔═╡ 9843b65c-6ca8-4ef8-a896-2c8cec4bff7c
 md"""

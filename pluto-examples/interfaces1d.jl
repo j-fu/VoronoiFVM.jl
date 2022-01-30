@@ -57,7 +57,7 @@ where ``f_1``, ``f_2`` are discussed later.
 """
 
 # ╔═╡ 327af4a8-74cc-4834-ab19-d3a1d6873982
-TableOfContents(title="")
+TableOfContents(;title="",aside=false)
 
 # ╔═╡ d5a0ee0d-959d-476b-b3c5-79b741059992
 md"""
