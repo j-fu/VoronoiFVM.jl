@@ -195,7 +195,7 @@ Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the correspond
                tspan; solver=nothing, kwargs...)
 
     if isnothing(solver)
-        solver=DiffEq.Rosenbrock23()
+        solver=DiffEq.Rosenbrock23(linsolve=DiffEq.KLUFactorization())
     end
 
     sys.history=DiffEqHistory()
@@ -205,7 +205,7 @@ Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the correspond
     flush!(sys.matrix)
     f = DiffEq.ODEFunction(eval_rhs!,
                            jac=eval_jacobian!,
-                           jac_prototype=sys.matrix,
+                           jac_prototype=sys.matrix.cscmatrix,
                            mass_matrix=mass_matrix(sys))
 
     prob = DiffEq.ODEProblem(f,vec(inival),tspan,sys)
