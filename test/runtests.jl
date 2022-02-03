@@ -73,7 +73,7 @@ function run_all_tests()
         @testset "basictest" begin
             run_tests_from_directory(@__DIR__,"test_")
         end
-        begin
+        if !Sys.iswindows()
             for notebook in notebooks
                 @testset "$(notebook)" begin
                     #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))
