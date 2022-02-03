@@ -14,3 +14,6 @@ SimplexGridFactory = "57bfcd06-606e-45d6-baf4-4ba06da0efd5"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
+
+[compat]
+OrdinaryDiffEq = "< 6.1"
