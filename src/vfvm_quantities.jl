@@ -348,4 +348,4 @@ Base.getindex(A::AbstractArray,q::AbstractQuantity)= A[q.id]
 
 Set element of `A` using id of quantity `q`
 """
-Base.setindex!(A::AbstractMatrix,v,q::AbstractQuantity)= A[q.id]=v
+Base.setindex!(A::AbstractArray,v,q::AbstractQuantity)= A[q.id]=v
