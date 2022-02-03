@@ -409,8 +409,14 @@ grid_n,sol_n,bt_n=trsolve(grid_2d(nref=nref),tend=tend);
 # ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
 sum(bt_n)
 
+# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
+@test sum(bt_n)≈ 17.643110936180495
+
 # ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
 grid_1,sol_1,bt_1=trsolve(grid_1d(nref=nref),tend=tend);
+
+# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
+@test sum(bt_1)≈ 20.412099101959157
 
 # ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
 inpluto && scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
@@ -418,6 +424,9 @@ xlabel="x",ylabel="c",title="1D calculation, t=$t")
 
 # ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
 grid_f,sol_f,bt_f=trsolve(grid_2d(nref=nref,ε_fix=ε_fix),tend=tend);
+
+# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
+@test sum(bt_f)≈20.411131554885404
 
 # ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
 if inpluto
@@ -427,6 +436,11 @@ end
 
 # ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
 grid_ϕ,sol_ϕ,bt_ϕ=trsolve(grid_2d(nref=nref), ϕ=[1.0e-3,1],tend=tend);
+
+# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
+@test sum(bt_ϕ)≈20.4122562994476
+
+
 
 # ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
 if inpluto
@@ -477,14 +491,23 @@ end
 # ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
 rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref));
 
+# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
+@test of_1 ≈ -0.013495959676585267
+
 # ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
 inpluto && scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
 
 # ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
 rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref));
 
+# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
+@test of_n ≈ -0.00023622450350365264
+
 # ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
  rdgrid_f,rdsol_f,of_f=rdsolve(grid_2d(nref=nref,ε_fix=ε_fix));
+
+# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
+@test of_f ≈ -0.013466874615165499
 
 # ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
 if inpluto
@@ -495,6 +518,9 @@ end
 # ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
  rdgrid_r,rdsol_r,of_r=rdsolve(grid_2d(nref=nref),R=[0,0.1]);
 
+# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
+@test of_r ≈ 	-0.013495959676764535
+
 # ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
 md"""
 We measure the outflow at the outlet. As a result, we obtain:
@@ -502,33 +528,7 @@ We measure the outflow at the outlet. As a result, we obtain:
    - 2D case, naive grid: $(of_n)
    - 2D case, grid with "protective layer": $(of_f)
    - 2D case, naive grid, "modified" R: $(of_r)
- 
 """
-# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
-@test sum(bt_n)≈ 17.643110936180495
-
-# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
-@test sum(bt_1)≈ 20.412099101959157
-
-# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
-@test sum(bt_f)≈20.411131554885404
-
-# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
-@test sum(bt_ϕ)≈20.4122562994476
-
-
-
-# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
-@test of_1 ≈ -0.013495959676585267
-
-# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
-@test of_n ≈ -0.00023622450350365264
-
-# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
-@test of_f ≈ -0.013466874615165499
-
-# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
-@test of_r ≈ 	-0.013495959676764535
 
 # ╔═╡ 0cc1c511-f351-421f-991a-a27f26a8db4f
   html"<hr><hr><hr>"
@@ -610,9 +610,9 @@ version = "0.2.0"
 
 [[deps.ArrayInterface]]
 deps = ["Compat", "IfElse", "LinearAlgebra", "Requires", "SparseArrays", "Static"]
-git-tree-sha1 = "ffc6588e17bcfcaa79dfa5b4f417025e755f83fc"
+git-tree-sha1 = "1bdcc02836402d104a46f7843b6e6730b1948264"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "4.0.1"
+version = "4.0.2"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -868,9 +868,9 @@ version = "0.4.19"
 
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
-git-tree-sha1 = "22df5b96feef82434b07327e2d3c770a9b21e023"
+git-tree-sha1 = "abc9885a7ca2052a736a600f7fa66209f96506e1"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
@@ -988,9 +988,9 @@ version = "0.1.1"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
-git-tree-sha1 = "ae6145ca68947569058866e443df69587acc1806"
+git-tree-sha1 = "da2314d0b0cb518906ea32a497bb4605451811a4"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.32"
+version = "0.7.33"
 
 [[deps.PlutoVista]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "GridVisualize", "HypertextLiteral", "UUIDs"]
@@ -1093,9 +1093,9 @@ version = "0.5.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "2884859916598f974858ff01df7dfc6c708dd895"
+git-tree-sha1 = "a635a9333989a094bddc9f940c04c549cd66afcf"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.3.3"
+version = "1.3.4"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
