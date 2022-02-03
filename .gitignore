@@ -1,10 +1,9 @@
 QUARRY
 quarry
 startup.jl
-Manifest.toml
 docs/build
 docs/src/examples
-Manifest.toml
+./Manifest.toml
 *~
 .repl_history.jl
 .vscode

@@ -6,28 +6,23 @@ using InteractiveUtils
 
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
-    using Pkg
-    inpluto=isdefined(Main,:PlutoRunner)
-    developing=false	
-    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We try to outsmart Pluto's cell parser here.
-	# This activates an environment in VoronoiFVM/pluto-examples
-	eval(:(Pkg.activate(joinpath(@__DIR__))))
-    eval(:(Pkg.instantiate()))
-	# use Revise if we develop VoronoiFVM
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
 	using Revise
-	# This activates the checked out version of VoronoiFVM.jl for development
-	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
 	developing=true
     end
+    initialized=true
 end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
-begin 
-    using VoronoiFVM
-    using ExtendableGrids
-    using Test
-    if inpluto
+begin
+    if initialized
+        using VoronoiFVM
+        using ExtendableGrids
+        using Test
  	using PlutoUI
 	using LinearAlgebra
 	using GridVisualize
@@ -47,7 +42,7 @@ Generally, nonlinear systems in this package  are solved using Newton's method. 
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-inpluto && TableOfContents(;aside=false)
+TableOfContents(;aside=false)
 
 # ╔═╡ 9843b65c-6ca8-4ef8-a896-2c8cec4bff7c
 md"""
@@ -99,7 +94,7 @@ begin
 end;
 
 # ╔═╡ b9bb8020-5470-4964-818c-7f9b3bf2a8b4
-inpluto && scalarplot(system,sol,resolution=(500,200),
+scalarplot(system,sol,resolution=(500,200),
         xlabel="x",ylable="y", title="solution")
 
 # ╔═╡ b3124c06-1f40-46f5-abee-9c2e8e538162
@@ -121,7 +116,7 @@ plothistory(h)=scalarplot(1:length(h),h,resolution=(500,200),
             title= "Maximum norm of Newton update");
 
 # ╔═╡ ebdc2c82-f72e-4e35-a63f-4ba5154e294f
-inpluto && plothistory(hist)
+plothistory(hist)
 
 # ╔═╡ 3d49aafd-79a6-4e2f-b422-24a5be7aa87a
 md"""
@@ -167,7 +162,7 @@ begin
 end
 
 # ╔═╡ e66d20f0-4987-471b-82ee-0c56160f9b01
-inpluto && plothistory(history(system))
+plothistory(history(system))
 
 # ╔═╡ 35971019-fa07-4033-aebf-7872030a0cef
 details(hist1)
@@ -234,7 +229,7 @@ end
 summary(history2)
 
 # ╔═╡ 0d2311aa-f79a-4a44-bac4-59d6c5457ca5
-inpluto && plothistory(vcat(history2...))
+plothistory(vcat(history2...))
 
 # ╔═╡ 75ab714d-0251-42ef-a415-ba6bed4c688f
 @test check(sol2[end])
@@ -267,9 +262,7 @@ md"""
 
 # ╔═╡ ad899a81-baab-4433-8b7f-1e5c3b18dae6
 md"""
-This notebook is also run during the automatic unit tests. In this case, all interactive elements and visualizations should be deactivated.
-For this purposes, the next cell detects if the notebook is running under Pluto
-and sets the `inpluto` flag accordingly.
+This notebook is also run during the automatic unit tests.
 
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """

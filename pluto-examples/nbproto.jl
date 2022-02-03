@@ -6,33 +6,28 @@ using InteractiveUtils
 
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
-    using Pkg
-    inpluto=isdefined(Main,:PlutoRunner)
-    developing=false	
-    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We try to outsmart Pluto's cell parser here.
-	# This activates an environment in VoronoiFVM/pluto-examples
-	eval(:(Pkg.activate(joinpath(@__DIR__))))
-    eval(:(Pkg.instantiate()))
-	# use Revise if we develop VoronoiFVM
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
 	using Revise
-	# This activates the checked out version of VoronoiFVM.jl for development
-	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
 	developing=true
     end
+    initialized=true
 end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin 
+	if initialized
     using VoronoiFVM
     using ExtendableGrids
     using Test
-    if inpluto
  	using PlutoUI
 	using GridVisualize
 	using PlutoVista
 	GridVisualize.default_plotter!(PlutoVista)
-    end
+	end
 end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
@@ -41,10 +36,10 @@ md"""
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-inpluto && TableOfContents(;aside=false)
+TableOfContents(;aside=false)
 
 # ╔═╡ c8eda836-d719-4412-895e-c3a24fec21ec
-
+scalarplot(sin.(0:0.1:10),size=(500,200))
 
 # ╔═╡ 3eef08af-f6ba-4874-82c0-65ff53e7f7da
 @test true
@@ -90,7 +85,7 @@ ExtendableGrids = "~0.8.11"
 GridVisualize = "~0.4.3"
 PlutoUI = "~0.7.23"
 PlutoVista = "~0.8.12"
-Revise = "~3.2.0"
+Revise = "~3.3.1"
 VoronoiFVM = "~0.14.0"
 """
 
@@ -396,9 +391,9 @@ version = "0.21.2"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "e273807f38074f033d94207a201e6e827d8417db"
+git-tree-sha1 = "6ca01d8e5bc75d178e8ac2d1f741d02946dc1853"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.8.21"
+version = "0.9.2"
 
 [[LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -434,9 +429,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
-git-tree-sha1 = "491a883c4fef1103077a7f648961adbf9c8dd933"
+git-tree-sha1 = "f46e8f4e38882b32dcc11c8d31c131d556063f39"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "2.1.2"
+version = "2.2.0"
 
 [[MacroTools]]
 deps = ["Markdown", "Random"]
@@ -556,9 +551,9 @@ version = "1.3.0"
 
 [[Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
-git-tree-sha1 = "e55f4c73ec827f96cd52db0bc6916a3891c726b5"
+git-tree-sha1 = "2f9d4d6679b5f0394c52731db3794166f49d5131"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.2.1"
+version = "3.3.1"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"

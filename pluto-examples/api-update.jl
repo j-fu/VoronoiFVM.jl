@@ -16,30 +16,28 @@ end
 
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
-    using Pkg
-    inpluto=isdefined(Main,:PlutoRunner)
-    developing=false	
-    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We have to outsmart Plutos cell parser here.
-	eval(:(Pkg.activate(joinpath(@__DIR__))))
-    eval(:(Pkg.instantiate()))
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
 	using Revise
-	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
 	developing=true
     end
+    initialized=true
 end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin 
-	using VoronoiFVM
-    using ExtendableGrids
+    if initialized
+        using VoronoiFVM
+        using ExtendableGrids
 	using Test
-	if inpluto
- 	  using PlutoUI
-	  using GridVisualize
-	  using PlutoVista
-	  GridVisualize.default_plotter!(PlutoVista)
-   end
+ 	using PlutoUI
+	using GridVisualize
+	using PlutoVista
+	GridVisualize.default_plotter!(PlutoVista)
+    end
 end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
@@ -53,7 +51,7 @@ Here we describe some updates for the API of `VoronoiFVM.jl`. These have been im
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-inpluto && TableOfContents(;aside=false)
+TableOfContents(;aside=false)
 
 # ╔═╡ 8a4f336c-2016-453e-9a9f-beac66533fc0
 md"""
@@ -95,13 +93,11 @@ end;
 sol1=solve(system1);
 
 # ╔═╡ 2754d4c8-bbc1-4283-8156-c660c33cd62d
-if inpluto 
-	let
-	vis=GridVisualizer(resolution=(500,300),legend=:rt)
-	scalarplot!(vis,grid1,sol1[1,:],color=:red,label="species1")
-	scalarplot!(vis,grid1,sol1[2,:],color=:green,label="species2",clear=false)
-	reveal(vis)
-end
+let
+    vis=GridVisualizer(resolution=(500,300),legend=:rt)
+    scalarplot!(vis,grid1,sol1[1,:],color=:red,label="species1")
+    scalarplot!(vis,grid1,sol1[2,:],color=:green,label="species2",clear=false)
+    reveal(vis)
 end
 
 # ╔═╡ fbd75cf1-64e4-4f07-b54f-f90626f3f6ba
@@ -129,23 +125,19 @@ system2=VoronoiFVM.System(grid1,flux=multispecies_flux,
 sol2=solve(system2, times=(0,10), Δt_max=0.01)
 
 # ╔═╡ 17749697-d5d8-4629-a625-e96590a5f0ac
-if inpluto
-   vis2=GridVisualizer(resolution=(500,300),limits=(-2,2),legend=:rt)
-end
+vis2=GridVisualizer(resolution=(500,300),limits=(-2,2),legend=:rt)
 
 # ╔═╡ 0c916da5-2d6e-42df-ac4b-4a062f931ccd
-if inpluto
-	md"""time: $(@bind t2 Slider(0:0.01:10; default=5,show_value=true))"""
-end
+md"""
+time: $(@bind t2 Slider(0:0.01:10; default=5,show_value=true))
+"""
 
 # ╔═╡ 783618f8-2470-4c7c-afc1-9800586625c1
-if inpluto
-    let
-	s=sol2(t2)
-	scalarplot!(vis2,grid1,s[1,:],color=:red,label="species1")
-	scalarplot!(vis2,grid1,s[2,:],color=:green,label="species2",clear=false,title="time=$(t2)")
-	reveal(vis2)
-end
+let
+s=sol2(t2)
+scalarplot!(vis2,grid1,s[1,:],color=:red,label="species1")
+scalarplot!(vis2,grid1,s[2,:],color=:green,label="species2",clear=false,title="time=$(t2)")
+reveal(vis2)
 end
 
 # ╔═╡ 4cbea340-9c02-4e69-8f5e-62bf45312bdd
@@ -184,7 +176,7 @@ Instead of a grid, a system can be passed to `gridplot` and `scalarplot`.
 """
 
 # ╔═╡ 34d465a5-7cc5-4348-b9ba-6d9381bb3a87
-inpluto && scalarplot(system3,sol3,resolution=(300,300),levels=10,colormap=:hot)
+scalarplot(system3,sol3,resolution=(300,300),levels=10,colormap=:hot)
 
 # ╔═╡ ac48f5bd-fd1e-4aa7-a2c9-90f0f427143c
 md"""
@@ -212,7 +204,7 @@ system4=VoronoiFVM.System(-10:0.1:10,species=[1],
 sol4=solve(system4,log=true,damp_initial=0.001,damp_growth=3);
 
 # ╔═╡ 6a256a29-f15f-4d82-8e84-7ceacb786715
-inpluto && scalarplot(system4,sol4,resolution=(500,300),xlabel="x",ylabel="u",title="solution")
+scalarplot(system4,sol4,resolution=(500,300),xlabel="x",ylabel="u",title="solution")
 
 # ╔═╡ 5c2a3836-dc81-4950-88e5-7f603514b1c0
 @test isapprox(sum(sol4),418.58515700568535, rtol=1.0e-14)
@@ -227,10 +219,7 @@ md"""
 
 # ╔═╡ ad899a81-baab-4433-8b7f-1e5c3b18dae6
 md"""
-This notebook is also run during the automatic unit tests. In this case, all interactive elements and visualizations should be deactivated.
-For this purposes, the next cell detects if the notebook is running under Pluto
-and sets the `inpluto` flag accordingly.
-
+This notebook is also run during the automatic unit tests.
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
 

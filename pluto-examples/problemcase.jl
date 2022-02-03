@@ -16,33 +16,28 @@ end
 
 # ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
 begin
-    using Pkg
-    inpluto=isdefined(Main,:PlutoRunner)
-    developing=false	
-    if inpluto && isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	# We try to outsmart Pluto's cell parser here.
-	# This activates an environment in VoronoiFVM/pluto-examples
-	eval(:(Pkg.activate(joinpath(@__DIR__))))
-    eval(:(Pkg.instantiate()))
-	# use Revise if we develop VoronoiFVM
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
 	using Revise
-	# This activates the checked out version of VoronoiFVM.jl for development
-	eval(:(Pkg.develop(path=joinpath(@__DIR__,".."))))
 	developing=true
     end
+    initialized=true
 end;
 
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
-begin 
+begin
+    if initialized
 	using Test
 	using VoronoiFVM
 	using ExtendableGrids
-	if inpluto
-	    using PlutoUI
-		using PlutoVista
-		using GridVisualize
-		default_plotter!(PlutoVista)
-	end
+	using PlutoUI
+	using PlutoVista
+	using GridVisualize
+	default_plotter!(PlutoVista)
+    end
 end;
 
 # ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
@@ -56,7 +51,7 @@ We provide some practical fix and opine that the finite element method proably h
 """
 
 # ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
-inpluto && TableOfContents(;aside=false)
+TableOfContents(;aside=false)
 
 # ╔═╡ fae47c55-eef8-4428-bb5f-45824978753d
 md"""
@@ -109,18 +104,16 @@ Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
 """
 
 # ╔═╡ f6abea66-1e42-4201-8433-5d092989749d
-if inpluto
+begin
 	vis_n=GridVisualizer(dim=2,resolution=(210,150))
 	vis_f=GridVisualizer(dim=2,resolution=(210,150))
 	(vis_n,vis_f)
 end
 
 # ╔═╡ 98ae56dd-d42d-4a93-bb0b-5956b6e981a3
-if inpluto
 md"""
 Time: $(@bind t Slider(1:tend/100:tend,show_value=true,default=tend*0.1))
 """
-end
 
 # ╔═╡ 99c3b54b-d458-482e-8aa0-d2c2b51fdf25
 md"""
@@ -295,10 +288,10 @@ function grid_2d(;nref=0,ε_fix=0.0)
 end
 
 # ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
-inpluto && gridplot(grid_2d(),resolution=(400,300))
+gridplot(grid_2d(),resolution=(400,300))
 
 # ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
-inpluto && gridplot(grid_2d(;ε_fix=1.0e-1),resolution=(400,300))
+gridplot(grid_2d(;ε_fix=1.0e-1),resolution=(400,300))
 
 # ╔═╡ c402f03c-746a-45b8-aaac-902a2f196094
 function grid_1d(;nref=0)
@@ -419,7 +412,7 @@ grid_1,sol_1,bt_1=trsolve(grid_1d(nref=nref),tend=tend);
 @test sum(bt_1)≈ 20.412099101959157
 
 # ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
-inpluto && scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
+scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
 xlabel="x",ylabel="c",title="1D calculation, t=$t")
 
 # ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
@@ -429,9 +422,9 @@ grid_f,sol_f,bt_f=trsolve(grid_2d(nref=nref,ε_fix=ε_fix),tend=tend);
 @test sum(bt_f)≈20.411131554885404
 
 # ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
-if inpluto
-scalarplot!(vis_n,grid_n,sol_n(t)[ic,:],resolution=(210,200),show=true),
-scalarplot!(vis_f,grid_f,sol_f(t)[ic,:],resolution=(210,200),show=true)
+begin
+    scalarplot!(vis_n,grid_n,sol_n(t)[ic,:],resolution=(210,200),show=true),
+    scalarplot!(vis_f,grid_f,sol_f(t)[ic,:],resolution=(210,200),show=true)
 end
 
 # ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
@@ -443,7 +436,7 @@ grid_ϕ,sol_ϕ,bt_ϕ=trsolve(grid_2d(nref=nref), ϕ=[1.0e-3,1],tend=tend);
 
 
 # ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
-if inpluto
+begin
     p1=PlutoVistaPlot(resolution=(500,200),xlabel="t",ylabel="outflow",
                      legend=:rb,
                      title="Breakthrough Curves")
@@ -495,7 +488,7 @@ rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref));
 @test of_1 ≈ -0.013495959676585267
 
 # ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
-inpluto && scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
+scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
 
 # ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
 rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref));
@@ -510,7 +503,7 @@ rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref));
 @test of_f ≈ -0.013466874615165499
 
 # ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
-if inpluto
+begin
 scalarplot(rdgrid_n,rdsol_n,resolution=(210,200)),
 scalarplot(rdgrid_f,rdsol_f,resolution=(210,200))
 end
@@ -540,9 +533,7 @@ md"""
 
 # ╔═╡ 99c8458a-a584-4825-a983-ae1a05e50000
 md"""
-This notebook is also run during the automatic unit tests. In this case, all interactive elements and visualizations should be deactivated.
-For this purposes, the next cell detects if the notebook is running under Pluto
-and sets the `inpluto` flag accordingly.
+This notebook is also run during the automatic unit tests.
 
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """

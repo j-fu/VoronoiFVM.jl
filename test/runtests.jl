@@ -80,6 +80,7 @@ function run_all_tests()
                     @test testnotebook(joinpath(@__DIR__,"..","pluto-examples",notebook))
                 end
             end
+            Pkg.activate(@__DIR__)
         end
         
         @testset "1D Examples" begin
