@@ -1,5 +1,7 @@
 using Test
 using Pluto
+using Pkg
+
 # Activate assembly loop allocation checking
 # as default.
 ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
