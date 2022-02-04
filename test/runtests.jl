@@ -76,10 +76,11 @@ function run_all_tests()
             run_tests_from_directory(@__DIR__,"test_")
         end
         if !Sys.iswindows()
-            for notebook in notebooks
-                @testset "$(notebook)" begin
+            @testset "notebooks" begin
+                for notebook in notebooks
                     #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))
                     @test testnotebook(joinpath(@__DIR__,"..","pluto-examples",notebook))
+                    @info "notebook $(notebook) ok"
                 end
             end
             Pkg.activate(@__DIR__)
