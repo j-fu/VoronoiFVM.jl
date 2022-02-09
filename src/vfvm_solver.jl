@@ -710,7 +710,7 @@ function _eval_and_assemble_generic_operator(system::AbstractSystem,U,F)
     nzval=system.generic_matrix.nzval
     for i=1:length(colptr)-1
         for j=colptr[i]:colptr[i+1]-1
-            updateindex!(system.matrix,+,nzval[j],i,rowval[j])
+            updateindex!(system.matrix,+,nzval[j],rowval[j],i)
         end
     end
 end
