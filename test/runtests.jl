@@ -75,17 +75,6 @@ function run_all_tests()
         @testset "basictest" begin
             run_tests_from_directory(@__DIR__,"test_")
         end
-        if !Sys.iswindows()
-            @testset "notebooks" begin
-                for notebook in notebooks
-                    #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))
-                    @test testnotebook(joinpath(@__DIR__,"..","pluto-examples",notebook))
-                    @info "notebook $(notebook) ok"
-                end
-            end
-            Pkg.activate(@__DIR__)
-        end
-        
         @testset "1D Examples" begin
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example1")
         end
@@ -97,6 +86,17 @@ function run_all_tests()
         end
         @testset "Misc Examples" begin
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
+        end
+
+        if !Sys.iswindows() # there seems to be a time limit problem
+            @testset "notebooks" begin
+                for notebook in notebooks
+                    #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))
+                    @test testnotebook(joinpath(@__DIR__,"..","pluto-examples",notebook))
+                    @info "notebook $(notebook) ok"
+                end
+            end
+            Pkg.activate(@__DIR__)
         end
     end
 end
