@@ -168,18 +168,10 @@ Physics(;num_species=0,
          bstorage,
          generic,
          generic_sparsity
-)
+    )
 ````
 
-Constructor for physics data. For the meaning of the optional function
-callbacks, see [`Physics`](@ref).
-
-There are two variants of this constructor. It `data` is given, all callback functions
-should accept a last `data` argument. Otherwise, no data are passed explicitely, and it
-is assumed that constitutive callbacks take parameters from the closure where the function
-is defined.
-
-
+Constructor for physics data. For the meaning of the optional keyword arguments, see [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
 function Physics(;num_species=0,
                  data=nothing,
@@ -192,7 +184,8 @@ function Physics(;num_species=0,
                  bsource::Function=nosrc,
                  bstorage::Function=nofunc,
                  generic::Function=nofunc_generic,
-                 generic_sparsity::Function=nofunc_generic_sparsity
+                 generic_sparsity::Function=nofunc_generic_sparsity,
+                 kwargs...
                  )
     if !isdata(data)
         flux==nofunc ? flux=nofunc2 : true
@@ -396,4 +389,15 @@ macro create_physics_wrappers(physics,node,bnode,edge,bedge)
             
         end
     end
+end
+
+
+##########################################################
+
+
+
+
+# "Generate" a flux function
+function diffusion_flux(D::T) where T
+    (y,u,args...)-> y[1]=D(u[1,1]+u[1,2])*(u[1,1]-u[1,2])
 end

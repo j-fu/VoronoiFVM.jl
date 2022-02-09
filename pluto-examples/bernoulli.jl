@@ -20,7 +20,7 @@ with BigFloat. This allows to optimize thresholds for switching between evaluati
 """
 
 # ╔═╡ 20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
-TableOfContents(title="")
+TableOfContents(;title="",aside=false)
 
 # ╔═╡ 1774defe-1939-45f9-95e5-6a9fff70f3f2
 md"""

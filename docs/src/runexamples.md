@@ -6,6 +6,8 @@ The examples have been designed with the following issues in mind:
 - an example can be used as the starting point for a project 
 - the examples at the same time comprise the test suite for VoronoiFVM.
 
+Since the creation of these examples, the API has been [updated and simplified](@ref api-update).
+
 
 ## Running the examples
 Plotting is performed using the GridVisualize.jl package which interfaces PyPlot.jl,

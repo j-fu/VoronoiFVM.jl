@@ -11,6 +11,8 @@ using LinearAlgebra
 using SparseArrays
 using SuiteSparse
 
+using Parameters
+using Statistics
 
 using ForwardDiff
 using DiffResults
@@ -18,7 +20,7 @@ using IterativeSolvers
 using JLD2
 using StaticArrays
 using SparseDiffTools
-using SparsityDetection
+using Symbolics
 using RecursiveArrayTools
 
 using ExtendableSparse
@@ -41,6 +43,8 @@ export setdof!
 include("vfvm_transientsolution.jl")
 export transient_solution,TransientSolution
 
+include("vfvm_history.jl")
+export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmmetric!
@@ -55,20 +59,21 @@ export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
 export boundary_robin!
+export ramp
 export value
 export check_allocs!
 export physics!
-
+export history,history_summary,history_details
 
 include("vfvm_geometryitems.jl")
 include("vfvm_formfactors.jl")
 export meas,project
 export unknown_indices
 export edgevelocities,bfacevelocities
+export time,region,embedparam,parameters
 
-
-include("vfvm_newtoncontrol.jl")
-export fixed_timesteps!,NewtonControl
+include("vfvm_solvercontrol.jl")
+export fixed_timesteps!,NewtonControl,SolverControl
 export edgelength
 export viewK,viewL,data
 
@@ -95,6 +100,10 @@ export InterfaceQuantity
 include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
 export measurement_derivative
+
+include("gridvisualize.jl")
+
+include("precompile.jl")
 
 
 end

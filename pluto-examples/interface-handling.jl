@@ -21,7 +21,7 @@ begin
 end
 
 # ╔═╡ cc49b312-7e21-49aa-b42d-32c184919aa2
-TableOfContents(title="",depth=4)
+TableOfContents(title="",depth=4,aside=false)
 
 # ╔═╡ b61dce01-f84f-4e46-be76-8561bf0dddaa
 md"""

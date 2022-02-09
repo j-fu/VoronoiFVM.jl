@@ -9,19 +9,8 @@ abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
 ##################################################################
 """
 $(TYPEDEF)
-    
-Structure holding data for finite volume system solution.
 
-Information on species distribution is kept in sparse or dense matrices
-matrices and, correspondingly,  the solution array is of type SparseSolutionArray
-or matrix, respectively.
-
-In the case of sparse unknown storage, the system matrix handles exactly those
-degrees of freedom which correspond to unknowns. However, handling
-of the sparse matrix structures for the bookkeeping of the unknowns
-creates overhead.
-
-$(TYPEDFIELDS)
+Structure holding data for finite volume system.
 """
 mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix} <: AbstractSystem{Tv,Ti, Tm}
 
@@ -80,6 +69,17 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     Number of quantities defined on system
     """
     num_quantities::Ti
+
+
+    """
+    Number of parameter the system depnds on.
+    """
+    num_parameters::Ti
+
+    """
+    Parameter derivative (vector of solution arrays)
+    """
+    dudp::Vector{TSolArray}
     
     """
     Solution vector holding Newton update
@@ -130,6 +130,12 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     Data for allocation check
     """
     allocs::Int
+
+
+    """
+    History record for last solution process
+    """
+    history
     
     System{Tv,Ti,Tm, TSpecMat, TSolArray}() where {Tv,Ti,Tm, TSpecMat, TSolArray} = new()
 end
@@ -138,6 +144,7 @@ end
     const DenseSystem
 
 Type alias for system with dense matrix based species management
+
 """
 const DenseSystem = System{Tv,Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Ti, Tm}
 
@@ -146,44 +153,85 @@ const DenseSystem = System{Tv,Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Ti, Tm}
     const SparseSystem
 
 Type alias for system with sparse matrix based species management
+
 """
 const SparseSystem = System{Tv,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti} } where {Tv, Ti, Tm}
-
 
 default_check_allocs()= haskey(ENV,"VORONOIFVM_CHECK_ALLOCS") ? parse(Bool,ENV["VORONOIFVM_CHECK_ALLOCS"]) :  false
 
 ##################################################################
 """
 ````
-function System(grid,physics;
-                unknown_storage=:dense;
-                matrixindextype=Int32)
+System(grid; kwargs...)
 ````
+    
+Create structure of type [`VoronoiFVM.System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix}`](@ref)  holding data for finite volume system solution. 
 
-Create Finite Volume System. 
+Parameters: 
 
-- `grid`: 1D/2D/3D discretization grid
-- `physics`: Physics struct containing node and edge callbacks
-- `unknown_storage`: string or symbol:
+- `grid::ExtendableGrid`: 1, 2 or 3D computational grid
+
+Keyword arguments:
+- `species`: vector of integer species indices. Added to all grid regions, avoiding the need to call [`enable_species!`](@ref) for this default case.
+              If it is kept empty, species have be added to the system after creation via  [`enable_species!`](@ref).
+- `unknown_storage`: string or symbol.  
+    Information  on  species  distribution  is kept  in  sparse  or  dense
+    matrices matrices and, correspondingly, the  solution array is of type
+    SparseSolutionArray  or matrix,  respectively. In  the case  of sparse
+    unknown storage,  the system matrix  handles exactly those  degrees of
+    freedom which correspond to unknowns.  However, handling of the sparse
+    matrix  structures  for  the   bookkeeping  of  the  unknowns  creates
+    overhead.
      - `:dense` :  solution vector is an  `nspecies` x `nnodes`  dense matrix
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
-- `matrixindextype` : Index type for sparse matrices created in the system
+- `matrixindextype`: Integer type. Index type for sparse matrices created in the system.
+
+Physics keyword arguments:
+- `flux`: Function.     Flux between neigboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
+    should return in `f[i]` the flux of species i along the edge joining circumcenters
+    of neigboring control volumes.  For species i,`u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
+- `storage`: Function.  Storage term (term under time derivative): `storage(f,u,node)` or `storage(f,u,node,data)` 
+    It should return in `f[i]` the storage term for the i-th equation. `u[i]` contains the value of
+    the i-th unknown.
+- `reaction`:  Function. Reaction term:  `reaction(f,u,node)` or `reaction(f,u,node,data)` 
+    It should return in `f[i]` the reaction term for the i-th equation. `u[i]` contains the value of
+    the i-th unknown.
+- `source`:  Function. Source term: `source(f,node)` or `source(f,node,data)`.
+    It should return the in `f[i]` the value of the source term for the i-th equation.
+- `bflux`:  Function. Flux between neighboring control volumes on the boundary
+- `breaction` Function.  Boundary reaction term:  `breaction(f,u,node)` or `breaction(f,u,node,data)` 
+    Similar to reaction, but restricted to the inner or outer boundaries.
+- `bcondition` Function. Alias for `breaction`.
+- `bsource`: Function. Boundary source term: `bsource(f,node)` or `bsource(f,node,data)`.
+    It should return in `f[i]` the value of the source term for the i-th equation.
+- `bstorage`: Function.  Boundary storage term: `bstorage(f,u,node)` or `bstorage(f,u,node,data)` 
+    Similar to storage, but restricted to the inner or outer boundaries.
+- `generic_operator`: Funtion.  Generic operator  `generic_operator(f,u,sys)`. 
+    This operator acts on the full solution `u` of a system. Sparsity
+    is detected automatically  unless `generic_operator_sparsity` is given.
+-  `generic_operator_sparsity`:  Function defining the sparsity structure of the generic operator.
+    This should return the sparsity pattern of the `generic_operator`.
+-  `nparams`: number of parameters the system is depending on, and with respect to which the derivatives
+    need to be obtained
+-  `data`:  User data (parameters).
+    This allows to pass various parameters to the callback functions. If `data` is given, all callback functions
+    should accept a last `data` argument. Otherwise, no data are passed explicitely, and constitutive callbacks can
+    take parameters from the closure where the function is defined.
 """
-function System(grid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
-    system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
-    physics!(system,physics)
-end
+function System(grid::ExtendableGrid;
+                species=Int[],
+                unknown_storage=:dense,
+                matrixindextype=Int64,
+                check_allocs=default_check_allocs(),
+                nparams=0,
+                kwargs...)
 
-function physics!(system::System,physics)
-    system.physics=physics
-    system
-end
-
-function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs())
     Tv=coord_type(grid)
     Ti=index_type(grid)
     Tm=matrixindextype
-
+    
+    
+    
     if Symbol(unknown_storage)==:dense
         system=System{Tv,Ti,Tm,Matrix{Ti}, Matrix{Tv}}()
     elseif Symbol(unknown_storage)==:sparse
@@ -192,6 +240,7 @@ function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
 
+    
     maxspec=0
     system.grid=grid
     system.region_species=spzeros(Ti,Int16,maxspec,num_cellregions(grid))
@@ -204,27 +253,81 @@ function System(grid;unknown_storage=:dense, matrixindextype=Int64, check_allocs
     system.uhash=0x0
     system.allocs=-1000
     system.factorization=nothing
+    system.history=nothing
+    system.num_parameters=nparams
+    
     check_allocs!(system,check_allocs)
+
+    physics!(system; kwargs...)
+    enable_species!(system;species)
     return system
 end
 
 
+"""
+````
+System(X; kwargs...)
+````
+Create an [1D grid from vector X](https://j-fu.github.io/ExtendableGrids.jl/stable/gridconstructors/) and call  [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
+"""
+System(X::AbstractVector; kwargs...)= System(simplexgrid(X); kwargs...)
 
 
 """
-$(SIGNATURES)
-
-Constructor for DenseSystem.
+````
+System(X,Y; kwargs...)
+````
+Create a [2D grid from vectors X,Y ](https://j-fu.github.io/ExtendableGrids.jl/stable/gridconstructors/) and call  [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
-DenseSystem(grid,physics::Physics; matrixindextype=Int64)=System(grid,physics,matrixindextype=matrixindextype,unknown_storage=:dense)
+System(X::AbstractVector, Y::AbstractVector; kwargs...)= System(simplexgrid(X,Y); kwargs...)
 
 
 """
-$(SIGNATURES)
-
-Constructor for SparseSystem.
+````
+System(X,Y, Z; kwargs...)
+````
+Create a [3D grid from vectors X,Y,Z ](https://j-fu.github.io/ExtendableGrids.jl/stable/gridconstructors/) and call  [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
-SparseSystem(grid,physics::Physics; matrixindextype=Int64)=System(grid,physics,matrixindextype=matrixindextype,unknown_storage=:sparse)
+System(X::AbstractVector, Y::AbstractVector, Z::AbstractVector; kwargs...)= System(simplexgrid(X,Y,Z); kwargs...)
+
+
+"""
+    physics!(system,physics)
+
+Replace System's physics data
+"""
+function physics!(system,physics)
+    system.physics=physics
+    system
+end
+
+"""
+   physics!(system; kwargs...)
+
+Replace System's physics data.
+"""
+function physics!(system; kwargs...)
+    kwdict=Dict(kwargs)
+
+    if haskey(kwdict,:bcondition)
+        if haskey(kwdict,:breaction)
+            error("specify either bcondition or breaction")
+        end
+        kwdict[:breaction]=kwdict[:bcondition]
+        delete!(kwdict,:bcondition)
+    end
+
+    if haskey(kwdict,:source) && isa(kwdict[:source], AbstractArray)
+        src=kwdict[:source]
+        if isa(src,AbstractVector)
+            kwdict[:source]= (y,node,args...) -> @views y[1]=src[node.index]
+        else
+            kwdict[:source]= (y,node,args...) -> @views y.=src[:,node.index]
+        end
+    end
+    
+    physics!(system,Physics(; kwdict...))
+end
 
 
 ###################################################################################################
@@ -440,6 +543,31 @@ function enable_species!(system::AbstractSystem,ispec::Integer, regions::Abstrac
 end
 
 
+"""
+````
+enable_species!(system; kwargs...)
+````
+
+Keyword arguments:
+- `species`: Integer or vector of integers. Species to be added to the system.
+- `regions`: Vector of integers. Regions, where these species shall be added.If `nothing`, they are added to all species.
+"""
+function enable_species!(sys::AbstractSystem; species=nothing, regions=nothing)
+    if regions==nothing
+        regions=collect(1:num_cellregions(sys.grid))
+    end
+    
+    if isa(species,Number)
+        species=[species]
+    end
+    
+    for ispec ∈ species
+        enable_species!(sys,ispec,regions)
+    end
+    sys
+end
+
+
 ##################################################################
 """
 ````
@@ -497,10 +625,16 @@ function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false
     if (!species_added)
         error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
     end
+    
     if create_newtonvectors
         system.residual=unknowns(system)
         system.update=unknowns(system)
+        if system.num_parameters>0
+            system.dudp=[unknowns(system) for i=1:system.num_parameters]
+        end
     end
+
+    
     update_grid!(system)
     if has_generic_operator(system)
         if has_generic_operator_sparsity(system) 
@@ -510,7 +644,7 @@ function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false
             input=rand(num_dof(system))
             output=similar(input)
             tdetect=@elapsed begin
-                sparsity_pattern = jacobian_sparsity(generic_operator,output,input)
+                sparsity_pattern = Symbolics.jacobian_sparsity(generic_operator,output,input)
                 system.generic_matrix = Float64.(sparse(sparsity_pattern))
             end
             println("sparsity detection for generic operator: $(tdetect) s")
@@ -605,13 +739,71 @@ $(SIGNATURES)
 Set Dirichlet boundary condition for species ispec at boundary ibc:
     
 ``u_{ispec}=v`` on ``\\Gamma_{ibc}``
+
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
-function boundary_dirichlet!(system::AbstractSystem, ispec::Integer, ibc, v)
+function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
     increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=Dirichlet
     system.boundary_values[ispec,ibc]=v
 end
 
+"""
+      boundary_dirichlet!(system; kwargs...)
+Keyword argument version:
+- `species`: species number
+- `region`: region number
+- `value`: value
+
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+"""
+boundary_dirichlet!(system::AbstractSystem; species=0, region=0,value=0)=boundary_dirichlet!(system,species,region,value)
+
+
+"""
+     boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
+
+Set Dirichlet boundary condition for species ispec at boundary ibc.
+"""
+function boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
+    if  bnode.region == ireg
+        y[ispec] += bnode.Dirichlet*(u[ispec]-val)
+        # just for call during initialization, so we can convert from dual number
+        bnode.dirichlet_value[ispec]=value(val)
+    end
+    nothing
+end
+
+"""
+     boundary_dirichlet!(y,u,bnode, args...; kwargs...)
+Keyword argument version:
+- `species`: species number. Default: 1
+- `region`: boundary region number. By default, all boundary regions.
+- `value`: value
+"""
+boundary_dirichlet!(y,u,bnode,args...; species=1, region=bnode.region,value=0) = boundary_dirichlet!(y,u,bnode,species,region,value)
+
+
+"""
+       ramp(t; kwargs...)
+Ramp function for specifying time dependent boundary conditions
+
+Keyword arguments:
+- `dt`: Tuple: start and end time of ramp. Default: `(0,0.1)`
+- `du`: Tuple: values at start and end time. Default: `(0,0)`
+"""
+function ramp(t;dt=(0,0.1),du=(0,0))
+    (t,ubegin,uend,tbegin,tend)=promote(Float64(t),du[1],du[2],dt[1],dt[2])
+    if t<tbegin
+        return ubegin
+    elseif t<tend
+        return ubegin+(uend-ubegin)*(t-tbegin)/(tend-tbegin)
+    else
+        return uend
+    end
+end
 
 
 ##################################################################
@@ -621,12 +813,42 @@ $(SIGNATURES)
 Set Neumann boundary condition for species ispec at boundary ibc:
 
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n=v`` on ``\\Gamma_{ibc}``
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 function boundary_neumann!(system::AbstractSystem, ispec, ibc, v)
     increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=0.0
     system.boundary_values[ispec,ibc]=v
 end
+
+"""
+      boundary_neumann!(system; kwargs...)
+Keyword argument version:
+- `species`: species number
+- `region`: region number
+- `value`: value
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+"""
+boundary_neumann!(system::AbstractSystem; species=0, region=0,value=0)=boundary_neumann!(system,species,region,value)
+
+
+"""
+     boundary_neumann!(y,u,bnode,ispec,ireg,val)
+
+Set Neumann boundary condition for species ispec at boundary ibc.
+"""
+boundary_neumann!(y,u,bnode,ispec,ireg,val) =    bnode.region == ireg ? y[ispec] -= val : nothing
+
+"""
+     boundary_neumann!(y,u,bnode, args...; kwargs...)
+Keyword argument version:
+- `species`: species number. Default: 1
+- `region`: boundary region number. By default, all boundary regions.
+- `value`: value
+"""
+boundary_neumann!(y,u,bnode,args...; species=1, region=bnode.region,value=0) = boundary_neumann!(y,u,bnode,species,region,value)
 
 
 ##################################################################
@@ -637,12 +859,45 @@ Set Robin boundary condition for species ispec at boundary ibc:
 
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n + \\alpha u_{ispec}=v`` on ``\\Gamma_{ibc}``
 
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
 """
 function boundary_robin!(system::AbstractSystem, ispec, ibc, α, v)
     increase_num_species!(system,ispec)
     system.boundary_factors[ispec,ibc]=α
     system.boundary_values[ispec,ibc]=v
 end
+
+"""
+      boundary_robin!(system; kwargs...)
+Keyword argument version:
+- `species`: species number
+- `region`: region number
+- `factor`: factor
+- `value`: value
+!!! info  
+    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+"""
+boundary_robin!(system::AbstractSystem; species=0, region=0,factor=0,value=0)=boundary_robin!(system,species,region,factor,value)
+
+
+"""
+     boundary_robin!(y,u,bnode,ispec,ireg,fac,val)
+
+Set Robin boundary condition for species ispec at boundary ibc.
+"""
+boundary_robin!(y,u,bnode,ispec,ireg,fac,val) =      bnode.region == ireg ? y[ispec] += fac*u[ispec]-val : nothing
+
+
+"""
+     boundary_robin!(y,u,bnode, args...; kwargs...)
+Keyword argument version:
+- `species`: species number. Default: 1
+- `region`: boundary region number. By default, all boundary regions.
+- `factor`: factor
+- `value`: value
+"""
+boundary_robin!(y,u,bnode,args...; species=1, region=bnode.region,factor=0,value=0) = boundary_robin!(y,u,bnode,species,region,factor,value)
 
 ##################################################################
 """
@@ -664,9 +919,15 @@ num_species(a::AbstractArray)=size(a,1)
 function _initialize_dirichlet!(U::AbstractMatrix,system::AbstractSystem)
     _bfaceregions=bfaceregions(system.grid)
     _bfacenodes=bfacenodes(system.grid)
+    # set up bnode
     for ibface=1:num_bfaces(system.grid)
         ibreg=_bfaceregions[ibface]
+        # bnode.dirichlet_values.=Inf
+        # breaction(y,u,bnode,data)
         for ispec=1:num_species(system)
+            # if !isinf(bnode.dirichlet_value)
+            #    U[ispec,_bfacenodes[inode,ibface]]=bnode.dirichlet_value
+            # end
             if system.boundary_factors[ispec,ibreg]≈ Dirichlet
                 for inode=1:dim_grid(system.grid)
                     U[ispec,_bfacenodes[inode,ibface]]=system.boundary_values[ispec,ibreg]
@@ -756,6 +1017,19 @@ unknowns(sys::SparseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm}=unknowns(Tv
 unknowns(system::DenseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm} = unknowns(Tv,system,inival=inival)
 
 
+
+"""
+$(SIGNATURES)
+
+Detect if array fits to the system.
+"""
+isunknownsof(u::Any, sys::AbstractSystem)=false
+isunknownsof(u::DenseSolutionArray, sys::DenseSystem) = size(u) == size(sys.node_dof)
+isunknownsof(u::SparseSolutionArray, sys::SparseSystem) = size(u) == size(sys.node_dof)
+
+
+
+
 """
 $(SIGNATURES)
 
@@ -832,7 +1106,72 @@ function LinearAlgebra.norm(system::DenseSystem,u,p)
     norm(u,p)
 end
 
-LinearAlgebra.norm(system::SparseSystem,u,p)=norm(u.node_dof.nzval,p)
+LinearAlgebra.norm(system::SparseSystem,u,p)=LinearAlgebra.norm(u.node_dof.nzval,p)
+
+######################################
+# History
+"""
+    history(sys)
+
+Return solver history from last `solve` call, if `log` was set to true.
+See  see [`SolverHistory`](@ref), [`SolverHistories`](@ref).
+"""
+history(sys::AbstractSystem)=sys.history
+
+
+"""
+    history_details(sys)
+
+Return details of solver history from last `solve` call, if `log` was set to true.
+See [`details`](@ref).
+"""
+history_details(sys::AbstractSystem)=details(sys.history)
+
+
+"""
+    history_summary(sys)
+
+Return summary of solver history from last `solve` call, if `log` was set to true.
+See [`summmary`](@ref).
+"""
+history_summary(sys::AbstractSystem)=summary(sys.history)
+
+####################################################################
+# LEGACY
+
+"""
+````
+System(grid,physics; kwargs...)
+````
+Create system with physics record.
+!!! info  
+    Starting with version 0.14, all physics data can be passed directly to the system constructor
+"""
+function System(grid::ExtendableGrid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
+    system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
+    physics!(system,physics)
+end
+
+
+"""
+$(SIGNATURES)
+
+Constructor for DenseSystem.
+!!! compat  
+    Will be removed in future versions
+"""
+DenseSystem(grid,physics::Physics; matrixindextype=Int64)=System(grid,physics,matrixindextype=matrixindextype,unknown_storage=:dense)
+
+
+"""
+$(SIGNATURES)
+
+Constructor for SparseSystem.
+!!! compat  
+    Will be removed in future versions
+"""
+SparseSystem(grid,physics::Physics; matrixindextype=Int64)=System(grid,physics,matrixindextype=matrixindextype,unknown_storage=:sparse)
+
 
 
 

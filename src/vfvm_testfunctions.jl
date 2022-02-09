@@ -72,7 +72,7 @@ function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
         factory.tfsystem.boundary_values[1,bc0[i]]=0
     end
 
-    eval_and_assemble(factory.tfsystem,u,u,f,Inf)
+    eval_and_assemble(factory.tfsystem,u,u,f,Inf,Inf,0.0,zeros(0))
 
     _initialize!(u,factory.tfsystem)
     lufact=LinearAlgebra.lu(factory.tfsystem.matrix)

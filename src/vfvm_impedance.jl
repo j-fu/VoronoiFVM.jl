@@ -49,24 +49,23 @@ mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
 end
 
 
-
-"""
-$(SIGNATURES)
-
-Construct impedance system from time domain system `sys` and steady state solution `U0`
-under the assumption of a periodic perturbation of species `excited_spec` at  boundary `excited_bc`.
-"""
-function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Ti}
+function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=0.0) where {Tv,Ti}
     residual=copy(U0)
 
+    if system.num_parameters>0
+        params=[λ0]
+    else
+        params=zeros(0)
+    end
+    
     # Ensure that system.matrix contains the jacobian at U0
     # Moreover, here we use the fact that for large time step sizes,
     # the contribution from the time derivative (which should not belong to the
     # main part of the impedance matrix) is small. We also pass the steady state
     # value as the "old  timestep" value.
     # An advantage of this approach is the fact that this way, we get the
-    # nonzero pattern for the iω term right.
-    eval_and_assemble(system,U0,U0,residual,1.0e30)
+    # nonzero pattern for the iω term right (as opposite to passing Inf as time step size)
+    eval_and_assemble(system,U0,U0,residual,0.0,1.0e30,0.0,params)
 
     impedance_system=ImpedanceSystem{Tv}()
     impedance_system.grid=system.grid
@@ -120,9 +119,13 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, exci
         
     UK=Array{Tv,1}(undef,nspecies)
     Y=Array{Tv,1}(undef,nspecies)
-    
-    F.=0.0
 
+    F.=0.0
+    if system.num_parameters>0
+        F.-=system.dudp[1]
+    end
+
+    
     # structs holding diffresults for storage
     result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
 
@@ -152,14 +155,54 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, exci
 
         end
     end
-
+    
     # Boundary face loop for building up storage derivative
     # and right hand side contribution from boundary condition
+    if isdefined(physics, :bstorage) # should involve only bspecies
+        for ibface=1:num_bfaces(grid)
+            ibreg=bfaceregions[ibface]
+            for ibnode=1:num_nodes(bgeom)
+                _fill!(bnode,ibnode,ibface)
+                @views UK[1:nspecies]=U0[:,bnode.index]
+                # Evaluate & differentiate storage term
+                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK)
+                res_bstor=DiffResults.value(result_s)
+                jac_bstor=DiffResults.jacobian(result_s)
+                K=bnode.index
+                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+                    ispec=_spec(F,idof,K)
+                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                        jspec=_spec(F,jdof,K)
+                        updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
+                    end
+                end
+            end
+        end
+    end
+
+    return impedance_system
+end    
+
+"""
+$(SIGNATURES)
+
+Construct impedance system from time domain system `sys` and steady state solution `U0`
+under the assumption of a periodic perturbation of species `excited_spec` at  boundary `excited_bc`.
+"""
+function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Ti}
+    impedance_system=ImpedanceSystem(system,U0)
+    grid=impedance_system.grid
+    bgeom=grid[BFaceGeometries][1]
+    bnode=BNode{Tv,Ti}(system)
+    bfaceregions::Vector{Ti}=grid[BFaceRegions]
+    nspecies=num_species(system)
+    F=impedance_system.F
+    
+    
     for ibface=1:num_bfaces(grid)
         ibreg=bfaceregions[ibface]
         for ibnode=1:num_nodes(bgeom)
             _fill!(bnode,ibnode,ibface)
-            @views UK[1:nspecies]=U0[:,bnode.index]
 
             # Set right hand side for excited boundary conditions
             # We don't need to put the penalty term to storderiv
@@ -180,24 +223,9 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, exci
                     end
                 end
             end
-            
-            if isdefined(physics, :bstorage) # should involve only bspecies
-                # Evaluate & differentiate storage term
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK)
-                res_bstor=DiffResults.value(result_s)
-                jac_bstor=DiffResults.jacobian(result_s)
-
-                K=bnode.index
-                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_spec(F,idof,K)
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
-                        updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
-                    end
-                end
-            end
         end
     end
+    
     return impedance_system
 end
 

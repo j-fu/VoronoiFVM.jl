@@ -1,7 +1,24 @@
 #
 # Interface to DifferentialEquations.jl
 #
+"""
+    $(TYPEDEF)
 
+History information for DiffEqHistory
+$(TYPEDFIELDS)
+"""
+@with_kw mutable struct DiffEqHistory 
+    """ number of combined jacobi/rhs evolutions"""
+    nd=0
+    """ number of combined jacobi evolutions"""
+    njac=0
+    """ number of rhs evolutions"""
+    nf=0
+end
+
+details(h::DiffEqHistory)=(nd=h.nd,njac=h.njac,nf=h.nf)
+Base.summary(h::DiffEqHistory)=details(h)
+    
 #
 # Evaluate function and Jacobian at u if they have not
 # been evaluated before at u.
@@ -9,15 +26,13 @@
 # See https://github.com/SciML/DifferentialEquations.jl/issues/521
 # for discussion of another way to do this
 #
-function _eval_res_jac!(sys,u)
+function _eval_res_jac!(sys,u,t)
     uhash=hash(u)
     if uhash!=sys.uhash
         ur=reshape(u,sys)
-        eval_and_assemble(sys,ur,ur,sys.residual,Inf)
+        eval_and_assemble(sys,ur,ur,sys.residual,value(t),Inf,0.0,zeros(0))
         sys.uhash=uhash
-    else
-        global nd
-        nd=nd+1
+        sys.history.nd+=1
     end
 end
 
@@ -28,16 +43,12 @@ Interpret the  discrete problem as an ODE/DAE problem. Provide the
 rhs function for DifferentialEquations.jl.
 """
 function eval_rhs!(du, u, sys,t)
-    global nf
-    nf=nf+1
-    _eval_res_jac!(sys,u)
+    _eval_res_jac!(sys,u,t)
     du.=-vec(sys.residual)
+    sys.history.nf+=1
     nothing
 end
 
-njac=0
-nf=0
-nd=0
 """
 $(SIGNATURES)
 
@@ -45,11 +56,10 @@ Interpret the  discrete problem as an ODE/DAE problem. Provide the
 jacobi matrix calculation function for DifferentialEquations.jl.
 """
 function eval_jacobian!(J, u, sys,t)
-    global njac
-    njac=njac+1
-    _eval_res_jac!(sys,u)
+    _eval_res_jac!(sys,u,t)
     # Need to implement broadcast for ExtendableSparse.
     J.=-sys.matrix.cscmatrix
+    sys.history.njac+=1
     nothing
 end
 
@@ -152,16 +162,6 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     return Diagonal(vec(M))
 end
 
-"""
-$(SIGNATURES)
-
-Complete the system and provide the jacobi matrix as prototype
-for the jacobian for use with `DifferentialEquations.jl`.
-"""
-function jac_prototype(sys::AbstractSystem)
-    _complete!(sys, create_newtonvectors=true)
-    sys.matrix.cscmatrix
-end
 
 """
         solve mit Union{Module, Nothing}
@@ -181,56 +181,33 @@ end
 
 """
 ````
-solve(DifferentialEquations, inival, system, tspan; 
-      solver=nothing, 
-      kwargs...)
+solve(DifferentialEquations, inival, system, tspan;  solver=nothing,   kwargs...)
 ````
 
-Use a  timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl) to perform
-transient solution  of the  system. 
+Solve using timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
 
-The system must have a constant diagonal mass matrix.
-
-Any stiff solver  capable to work with mass matrices  is possible.  If
-the system  contains elliptic equations, it  needs to be a  DAE solver
-able to work with mass matrices.  See a list
-[here](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).
-
-
-The  constructed  solver should  be  passed  as `solver=`  kwarg.   By
-default (if `nothing` is passed), the `Rosenbrock23` solver is used.
-
-All other  kwargs are  passed to  `DifferentialEquations.solve()`, see
-[here](https://diffeq.sciml.ai/stable/basics/common_solver_opts/)  for
-an overview.
-
-In order to avoid a package dependency on DifferentialEquations,  the module
-corresponding to that package is passed as the first argument.
-
-Returns a transient solution object `sol` containing stored solutions,
-see [`TransientSolution`](@ref).
+Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the corresponding keyword arguments.
 
 """
-function solve(DiffEq::Module,
+@noinline function solve(DiffEq::Module,
                inival::AbstractArray,
                sys::AbstractSystem,
                tspan; solver=nothing, kwargs...)
 
     if isnothing(solver)
-        solver=DiffEq.Rosenbrock23()
+        solver=DiffEq.Rosenbrock23(linsolve=DiffEq.KLUFactorization())
     end
-    global njac
-    global nf
-    global nd
 
-    njac=0
-    nf=0
-    nd=0
+    sys.history=DiffEqHistory()
+    
+    _complete!(sys, create_newtonvectors=true)
+    _eval_res_jac!(sys,inival,tspan[1])
+    flush!(sys.matrix)
     f = DiffEq.ODEFunction(eval_rhs!,
                            jac=eval_jacobian!,
-                           jac_prototype=jac_prototype(sys),
+                           jac_prototype=sys.matrix.cscmatrix,
                            mass_matrix=mass_matrix(sys))
-    
+
     prob = DiffEq.ODEProblem(f,vec(inival),tspan,sys)
     sol = DiffEq.solve(prob,solver; kwargs...)
     # Return solution as TransientSolution such that sol[i] adheres to the

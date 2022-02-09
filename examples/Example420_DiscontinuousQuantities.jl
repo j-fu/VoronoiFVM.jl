@@ -19,14 +19,14 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     XX=collect(0:0.1:1)
     xcoord=XX
     for i=1:N-1
-	xcoord=glue(xcoord,XX.+i)
+        xcoord=glue(xcoord,XX.+i)
     end
     grid2=simplexgrid(xcoord)
     for i=1:N
-	cellmask!(grid2,[i-1],[i],i)
+        cellmask!(grid2,[i-1],[i],i)
     end	
     for i=1:N-1
-	bfacemask!(grid2,[i],[i],i+2)
+        bfacemask!(grid2,[i],[i],i+2)
     end
 
     params=zeros(2,num_cellregions(grid2))
@@ -84,8 +84,8 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     ##For both quantities, we define simple diffusion fluxes:
 
     function flux(f,u,edge)
-	f[dspec]=u[dspec,1]-u[dspec,2]
-	f[cspec]=u[cspec,1]-u[cspec,2]
+        f[dspec]=u[dspec,1]-u[dspec,2]
+        f[cspec]=u[cspec,1]-u[cspec,2]
     end
 
 
@@ -128,8 +128,8 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     cvws=VoronoiFVM.views(U,cspec,subgrids,system)
     vis=GridVisualizer(resolution=(600,300),Plotter=Plotter)
     for i=1:length(dvws)
-	scalarplot!(vis,subgrids[i],dvws[i],flimits=(-0.5,1.5),clear=false,color=:red)
-	scalarplot!(vis,subgrids[i],cvws[i],flimits=(-0.5,1.5),clear=false,color=:green)
+        scalarplot!(vis,subgrids[i],dvws[i],flimits=(-0.5,1.5),clear=false,color=:red)
+        scalarplot!(vis,subgrids[i],cvws[i],flimits=(-0.5,1.5),clear=false,color=:green)
     end
     reveal(vis)
     norm(system,U,2)
@@ -138,8 +138,7 @@ end
 
 function test()
     testval=7.812799873197911
-    main(unknown_storage=:sparse) ≈ testval &&
-        main(unknown_storage=:dense) ≈ testval
+    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
 end
 
 end

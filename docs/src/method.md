@@ -124,8 +124,8 @@ sets of species in different subdomains of $\Omega$.
 
 
 ### Boundary reactions, boundary species
-In addition to  $r,g,s$, the package allows to specify additional boundary species, boundary reaction terms and
-bondary storage terms.
+In addition to  $r,g,s$, the package allows to specify additional boundary species, boundary reaction, boundary flux and
+boundary storage terms.
 
 
 ## Why this method ?
@@ -142,14 +142,14 @@ Many of these properties are hard to prove for finite element methods, in partic
 There are a number of cases where this method needs to be replaced by something else
 or at least to be applied with great care:
 - Anisotropic diffusion only works with proper mesh alignment 
-- Strongly varying capacity (in the function s) at domain interfaces lead to inexact breaktrough curves
+- Strongly varying capacity (in the function $s$) at domain interfaces lead to [inexact breakthrough curves](@ref problemcase)
 - Sharp moving convection fronts are smeared out too strongly
 
 ## History and literature
 The following list  is work in progress and incomplete, but it references some sources behind the ideas in this package.
 
 - Macneal, R. H. (1953). An asymmetrical finite difference network. Quarterly of Applied Mathematics, 11(3), 295-310.  ([pdf](https://www.jstor.org/stable/pdf/43634052.pdf) via JSTOR). Perhaps this is the earliest mentioning of the method. Note that it  was used on an electrical analog computer. 
--  Gärtner, K., & Kamenski, L. (2019). Why do we need Voronoi cells and Delaunay meshes? [arXiv preprint arXiv:1905.01738](https://arxiv.org/pdf/1905.01738). A recent overview on the merits of the method. One of the authors belongs to the pioneers of its application in 3D.
+- Gärtner, K., & Kamenski, L. (2019). Why do we need Voronoi cells and Delaunay meshes? [arXiv preprint arXiv:1905.01738](https://arxiv.org/pdf/1905.01738). A recent overview on the merits of the method. One of the authors belongs to the pioneers of its application in 3D.
 - Fuhrmann, J., & Langmach, H. (2001). Stability and existence of solutions of time-implicit finite volume schemes for viscous nonlinear conservation laws. Applied Numerical Mathematics, 37(1-2), 201-230. A discussion of the method applied to rather general nonlinear scalar problems.
 - Si, H., Gärtner, K., & Fuhrmann, J. (2010). Boundary conforming Delaunay mesh generation. Computational Mathematics and Mathematical Physics, 50(1), 38-53. Definition of the boundary conforming Delaunay property. 
 - Eymard, R., Fuhrmann, J., & Gärtner, K. (2006). A finite volume scheme for nonlinear parabolic equations derived from one-dimensional local Dirichlet problems. Numerische Mathematik, 102(3), 463-495. General concept of the derivation of upwind fluxes for nonlinear problems.
@@ -160,7 +160,7 @@ The following list  is work in progress and incomplete, but it references some s
 The entities describing the discrete system can be subdivided into two categories:
 - Geometrical data: $|\omega_k|, \gamma_k, \sigma_{kl}, h_{kl}$ together with the connectivity information simplex grid.
   These data are calculated  from the discretization grid.
-- [`VoronoiFVM.Physics`](@ref): the number of species and the functions $s,g,r,f$ etc. describing the particular problem.
+- Physics data: the number of species and the functions $s,g,r,f$ etc. describing the particular problem.
 
 
 The solution of the nonlinear systems of equations is performed by Newton's method combined with various direct and iterative linear solvers. The Jacobi matrices used in Newton's method are assembled from the constitutive functions
