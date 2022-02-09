@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.17.7
+# v0.18.0
 
 using Markdown
 using InteractiveUtils
@@ -14,18 +14,18 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
-md"""
-# v0.14.0 API update 
-"""
-
-# ╔═╡ 3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
-md"""
-Here we describe some updates for the API of `VoronoiFVM.jl`. These have been implemented mostly on top of the existing API, whose functionality is not affected.
-"""
-
-# ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-TableOfContents(;aside=false)
+# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
+begin
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
+	using Revise
+	developing=true
+    end
+    initialized=true
+end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin 
@@ -39,6 +39,19 @@ begin
 	GridVisualize.default_plotter!(PlutoVista)
     end
 end;
+
+# ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
+md"""
+# v0.14.0 API update 
+"""
+
+# ╔═╡ 3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
+md"""
+Here we describe some updates for the API of `VoronoiFVM.jl`. These have been implemented mostly on top of the existing API, whose functionality is not affected.
+"""
+
+# ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
+TableOfContents(;aside=false)
 
 # ╔═╡ 8a4f336c-2016-453e-9a9f-beac66533fc0
 md"""
@@ -209,19 +222,6 @@ md"""
 This notebook is also run during the automatic unit tests.
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
-
-# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
-begin
-    import Pkg as _Pkg
-    developing=false
-    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	_Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-	using Revise
-	developing=true
-    end
-    initialized=true
-end;
 
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
 if developing 

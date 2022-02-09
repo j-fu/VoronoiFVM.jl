@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.17.7
+# v0.18.0
 
 using Markdown
 using InteractiveUtils
@@ -14,18 +14,18 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
-md"""
-# Some problems with Voronoi FVM
-
-Draft. J. Fuhrmann, Oct. 29. 2021. Updated Dec 19, 2021.
-
-We discuss one of the critical cases for application the Voronoi finite volume method.
-We provide some practical fix and opine that the finite element method proably has the same problems.
-"""
-
-# ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
-TableOfContents(;aside=false)
+# ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
+begin
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
+	using Revise
+	developing=true
+    end
+    initialized=true
+end;
 
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
 begin
@@ -39,6 +39,19 @@ begin
 	default_plotter!(PlutoVista)
     end
 end;
+
+# ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
+md"""
+# Some problems with Voronoi FVM
+
+Draft. J. Fuhrmann, Oct. 29. 2021. Updated Dec 19, 2021.
+
+We discuss one of the critical cases for application the Voronoi finite volume method.
+We provide some practical fix and opine that the finite element method proably has the same problems.
+"""
+
+# ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
+TableOfContents(;aside=false)
 
 # ╔═╡ fae47c55-eef8-4428-bb5f-45824978753d
 md"""
@@ -68,36 +81,6 @@ md"""
 The domain is described by the following discretization grid:
 """
 
-# ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
-gridplot(grid_2d(),resolution=(400,300))
-
-# ╔═╡ cc325b2c-6174-4b8d-8e39-202ac68b5705
-md"""
-In the center of the domain, we assume a layer with high permeability.
-
-As  boundary  conditions for the pressure ``p`` we choose  fixed pressure values at  the left
-and right boundaries of the  domain, triggering a constant pressure gradient throughout the domain.
-
-At the inlet of the high  permeability layer, we set ``c=1``, and at the
-outlet, we set ``c=0``.
-
-The high permeability layer has length `L`=$( L) and width `W`= $(W).
-
-We solve the time dependent problem on three types of  rectangular grids with the same
-resolution in   $x$ direction and different variants to to handle the  high permeability
-layer. 
-
-
-- `grid_n` - a "naive" grid which just resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids
-- `grid_1` - a 1D grid  of the high permeability layer. With high permeability contrast, the solution of the 2D case at y=0 should conincide with the 1D solution
-- `grid_f` - a "fixed" 2D grid which resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids and "protection layers" of width `ε_fix`=$(ε_fix)  correcting the size of high permeability control volumes
-
-
-"""
-
-# ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
-gridplot(grid_2d(;ε_fix=1.0e-1),resolution=(400,300))
-
 # ╔═╡ cd013964-f329-4d2c-ae4b-305093f0ac56
 md"""
 ### Results
@@ -115,46 +98,6 @@ tend=100
 ε_fix=1.0e-4
 
 
-# ╔═╡ cd88123a-b042-43e2-99b9-ec925a8794ed
-grid_n,sol_n,bt_n=trsolve(grid_2d(nref=nref),tend=tend);
-
-# ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
-sum(bt_n)
-
-# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
-@test sum(bt_n)≈ 17.643110936180495
-
-# ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
-grid_1,sol_1,bt_1=trsolve(grid_1d(nref=nref),tend=tend);
-
-# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
-@test sum(bt_1)≈ 20.412099101959157
-
-# ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
-grid_f,sol_f,bt_f=trsolve(grid_2d(nref=nref,ε_fix=ε_fix),tend=tend);
-
-# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
-@test sum(bt_f)≈20.411131554885404
-
-# ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
-grid_ϕ,sol_ϕ,bt_ϕ=trsolve(grid_2d(nref=nref), ϕ=[1.0e-3,1],tend=tend);
-
-# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
-@test sum(bt_ϕ)≈20.4122562994476
-
-
-
-# ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
-begin
-    p1=PlutoVistaPlot(resolution=(500,200),xlabel="t",ylabel="outflow",
-                     legend=:rb,
-                     title="Breakthrough Curves")
-    plot!(p1, sol_n.t,bt_n,label="naive grid")
-    plot!(p1, sol_1.t,bt_1,label="1D grid",markertype=:x)
-    plot!(p1, sol_f.t,bt_f,label="grid with fix",markertype=:circle)
-    plot!(p1, sol_ϕ.t,bt_ϕ,label="modified ϕ",markertype=:cross)
-end
-
 # ╔═╡ 5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 md"""
 Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
@@ -167,20 +110,10 @@ begin
 	(vis_n,vis_f)
 end
 
-# ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
-scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
-xlabel="x",ylabel="c",title="1D calculation, t=$t")
-
 # ╔═╡ 98ae56dd-d42d-4a93-bb0b-5956b6e981a3
 md"""
 Time: $(@bind t Slider(1:tend/100:tend,show_value=true,default=tend*0.1))
 """
-
-# ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
-begin
-    scalarplot!(vis_n,grid_n,sol_n(t)[ic,:],resolution=(210,200),show=true),
-    scalarplot!(vis_f,grid_f,sol_f(t)[ic,:],resolution=(210,200),show=true)
-end
 
 # ╔═╡ 99c3b54b-d458-482e-8aa0-d2c2b51fdf25
 md"""
@@ -200,48 +133,6 @@ md"""
 ### Results
 """
 
-
-# ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
-rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref));
-
-# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
-@test of_1 ≈ -0.013495959676585267
-
-# ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
-rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref));
-
-# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
-@test of_n ≈ -0.00023622450350365264
-
-# ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
- rdgrid_f,rdsol_f,of_f=rdsolve(grid_2d(nref=nref,ε_fix=ε_fix));
-
-# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
-@test of_f ≈ -0.013466874615165499
-
-# ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
- rdgrid_r,rdsol_r,of_r=rdsolve(grid_2d(nref=nref),R=[0,0.1]);
-
-# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
-@test of_r ≈ 	-0.013495959676764535
-
-# ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
-md"""
-We measure the outflow at the outlet. As a result, we obtain:
-   - 1D case: $(of_1)
-   - 2D case, naive grid: $(of_n)
-   - 2D case, grid with "protective layer": $(of_f)
-   - 2D case, naive grid, "modified" R: $(of_r)
-"""
-
-# ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
-scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
-
-# ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
-begin
-scalarplot(rdgrid_n,rdsol_n,resolution=(210,200)),
-scalarplot(rdgrid_f,rdsol_f,resolution=(210,200))
-end
 
 # ╔═╡ fcd066f1-bcd8-4479-a4e4-7b8c235336c4
 md"""
@@ -331,6 +222,30 @@ W=0.5  # width of high perm layer
 Wlow=2 # width of adjacent low perm layers
 end;
 
+# ╔═╡ cc325b2c-6174-4b8d-8e39-202ac68b5705
+md"""
+In the center of the domain, we assume a layer with high permeability.
+
+As  boundary  conditions for the pressure ``p`` we choose  fixed pressure values at  the left
+and right boundaries of the  domain, triggering a constant pressure gradient throughout the domain.
+
+At the inlet of the high  permeability layer, we set ``c=1``, and at the
+outlet, we set ``c=0``.
+
+The high permeability layer has length `L`=$( L) and width `W`= $(W).
+
+We solve the time dependent problem on three types of  rectangular grids with the same
+resolution in   $x$ direction and different variants to to handle the  high permeability
+layer. 
+
+
+- `grid_n` - a "naive" grid which just resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids
+- `grid_1` - a 1D grid  of the high permeability layer. With high permeability contrast, the solution of the 2D case at y=0 should conincide with the 1D solution
+- `grid_f` - a "fixed" 2D grid which resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids and "protection layers" of width `ε_fix`=$(ε_fix)  correcting the size of high permeability control volumes
+
+
+"""
+
 # ╔═╡ 47bc8e6a-e296-42c9-bfc5-967edfb0feb7
 md"""
 Boundary conditions:
@@ -371,6 +286,12 @@ function grid_2d(;nref=0,ε_fix=0.0)
     bfacemask!(grid, [0,-W/2],[0,W/2],Γ_in)
     bfacemask!(grid, [L,-W/2],[L,W/2],Γ_out)
 end
+
+# ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
+gridplot(grid_2d(),resolution=(400,300))
+
+# ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
+gridplot(grid_2d(;ε_fix=1.0e-1),resolution=(400,300))
 
 # ╔═╡ c402f03c-746a-45b8-aaac-902a2f196094
 function grid_1d(;nref=0)
@@ -475,6 +396,56 @@ function trsolve(grid;
     grid,sol,bt
 end
 
+# ╔═╡ cd88123a-b042-43e2-99b9-ec925a8794ed
+grid_n,sol_n,bt_n=trsolve(grid_2d(nref=nref),tend=tend);
+
+# ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
+sum(bt_n)
+
+# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
+@test sum(bt_n)≈ 17.643110936180495
+
+# ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
+grid_1,sol_1,bt_1=trsolve(grid_1d(nref=nref),tend=tend);
+
+# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
+@test sum(bt_1)≈ 20.412099101959157
+
+# ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
+scalarplot(grid_1,sol_1(t)[ic,:],levels=0:0.2:1,resolution=(500,150),
+xlabel="x",ylabel="c",title="1D calculation, t=$t")
+
+# ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
+grid_f,sol_f,bt_f=trsolve(grid_2d(nref=nref,ε_fix=ε_fix),tend=tend);
+
+# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
+@test sum(bt_f)≈20.411131554885404
+
+# ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
+begin
+    scalarplot!(vis_n,grid_n,sol_n(t)[ic,:],resolution=(210,200),show=true),
+    scalarplot!(vis_f,grid_f,sol_f(t)[ic,:],resolution=(210,200),show=true)
+end
+
+# ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
+grid_ϕ,sol_ϕ,bt_ϕ=trsolve(grid_2d(nref=nref), ϕ=[1.0e-3,1],tend=tend);
+
+# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
+@test sum(bt_ϕ)≈20.4122562994476
+
+
+
+# ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
+begin
+    p1=PlutoVistaPlot(resolution=(500,200),xlabel="t",ylabel="outflow",
+                     legend=:rb,
+                     title="Breakthrough Curves")
+    plot!(p1, sol_n.t,bt_n,label="naive grid")
+    plot!(p1, sol_1.t,bt_1,label="1D grid",markertype=:x)
+    plot!(p1, sol_f.t,bt_f,label="grid with fix",markertype=:circle)
+    plot!(p1, sol_ϕ.t,bt_ϕ,label="modified ϕ",markertype=:cross)
+end
+
 # ╔═╡ 78d92b4a-bdb1-4117-ab9c-b422eac403b1
 md"""
 ### Reaction-Diffusion solver
@@ -510,6 +481,48 @@ function rdsolve(grid;D=[1.0e-12,1.0],R=[1,0.1])
 
 end
 
+# ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
+rdgrid_1,rdsol_1,of_1=rdsolve(grid_1d(nref=nref));
+
+# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
+@test of_1 ≈ -0.013495959676585267
+
+# ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
+scalarplot(rdgrid_1,rdsol_1,resolution=(300,200))
+
+# ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
+rdgrid_n,rdsol_n,of_n=rdsolve(grid_2d(nref=nref));
+
+# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
+@test of_n ≈ -0.00023622450350365264
+
+# ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
+ rdgrid_f,rdsol_f,of_f=rdsolve(grid_2d(nref=nref,ε_fix=ε_fix));
+
+# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
+@test of_f ≈ -0.013466874615165499
+
+# ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
+begin
+scalarplot(rdgrid_n,rdsol_n,resolution=(210,200)),
+scalarplot(rdgrid_f,rdsol_f,resolution=(210,200))
+end
+
+# ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
+ rdgrid_r,rdsol_r,of_r=rdsolve(grid_2d(nref=nref),R=[0,0.1]);
+
+# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
+@test of_r ≈ 	-0.013495959676764535
+
+# ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
+md"""
+We measure the outflow at the outlet. As a result, we obtain:
+   - 1D case: $(of_1)
+   - 2D case, naive grid: $(of_n)
+   - 2D case, grid with "protective layer": $(of_f)
+   - 2D case, naive grid, "modified" R: $(of_r)
+"""
+
 # ╔═╡ 0cc1c511-f351-421f-991a-a27f26a8db4f
   html"<hr><hr><hr>"
 
@@ -524,19 +537,6 @@ This notebook is also run during the automatic unit tests.
 
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
-
-# ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
-begin
-    import Pkg as _Pkg
-    developing=false
-    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	_Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-	using Revise
-	developing=true
-    end
-    initialized=true
-end;
 
 # ╔═╡ 18d5cc77-e2de-4e14-a98d-a4a4b764b3b0
 if developing 
