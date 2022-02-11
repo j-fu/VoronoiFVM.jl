@@ -257,6 +257,39 @@ function boundary_dirichlet!(sys::AbstractSystem, q::ContinuousQuantity, ibc, v)
 end
 
 
+function boundary_neumann!(sys::AbstractSystem, q::DiscontinuousQuantity, ibc, v)
+    boundary_neumann!(sys,
+                      q.regionspec[get_cellregion(sys,ibc)],
+                      ibc,
+                      v)
+end
+
+function boundary_neumann!(sys::AbstractSystem, q::ContinuousQuantity, ibc, v)
+    boundary_neumann!(sys,
+                      q.ispec,
+                      ibc,
+                      v)
+end
+
+
+
+function boundary_robin!(sys::AbstractSystem, q::DiscontinuousQuantity, ibc, α, v)
+    boundary_robin!(sys,
+                    q.regionspec[get_cellregion(sys,ibc)],
+                    ibc,
+                    α,
+                    v)
+end
+
+function boundary_robin!(sys::AbstractSystem, q::ContinuousQuantity, ibc, α, v)
+    boundary_robin!(sys,
+                    q.ispec,
+                    ibc,
+                    α,
+                    v)
+end
+
+
 
 """
     node[quantity]
