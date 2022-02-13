@@ -1,4 +1,9 @@
 # Changes
+## v0.16.0 Feb 13, 2022
+- Expose ODEProblem (and possibly ODEFunc) from VoronoiFVM.System.
+- __Breaking__: Remove `solve` wrapper for DifferentialEquations.solve, instead recommend to call that directly
+- __Breaking__: Handle DifferentialEquations.jl via Requires.jl.
+
 ## v0.15.1 Jan 15, 2022
 - Documentation fixes
 - Fix OrdinaryDiffEq interface
@@ -8,7 +13,7 @@
 ## v0.15.0 Jan 1, 2022
 - __Breaking__: History is not anymore returned by `solve`, instead it can be accessed via [`history`](@ref) after the solution.
 - Cleaned API:
-  - [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) is now the main method of `solve` which allows to 
+  - [`VoronoiFVM.solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) is now the main method of `solve` which allows to 
     access stationary, transient, embedding and DifferentialEquations based solvers.
   - Joint implementation for implicit Euler timestepping and parameter embedding
   - Handle more kwargs via SolverControl (e.g. log)

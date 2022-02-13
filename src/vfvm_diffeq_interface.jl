@@ -1,3 +1,5 @@
+import .DifferentialEquations
+
 #
 # Interface to DifferentialEquations.jl
 #
@@ -163,54 +165,59 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
 end
 
 
-"""
-        solve mit Union{Module, Nothing}
-    package=DifferentialEquations
-    solve(inival,sys,tspan,pkg=..., solver=...)
-
-    saveat,tstops,tspan vs tsample
-    => tstops=tsample
-       tspan=[tstops[1],tstops[end]]
-       save=:all, :sample,:nothing
-    FunctionCallingCallback for collecting data 
-    SavingCallback
-    TerminateSteadyState
-    keep evolve ?
-"""
-
 
 """
-````
-solve(DifferentialEquations, inival, system, tspan;  solver=nothing,   kwargs...)
-````
-
-Solve using timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
-
-Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the corresponding keyword arguments.
-
-"""
-@noinline function solve(DiffEq::Module,
-               inival::AbstractArray,
-               sys::AbstractSystem,
-               tspan; solver=nothing, kwargs...)
-
-    if isnothing(solver)
-        solver=DiffEq.Rosenbrock23(linsolve=DiffEq.KLUFactorization())
-    end
-
-    sys.history=DiffEqHistory()
+     ODEFunction(system,inival=unknowns(system,inival=0,t0=0)
     
-    _complete!(sys, create_newtonvectors=true)
-    _eval_res_jac!(sys,inival,tspan[1])
-    flush!(sys.matrix)
-    f = DiffEq.ODEFunction(eval_rhs!,
-                           jac=eval_jacobian!,
-                           jac_prototype=sys.matrix.cscmatrix,
-                           mass_matrix=mass_matrix(sys))
+Create an [ODEPFunction](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can 
+be handeled by ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
 
-    prob = DiffEq.ODEProblem(f,vec(inival),tspan,sys)
-    sol = DiffEq.solve(prob,solver; kwargs...)
-    # Return solution as TransientSolution such that sol[i] adheres to the
-    # different storage schemes for multispecies cases.
+Parameters:
+- `system`: A [`VoronoiFVM.System`](@ref)
+- `jacval` (optional): Initial value. Consider to  pass a stationary solution at `tjac`.
+- `tjac` (optional): tjac
+
+The data `jacval` and `tjac` are passed as vectors for a firsts evaluation of the Jacobian, allowing to detect
+the sparsity pattern which is passed to the DifferentialEquations.jl solver.
+"""
+function DifferentialEquations.ODEFunction(sys::AbstractSystem, jacval=unknowns(sys,0), tjac=0)
+    sys.history=DiffEqHistory()
+    _complete!(sys, create_newtonvectors=true)
+    _eval_res_jac!(sys,jacval,tjac)
+    flush!(sys.matrix)
+    odefunction=DifferentialEquations.ODEFunction(eval_rhs!,
+                                                  jac=eval_jacobian!,
+                                                  jac_prototype=sys.matrix.cscmatrix,
+                                                  mass_matrix=mass_matrix(sys))
+end
+
+
+"""
+    ODEProblem(system,inival,tspan,callback=DifferentialEquations.CallbackSet())
+    
+Create an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can 
+be handeled by ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
+
+Parameters:
+- `system`: A [`VoronoiFVM.System`](@ref)
+- `inival`: Initial value. Consider to  pass a stationary solution at `tspan[1]`.
+- `tspan`: Time interval 
+- `callback` : (optional) [callback](https://diffeq.sciml.ai/stable/features/callback_functions/#Using-Callbacks) for ODE solver 
+
+The method returns an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can be solved
+by [DifferentialEquations.solve()](https://diffeq.sciml.ai/stable/basics/common_solver_opts/).
+"""
+function DifferentialEquations.ODEProblem(sys::AbstractSystem, inival, tspan, callback=DifferentialEquations.CallbackSet())
+    odefunction=DifferentialEquations.ODEFunction(sys,inival,tspan[1])
+    DifferentialEquations.ODEProblem(odefunction,vec(inival),tspan,sys,callback)
+end
+
+"""
+    reshape(ode_solution, system)
+Create a [`TransientSolution`](@ref) from the output of the ode solver.
+"""
+function Base.reshape(sol::AbstractDiffEqArray, sys::AbstractSystem)
     TransientSolution([reshape(sol.u[i],sys) for i=1:length(sol.u)] ,sol.t)
 end
+
+

@@ -922,31 +922,25 @@ module NoModule end
 
 #####################################################################
 """
-    solve(system; kwargs...)
-
-Main solution method for VoronoiFVM.System.
-
+    VoronoiFVM.solve(system; kwargs...)
+    
+Built-in solution method for VoronoiFVM.System.
+    
 Keyword arguments:
 - General for all solvers 
-  - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
-  -  All elements of [`SolverControl`](@ref) can be used as kwargs except in the case of the DifferentialEquations based solver
-  - `damp` (default: 1): alias for `damp_initial`
-  - `damp_grow` (default: 1): alias for `damp_growth`
-  - `abstol`: alias for `tol_absolute`
-  - `reltol`: alias for `tol_relative`
-  - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
-  - `params`: Parameters (Parameter handling is experimental and may change)
+   - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
+   -  All elements of [`SolverControl`](@ref) can be used as kwargs except in the case of the DifferentialEquations based solver
+   - `damp` (default: 1): alias for `damp_initial`
+   - `damp_grow` (default: 1): alias for `damp_growth`
+   - `abstol`: alias for `tol_absolute`
+   - `reltol`: alias for `tol_relative`
+   - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
+   - `params`: Parameters (Parameter handling is experimental and may change)
     
 - __Stationary solver__:
-  Invoked if neither `times` nor `embed`  nor `tspan` nor `tstep` are given as keyword argument.
+  Invoked if neither `times` nor `embed`, nor `tstep` are given as keyword argument.
   - `time` (default: `0`): Set time value. 
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
-
-- __Implicit Euler timestep solver__. Invoked if `tstep` kwarg is given.
-  - `time` (default: `0`): Set time value. 
-  - `tstep`: time step
-  Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
-
 
 - __Embedding (homotopy) solver__: Invoked if `embed` kwarg is given.
   Use homotopy embedding + damped Newton's method  to 
@@ -954,8 +948,7 @@ Keyword arguments:
   Parameter step control is performed according to solver control data.  kwargs and default values are:
   - `embed` (default: `nothing` ): vector of parameter values to be reached exactly
   In addition,  all kwargs of the implicit Euler solver (besides `times`) are handled.  
-  Returns a transient solution object `sol` containing the stored solution,
-  see [`TransientSolution`](@ref).
+  Returns a transient solution object `sol` containing the stored solution(s),  see [`TransientSolution`](@ref).
   
 - __Implicit Euler transient solver__: Invoked if `times` kwarg is given.
   Use implicit Euler method  + damped   Newton's method  to 
@@ -968,25 +961,15 @@ Keyword arguments:
   - `delta` (default:  `(u,v,t, Δt)->norm(sys,u-v,Inf)` ):  Value  used to control the time step size `Δu`
   If `control.handle_error` is true, if step solution  throws an error,
   stepsize  is lowered, and  step solution is called again with a smaller time value.
-  If `control.Δt<control.Δt_min`, solution is aborted
-  with error.
-  Returns a transient solution object `sol` containing the stored solution,
-  see [`TransientSolution`](@ref).
+  If `control.Δt<control.Δt_min`, solution is aborted with error.
+  Returns a transient solution object `sol` containing the stored solution,  see [`TransientSolution`](@ref).
   
-- __Transient solver via  `DifferentialEquations.jl`/`OrdinaryDiffEq.jl`__: invoked if `tspan` and `diffeq` kwargs are given.
-  - `tspan`: Time interval for differential equations.
-  - `diffeq`: `DifferentialEquations` or `OrdinaryDiffEq` module made available via `import` or `using`.
-  - `solver`: specify solver from [DifferentialEquations](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).  
-     By default, [`Rosenbrock23()`](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Rosenbrock-W-Methods) is used. 
-     Any  stiff  solver   capable  to  work  with   mass  matrices  is possible. 
-     If the system contains  elliptic equations, it needs to be a DAE solver able to  work with mass matrices.
-     Currently, the mass matrix must  be constant and diagonal which  means that only storage terms  of the  form `s(u)=  c u`  are allowed.  
-  - All other kwargs   are  passed   to  `DifferentialEquations.solve()`,  see [here](https://diffeq.sciml.ai/stable/basics/common_solver_opts/)
-    for  an  overview.  
-  Returns  a transient  solution  object  `sol` containing stored solutions, see [`TransientSolution`](@ref).
-
+- __Implicit Euler timestep solver__.  Invoked if `tstep` kwarg is given. Solve one time step of the implicit Euler method.
+  - `time` (default: `0`): Set time value. 
+  - `tstep`: time step
+  Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
-function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros(0), control=VoronoiFVM.NewtonControl(), diffeq::Module=NoModule, solver=nothing, kwargs...)
+function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros(0), control=VoronoiFVM.NewtonControl(), kwargs...)
     if isa(inival,Number)
         inival=unknowns(sys,inival=inival)
     elseif  !VoronoiFVM.isunknownsof(inival,sys)
@@ -1005,9 +988,7 @@ function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros
         end
     end
     
-    if isdefined(diffeq,:ODEProblem) &&  haskey(kwargs,:tspan)
-        solve(diffeq,inival,sys,kwargs[:tspan]; solver=solver, kwargs...)
-    elseif haskey(kwargs,:times)
+    if haskey(kwargs,:times)
         solve(inival,sys,kwargs[:times]; control=control, transient=true, params=params,kwargs...)
     elseif haskey(kwargs,:embed)
         solve(inival,sys,kwargs[:embed]; control=control, transient=false,params=params, kwargs...)

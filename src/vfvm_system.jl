@@ -1114,7 +1114,7 @@ LinearAlgebra.norm(system::SparseSystem,u,p)=LinearAlgebra.norm(u.node_dof.nzval
     history(sys)
 
 Return solver history from last `solve` call, if `log` was set to true.
-See  see [`SolverHistory`](@ref), [`SolverHistories`](@ref).
+See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
 """
 history(sys::AbstractSystem)=sys.history
 
@@ -1132,7 +1132,6 @@ history_details(sys::AbstractSystem)=details(sys.history)
     history_summary(sys)
 
 Return summary of solver history from last `solve` call, if `log` was set to true.
-See [`summmary`](@ref).
 """
 history_summary(sys::AbstractSystem)=summary(sys.history)
 
