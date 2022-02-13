@@ -27,7 +27,7 @@ At the moment, this code needs OrdinaryDiffEq v6.0.3.
 module Example108_NonlinearDiffusion1D_ODE
 
 using VoronoiFVM
-using OrdinaryDiffEq
+using DifferentialEquations
 using LinearAlgebra
 using Printf
 using GridVisualize
@@ -80,7 +80,9 @@ function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01, unknown_storage=:dense,solver
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
-    sol=VoronoiFVM.solve(sys; diffeq=OrdinaryDiffEq,inival,tspan=(t0,tend),solver,atol=1.0e-5)
+    problem = ODEProblem(sys,inival,(t0,tend))
+    odesol = DifferentialEquations.solve(problem)
+    sol=reshape(odesol,sys)
     err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
     sol, sys,err
 end
@@ -101,7 +103,7 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
         sol2,sys,err=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
     end
     println(history_summary(sys))
-    title=@sprintf("OrdinaryDiffEq: %.0f ms, e=%.2e",t*1000,err)
+    title=@sprintf("    DiffEq: %.0f ms, e=%.2e",t*1000,err)
     println(title)
     scalarplot!(vis[1,2],sys,sol2,title=title,aspect=400)
     reveal(vis)

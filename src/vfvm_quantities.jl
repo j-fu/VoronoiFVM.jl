@@ -308,7 +308,7 @@ Base.getindex(q::DiscontinuousQuantity,node::Node)=@inbounds q.regionspec[node.r
 """
     bnode[quantity]
 Return species number of discontinuous quantity region `ireg`  adjacent
-to  [`BoundaryNode`](@ref) for outer boundary nodes.
+to  [`BNode`](@ref) for outer boundary nodes.
 """
 Base.getindex(q::DiscontinuousQuantity,bnode::BNode)=@inbounds q.regionspec[bnode.cellregions[1]]
 
@@ -316,7 +316,7 @@ Base.getindex(q::DiscontinuousQuantity,bnode::BNode)=@inbounds q.regionspec[bnod
 """
     bnode[quantity,ireg]
 Return species number of discontinuous quantity region `ireg`  adjacent
-to  [`BoundaryNode`](@ref).
+to  [`BNode`](@ref).
 """
 Base.getindex(q::DiscontinuousQuantity,bnode::BNode,j)=@inbounds q.regionspec[bnode.cellregions[j]]
 

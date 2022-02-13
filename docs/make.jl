@@ -1,4 +1,5 @@
 using Documenter, VoronoiFVM, Literate, PlutoSliderServer, ExtendableGrids
+using LinearAlgebra, DifferentialEquations
 
 #
 # Replace SOURCE_URL marker with github url of source
@@ -134,10 +135,8 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
         ]
     )
 
-    if true
-        rm(example_md_dir,recursive=true)
-        rm(notebook_html_dir,recursive=true)
-    end
+    with_examples && rm(example_md_dir,recursive=true)
+    run_notebooks&&  rm(notebook_html_dir,recursive=true)
     
     if !isinteractive()
         deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
@@ -145,4 +144,5 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
 end
 
 make_all(with_examples=true,run_notebooks=true)
+#make_all(with_examples=false,run_notebooks=false)
 
