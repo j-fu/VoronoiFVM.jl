@@ -5,7 +5,7 @@ end
 Base.size(I::SolutionIntegral)=size(I.value)
 Base.getindex(I::SolutionIntegral,ispec::Integer,ireg)=I.value[ispec,ireg]
 Base.setindex!(I::SolutionIntegral,v,ispec::Integer,ireg)=I.value[ispec,ireg]=v
-Base.getindex(I::SolutionIntegral,ispec::Integer)=sum(I.value[ispec,:])
+
 
 
 ################################################################
@@ -30,6 +30,8 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
         if isdata(data)
             bnodeparams=(bnode,data,)
         end
+#!!!        bnode.time=time
+#!!!        bnode.embedparam=embedparam
         
         geom=grid[BFaceGeometries][1]
         bfaceregions=grid[BFaceRegions]
@@ -40,7 +42,7 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
             for inode=1:num_nodes(geom)
                 _fill!(bnode,inode,ibface)
                 res.=zero(Tv)
-                @views F(res,unknowns(bnode,U[:,bnode.index]),bnodeparams...)
+                @views F(rhs(bnode,res),unknowns(bnode,U[:,bnode.index]),bnodeparams...)
                 for ispec=1:nspecies
                     if system.node_dof[ispec,bnode.index]==ispec
                         integral[ispec,bnode.region]+=system.bfacenodefactors[inode,ibface]*res[ispec]

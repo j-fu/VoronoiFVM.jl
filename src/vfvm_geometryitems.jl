@@ -285,7 +285,7 @@ struct BNodeUnknowns{T,Tv,Ti} <:AbstractNodeData{T}
     geom::BNode{Tv,Ti}
 end
 
-@inline unknowns(bnode::BNode{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = BNodeUnknowns{T,Tv,Ti}(u,bnode.nspec,bnode)
+@inline unknowns(bnode::BNode{Tv,Ti},u::AbstractVector{T}) where {T,Tv,Ti} = BNodeUnknowns{T,Tv,Ti}(u,bnode.nspec,bnode)
 
 
 struct BNodeRHS{T,Tv,Ti} <:AbstractNodeData{T} 
@@ -294,7 +294,7 @@ struct BNodeRHS{T,Tv,Ti} <:AbstractNodeData{T}
     geom::BNode{Tv,Ti}
 end
 
-@inline rhs(bnode::BNode{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti} = BNodeRHS{T,Tv,Ti}(f,bnode.nspec,bnode)
+@inline rhs(bnode::BNode{Tv,Ti}, f::AbstractVector{T}) where {T,Tv,Ti} = BNodeRHS{T,Tv,Ti}(f,bnode.nspec,bnode)
 
 
 
@@ -411,7 +411,7 @@ struct EdgeUnknowns{T,Tv,Ti} <:AbstractEdgeData{T}
     geom::Edge{Tv,Ti}
 end
 
-@inline unknowns(edge::Edge{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = EdgeUnknowns{T,Tv,Ti}(u,edge.nspec,edge)
+@inline unknowns(edge::Edge{Tv,Ti},u::AbstractVector{T}) where {T,Tv,Ti} = EdgeUnknowns{T,Tv,Ti}(u,edge.nspec,edge)
 
 
 struct EdgeRHS{T,Tv,Ti} <:AbstractNodeData{T} 
@@ -420,7 +420,7 @@ struct EdgeRHS{T,Tv,Ti} <:AbstractNodeData{T}
     geom::Edge{Tv,Ti}
 end
 
-@inline rhs(edge::Edge{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti} = EdgeRHS{T,Tv,Ti}(f,edge.nspec,edge)
+@inline rhs(edge::Edge{Tv,Ti}, f::AbstractVector{T}) where {T,Tv,Ti} = EdgeRHS{T,Tv,Ti}(f,edge.nspec,edge)
 
 
 
@@ -525,7 +525,7 @@ struct BEdgeUnknowns{T,Tv,Ti} <:AbstractEdgeData{T}
     geom::BEdge{Tv,Ti}
 end
 
-@inline unknowns(edge::BEdge{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = BEdgeUnknowns{T,Tv,Ti}(u,edge.nspec,edge)
+@inline unknowns(edge::BEdge{Tv,Ti},u::AbstractVector{T}) where {T,Tv,Ti} = BEdgeUnknowns{T,Tv,Ti}(u,edge.nspec,edge)
 
 
 struct BEdgeRHS{T,Tv,Ti} <:AbstractNodeData{T} 
@@ -534,7 +534,7 @@ struct BEdgeRHS{T,Tv,Ti} <:AbstractNodeData{T}
     geom::BEdge{Tv,Ti}
 end
 
-@inline rhs(edge::BEdge{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti}= BEdgeRHS{T,Tv,Ti}(f,edge.nspec,edge)
+@inline rhs(edge::BEdge{Tv,Ti}, f::AbstractVector{T}) where {T,Tv,Ti}= BEdgeRHS{T,Tv,Ti}(f,edge.nspec,edge)
 
 
 ##################################################################
@@ -598,7 +598,7 @@ $(TYPEDSIGNATURES)
 
 Construct vector unknowns on edge.
 """
-unknowns(edge::AbstractEdge, u::Vector{T},i) where T = VectorUnknowns{T}(u,edge.nspec,(i-1)*(edge.nspec))
+unknowns(edge::AbstractEdge, u::AbstractVector{T},i) where T = VectorUnknowns{T}(u,edge.nspec,(i-1)*(edge.nspec))
 Base.getindex(u::VectorUnknowns,i)=@inbounds u.val[u.offset+i]
 Base.size(u::VectorUnknowns)=(u.n,)
 
