@@ -161,7 +161,7 @@ struct NodeUnknowns{T,Tv,Ti} <:AbstractNodeData{T}
     geom::Node{Tv,Ti}
 end
 
-@inline unknowns(node::Node{Tv,Ti},u::Vector{T}) where {T,Tv,Ti} = NodeUnknowns{T,Tv,Ti}(u,node.nspec,node)
+@inline unknowns(node::Node{Tv,Ti},u::AbstractVector{T}) where {T,Tv,Ti} = NodeUnknowns{T,Tv,Ti}(u,node.nspec,node)
 
 """
     $(TYPEDEF)
@@ -174,7 +174,7 @@ struct NodeRHS{T,Tv,Ti} <:AbstractNodeData{T}
     geom::Node{Tv,Ti}
 end
 
-@inline rhs(node::Node{Tv,Ti}, f::Vector{T}) where {T,Tv,Ti} = NodeRHS{T,Tv,Ti}(f,node.nspec,node)
+@inline rhs(node::Node{Tv,Ti}, f::AbstractVector{T}) where {T,Tv,Ti} = NodeRHS{T,Tv,Ti}(f,node.nspec,node)
 
 
 ##################################################################

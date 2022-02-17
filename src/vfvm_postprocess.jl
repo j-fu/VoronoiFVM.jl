@@ -1,3 +1,13 @@
+struct SolutionIntegral{T}<:AbstractMatrix{T} 
+    value::Matrix{T}
+end
+
+Base.size(I::SolutionIntegral)=size(I.value)
+Base.getindex(I::SolutionIntegral,ispec::Integer,ireg)=I.value[ispec,ireg]
+Base.setindex!(I::SolutionIntegral,v,ispec::Integer,ireg)=I.value[ispec,ireg]=v
+Base.getindex(I::SolutionIntegral,ispec::Integer)=sum(I.value[ispec,:])
+
+
 ################################################################
 """
 ````
@@ -13,27 +23,24 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
     data=system.physics.data
     nspecies=num_species(system)
     res=zeros(Tu,nspecies)
-    node=Node{Tv,Ti}(system)
-    nodeparams=(node,)
-    bnode=BNode{Tv,Ti}(system)
-    nodeparams=(bnode,)
-    if isdata(data)
-        nodeparams=(node,data,)
-    end
 
     if boundary
+        bnode=BNode{Tv,Ti}(system)
+        bnodeparams=(bnode,)
+        if isdata(data)
+            bnodeparams=(bnode,data,)
+        end
         
         geom=grid[BFaceGeometries][1]
         bfaceregions=grid[BFaceRegions]
         nbfaceregions=maximum(bfaceregions)
         integral=zeros(Tu,nspecies,nbfaceregions)
         
-        
         for ibface=1:num_bfaces(grid)
             for inode=1:num_nodes(geom)
                 _fill!(bnode,inode,ibface)
                 res.=zero(Tv)
-                @views F(res,U[:,bnode.index],nodeparams...)
+                @views F(res,unknowns(bnode,U[:,bnode.index]),bnodeparams...)
                 for ispec=1:nspecies
                     if system.node_dof[ispec,bnode.index]==ispec
                         integral[ispec,bnode.region]+=system.bfacenodefactors[inode,ibface]*res[ispec]
@@ -42,6 +49,15 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
             end
         end
     else
+        node=Node{Tv,Ti}(system)
+        nodeparams=(node,)
+        if isdata(data)
+            nodeparams=(node,data,)
+        end
+#!!!        node.time=time
+#!!!        node.embedparam=embedparam
+    
+        
         geom=grid[CellGeometries][1]
         cellnodes=grid[CellNodes]
         cellregions=grid[CellRegions]
@@ -53,7 +69,7 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
             for inode=1:num_nodes(geom)
                 _fill!(node,inode,icell)
                 res.=zero(Tv)
-                @views F(res,U[:,node.index],nodeparams...)
+                @views F(rhs(node,res),unknowns(node,U[:,node.index]),nodeparams...)
                 for ispec=1:nspecies
                     if system.node_dof[ispec,node.index]==ispec
                         integral[ispec,node.region]+=system.cellnodefactors[inode,icell]*res[ispec]
@@ -63,7 +79,7 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
         end
     end
     
-    return integral
+    return SolutionIntegral(integral)
 end
 
 
@@ -108,7 +124,6 @@ function nodeflux(system::AbstractSystem{Tv,Ti},U::AbstractArray{Tu,2}) where {T
     coord=grid[Coordinates]
     nodevol=zeros(Tv,nnodes)
     cellnodes=grid[CellNodes]
-    
     physics=system.physics
     node=Node{Tv,Ti}(system)
     bnode=BNode{Tv,Ti}(system)
