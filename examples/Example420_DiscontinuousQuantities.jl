@@ -132,12 +132,13 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
         scalarplot!(vis,subgrids[i],cvws[i],flimits=(-0.5,1.5),clear=false,color=:green)
     end
     reveal(vis)
-    norm(system,U,2)
+    I = integrate(system, system.physics.storage, U)
+    sum(I[dspec,:])+sum(I[cspec,:])
 end
 
 
 function test()
-    testval=7.812799873197911
+    testval=4.2
     main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
 end
 

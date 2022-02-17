@@ -382,3 +382,11 @@ Base.getindex(A::AbstractArray,q::AbstractQuantity)= A[q.id]
 Set element of `A` using id of quantity `q`
 """
 Base.setindex!(A::AbstractArray,v,q::AbstractQuantity)= A[q.id]=v
+
+
+
+
+Base.getindex(I::SolutionIntegral,cspec::ContinuousQuantity,ireg)=I[cspec.id,ireg]
+Base.getindex(I::SolutionIntegral,dspec::DiscontinuousQuantity,ireg)=I[dspec.regionspec[ireg],ireg]
+Base.getindex(I::SolutionIntegral,dspec::DiscontinuousQuantity,::Colon)=[I[dspec.regionspec[ireg],ireg] for ireg=1:size(I,2)]
+
