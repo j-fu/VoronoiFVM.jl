@@ -68,7 +68,7 @@ For testing and teaching purposes, one can obtain residual and linearization at 
 
 ```@docs
 evaluate_residual_and_jacobian
-````
+```
 
 ## Legacy API
 During the development of the code, a number of API variants have been developed which are supported for backward compatibility.
