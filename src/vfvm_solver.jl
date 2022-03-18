@@ -281,10 +281,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
-                           time::Tv,
-                           tstep::Tv,# time step size. Inf means stationary solution
-                           embedparam::Tv,
-                           params::AbstractVector{Tv};
+                           time,
+                           tstep,# time step size. Inf means stationary solution
+                           embedparam,
+                           params::AbstractVector;
                            edge_cutoff=0.0
                            ) where {Tv, Ti}
     
@@ -749,10 +749,6 @@ end
 
 
 
-
-
-
-
 ################################################################
 """
 ````
@@ -915,6 +911,23 @@ function solve(inival,
     
     system.history=allhistory
     return tsol
+end
+
+
+"""
+    evaluate_residual_and_jacobian(system,u;
+                                   t=0.0, tstep=Inf,embed=0.0)
+
+Evaluate residual and jacobian at solution value u.
+Returns a solution vector containing the residual, and an ExendableSparseMatrix
+containing the linearization at u.
+
+"""
+function evaluate_residual_and_jacobian(sys,u;t=0.0, tstep=Inf,embed=0.0)
+    _complete!(sys, create_newtonvectors=true)
+
+    eval_and_assemble(sys,u,u,sys.residual,t,tstep,embed,zeros(0))
+    copy(sys.residual), copy(flush!(sys.matrix))
 end
 
 

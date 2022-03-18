@@ -65,7 +65,7 @@ export value
 export check_allocs!
 export physics!
 export history,history_summary,history_details
-
+export evaluate_residual_and_jacobian
 include("vfvm_geometryitems.jl")
 include("vfvm_formfactors.jl")
 export meas,project

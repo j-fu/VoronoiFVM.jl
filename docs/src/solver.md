@@ -63,6 +63,12 @@ history_details
 history_summary
 ```
 
+## Matrix extraction
+For testing and teaching purposes, one can obtain residual and linearization at a given vector of unknowns
+
+```@docs
+evaluate_residual_and_jacobian
+````
 
 ## Legacy API
 During the development of the code, a number of API variants have been developed which are supported for backward compatibility.
