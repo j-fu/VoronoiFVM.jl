@@ -167,7 +167,7 @@ end
 
 
 """
-     ODEFunction(system,inival=unknowns(system,inival=0,t0=0)
+     ODEFunction(system,inival=unknowns(system,inival=0),t0=0)
     
 Create an [ODEPFunction](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can 
 be handeled by ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
