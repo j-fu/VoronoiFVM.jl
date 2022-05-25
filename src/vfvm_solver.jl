@@ -108,7 +108,9 @@ function _solve!(
     time::Tv,
     tstep::Tv,
     embedparam::Tv,
-    params::AbstractVector{Tv}
+    params::AbstractVector{Tv};
+    mynorm=(u)->LinearAlgebra.norm(values(u),Inf),
+    myrnorm=(u)->LinearAlgebra.norm(values(u),1)
 ) where Tv
 
     _complete!(system, create_newtonvectors=true)
@@ -131,7 +133,7 @@ function _solve!(
         nround=0
         damp=control.damp_initial
         tolx=0.0
-        rnorm=LinearAlgebra.norm(values(solution),1)
+        rnorm=myrnorm(solution)
         
         for ii=1:control.max_iterations
             try
@@ -204,12 +206,12 @@ function _solve!(
             solval=values(solution)
             solval.-=damp*values(update)
             damp=min(damp*control.damp_growth,1.0)
-            norm=LinearAlgebra.norm(values(update),Inf)
+            norm=mynorm(update)
             if tolx==0.0
                 tolx=norm*control.tol_relative
             end
             dnorm=1.0
-            rnorm_new=LinearAlgebra.norm(values(solution),1)
+            rnorm_new=myrnorm(solution)
             if rnorm>1.0e-50
                 dnorm=abs((rnorm-rnorm_new)/rnorm)
             end
@@ -737,10 +739,10 @@ function solve!(
 )
     if control.verbose
         @time begin
-            _solve!(solution,inival,system,control,time,tstep,embedparam,params)
+            _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
         end
     else 
-        _solve!(solution,inival,system,control,time,tstep,embedparam,params)
+        _solve!(solution,inival,system,control,time,tstep,embedparam,params;kwargs...)
     end
     return solution
 end
