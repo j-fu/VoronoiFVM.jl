@@ -12,3 +12,6 @@ RecursiveFactorization = "f2c3362d-daeb-58d1-803e-2bc74f2840b4"
 SimplexGridFactory = "57bfcd06-606e-45d6-baf4-4ba06da0efd5"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[extras]
+CPUSummary = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
