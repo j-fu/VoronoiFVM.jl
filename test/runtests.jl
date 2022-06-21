@@ -97,7 +97,7 @@ function run_all_tests()
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
         end
 
-        if true #  !Sys.iswindows() # there seems to be a time limit problem
+        if ENV["TEST_ALL"]=="true" #  !Sys.iswindows() # there seems to be a time limit problem
             @testset "notebooks" begin
                 for notebook in notebooks
                     #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))
