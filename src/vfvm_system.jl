@@ -767,9 +767,9 @@ boundary_dirichlet!(system::AbstractSystem; species=0, region=0,value=0)=boundar
 
 Set Dirichlet boundary condition for species ispec at boundary ibc.
 """
-function boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
+function boundary_dirichlet!(y,u,bnode,ispec,ireg,val; penalty=bnode.Dirichlet)
     if  bnode.region == ireg
-        y[ispec] += bnode.Dirichlet*(u[ispec]-val)
+        y[ispec] += penalty*(u[ispec]-val)
         # just for call during initialization, so we can convert from dual number
         bnode.dirichlet_value[ispec]=value(val)
     end
@@ -783,7 +783,7 @@ Keyword argument version:
 - `region`: boundary region number. By default, all boundary regions.
 - `value`: value
 """
-boundary_dirichlet!(y,u,bnode,args...; species=1, region=bnode.region,value=0) = boundary_dirichlet!(y,u,bnode,species,region,value)
+boundary_dirichlet!(y,u,bnode,args...; species=1, region=bnode.region,value=0,penalty=bnode.Dirichlet) = boundary_dirichlet!(y,u,bnode,species,region,value;penalty)
 
 
 """
