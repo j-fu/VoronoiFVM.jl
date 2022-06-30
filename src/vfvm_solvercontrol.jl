@@ -81,6 +81,12 @@ $(TYPEDFIELDS)
     Default: Standard Julia LU Factorization (UMFPACK).
     """
     factorization::AbstractFactorization = LUFactorization()
+
+    """
+    Iterative solver if factorization is incomplete.
+    Currently supported: :bicgstab, :cg
+    """
+    iteration::Symbol=:bicgstab
     
     """
     Verbosity flag.

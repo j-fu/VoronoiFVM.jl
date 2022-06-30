@@ -184,14 +184,26 @@ function _solve!(
             elseif !issolver(system.factorization) || nlu_reuse>0
                 # Iterative solution
                 update.=zero(Tv)
-                (sol,history)= bicgstabl!(values(update),
-                                          mtx,
-                                      values(residual),
-                                          1,
-                                          Pl=system.factorization,
-                                          reltol=control.tol_linear,
-                                          max_mv_products=100,
-                                          log=true)
+                if control.iteration == :bicgstab
+                    (sol,history)= bicgstabl!(values(update),
+                                              mtx,
+                                              values(residual),
+                                              1,
+                                              Pl=system.factorization,
+                                              reltol=control.tol_linear,
+                                              max_mv_products=100,
+                                              log=true)
+                elseif control.iteration == :cg
+                    (sol,history)= cg!(values(update),
+                                       mtx,
+                                       values(residual),
+                                       Pl=system.factorization,
+                                       reltol=control.tol_linear,
+                                       maxiter=100,
+                                       log=true)
+                else
+                    error("wrong value of `iteration`, choose either :cg or :bicgstab")
+                end
                 nliniter=history.iters
                 if control.log
                     nlhistory.nlin+=history.iters

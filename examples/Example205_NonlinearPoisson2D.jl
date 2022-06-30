@@ -12,7 +12,7 @@ using GridVisualize
 
 
 function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_lureuse=0,
-              factorization=LUFactorization())
+              factorization=LUFactorization(),iteration=:cg)
     h=1.0/convert(Float64,n)
     X=collect(0.0:h:1.0)
     Y=collect(0.0:h:1.0)
@@ -53,6 +53,7 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_
 
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
+    control.iteration=iteration
     control.tol_linear=1.0e-5
     control.max_lureuse=max_lureuse
     control.factorization=factorization
@@ -83,7 +84,7 @@ function test()
         main(unknown_storage=:dense,max_lureuse=0) ≈ testval &&
         main(unknown_storage=:sparse,max_lureuse=10) ≈ testval &&
         main(unknown_storage=:dense,max_lureuse=10) ≈ testval &&
-        main(unknown_storage=:sparse,max_lureuse=0, factorization=ILU0Preconditioner()) ≈ testval &&
-        main(unknown_storage=:dense,max_lureuse=0, factorization=ILU0Preconditioner()) ≈ testval 
+        main(unknown_storage=:sparse,max_lureuse=0, factorization=ILU0Preconditioner(), iteration=:cg) ≈ testval &&
+        main(unknown_storage=:dense,max_lureuse=0, factorization=ILU0Preconditioner(), iteration=:bicgstab) ≈ testval 
 end
 end
