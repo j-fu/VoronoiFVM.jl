@@ -1,4 +1,24 @@
 # Changes
+## v0.16.5 June 30, 2022
+- add `iteration` to solver options, allow to choose :cg, :bicgstab.
+- allow setting penalty with boundary_dirichlet!
+
+## v0.16.4 May 25, 2022
+- fix x-t plots 
+
+## v0.16.3 March 18, 2022
+- Linearization API
+- relax some type constraints
+
+## v0.16.2 Feb 18, 2022
+- ExtendableGrids 0.9
+
+## v0.16.1 Feb 17, 2022
+- fix quantity postprocessing
+- define unknown access for abstract vectors instead of vectors
+- pass rhs/unknowns wrappers in postprocessing methods
+- integrals as a wrapper type with proper quantity handling
+
 ## v0.16.0 Feb 13, 2022
 - Expose ODEProblem (and possibly ODEFunc) from VoronoiFVM.System.
 - __Breaking__: Remove `solve` wrapper for DifferentialEquations.solve, instead recommend to call that directly
