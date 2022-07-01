@@ -1,4 +1,9 @@
 # Changes
+## v0.17.0 July 1 2022
+- ensure not to assemble data for species where they are not enabled 
+  This change should be breaking only for incorrect code where physics
+  callbacks write into degrees of freedom which are not enabled
+
 ## v0.16.5 June 30, 2022
 - add `iteration` to solver options, allow to choose :cg, :bicgstab.
 - allow setting penalty with boundary_dirichlet!

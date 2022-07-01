@@ -123,7 +123,7 @@ function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatri
             res.=zero(Tv)
             fluxwrap(res,UKL)
             for ispec=1:nspecies
-                if system.node_dof[ispec,edge.node[1]]==ispec && system.node_dof[ispec,edge.node[2]]==ispec
+                if isdof(system, ispec, edge.node[1]) && isdof(system, ispec, edge.node[2]) 
                     integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
@@ -145,7 +145,7 @@ function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatri
                 storagewrap(storold,UKold)
             end
             for ispec=1:nspecies
-                if system.node_dof[ispec,node.index]==ispec
+                if isdof(system, ispec, node.index)
                     integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
                 end
             end
@@ -199,7 +199,7 @@ function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
             
             fluxwrap(res,UKL)
             for ispec=1:nspecies
-                if system.node_dof[ispec,edge.node[1]]==ispec && system.node_dof[ispec,edge.node[2]]==ispec
+                if isdof(system, ispec, edge.node[1]) && isdof(system, ispec, edge.node[2]) 
                     integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
@@ -214,7 +214,7 @@ function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
             reactionwrap(res,UK)
             sourcewrap(src)
             for ispec=1:nspecies
-                if system.node_dof[ispec,node.index]==ispec
+                if isdof(system, ispec, node.index)
                     integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec])*tf[node.index]
                 end
             end
@@ -258,7 +258,7 @@ function integrate_tran(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
 
             storagewrap(stor,U[:,node.index])
             for ispec=1:nspecies
-                if system.node_dof[ispec,node.index]==ispec
+                if isdof(system, ispec, node.index)
                     integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
                 end
             end

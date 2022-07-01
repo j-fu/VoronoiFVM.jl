@@ -147,9 +147,13 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
             K=node.index
             for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idof,K)
-                for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    jspec=_spec(F,jdof,K)
-                    updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
+                if isdof(system,ispec,K)
+                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                        jspec=_spec(F,jdof,K)
+                        if isdof(system,jspec,K)
+                            updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
+                        end
+                    end
                 end
             end
 
@@ -171,9 +175,13 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
                 K=bnode.index
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
-                        updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
+                    if isdof(system,ispec,K)
+                        for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                            jspec=_spec(F,jdof,K)
+                            if isdof(system,jspec,K)
+                                updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
+                            end
+                        end
                     end
                 end
             end

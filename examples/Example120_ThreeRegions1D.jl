@@ -10,7 +10,7 @@ using GridVisualize
 
 
 
-function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse,tend=10)
+function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse,tend=10,rely_on_corrections=false)
     h=3.0/(n-1)
     X=collect(0:h:3.0)
     grid=VoronoiFVM.Grid(X)
@@ -30,8 +30,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     eps=[1,1,1]
     k=[1,1,1]
 
-    physics=VoronoiFVM.Physics(
-    reaction=function(f,u,node)
+    function reaction(f,u,node)
         if node.region==1
             f[1]=k[1]*u[1]
             f[2]=-k[1]*u[1]
@@ -41,33 +40,60 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         else
             f[1]=0
         end
-    end,
-    
-        flux=function(f,u,edge)
-        
-        if edge.region==1
-            f[1]=eps[1]*(u[1,1]-u[1,2])
-            f[2]=eps[2]*(u[2,1]-u[2,2])
-        elseif edge.region==2
-            f[2]=eps[2]*(u[2,1]-u[2,2])
-        elseif edge.region==3
-            f[2]=eps[2]*(u[2,1]-u[2,2])
-            f[3]=eps[3]*(u[3,1]-u[3,2])
-        end
-    end,
-    
-    source=function(f,node)
+    end
+
+    function source(f,node)
         if node.region==1
            f[1]=1.0e-4*(3.0-node[1])
         end
-    end,
-    
-    storage=function(f,u,node)
-        f.=u
     end
-    )
 
-    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
+    if rely_on_corrections
+        ## Since 0.17.0 one can 
+        ## write into the result also where
+        ## the corresponding species has not been enabled
+        ## Species information is used to prevent the assembly.
+        flux=function(f,u,edge)
+            for i=1:3
+                f[i]=eps[i]*(u[i,1]-u[i,2])    
+            end
+        end
+        
+        storage=function(f,u,node)
+            f.=u
+        end
+    else
+        ## This is the "old" way:
+        ## Write into result only where
+        ## the corresponding species has been enabled
+        flux=function(f,u,edge)
+            if edge.region==1
+                f[1]=eps[1]*(u[1,1]-u[1,2])
+                f[2]=eps[2]*(u[2,1]-u[2,2])
+            elseif edge.region==2
+                f[2]=eps[2]*(u[2,1]-u[2,2])
+            elseif edge.region==3
+                f[2]=eps[2]*(u[2,1]-u[2,2])
+                f[3]=eps[3]*(u[3,1]-u[3,2])
+            end
+        end
+        
+        
+        storage=function(f,u,node)
+            if node.region==1
+                f[1]=u[1]
+                f[2]=u[2]
+            elseif node.region==2
+                f[2]=u[2]
+            elseif node.region==3
+                f[2]=u[2]
+                f[3]=u[3]
+            end
+        end
+
+    end
+    
+    sys=VoronoiFVM.System(grid; flux, reaction,storage, source,unknown_storage=unknown_storage)
 
     enable_species!(sys,1,[1])
     enable_species!(sys,2,[1,2,3])
@@ -105,15 +131,20 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
                   title=@sprintf("three regions t=%.3g",time))
         scalarplot!(p[1,1],subgrid2, U2,label="spec2", color=(0.0,0.5,0),clear=false)
         scalarplot!(p[1,1],subgrid3, U3,label="spec3", color=(0.0,0.0,0.5),clear=false,show=true)
-        sleep(1.0e-2)
+        if Plotter !=nothing
+            sleep(1.0e-2)
+        end
     end
     return testval
 end
 
 function test()
-    testval=0.0005954993329548969
-    main(unknown_storage=:sparse) ≈ testval &&
-        main(unknown_storage=:dense) ≈ testval
+    testval=0.0005967243505359461
+    main(unknown_storage=:sparse,rely_on_corrections=false) ≈ testval &&
+        main(unknown_storage=:dense,rely_on_corrections=false) ≈ testval# &&
+        main(unknown_storage=:sparse,rely_on_corrections=true) ≈ testval &&
+        main(unknown_storage=:dense,rely_on_corrections=true) ≈ testval
+
 end
 
 end

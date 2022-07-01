@@ -44,7 +44,7 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
                 res.=zero(Tv)
                 @views F(rhs(bnode,res),unknowns(bnode,U[:,bnode.index]),bnodeparams...)
                 for ispec=1:nspecies
-                    if system.node_dof[ispec,bnode.index]==ispec
+                    if isdof(system, ispec, bnode.index)
                         integral[ispec,bnode.region]+=system.bfacenodefactors[inode,ibface]*res[ispec]
                     end
                 end
@@ -73,7 +73,7 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
                 res.=zero(Tv)
                 @views F(rhs(node,res),unknowns(node,U[:,node.index]),nodeparams...)
                 for ispec=1:nspecies
-                    if system.node_dof[ispec,node.index]==ispec
+                    if isdof(system, ispec, node.index)
                         integral[ispec,node.region]+=system.cellnodefactors[inode,icell]*res[ispec]
                     end
                 end
@@ -147,7 +147,7 @@ function nodeflux(system::AbstractSystem{Tv,Ti},U::AbstractArray{Tu,2}) where {T
             edgeflux.=zero(Tv)
             fluxwrap(edgeflux,UKL)
             for ispec=1:nspecies
-                if system.node_dof[ispec,K]==ispec && system.node_dof[ispec,L]==ispec
+                if isdof(system, ispec,K) && isdof(system, ispec,L) 
                     @views nodeflux[:,ispec,K].+=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,K])
                     @views nodeflux[:,ispec,L].-=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,L])
                 end
