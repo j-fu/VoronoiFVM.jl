@@ -63,7 +63,15 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     end,
     
     storage=function(f,u,node)
-        f.=u
+       if node.region==1
+            f[1]=u[1]
+            f[2]=u[2]
+        elseif node.region==2
+            f[2]=u[2]
+        elseif node.region==3
+            f[2]=u[2]
+            f[3]=u[3]
+        end
     end
     )
 
@@ -111,7 +119,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
 end
 
 function test()
-    testval=0.0005954993329548969
+    testval=0.0005967243505359461
     main(unknown_storage=:sparse) ≈ testval &&
         main(unknown_storage=:dense) ≈ testval
 end
