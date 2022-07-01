@@ -413,6 +413,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     hasbc = !iszero(boundary_factors) || !iszero(boundary_values)
 
     bfaceregions::Vector{Ti} = grid[BFaceRegions]
+    cellregions::Vector{Ti} = grid[CellRegions]
 
     nbfaces = num_bfaces(grid)
     ncells  = num_cells(grid)
@@ -425,6 +426,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
 
     ncalloc=@allocated  for icell=1:ncells
+        ireg=cellregions[icell]
         for inode=1:nn
             _fill!(node,inode,icell)
             @views UK[1:nspecies]    .= U[:,node.index]
@@ -464,10 +466,17 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             K=node.index
             for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idof,K)
+                if system.region_species[ispec,ireg]<=0
+                    continue
+                end
                 _add(F,idof,cellnodefactors[inode,icell]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
                 for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                     jspec=_spec(F,jdof,K)
-                    _addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,cellnodefactors[inode,icell])
+                    if system.region_species[jspec,ireg]<=0
+                        continue
+                    end
+                    val=jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv
+                    _addnz(matrix,idof,jdof,val,cellnodefactors[inode,icell])
                 end
                 for iparam=1:nparams
                     jparam=nspecies+iparam
@@ -502,11 +511,18 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 if idofL==0
                     continue
                 end
+                if system.region_species[ispec,ireg]<=0
+                     continue
+                end
+
                 _add(F,idofK,fac*res[ispec])
                 _add(F,idofL,-fac*res[ispec])
                 
                 for jdofK=_firstnodedof(F,K):_lastnodedof(F,K)
                     jspec=_spec(F,jdofK,K)
+                    if system.region_species[jspec,ireg]<=0
+                        continue
+                    end
                     jdofL=dof(F,jspec,L)
                     if jdofL==0
                         continue
@@ -598,9 +614,16 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 # Assemble RHS + matrix
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
+                    if !isdof(system,ispec,K)
+                        continue
+                    end
+                    
                     _add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
+                        if !isdof(system,jspec,K)
+                            continue
+                        end
                         _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
                     end
                     for iparam=1:nparams
@@ -629,11 +652,19 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                 
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
+                    if !isdof(system,ispec,K)
+                        continue
+                    end
+                    
                     # Assemble finite difference in time for right hand side
                     _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
                     # Assemble matrix.
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
                         jspec=_spec(F,jdof,K)
+                        if !isdof(system,jspec,K)
+                            continue
+                        end
+                        
                         _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
                     end
                     for iparam=1:nparams
@@ -666,6 +697,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
                 for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
                     ispec =_spec(F, idofK, K)
+                    if !isdof(system,ispec,K)
+                        continue
+                    end
+
                     idofL = dof(F, ispec, L)
                     if idofL == 0
                         continue
@@ -675,6 +710,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                     
                     for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
                         jspec = _spec(F,jdofK,K)
+                        if !isdof(system,jspec,K)
+                            continue
+                        end
+
                         jdofL = dof(F,jspec,L)
                         if jdofL == 0
                             continue
