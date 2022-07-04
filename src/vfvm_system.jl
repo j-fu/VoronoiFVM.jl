@@ -518,7 +518,8 @@ enable_species!(system,ispec,regions)
 ````
 
 Add species `ispec` to a list of bulk regions. Species numbers for
-bulk and boundary species have to be distinct.
+bulk and boundary species have to be distinct. 
+Once a species has been added, it cannot be removed.
 """
 function enable_species!(system::AbstractSystem,ispec::Integer, regions::AbstractVector)
     increase_num_species!(system,ispec)
@@ -551,6 +552,7 @@ enable_species!(system; kwargs...)
 Keyword arguments:
 - `species`: Integer or vector of integers. Species to be added to the system.
 - `regions`: Vector of integers. Regions, where these species shall be added.If `nothing`, they are added to all species.
+Once a species has been added, it cannot be removed.
 """
 function enable_species!(sys::AbstractSystem; species=nothing, regions=nothing)
     if regions==nothing
@@ -576,7 +578,7 @@ enable_boundary_species!(system,ispec,regions)
 
 Add species `ispec` to a list of boundary regions. Species numbers for
 bulk and boundary species have to be distinct.
-
+Once a species has been added, it cannot be removed.
 """
 function enable_boundary_species!(system::AbstractSystem, ispec::Integer, bregions::AbstractVector)
     increase_num_species!(system,ispec)
