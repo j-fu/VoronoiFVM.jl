@@ -110,7 +110,8 @@ function _solve!(
     embedparam::Tv,
     params::AbstractVector{Tv};
     mynorm=(u)->LinearAlgebra.norm(values(u),Inf),
-    myrnorm=(u)->LinearAlgebra.norm(values(u),1)
+    myrnorm=(u)->LinearAlgebra.norm(values(u),1),
+    kwargs...
 ) where Tv
 
     _complete!(system, create_newtonvectors=true)
@@ -821,7 +822,7 @@ function solve(
     params=zeros(0),
     kwargs...
 )
-    solve!(unknowns(system),inival,system,control=control,time=time, tstep=tstep, params=params)
+    solve!(unknowns(system),inival,system; control=control,time=time, tstep=tstep, params=params, kwargs...)
 end
 
 
@@ -865,7 +866,9 @@ function solve(inival,
     Δλ=Δλ_val(control,transient)
     
     if !transient
-        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]),params=params)
+        pre(solution,Float64(lambdas[1]))
+        solution=solve!(solution,oldsolution, system; control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]),params=params, kwargs...)
+        post(solution,oldsolution,lambdas[1], 0)
         if control.log
             push!(allhistory,system.history)
             push!(allhistory.times,lambdas[1])
@@ -881,13 +884,13 @@ function solve(inival,
         @printf("  Evolution: start\n")
     end
     
+    istep=0
     for i=1:length(lambdas)-1
         
         Δλ=max(Δλ,Δλ_min(control,transient))
         λstart=lambdas[i]
         λend=lambdas[i+1]
         λ=Float64(λstart)
-        istep=0
         
         while λ<λend
             solved=false
@@ -899,9 +902,9 @@ function solve(inival,
                     λ=λ0+Δλ
                     pre(solution,λ)
                     if transient
-                        solution=solve!(solution,oldsolution, system ,control=control,time=λ,tstep=Δλ,params=params)
+                        solution=solve!(solution,oldsolution, system; control=control,time=λ,tstep=Δλ,params=params, kwargs...)
                     else
-                        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=λ,params=params)
+                        solution=solve!(solution,oldsolution, system; control=control,time=time,tstep=Inf,embedparam=λ,params=params,kwargs...)
                     end
                 catch err
                     if (control.handle_exceptions)
