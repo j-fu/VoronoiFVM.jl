@@ -187,7 +187,7 @@ function DifferentialEquations.ODEFunction(sys::AbstractSystem, jacval=unknowns(
     flush!(sys.matrix)
     odefunction=DifferentialEquations.ODEFunction(eval_rhs!,
                                                   jac=eval_jacobian!,
-                                                  jac_prototype=sys.matrix.cscmatrix,
+                                                  jac_prototype=sys.matrix,
                                                   mass_matrix=mass_matrix(sys))
 end
 
