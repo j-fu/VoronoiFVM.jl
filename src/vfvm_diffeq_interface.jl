@@ -185,10 +185,10 @@ function DifferentialEquations.ODEFunction(sys::AbstractSystem, jacval=unknowns(
     _complete!(sys, create_newtonvectors=true)
     _eval_res_jac!(sys,jacval,tjac)
     flush!(sys.matrix)
-    odefunction=DifferentialEquations.ODEFunction(eval_rhs!,
-                                                  jac=eval_jacobian!,
-                                                  jac_prototype=sys.matrix,
-                                                  mass_matrix=mass_matrix(sys))
+    DifferentialEquations.ODEFunction(eval_rhs!,
+                                      jac=eval_jacobian!,
+                                      jac_prototype=sys.matrix,
+                                      mass_matrix=mass_matrix(sys))
 end
 
 

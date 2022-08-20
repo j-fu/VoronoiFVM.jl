@@ -75,13 +75,12 @@ function run_vfvm(;n=20,m=2,t0=0.001, tend=0.01,tstep=1.0e-6,unknown_storage=:de
 end
 
 
-
 function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01, unknown_storage=:dense,solver=nothing)
     sys,X=create_porous_medium_problem(n,m,unknown_storage)
     inival=unknowns(sys)
     inival[1,:].=map(x->barenblatt(x,t0,m),X)
     problem = ODEProblem(sys,inival,(t0,tend))
-    odesol = DifferentialEquations.solve(problem)
+    odesol = DifferentialEquations.solve(problem,Rodas5(linsolve=UMFPACKFactorization()))
     sol=reshape(odesol,sys)
     err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
     sol, sys,err
@@ -92,23 +91,23 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
 
     vis=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(800,400))
     t=@elapsed begin
-        sol1,sys,err=run_vfvm(m=m,n=n, unknown_storage=unknown_storage)
+        sol1,sys,err1=run_vfvm(m=m,n=n, unknown_storage=unknown_storage)
     end
     println(history_summary(sys))
-    title=@sprintf("VoronoiFVM: %.0f ms e=%.2e",t*1000,err)
+    title=@sprintf("VoronoiFVM: %.0f ms e=%.2e",t*1000,err1)
     println(title)
     scalarplot!(vis[1,1],sys,sol1,title=title,aspect=400)
 
     t=@elapsed begin
-        sol2,sys,err=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
+        sol2,sys,err2=run_diffeq(m=m,n=n,solver=solver, unknown_storage=unknown_storage)
     end
     println(history_summary(sys))
-    title=@sprintf("    DiffEq: %.0f ms, e=%.2e",t*1000,err)
+    title=@sprintf("    DiffEq: %.0f ms, e=%.2e",t*1000,err2)
     println(title)
     scalarplot!(vis[1,2],sys,sol2,title=title,aspect=400)
     reveal(vis)
-    
     norm(sol2[end]-sol1[end],Inf)<0.01
+
 end
 
 test()=main()

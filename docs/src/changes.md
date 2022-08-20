@@ -1,4 +1,7 @@
 # Changes
+## v0.17.1 August 20 2022
+- Fix DifferentialEquations interface, start transition to LinearSolve
+
 ## v0.17.0 July 1 2022
 - ensure not to assemble data for species where they are not enabled 
   This change should be breaking only for incorrect code where physics

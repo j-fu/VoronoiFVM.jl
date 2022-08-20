@@ -78,8 +78,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
 
     # create sparse matrix with the same nonzero pattern of original matrix
     impedance_system.matrix=SparseMatrixCSC(m,n,
-                                colptrs(system.matrix),
-                                rowvals(system.matrix),
+                                SparseArrays.getcolptr(system.matrix),
+                                SparseArrays.getrowval(system.matrix),
                                 copy(impedance_system.sysnzval)
                                 )
     impedance_system.U0=U0
