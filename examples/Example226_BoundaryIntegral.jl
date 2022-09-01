@@ -26,34 +26,34 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
         Γ_where_T_equal_1=[2]
         Γ_where_T_equal_0=[4]
     end
-    
+
     function storage(f,u,node)
         f.=u
     end
-    
+
     function flux(f,u,edge)
 	f[1]=u[1,1]-u[1,2]
     end
-    
-    
+
+
     function breaction(f,u,node)
         if node.region==Γ_where_T_equal_1[1]
             f[1]= u[1]^2
         end
     end
-    
+
     physics=VoronoiFVM.Physics(flux=flux,
 	                       storage=storage,
 	                       breaction=breaction)
-    
+
     system=VoronoiFVM.System(grid,physics)
     enable_species!(system,1,[1])
     boundary_dirichlet!(system,1,Γ_where_T_equal_0[1],1.0);
     inival=unknowns(system,inival=0.0)
-    
+
     U=solve(inival,system)
 
-    tf=VoronoiFVM.TestFunctionFactory(system)
+    tf=TestFunctionFactory(system)
     T=testfunction(tf,Γ_where_T_equal_0,Γ_where_T_equal_1)
 
     scalarplot(grid,U[1,:],Plotter=Plotter,zplane=0.50001)

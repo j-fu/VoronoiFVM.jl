@@ -90,11 +90,13 @@ export nodeflux
 include("vfvm_testfunctions.jl")
 export integrate
 export testfunction
+export TestFunctionFactory
 
 include("vfvm_quantities.jl")
 export ContinuousQuantity
 export DiscontinuousQuantity
 export InterfaceQuantity
+export subgrids,views
 
 
 include("vfvm_impedance.jl")

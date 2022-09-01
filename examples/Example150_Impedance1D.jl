@@ -39,7 +39,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
     # Create array which is refined close to 0
     h0=0.005/2.0^nref
     h1=0.1/2.0^nref
-    
+
     X=VoronoiFVM.geomspace(0,L,h0,h1)
 
     # Create discretitzation grid
@@ -65,7 +65,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
     excited_bcval=1.0
     excited_spec=1
     meas_bc=2
-    
+
     # Create physics struct
     physics=VoronoiFVM.Physics(data=data,
                                flux=flux,
@@ -80,8 +80,8 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
     # Create test functions for current measurement
 
 
-    
-    factory=VoronoiFVM.TestFunctionFactory(sys)
+
+    factory=TestFunctionFactory(sys)
     measurement_testfunction=testfunction(factory,[excited_bc],[meas_bc])
 
     boundary_dirichlet!(sys,excited_spec,excited_bc,excited_bcval)

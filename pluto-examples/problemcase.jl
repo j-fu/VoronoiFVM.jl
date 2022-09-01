@@ -85,7 +85,7 @@ The high permeability layer has length `L`=$( L) and width `W`= $(W).
 
 We solve the time dependent problem on three types of  rectangular grids with the same
 resolution in   $x$ direction and different variants to to handle the  high permeability
-layer. 
+layer.
 
 
 - `grid_n` - a "naive" grid which just resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids
@@ -250,7 +250,7 @@ md"""
 ### Transient case
 As there will be nearly no flow
 in  y-direction, we should  get the  very same  results in  all four
-cases for small permeability values in the low permeability region.  
+cases for small permeability values in the low permeability region.
 
 In the `grid_n` case,  the heterogeneous control volumina  ovrestimate the storage
 capacity which shows itself  in a underestimation  of the
@@ -261,7 +261,7 @@ domain should be essentially equal to those for 1D domain.
  However,   with  a   coarse  resolution   in
 y-direction, we see large  differences in the transient behaviour of
 the breaktrough curve compared to the 1D case.
-The introduction of a thin  protection layer leads  to  reasonable   results.  
+The introduction of a thin  protection layer leads  to  reasonable   results.
 
 
 Alternatively, the porosity of the low permeability region can be modified.
@@ -286,7 +286,7 @@ Here, we indeed observe problem with the Voronoi approach: care must be taken to
 of hetero interfaces in connection with transient processes and/or homogeneous reactions.
 In these cases it should be analyzed if the problem occurs, and why, and it appears, that the discussion
 should not be had without reference to the correct physical models. A remedy based on meshing
-is available at least for straight interfaces. 
+is available at least for straight interfaces.
 
 ### Opinion
 
@@ -303,7 +303,7 @@ at the boundaries of the control volumes rather than along the edges of a underl
 #### Advantages (compared to the cell centered approach placing collocation points away from interfaces)
 - Availability of P1 interpolant on simplices for visualization, interpolation, coupling etc.
 - Mesh generators tend to place interfaces at triangle edges.
-- Dirichlet BC can be applied exactly 
+- Dirichlet BC can be applied exactly
 - There is a straighforward way to link interface processes with bulk processes, e.g. an adsorption reaction is easily described by a reaction term at the boundary which involves interface and bulk value available at the same mesh node.
 
 
@@ -337,7 +337,7 @@ Boundary conditions:
 """
 
 # ╔═╡ d1d5bad2-d282-4e7d-adb9-baf21f58155e
-begin 
+begin
 const Γ_top=3
 const Γ_bot=1
 const Γ_left=4
@@ -356,7 +356,7 @@ end;
 function grid_2d(;nref=0,ε_fix=0.0)
     nx=10*2^nref
     ny=1*2^nref
-    nylow=3*2^nref	
+    nylow=3*2^nref
     xc=linspace(0,L,nx+1)
     y0=linspace(-W/2,W/2,ny+1)
     if ε_fix>0.0
@@ -427,18 +427,18 @@ Transient solver:
 
 # ╔═╡ e866db69-9388-4691-99f7-879cf0658418
 function trsolve(grid;
-	κ=[1.0e-3,5], 
+	κ=[1.0e-3,5],
 	D=[1.0e-12,1.0e-12],
 	Δp=1.0,
 	ϕ=[1,1],
 	tend=100)
-    
+
     function flux(y,u,edge)
         y[ip]=κ[edge.region]*(u[ip,1]-u[ip,2])
-	bp,bm=fbernoulli_pm(y[ip]/D[edge.region]) 
+	bp,bm=fbernoulli_pm(y[ip]/D[edge.region])
         y[ic]=D[edge.region]*(bm*u[ic,1]-bp*u[ic,2])
     end
-    
+
     function stor(y,u,node)
         y[ip]=0
         y[ic]=ϕ[node.region]*u[ic]
@@ -449,7 +449,7 @@ function trsolve(grid;
 		c0=ramp(bnode.time,dt=(0,0.001),du=(0,1))
 	    boundary_dirichlet!(y,u,bnode,ic,Γ_in,c0)
     	boundary_dirichlet!(y,u,bnode,ic,Γ_out,0)
-	
+
 		boundary_dirichlet!(y,u,bnode,ip,Γ_in,Δp)
 		boundary_dirichlet!(y,u,bnode,ip,Γ_out,0)
 		if dim>1
@@ -457,21 +457,21 @@ function trsolve(grid;
 			boundary_dirichlet!(y,u,bnode,ip,Γ_right,0)
 		end
 	end
-	
+
     sys=VoronoiFVM.System(grid;check_allocs=true,flux=flux,storage=stor,bcondition=bc,species=[ip,ic])
-	
-    inival=VoronoiFVM.solve(sys,inival=0,time=0.0)
-    factory=VoronoiFVM.TestFunctionFactory(sys)
+
+    inival=solve(sys,inival=0,time=0.0)
+    factory=TestFunctionFactory(sys)
     tfc=testfunction(factory,[Γ_in,Γ_left,Γ_top,Γ_bot],[Γ_out])
-    
-    
+
+
     sol=VoronoiFVM.solve(sys; inival=inival,times=[0,tend],Δt=1.0e-4,Δt_min=1.0e-6 )
-    
+
     bt=breakthrough(sys,tfc,sol)
     if dim==1
 		bt=bt*W
 	end
-    
+
     grid,sol,bt
 end
 
@@ -482,7 +482,7 @@ md"""
 
 # ╔═╡ bb3a50ed-32e7-4305-87d8-4093c054a4d2
 function rdsolve(grid;D=[1.0e-12,1.0],R=[1,0.1])
-    
+
     function flux(y,u,edge)
         y[1]=D[edge.region]*(u[1,1]-u[1,2])
     end
@@ -496,12 +496,12 @@ function rdsolve(grid;D=[1.0e-12,1.0],R=[1,0.1])
 	end
     sys=VoronoiFVM.System(grid,flux=flux,reaction=rea,species=1,bcondition=bc,check_allocs=true)
   	dim=dim_space(grid)
-	
+
 
     sol=VoronoiFVM.solve(sys)
-    factory=VoronoiFVM.TestFunctionFactory(sys)
+    factory=TestFunctionFactory(sys)
     tf=testfunction(factory,[Γ_in,Γ_left,Γ_top,Γ_bot],[Γ_out])
-   	of=integrate(sys,tf,sol) 
+   	of=integrate(sys,tf,sol)
 	    fac=1.0
 	if dim==1
 		fac=W
@@ -539,7 +539,7 @@ begin
 end;
 
 # ╔═╡ 18d5cc77-e2de-4e14-a98d-a4a4b764b3b0
-if developing 
+if developing
 	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
 else
 	md""" Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"""

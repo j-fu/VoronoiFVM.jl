@@ -6,7 +6,7 @@ For a rather comprehensive explanation
 see [225: Terminal flux calculation via test functions, nD](@ref)
 =#
 
-module Example125_TestFunctions1D 
+module Example125_TestFunctions1D
 using Printf
 using VoronoiFVM
 using ExtendableGrids
@@ -16,8 +16,8 @@ using GridVisualize
 function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     h=1/n
     grid=VoronoiFVM.Grid(collect(0:h:1))
-    
-        
+
+
     eps::Vector{Float64}=[1,1.0e-1]
 
     physics=VoronoiFVM.Physics(
@@ -27,12 +27,12 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
         f[2]=10*(u[2]-u[1])
     end,
 
-    flux=function(f,u,edge)   
+    flux=function(f,u,edge)
         f[1]=eps[1]*(u[1,1]-u[1,2])
         f[2]=eps[2]*(u[2,1]-u[2,2])
     end,
-    
-    
+
+
     storage=function(f,u,node)
         f[1]=u[1]
         f[2]=u[2]
@@ -46,16 +46,16 @@ function main(;n=100,Plotter=nothing,verbose=false,unknown_storage=:sparse)
     boundary_neumann!(sys,1,1,0.01)
     boundary_dirichlet!(sys,2,2,0.0)
 
-    factory=VoronoiFVM.TestFunctionFactory(sys)
+    factory=TestFunctionFactory(sys)
     tf1=testfunction(factory,[2],[1])
     tf2=testfunction(factory,[1],[2])
-    
-    
+
+
     U=unknowns(sys)
     inival=unknowns(sys)
     inival[2,:].=0.1
     inival[1,:].=0.1
-    
+
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
     control.damp_initial=0.1
