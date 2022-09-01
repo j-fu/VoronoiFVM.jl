@@ -72,6 +72,11 @@ struct InterfaceQuantity{Ti}<: AbstractQuantity{Ti}
     ispec::Ti
 
     """
+    boundary region, where interface quantity is defined
+    """
+    breg::Ti
+
+    """
     Quantity identifier allowing to use the quantity as index
     in parameter fields
     """
@@ -82,26 +87,26 @@ end
      InterfaceQuantity(system,regions; ispec=0, id=0)
 
 
-Add interface quantity to the boundary regions listed in `regions`.
+Add interface quantity to the boundary region given in `breg`.
 
 Unless specified in `ispec`, the species number is generated
 automtically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions;ispec=0,id=0) where {Tv,Ti,Tm}
+function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},breg;ispec=0,id=0) where {Tv,Ti,Tm}
     if ispec==0
         nspec=num_species(sys)
         nspec=nspec+1
     else
         nspec=ispec
     end
-    enable_boundary_species!(sys,nspec,[regions])
+    enable_boundary_species!(sys,nspec,[breg])
     sys.num_quantities+=1
     if id==0
         id=sys.num_quantities
     end
-    InterfaceQuantity{Ti}(nspec,id)
+    InterfaceQuantity{Ti}(nspec,breg,id)
 end
 
 ###########################################################
@@ -173,8 +178,8 @@ num_quantities(system::AbstractSystem) = system.num_quantities
 """
     subgrids(quantity, system)
 
-Return a vector of subgrids containing a subgrid for each 
-region where discontinuous quantitiy is defined.
+Return a vector of subgrids containing a subgrid for each
+region where discontinuous quantity is defined.
 """
 function subgrids(quantity::DiscontinuousQuantity, sys)
     grid=sys.grid
@@ -189,10 +194,22 @@ function subgrids(quantity::DiscontinuousQuantity, sys)
 end
 
 """
+    subgrids(quantity, system)
+
+Return the subgrid where interface quantity is defined.
+"""
+function subgrids(quantity::InterfaceQuantity, sys)
+    grid=sys.grid
+    bgrid=Vector{ExtendableGrid}(undef,0)
+    bgrid=subgrid(grid,[quantity.breg], boundary = true)
+end
+
+
+"""
     views(quantity, subgrids,system)
 
-Return a vector of subgrids containing a subgrid for each 
-region where discontinuous quantitiy is defined.
+Return a vector of solutions containing the solutions with respect tp
+each region where discontinuous quantity is defined.
 """
 function views(U, quantity::DiscontinuousQuantity, subgrids,sys)
     grid=sys.grid
@@ -219,6 +236,9 @@ function views(U, quantity::ContinuousQuantity, subgrids,sys)
     projections
 end
 
+function views(U, quantity::InterfaceQuantity, bgrid, sys)
+    view(U[quantity.ispec,:],bgrid)
+end
 
 
 # just return the first which comes into mind.
