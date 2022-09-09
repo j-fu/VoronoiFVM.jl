@@ -124,6 +124,7 @@ function main()
 
     ## Return test value
     return sum(solution)
+    
 end
 
 ## Called by unit test

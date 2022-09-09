@@ -110,9 +110,9 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
 
 end
 
-test()=main()
+#test()=main()
 
-#test()=true
+test()=true
 
 end
 
