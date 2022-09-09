@@ -24,7 +24,7 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
     grid2=simplexgrid(xcoord)
     for i=1:N
         cellmask!(grid2,[i-1],[i],i)
-    end	
+    end
     for i=1:N-1
         bfacemask!(grid2,[i],[i],i+2)
     end
@@ -35,7 +35,7 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
         params[2,i]=10*i
     end
 
-    
+
     system=VoronoiFVM.System(grid2,unknown_storage=unknown_storage)
 
     ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitely.
@@ -58,7 +58,7 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
         @assert params2[i] == 2
     end
 
-    
+
 
     # check 2D array acces with quantities
     for i=1:num_cellregions(grid2)
@@ -80,7 +80,7 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
 
 
 
-    
+
     ##For both quantities, we define simple diffusion fluxes:
 
     function flux(f,u,edge)
@@ -94,7 +94,7 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
 
     function breaction(f,u,bnode)
 
-        # left outer boundary value for dspec 
+        # left outer boundary value for dspec
         if bnode.region == 1
             f[dspec] = u[dspec] + 0.5
         end
@@ -107,14 +107,14 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
             f[cspec]=-q1*u[cspec]
         end
     end
-    
+
 
     physics!(system,VoronoiFVM.Physics(
         flux=flux,
         breaction=breaction
     ))
-    
-    
+
+
     ## Set boundary conditions
     boundary_dirichlet!(system,dspec,2,0.1)
     boundary_dirichlet!(system,cspec,1,0.1)
@@ -124,10 +124,10 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
 
     U=solve(unknowns(system,inival=0),system)
 
-    dvws=VoronoiFVM.views(U,dspec,subgrids,system)
-    cvws=VoronoiFVM.views(U,cspec,subgrids,system)
+    dvws=views(U,dspec,subgrids,system)
+    cvws=views(U,cspec,subgrids,system)
     vis=GridVisualizer(resolution=(600,300),Plotter=Plotter)
-    for i=1:length(dvws)
+    for i in eachindex(dvws)
         scalarplot!(vis,subgrids[i],dvws[i],flimits=(-0.5,1.5),clear=false,color=:red)
         scalarplot!(vis,subgrids[i],cvws[i],flimits=(-0.5,1.5),clear=false,color=:green)
     end

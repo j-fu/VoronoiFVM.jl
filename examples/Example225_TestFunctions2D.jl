@@ -39,13 +39,13 @@ For the stationary problem, we have the following flux balances derived from the
 \end{aligned}
 ```
 
-The volume integrals can be approximated based on the finite volume subdivision 
+The volume integrals can be approximated based on the finite volume subdivision
 $\Omega=\cup_{i\in \mathcal N} \omega_i$:
 
 ```math
 \begin{aligned}
 \int_\Omega r(u_1,u_2) d\omega &\approx \sum_{i\in \mathcal N} |\omega_i| r(u_{1,i},u_{2,i})\\
-\int_\Omega f d\omega &\approx \sum_{i\in \mathcal N} |\omega_i| f_i  
+\int_\Omega f d\omega &\approx \sum_{i\in \mathcal N} |\omega_i| f_i
 \end{aligned}
 ```
 
@@ -53,7 +53,7 @@ But what about  the boundary integral ?  Here, we use a  trick to cast
 the surface  integral to the  integral to  a volume integral  with the
 help of a test function:
 
-Let $T(x)$ be the solution of the Laplace problem $-\nabla^2 T =0$ in $\Omega$ and the boundary conditions 
+Let $T(x)$ be the solution of the Laplace problem $-\nabla^2 T =0$ in $\Omega$ and the boundary conditions
 
 ```math
 \begin{aligned}
@@ -69,7 +69,7 @@ Write ``\vec j=-\nabla u``. and assume $\nabla\cdot \vec j + r =f$.
 ```math
 \begin{aligned}
 \int_{\Gamma_2} \vec j \cdot \vec n ds&=\int_{\Gamma_2} T\vec j \cdot \vec n ds \quad \text{due to}\; T=1\; \text{on}\; \Gamma_2\\
- &=\int_{\partial\Omega}  T\vec j \cdot \vec n ds\quad \text{due to}\; T=0\; \text{on}\; \Gamma_4, \quad\vec j\cdot \vec n=0\; \text{on}\; \Gamma_1, \Gamma_3\\ 
+ &=\int_{\partial\Omega}  T\vec j \cdot \vec n ds\quad \text{due to}\; T=0\; \text{on}\; \Gamma_4, \quad\vec j\cdot \vec n=0\; \text{on}\; \Gamma_1, \Gamma_3\\
 &= \int_\Omega \nabla \cdot (T \vec j) d\omega \quad \text{(Gauss)}\\
 &= \int_\Omega \nabla T \cdot \vec j d\omega + \int_\Omega T \nabla\cdot j d\omega\\
 &=  \int_\Omega \nabla T \cdot \vec j d\omega + \int_\Omega T(f-r)dω\\
@@ -80,7 +80,7 @@ and we approximate
 
 ```math
 \begin{aligned}
-\int_\Omega \nabla T \cdot \vec j d\omega \approx \sum_{k,l} 
+\int_\Omega \nabla T \cdot \vec j d\omega \approx \sum_{k,l}
 \frac{|\omega_k\cap\omega_l|}{h_{k,l}}g(u_k, u_l) (T_k-T_l)
 \end{aligned}
 ```
@@ -131,55 +131,55 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
         Γ_where_T_equal_1=[2]
         Γ_where_T_equal_0=[4]
     end
-    
+
     function storage(f,u,node)
         f.=u
     end
-    
+
     function flux(f,u,edge)
 	f[1]=u[1,1]-u[1,2]
 	f[2]=u[2,1]-u[2,2]
     end
-    
+
     r(u1,u2)= u1-0.1*u2
-    
+
     function reaction(f,u,node)
 	f[1]= r(u[1],u[2])
 	f[2]=-r(u[1],u[2])
     end
-    
-    
+
+
     function source(f,node)
 	f[1]=1.0
     end
-    
+
     physics=VoronoiFVM.Physics(flux=flux,
 	                       storage=storage,
 	                       reaction=reaction,
 	                       source=source)
-    
+
     system=VoronoiFVM.System(grid,physics)
 
     enable_species!(system,1,[1])
     enable_species!(system,2,[1])
     boundary_dirichlet!(system,2,2,0.0);
-    
-    
+
+
     inival=unknowns(system,inival=0.0)
-    
+
     sol=solve(inival,system)
-    
+
     vis=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(600,300),fignumber=1)
     scalarplot!(vis[1,1],grid,sol[1,:],flimits=(0,1.5),title="u_1")
     scalarplot!(vis[1,2],grid,sol[2,:],flimits=(0,1.5),title="u_2",show=true)
-    
+
     """
         The `integrate` method of `VoronoiFVM`  provides a possibility to calculate
-        the volume integral of a function of a solution as described above. 
-        It returns a `num_specie` x `num_regions` matrix of the integrals 
+        the volume integral of a function of a solution as described above.
+        It returns a `num_specie` x `num_regions` matrix of the integrals
         of the function of the unknowns over the different subdomains (here, we have only one):
     """
-    
+
     """
         Amount of u_1 and u_2 in the domain aka integral over identity storage function:
     """
@@ -189,49 +189,49 @@ function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse,dim=2
     Amount of species created by source term per unit time:
     """
     F=integrate(system,(f,u,node)->source(f,node),sol)
-    
+
     """
     Amount of  reaction per unit time:
     """
     R=integrate(system,reaction,sol)
-    
 
-    tf=VoronoiFVM.TestFunctionFactory(system)
+
+    tf=TestFunctionFactory(system)
     T=testfunction(tf,Γ_where_T_equal_0,Γ_where_T_equal_1)
-    
+
     I=integrate(system,T,sol)
-    
-    
+
+
     t0=0.0
-    
+
     control=fixed_timesteps!(VoronoiFVM.NewtonControl(),dt)
 
     tsol=solve(inival,system,[t0,tend],control=control)
 
-    
+
     vis1=GridVisualizer(Plotter=Plotter,layout=(1,2),resolution=(600,300),fignumber=4)
-    
+
     for i=1:length(tsol)
         sol=tsol[i]
         scalarplot!(vis1[1,1],grid,sol[1,:],flimits=(0,1.5),clear=true)
         scalarplot!(vis1[1,2],grid,sol[2,:],flimits=(0,1.5),show=true)
     end
-    
+
     outflow_rate=Float64[]
     for i=2:length(tsol)
 	ofr=integrate(system,T,tsol[i],tsol[i-1],tsol.t[i]-tsol.t[i-1])
   	push!(outflow_rate,ofr[2])
     end
-    
+
     vis2=GridVisualizer(Plotter=Plotter,layout=(1,1),resolution=(600,300),fignumber=2)
     scalarplot!(vis2[1,1],[0,tend],-[I[2],I[2]],label="stationary",clear=true)
     scalarplot!(vis2[1,1],tsol.t[2:end],-outflow_rate,label="transient",show=true)
-    
+
     all_outflow=0.0
     for i=1:length(tsol)-1
 	all_outflow-=outflow_rate[i]*(tsol.t[i+1]-tsol.t[i])
     end
-    
+
     Uend=integrate(system,storage,tsol[end])
     isapprox(F[1], R[1],rtol=1.0e-12)  ? true : return false
     isapprox(I[1], 0.0, atol=1.0e-12)  ? true : return false

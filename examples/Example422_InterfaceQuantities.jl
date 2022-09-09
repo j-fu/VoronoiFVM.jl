@@ -43,27 +43,27 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
 
     # specify inner regions
     cellmask!(grid, [0.0], [h1], region1)
-    cellmask!(grid, [h1],  [h1 + h2], region2) 
- 
+    cellmask!(grid, [h1],  [h1 + h2], region2)
+
     # specifiy outer regions
-    bfacemask!(grid, [0.0],     [0.0],     bregion1) 
-    bfacemask!(grid, [h_total], [h_total], bregion2) 
+    bfacemask!(grid, [0.0],     [0.0],     bregion1)
+    bfacemask!(grid, [h_total], [h_total], bregion2)
 
     # inner interfaces
-    bfacemask!(grid, [h1], [h1], bjunction) 
+    bfacemask!(grid, [h1], [h1], bjunction)
 
     #gridplot(grid, Plotter = nothing, legend=:rt)
-    
+
     ################################################################################
     #########  system
     ################################################################################
 
-    sys     = VoronoiFVM.System(grid, unknown_storage = unknown_storage)
-    iphin   = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 1)
-    iphip   = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 2)
-    iphin_b = InterfaceQuantity(sys,     bjunction,         id = 3)
-    iphip_b = InterfaceQuantity(sys,     bjunction,         id = 4)
-    ipsi    = ContinuousQuantity(sys,    1:numberOfRegions, id = 5)
+    sys    = VoronoiFVM.System(grid, unknown_storage = unknown_storage)
+    iphin  = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 1)
+    iphip  = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 2)
+    iphinb = InterfaceQuantity(sys,     [bjunction],       id = 3)
+    iphipb = InterfaceQuantity(sys,     [bjunction],       id = 4)
+    ipsi   = ContinuousQuantity(sys,    1:numberOfRegions, id = 5)
 
     NA  = [10.0, 0.0];  ND = [0.0, 10.0]
 
@@ -74,7 +74,7 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
 
         f[iphin] = - exp(etan)
         f[iphip] =   exp(etap)
-    
+
         f[ipsi]  =  0.0
 
     end
@@ -96,7 +96,7 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
     function flux!(f, u, node)
 
         f[ipsi] =  - (u[ipsi, 2] - u[ipsi, 1])
- 
+
         ########################
         bp, bm = fbernoulli_pm(-  (u[ipsi, 2] - u[ipsi, 1]) )
 
@@ -118,8 +118,8 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
             pleft    = exp(  ( (u[iphip, 1] - u[ipsi]) ))
 
             # interface species
-            n_interf = exp(- ( (u[iphin_b]  - u[ipsi]) )) 
-            p_interf = exp(  ( (u[iphip_b]  - u[ipsi]) ))
+            n_interf = exp(- ( (u[iphinb]   - u[ipsi]) ))
+            p_interf = exp(  ( (u[iphipb]   - u[ipsi]) ))
 
             # right values
             nright   = exp(- ( (u[iphin, 2] - u[ipsi]) ))
@@ -132,15 +132,15 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
 
             # left and right reaction for p
             f[iphip, 1] = reactionP * (pleft  - p_interf)
-            f[iphip, 2] = reactionP * (pright - p_interf) 
+            f[iphip, 2] = reactionP * (pright - p_interf)
 
             # interface species reaction
-            f[iphin_b] =  - (f[iphin, 1] + f[iphin, 2]) 
-            f[iphip_b] =  - (f[iphip, 1] + f[iphip, 2]) 
+            f[iphinb]   =  - (f[iphin, 1] + f[iphin, 2])
+            f[iphipb]   =  - (f[iphip, 1] + f[iphip, 2])
 
         end
 
-        
+
     end
 
     function bstorage!(f, u, bnode)
@@ -149,12 +149,12 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
 
         if bnode.region == bjunction
 
-            etan = - ( (u[iphin_b] - u[ipsi]) )
-            etap =   ( (u[iphip_b] - u[ipsi]) )
-    
-            f[iphin_b] = - exp(etan)
-            f[iphip_b] =   exp(etap)
-        
+            etan = - ( (u[iphinb] - u[ipsi]) )
+            etap =   ( (u[iphipb] - u[ipsi]) )
+
+            f[iphinb] = - exp(etan)
+            f[iphipb] =   exp(etap)
+
         end
 
     end
@@ -188,7 +188,7 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
     tvalues = range(t0, stop = tend, length = ntsteps)
 
     for istep = 2:ntsteps
-    
+
         t   = tvalues[istep]       # Actual time
         Δt  = t - tvalues[istep-1] # Time step size
 
@@ -217,7 +217,7 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
         inival .= sol
 
         ## get current
-        factory = VoronoiFVM.TestFunctionFactory(sys)
+        factory = TestFunctionFactory(sys)
         tf      = testfunction(factory, [1], [2])
         I       = integrate(sys, tf, sol)
 
@@ -229,28 +229,28 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
         push!(Idspec, val)
 
     end # bias loop
-    
+
     ################################################################################
     #########  Plotting
     ################################################################################
 
-    vis = GridVisualizer(Plotter = nothing, layout=(2,1))
+    vis = GridVisualizer(Plotter = Plotter, layout=(2,1))
 
-    subgrids = VoronoiFVM.subgrids(iphin, sys)
-    phin_sol = VoronoiFVM.views(sol, iphin, subgrids, sys)
-    phip_sol = VoronoiFVM.views(sol, iphip, subgrids, sys)
-    psi_sol  = VoronoiFVM.views(sol, ipsi,  subgrids, sys)
+    subgridBulk = subgrids(iphin, sys)
+    phin_sol    = views(sol, iphin, subgridBulk, sys)
+    phip_sol    = views(sol, iphip, subgridBulk, sys)
+    psi_sol     = views(sol, ipsi,  subgridBulk, sys)
 
-    for i = 1:length(phin_sol)
-        scalarplot!(vis[1, 1], subgrids[i], phin_sol[i], clear = false, color=:green)
-        scalarplot!(vis[1, 1], subgrids[i], phip_sol[i], clear = false, color=:red)
-        scalarplot!(vis[1, 1], subgrids[i], psi_sol[i],  clear = false, color=:blue)
+    for i in eachindex(phin_sol)
+        scalarplot!(vis[1, 1], subgridBulk[i], phin_sol[i], clear = false, color=:green)
+        scalarplot!(vis[1, 1], subgridBulk[i], phip_sol[i], clear = false, color=:red)
+        scalarplot!(vis[1, 1], subgridBulk[i], psi_sol[i],  clear = false, color=:blue)
     end
 
     scalarplot!(vis[2, 1], biasval, Idspec, clear = false, color=:red)
 
-    bgrid     = subgrid(grid, [bjunction], boundary = true)
-    sol_bound = view(sol[iphin_b.ispec, :], bgrid)
+    bgrid     = subgrids(iphinb, sys)
+    sol_bound = views(sol, iphinb, bgrid, sys)
 
     return sol_bound[1]
 
