@@ -34,12 +34,12 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
     #########  system
     ################################################################################
 
-    sys     = VoronoiFVM.System(grid, unknown_storage = unknown_storage)
-    iphin   = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 1)
-    iphip   = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 2)
-    iphin_b = InterfaceQuantity(sys,     bjunction,         id = 3)
-    iphip_b = InterfaceQuantity(sys,     bjunction,         id = 4)
-    ipsi    = ContinuousQuantity(sys,    1:numberOfRegions, id = 5)
+    sys    = VoronoiFVM.System(grid, unknown_storage = unknown_storage)
+    iphin  = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 1)
+    iphip  = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 2)
+    iphinb = InterfaceQuantity(sys,     [bjunction],       id = 3)
+    iphipb = InterfaceQuantity(sys,     [bjunction],       id = 4)
+    ipsi   = ContinuousQuantity(sys,    1:numberOfRegions, id = 5)
 
     NA  = [10.0, 0.0];  ND = [0.0, 10.0]
 
@@ -89,13 +89,13 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
     function breaction!(f, u, bnode)
 
         if bnode.region == bjunction</code></pre><p>left values</p><pre><code class="language-julia hljs">            nleft    = exp(- ( (u[iphin, 1] - u[ipsi]) ))
-            pleft    = exp(  ( (u[iphip, 1] - u[ipsi]) ))</code></pre><p>interface species</p><pre><code class="language-julia hljs">            n_interf = exp(- ( (u[iphin_b]  - u[ipsi]) ))
-            p_interf = exp(  ( (u[iphip_b]  - u[ipsi]) ))</code></pre><p>right values</p><pre><code class="language-julia hljs">            nright   = exp(- ( (u[iphin, 2] - u[ipsi]) ))
+            pleft    = exp(  ( (u[iphip, 1] - u[ipsi]) ))</code></pre><p>interface species</p><pre><code class="language-julia hljs">            n_interf = exp(- ( (u[iphinb]   - u[ipsi]) ))
+            p_interf = exp(  ( (u[iphipb]   - u[ipsi]) ))</code></pre><p>right values</p><pre><code class="language-julia hljs">            nright   = exp(- ( (u[iphin, 2] - u[ipsi]) ))
             pright   = exp(  ( (u[iphip, 2] - u[ipsi]) ))
             ################</code></pre><p>left and right reaction for n</p><pre><code class="language-julia hljs">            f[iphin, 1] = reactionN * (nleft  - n_interf)
             f[iphin, 2] = reactionN * (nright - n_interf)</code></pre><p>left and right reaction for p</p><pre><code class="language-julia hljs">            f[iphip, 1] = reactionP * (pleft  - p_interf)
-            f[iphip, 2] = reactionP * (pright - p_interf)</code></pre><p>interface species reaction</p><pre><code class="language-julia hljs">            f[iphin_b] =  - (f[iphin, 1] + f[iphin, 2])
-            f[iphip_b] =  - (f[iphip, 1] + f[iphip, 2])
+            f[iphip, 2] = reactionP * (pright - p_interf)</code></pre><p>interface species reaction</p><pre><code class="language-julia hljs">            f[iphinb]   =  - (f[iphin, 1] + f[iphin, 2])
+            f[iphipb]   =  - (f[iphip, 1] + f[iphip, 2])
 
         end
 
@@ -108,11 +108,11 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
 
         if bnode.region == bjunction
 
-            etan = - ( (u[iphin_b] - u[ipsi]) )
-            etap =   ( (u[iphip_b] - u[ipsi]) )
+            etan = - ( (u[iphinb] - u[ipsi]) )
+            etap =   ( (u[iphipb] - u[ipsi]) )
 
-            f[iphin_b] = - exp(etan)
-            f[iphip_b] =   exp(etap)
+            f[iphinb] = - exp(etan)
+            f[iphipb] =   exp(etap)
 
         end
 
@@ -176,7 +176,7 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
         inival .= sol
 
         # get current
-        factory = VoronoiFVM.TestFunctionFactory(sys)
+        factory = TestFunctionFactory(sys)
         tf      = testfunction(factory, [1], [2])
         I       = integrate(sys, tf, sol)
 
@@ -193,23 +193,23 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
     #########  Plotting
     ################################################################################
 
-    vis = GridVisualizer(Plotter = nothing, layout=(2,1))
+    vis = GridVisualizer(Plotter = Plotter, layout=(2,1))
 
-    subgrids = VoronoiFVM.subgrids(iphin, sys)
-    phin_sol = VoronoiFVM.views(sol, iphin, subgrids, sys)
-    phip_sol = VoronoiFVM.views(sol, iphip, subgrids, sys)
-    psi_sol  = VoronoiFVM.views(sol, ipsi,  subgrids, sys)
+    subgridBulk = subgrids(iphin, sys)
+    phin_sol    = views(sol, iphin, subgridBulk, sys)
+    phip_sol    = views(sol, iphip, subgridBulk, sys)
+    psi_sol     = views(sol, ipsi,  subgridBulk, sys)
 
-    for i = 1:length(phin_sol)
-        scalarplot!(vis[1, 1], subgrids[i], phin_sol[i], clear = false, color=:green)
-        scalarplot!(vis[1, 1], subgrids[i], phip_sol[i], clear = false, color=:red)
-        scalarplot!(vis[1, 1], subgrids[i], psi_sol[i],  clear = false, color=:blue)
+    for i in eachindex(phin_sol)
+        scalarplot!(vis[1, 1], subgridBulk[i], phin_sol[i], clear = false, color=:green)
+        scalarplot!(vis[1, 1], subgridBulk[i], phip_sol[i], clear = false, color=:red)
+        scalarplot!(vis[1, 1], subgridBulk[i], psi_sol[i],  clear = false, color=:blue)
     end
 
     scalarplot!(vis[2, 1], biasval, Idspec, clear = false, color=:red)
 
-    bgrid     = subgrid(grid, [bjunction], boundary = true)
-    sol_bound = view(sol[iphin_b.ispec, :], bgrid)
+    bgrid     = subgrids(iphinb, sys)
+    sol_bound = views(sol, iphinb, bgrid, sys)
 
     return sol_bound[1]
 
@@ -222,4 +222,4 @@ end
 
 
 
-end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example421_AbstractQuantities_TestFunctions/">« 421: Current Calculation for AbstractQuantities</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.22 on <span class="colophon-date" title="Saturday 20 August 2022 20:28">Saturday 20 August 2022</span>. Using Julia version 1.8.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example421_AbstractQuantities_TestFunctions/">« 421: Current Calculation for AbstractQuantities</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Friday 9 September 2022 20:37">Friday 9 September 2022</span>. Using Julia version 1.8.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
