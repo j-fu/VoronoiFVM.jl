@@ -61,8 +61,8 @@ function main(;n=5, Plotter = nothing, tend = 20.0, unknown_storage=:sparse,
     sys    = VoronoiFVM.System(grid, unknown_storage = unknown_storage)
     iphin  = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 1)
     iphip  = DiscontinuousQuantity(sys, 1:numberOfRegions, id = 2)
-    iphinb = InterfaceQuantity(sys,     bjunction,         id = 3)
-    iphipb = InterfaceQuantity(sys,     bjunction,         id = 4)
+    iphinb = InterfaceQuantity(sys,     [bjunction],       id = 3)
+    iphipb = InterfaceQuantity(sys,     [bjunction],       id = 4)
     ipsi   = ContinuousQuantity(sys,    1:numberOfRegions, id = 5)
 
     NA  = [10.0, 0.0];  ND = [0.0, 10.0]

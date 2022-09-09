@@ -72,9 +72,9 @@ struct InterfaceQuantity{Ti}<: AbstractQuantity{Ti}
     ispec::Ti
 
     """
-    boundary region, where interface quantity is defined
+    boundary regions, where interface quantity is defined
     """
-    breg::Ti
+    bregspec::Vector{Ti}
 
     """
     Quantity identifier allowing to use the quantity as index
@@ -87,26 +87,26 @@ end
      InterfaceQuantity(system,regions; ispec=0, id=0)
 
 
-Add interface quantity to the boundary region given in `breg`.
+Add interface quantity to the boundary regions given in `breg`.
 
 Unless specified in `ispec`, the species number is generated
 automtically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},breg;ispec=0,id=0) where {Tv,Ti,Tm}
+function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},bregions::AbstractVector ;ispec=0,id=0) where {Tv,Ti,Tm}
     if ispec==0
         nspec=num_species(sys)
         nspec=nspec+1
     else
         nspec=ispec
     end
-    enable_boundary_species!(sys,nspec,[breg])
+    enable_boundary_species!(sys,nspec, bregions)
     sys.num_quantities+=1
     if id==0
         id=sys.num_quantities
     end
-    InterfaceQuantity{Ti}(nspec,breg,id)
+    InterfaceQuantity{Ti}(nspec,bregions,id)
 end
 
 ###########################################################
@@ -142,7 +142,7 @@ are generated automatically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function DiscontinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions; regionspec=nothing, id=0) where {Tv,Ti,Tm}
+function DiscontinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions::AbstractVector; regionspec=nothing, id=0) where {Tv,Ti,Tm}
     rspec=zeros(Ti,num_cellregions(sys.grid))
     if regionspec==nothing
         nspec=num_species(sys)
@@ -201,7 +201,7 @@ Return the subgrid where interface quantity is defined.
 function subgrids(quantity::InterfaceQuantity, sys)
     grid=sys.grid
     bgrid=Vector{ExtendableGrid}(undef,0)
-    bgrid=subgrid(grid,[quantity.breg], boundary = true)
+    bgrid=subgrid(grid, quantity.bregspec, boundary = true)
 end
 
 
