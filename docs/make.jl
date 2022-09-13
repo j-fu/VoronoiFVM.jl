@@ -1,5 +1,5 @@
 using Documenter, VoronoiFVM, Literate, PlutoSliderServer, ExtendableGrids
-using LinearAlgebra, DifferentialEquations
+using LinearAlgebra
 
 #
 # Replace SOURCE_URL marker with github url of source

@@ -107,11 +107,5 @@ include("gridvisualize.jl")
 
 include("precompile.jl")
 
-# using Requires
-
-# function __init__()
-#     @require DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa" include("vfvm_diffeq_interface.jl")
-# end
-
 end
 

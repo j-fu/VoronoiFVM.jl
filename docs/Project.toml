@@ -1,5 +1,4 @@
 [deps]
-DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
