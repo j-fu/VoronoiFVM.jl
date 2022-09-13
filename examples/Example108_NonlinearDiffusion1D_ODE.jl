@@ -25,7 +25,7 @@ At the moment, this code needs OrdinaryDiffEq v6.0.3.
 
 
 module Example108_NonlinearDiffusion1D_ODE
-
+#=
 using VoronoiFVM
 using DifferentialEquations
 using LinearAlgebra
@@ -110,7 +110,8 @@ function main(;m=2,n=20, solver=nothing, unknown_storage=:dense, Plotter=nothing
 
 end
 
-#test()=main()
+test()=main()
+=#
 
 test()=true
 

@@ -998,7 +998,7 @@ Built-in solution method for VoronoiFVM.System.
 Keyword arguments:
 - General for all solvers 
    - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
-   -  All elements of [`SolverControl`](@ref) can be used as kwargs except in the case of the DifferentialEquations based solver
+   -  All elements of [`SolverControl`](@ref) can be used as kwargs.
    - `damp` (default: 1): alias for `damp_initial`
    - `damp_grow` (default: 1): alias for `damp_growth`
    - `abstol`: alias for `tol_absolute`

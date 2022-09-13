@@ -1,5 +1,4 @@
 [deps]
-DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
