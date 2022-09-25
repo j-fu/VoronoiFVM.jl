@@ -759,9 +759,9 @@ Keyword argument version:
 - `value`: value
 
 !!! info  
-    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+    Starting with version 0.14, it is preferable to define boundary condtions within the `bcondition` physics callback
 """
-boundary_dirichlet!(system::AbstractSystem; species=0, region=0,value=0)=boundary_dirichlet!(system,species,region,value)
+boundary_dirichlet!(system::AbstractSystem; species=1, region=1,value=0)=boundary_dirichlet!(system,species,region,value)
 
 
 """
