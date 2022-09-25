@@ -4,7 +4,6 @@ $(README)
 $(EXPORTS)
 """
 module VoronoiFVM
-
 using Printf
 using DocStringExtensions
 using LinearAlgebra
@@ -18,13 +17,14 @@ using ForwardDiff
 using DiffResults
 using IterativeSolvers
 using JLD2
-using StaticArrays
-using SparseDiffTools
-using Symbolics
 using RecursiveArrayTools
 
 using ExtendableSparse
 using ExtendableGrids
+
+using StaticArrays
+using SparseDiffTools
+using Symbolics
 
 
 

@@ -4,7 +4,7 @@ $(TYPEDEF)
     
 Abstract type for finite volume system structure.
 """
-abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
+abstract type AbstractSystem{Tv<:Number, Tc<:Number, Ti <:Integer, Tm <:Integer} end
 
 ##################################################################
 """
@@ -12,12 +12,12 @@ $(TYPEDEF)
 
 Structure holding data for finite volume system.
 """
-mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix} <: AbstractSystem{Tv,Ti, Tm}
+mutable struct System{Tv, Tc, Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix} <: AbstractSystem{Tv, Tc, Ti, Tm}
 
     """
     Grid
     """
-    grid::ExtendableGrid{Tv,Ti}
+    grid::ExtendableGrid{Tc,Ti}
 
     """
     Physics data
@@ -137,7 +137,7 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     """
     history
     
-    System{Tv,Ti,Tm, TSpecMat, TSolArray}() where {Tv,Ti,Tm, TSpecMat, TSolArray} = new()
+    System{Tv,Tc,Ti,Tm, TSpecMat, TSolArray}() where {Tv, Tc, Ti,Tm, TSpecMat, TSolArray} = new()
 end
 
 """
@@ -146,7 +146,7 @@ end
 Type alias for system with dense matrix based species management
 
 """
-const DenseSystem = System{Tv,Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Ti, Tm}
+const DenseSystem = System{Tv,Tc, Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Tc, Ti, Tm}
 
 
 """
@@ -219,6 +219,8 @@ Physics keyword arguments:
     take parameters from the closure where the function is defined.
 """
 function System(grid::ExtendableGrid;
+                Tv=coord_type(grid),
+                Ti=index_type(grid),
                 species=Int[],
                 unknown_storage=:dense,
                 matrixindextype=Int64,
@@ -226,16 +228,15 @@ function System(grid::ExtendableGrid;
                 nparams=0,
                 kwargs...)
 
-    Tv=coord_type(grid)
-    Ti=index_type(grid)
     Tm=matrixindextype
+    Tc=coord_type(grid)
     
     
     
     if Symbol(unknown_storage)==:dense
-        system=System{Tv,Ti,Tm,Matrix{Ti}, Matrix{Tv}}()
+        system=System{Tv,Tc,Ti,Tm,Matrix{Ti}, Matrix{Tv}}()
     elseif Symbol(unknown_storage)==:sparse
-        system=System{Tv,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti}}()
+        system=System{Tv,Tc,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti}}()
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
@@ -606,7 +607,7 @@ end
 
 # Create matrix in system and figure out if species
 # distribution is homgeneous
-function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false) where {Tv,Ti, Tm}
+function _complete!(system::AbstractSystem{Tv,Tc,Ti, Tm};create_newtonvectors=false) where {Tv,Tc,Ti, Tm}
 
     if isdefined(system,:matrix)
         return
@@ -1148,8 +1149,11 @@ Create system with physics record.
 !!! info  
     Starting with version 0.14, all physics data can be passed directly to the system constructor
 """
-function System(grid::ExtendableGrid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
-    system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
+function System(grid::ExtendableGrid,physics::Physics;
+                Tv=coord_type(grid),
+                Ti=index_type(grid),
+                unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
+    system=System(grid; Tv, Ti, unknown_storage, matrixindextype, check_allocs)
     physics!(system,physics)
 end
 

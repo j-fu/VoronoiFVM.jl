@@ -103,16 +103,16 @@ for implicit Euler and stationary solve
 function _solve!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    system::AbstractSystem{Tv}, # Finite volume system
+    system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
     control::NewtonControl,
-    time::Tv,
-    tstep::Tv,
-    embedparam::Tv,
-    params::AbstractVector{Tv};
+    time,
+    tstep,
+    embedparam,
+    params;
     mynorm=(u)->LinearAlgebra.norm(values(u),Inf),
     myrnorm=(u)->LinearAlgebra.norm(values(u),1),
     kwargs...
-) where Tv
+) where {Tv, Tc, Ti, Tm}
 
     _complete!(system, create_newtonvectors=true)
     nlhistory=NewtonSolverHistory()
@@ -149,7 +149,7 @@ function _solve!(
             end
             
             mtx=system.matrix
-            
+
             nliniter=0
             # Sparse LU factorization
             if nlu_reuse==0 # (re)factorize, if possible reusing old factorization data
@@ -292,7 +292,7 @@ Main assembly method.
 Evaluate solution with result in right hand side F and 
 assemble Jacobi matrix into system.matrix.
 """
-function eval_and_assemble(system::AbstractSystem{Tv, Ti},
+function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
@@ -301,17 +301,17 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                            embedparam,
                            params::AbstractVector;
                            edge_cutoff=0.0
-                           ) where {Tv, Ti}
+                           ) where {Tv, Tc, Ti, Tm}
     
 
     _complete!(system) # needed here as well for test function system which does not use newton
     
     grid    = system.grid
     physics = system.physics
-    node    = Node{Tv,Ti}(system)
-    bnode   = BNode{Tv,Ti}(system)
-    edge    = Edge{Tv,Ti}(system)
-    bedge   = BEdge{Tv,Ti}(system)
+    node    = Node(system)
+    bnode   = BNode(system)
+    edge    = Edge(system)
+    bedge   = BEdge(system)
 
     node.time=time
     bnode.time=time
@@ -505,7 +505,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             L=edge.node[2]
             
             fac=celledgefactors[iedge,icell]
-            
             for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idofK,K)
                 idofL=dof(F,ispec,L)
@@ -794,7 +793,7 @@ function solve!(
             _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
         end
     else 
-        _solve!(solution,inival,system,control,time,tstep,embedparam,params;kwargs...)
+        _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
     end
     return solution
 end
