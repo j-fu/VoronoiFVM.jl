@@ -48,7 +48,7 @@ include("vfvm_history.jl")
 export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_xgrid.jl")
-export cartesian!, circular_symmetric!, spherical_symmmetric!
+export cartesian!, circular_symmetric!, spherical_symmetric!
 export coordinates
 
 include("vfvm_system.jl")

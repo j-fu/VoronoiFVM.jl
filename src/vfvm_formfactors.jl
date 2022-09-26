@@ -45,6 +45,26 @@ function cellfactors!(T::Type{Edge1D},::Type{<:Polar1D}, coord,cellnodes,icell,n
 end
 
 
+function cellfactors!(T::Type{Edge1D},::Type{<:Spherical1D}, coord,cellnodes,icell,nodefac,edgefac)
+    en=local_celledgenodes(T)
+    K=cellnodes[en[1,1],icell]
+    L=cellnodes[en[2,1],icell]
+    xK=coord[1,K]
+    xL=coord[1,L]
+    r0=xK[1]
+    r1=xL[1]
+    if r1<r0
+        r0=xL[1]
+        r1=xK[1]
+    end
+    rhalf=0.5*(r1+r0);
+    nodefac[1]= π*(rhalf^3-r0^3)*4.0/3.0;   # sphere volume between midline and boundary
+    nodefac[2]= π*(r1^3-rhalf^3)*4.0/3.0;   # sphere volume between midline and boundary
+    edgefac[1]= 4.0*π*rhalf^2/(r1-r0);      # circular surface / width
+    nothing
+end
+
+
 
 function cellfactors!(T::Type{Triangle2D},::Type{Cartesian2D},coord,cellnodes,icell,npar,epar)
     en=local_celledgenodes(T)
@@ -274,6 +294,14 @@ function bfacefactors!(T::Type{Vertex0D},::Type{<:Polar1D},coord,bfacenodes,ibfa
     nodefac[1]=2*π*r
     nothing
 end
+
+function bfacefactors!(T::Type{Vertex0D},::Type{<:Spherical1D},coord,bfacenodes,ibface,nodefac, edgefac)
+    inode=bfacenodes[1,ibface]
+    r=coord[1,inode]
+    nodefac[1]=4*π*r^2
+    nothing
+end
+
 
 function bfacefactors!(T::Type{Edge1D},::Type{<:Cartesian2D},coord,bfacenodes,ibface,nodefac, edgefac)
     en         = local_celledgenodes(T)
