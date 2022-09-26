@@ -1,4 +1,6 @@
 # Changes
+## v0.18.1 September 25 2022
+- Working spherical symmetry case
 ## v0.18 September 12 2022
 - Remove DifferentialEquations interface (move this to a glue package)
 The current method of activating it through require is too brittle with
