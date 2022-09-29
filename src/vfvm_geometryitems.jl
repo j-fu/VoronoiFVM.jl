@@ -281,22 +281,22 @@ end
 
 
 
-struct BNodeUnknowns{Tv,Tc,Ti} <:AbstractNodeData{Tv} 
-    val::Vector{Tv}
+struct BNodeUnknowns{Tval,Tv,Tc,Ti} <:AbstractNodeData{Tv} 
+    val::Vector{Tval}
     nspec::Ti
     geom::BNode{Tv,Tc,Ti}
 end
 
-@inline unknowns(bnode::BNode{Tv,Tc,Ti},u::AbstractVector{Tv}) where {Tv,Tc,Ti} = BNodeUnknowns{Tv,Tc,Ti}(u,bnode.nspec,bnode)
+@inline unknowns(bnode::BNode{Tv,Tc,Ti},u::AbstractVector{Tval}) where {Tval, Tv,Tc,Ti} = BNodeUnknowns{Tval, Tv,Tc,Ti}(u,bnode.nspec,bnode)
 
 
-struct BNodeRHS{Tv,Tc,Ti} <:AbstractNodeData{Tv} 
-    val::Vector{Tv}
+struct BNodeRHS{Tval, Tv,Tc,Ti} <:AbstractNodeData{Tv} 
+    val::Vector{Tval}
     nspec::Ti
     geom::BNode{Tv,Tc,Ti}
 end
 
-@inline rhs(bnode::BNode{Tv,Tc,Ti}, f::AbstractVector{Tv}) where {Tv,Tc,Ti} = BNodeRHS{Tv,Tc,Ti}(f,bnode.nspec,bnode)
+@inline rhs(bnode::BNode{Tv,Tc,Ti}, f::AbstractVector{Tval}) where {Tval, Tv,Tc,Ti} = BNodeRHS{Tval, Tv,Tc,Ti}(f,bnode.nspec,bnode)
 
 
 

@@ -15,7 +15,7 @@ using Statistics
 
 using ForwardDiff
 using DiffResults
-using IterativeSolvers
+using Krylov
 using JLD2
 using RecursiveArrayTools
 

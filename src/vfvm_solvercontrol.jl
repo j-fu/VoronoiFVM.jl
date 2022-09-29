@@ -72,17 +72,34 @@ $(TYPEDFIELDS)
     max_round::Int32 = 1000
 
     """
-    Tolerance of iterative linear solver.
+    Relative tolerance of iterative linear solver.
     """
     tol_linear::Float64 = 1.0e-4
 
     """
-    Factorization kind for linear sytems (see ExtendableSparse.jl). 
-    Default: Standard Julia LU Factorization (UMFPACK).
+    Factorization kind for linear sytems (see ExtendableSparse.jl).
+    Possible values: 
+    - :lu, :default  : LU factorization from UMFPACK (for Float64) or Sparspak.jl
+    - :sparspak  : LU Factorization from Sparspak
+    - :pardiso  : LU Factorization from Pardiso.jl using Pardiso from pardiso.org. Install and `use` Pardiso.jl to use this option.
+    - :mklpardiso  : LU Factorization from Pardiso.jl using MKL Pardiso. Install and `use` Pardiso.jl to use this option.
+    - :ilu0 : Zero-fillin ILU factorization preconditioner
+    - :jacobi : Jacobi (Diagonal) preconditioner
     """
-    factorization::AbstractFactorization = LUFactorization()
+    factorization::Union{Symbol,AbstractFactorization}=:lu
 
     """
+    Maximum number of iterations of linear solver
+    """
+    max_linear_iterations::Int=100
+
+    """
+    GMRES Krylov dimension for restart
+    """
+    gmres_restart::Int=10
+
+    
+    """   
     Iterative solver if factorization is incomplete.
     Currently supported: :bicgstab, :cg
     """
@@ -177,6 +194,34 @@ $(TYPEDFIELDS)
     """
     log=false
 end
+
+function factorization(control;valuetype=Float64)
+    if isa(control.factorization,Symbol)
+        if control.factorization in  [:lu, :default]
+            if valuetype==Float64
+                ExtendableSparse.LUFactorization(;valuetype)
+            else
+                ExtendableSparse.SparspakLU(;valuetype)
+            end
+        elseif control.factorization == :sparspak
+            ExtendableSparse.SparspakLU(;valuetype)
+        elseif  control.factorization == :pardiso
+            ExtendableSparse.PardisoLU(;valuetype)
+        elseif  control.factorization == :mklpardiso
+            ExtendableSparse.PardisoLU(;valuetype)
+        elseif  control.factorization == :ilu0
+            ExtendableSparse.ILU0Preconditioner(;valuetype)
+        elseif  control.factorization == :jacobi
+            ExtendableSparse.JacobiPreconditioner(;valuetype)
+        else
+            error("factorization :$(control.factorization) not supported for $valuetype, see documenation of VoronoiFVM.SolverControl for options")
+        end
+        
+    else
+        control.factorization
+    end
+end
+
 
 
 """

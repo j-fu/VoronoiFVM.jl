@@ -122,9 +122,11 @@ function _solve!(
         update=system.update
         _initialize!(solution,system)
         SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
-        if typeof(control.factorization)!=typeof(system.factorization)
-            system.factorization=control.factorization
+
+        if isnothing(system.factorization)
+            system.factorization=factorization(control; valuetype=Tv)
         end
+        
         oldnorm=1.0
         converged=false
         if control.verbose
@@ -137,6 +139,7 @@ function _solve!(
         rnorm=myrnorm(solution)
         
         for ii=1:control.max_iterations
+            # Create Jacobi matrix and RHS for Newton iteration
             try
                 eval_and_assemble(system,solution,oldsol,residual,time,tstep,embedparam,params,edge_cutoff=control.edge_cutoff)
             catch err
@@ -147,12 +150,14 @@ function _solve!(
                     rethrow(err)
                 end
             end
-            
-            mtx=system.matrix
 
+
+            ## Linear system solution: mtx*update=residual
+            mtx=system.matrix
             nliniter=0
-            # Sparse LU factorization
-            if nlu_reuse==0 # (re)factorize, if possible reusing old factorization data
+
+            ## (re)factorize, if possible reusing old factorization data
+            if nlu_reuse==0 
                 try
                     factorize!(system.factorization,mtx)
                 catch err
@@ -167,8 +172,9 @@ function _solve!(
                     nlhistory.nlu+=1
                 end
             end
+
+            ## Direct solution via LU solve:
             if issolver(system.factorization) && nlu_reuse==0
-                # Direct solution via LU solve
                 try
                     ldiv!(values(update),system.factorization,values(residual))
                     if control.log
@@ -182,30 +188,42 @@ function _solve!(
                         rethrow(err)
                     end
                 end
+                
+            ## Iterative solution using factorization as preconditioner
             elseif !issolver(system.factorization) || nlu_reuse>0
-                # Iterative solution
-                update.=zero(Tv)
                 if control.iteration == :bicgstab
-                    (sol,history)= bicgstabl!(values(update),
-                                              mtx,
-                                              values(residual),
-                                              1,
-                                              Pl=system.factorization,
-                                              reltol=control.tol_linear,
-                                              max_mv_products=100,
-                                              log=true)
+                    (sol,history)= Krylov.bicgstab(mtx,
+                                                   values(residual),
+                                                   M=system.factorization,
+                                                   rtol=control.tol_linear,
+                                                   ldiv=true,
+                                                   itmax=100,
+                                                   history=true)
+                    values(update).=sol
+                elseif control.iteration == :gmres
+                    (sol,history)= Krylov.gmres(mtx,
+                                                values(residual),
+                                                M=system.factorization,
+                                                rtol=control.tol_linear,
+                                                ldiv=true,
+                                                restart=true,
+                                                memory=control.gmres_restart,
+                                                itmax=100,
+                                                history=true)
+                    values(update).=sol
                 elseif control.iteration == :cg
-                    (sol,history)= cg!(values(update),
-                                       mtx,
-                                       values(residual),
-                                       Pl=system.factorization,
-                                       reltol=control.tol_linear,
-                                       maxiter=100,
-                                       log=true)
+                    (sol,history)= Krylov.cg(mtx,
+                                             values(residual),
+                                             M=system.factorization,
+                                             ldiv=true,
+                                             rtol=control.tol_linear,
+                                             itmax=100,
+                                             history=true)
+                    values(update).=sol
                 else
                     error("wrong value of `iteration`, choose either :cg or :bicgstab")
                 end
-                nliniter=history.iters
+                nliniter=history.niter
                 if control.log
                     nlhistory.nlin+=history.iters
                 end

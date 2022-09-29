@@ -155,7 +155,7 @@ const DenseSystem = System{Tv,Tc, Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Tc, Ti
 Type alias for system with sparse matrix based species management
 
 """
-const SparseSystem = System{Tv,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti} } where {Tv, Ti, Tm}
+const SparseSystem = System{Tv,Tc,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti} } where {Tv,Tc, Ti, Tm}
 
 default_check_allocs()= haskey(ENV,"VORONOIFVM_CHECK_ALLOCS") ? parse(Bool,ENV["VORONOIFVM_CHECK_ALLOCS"]) :  false
 
@@ -219,8 +219,8 @@ Physics keyword arguments:
     take parameters from the closure where the function is defined.
 """
 function System(grid::ExtendableGrid;
-                Tv=coord_type(grid),
-                Ti=index_type(grid),
+                valuetype=coord_type(grid),
+                indextype=index_type(grid),
                 species=Int[],
                 unknown_storage=:dense,
                 matrixindextype=Int64,
@@ -228,8 +228,10 @@ function System(grid::ExtendableGrid;
                 nparams=0,
                 kwargs...)
 
-    Tm=matrixindextype
+    Tv=valuetype
     Tc=coord_type(grid)
+    Ti=indextype
+    Tm=matrixindextype
     
     
     
@@ -1010,20 +1012,6 @@ num_dof(system::DenseSystem)= length(system.node_dof)
 """
 $(SIGNATURES)
 
-Create a solution vector for system.
-If inival is not specified, the entries of the returned vector are undefined.
-"""
-function unknowns(system::AbstractSystem;inival=undef) end
-
-unknowns(sys::SparseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm}=unknowns(Tv,sys,inival=inival)
-
-unknowns(system::DenseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm} = unknowns(Tv,system,inival=inival)
-
-
-
-"""
-$(SIGNATURES)
-
 Detect if array fits to the system.
 """
 isunknownsof(u::Any, sys::AbstractSystem)=false
@@ -1031,6 +1019,13 @@ isunknownsof(u::DenseSolutionArray, sys::DenseSystem) = size(u) == size(sys.node
 isunknownsof(u::SparseSolutionArray, sys::SparseSystem) = size(u) == size(sys.node_dof)
 
 
+"""
+$(SIGNATURES)
+
+Create a solution vector for system.
+If inival is not specified, the entries of the returned vector are undefined.
+"""
+unknowns(sys::AbstractSystem{Tv};inival=undef) where {Tv}=unknowns(Tv,sys,inival=inival)
 
 
 """
@@ -1150,10 +1145,13 @@ Create system with physics record.
     Starting with version 0.14, all physics data can be passed directly to the system constructor
 """
 function System(grid::ExtendableGrid,physics::Physics;
-                Tv=coord_type(grid),
-                Ti=index_type(grid),
-                unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
-    system=System(grid; Tv, Ti, unknown_storage, matrixindextype, check_allocs)
+                valuetype=coord_type(grid),
+                indextype=index_type(grid),
+                unknown_storage=:dense,
+                matrixindextype=Int64,
+                check_allocs=default_check_allocs(), kwargs...)
+
+    system=System(grid; valuetype,indextype, unknown_storage, matrixindextype, check_allocs, kwargs...)
     physics!(system,physics)
 end
 

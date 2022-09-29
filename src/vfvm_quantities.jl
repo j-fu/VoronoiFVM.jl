@@ -40,7 +40,7 @@ automtically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function ContinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions; ispec=0, id=0) where {Tv,Ti,Tm}
+function ContinuousQuantity(sys::AbstractSystem{Tv,Tc,Ti,Tm},regions; ispec=0, id=0) where {Tv,Tc,Ti,Tm}
     if ispec==0
         nspec=num_species(sys)
         nspec=nspec+1
@@ -94,7 +94,7 @@ automtically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},bregions::AbstractVector ;ispec=0,id=0) where {Tv,Ti,Tm}
+function InterfaceQuantity(sys::AbstractSystem{Tv,Tc,Ti,Tm},bregions::AbstractVector ;ispec=0,id=0) where {Tv,Tc,Ti,Tm}
     if ispec==0
         nspec=num_species(sys)
         nspec=nspec+1
@@ -142,7 +142,7 @@ are generated automatically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function DiscontinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions::AbstractVector; regionspec=nothing, id=0) where {Tv,Ti,Tm}
+function DiscontinuousQuantity(sys::AbstractSystem{Tv,Tc,Ti,Tm},regions::AbstractVector; regionspec=nothing, id=0) where {Tv,Tc,Ti,Tm}
     rspec=zeros(Ti,num_cellregions(sys.grid))
     if regionspec==nothing
         nspec=num_species(sys)
