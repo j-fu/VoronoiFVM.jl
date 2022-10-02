@@ -9,6 +9,9 @@ using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
 using SuiteSparse
+using BandedMatrices
+# using MultidiagonalMatrices
+
 
 using Parameters
 using Statistics

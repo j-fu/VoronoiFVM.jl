@@ -36,6 +36,7 @@ Add value to matrix if it is nonzero
     end
 end
 
+ExtendableSparse.rawupdateindex!(m::AbstractMatrix,op,v,i,j)= m[i,j]=op(m[i,j],v)
 
 
 """
@@ -124,7 +125,9 @@ function _solve!(
         SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
 
         if isnothing(system.factorization)
-            system.factorization=factorization(control; valuetype=Tv)
+            if isa(system.matrix,ExtendableSparseMatrix)
+                system.factorization=factorization(control; valuetype=Tv)
+            end
         end
         
         oldnorm=1.0
@@ -155,9 +158,9 @@ function _solve!(
             ## Linear system solution: mtx*update=residual
             mtx=system.matrix
             nliniter=0
-
+            
             ## (re)factorize, if possible reusing old factorization data
-            if nlu_reuse==0 
+            if !isnothing(system.factorization) && nlu_reuse==0 
                 try
                     factorize!(system.factorization,mtx)
                 catch err
@@ -172,9 +175,9 @@ function _solve!(
                     nlhistory.nlu+=1
                 end
             end
-
+            
             ## Direct solution via LU solve:
-            if issolver(system.factorization) && nlu_reuse==0
+            if !isnothing(system.factorization)  && issolver(system.factorization) && nlu_reuse==0
                 try
                     ldiv!(values(update),system.factorization,values(residual))
                     if control.log
@@ -190,7 +193,7 @@ function _solve!(
                 end
                 
             ## Iterative solution using factorization as preconditioner
-            elseif !issolver(system.factorization) || nlu_reuse>0
+            elseif !isnothing(system.factorization) && !issolver(system.factorization)  || nlu_reuse>0
                 if control.iteration == :bicgstab
                     (sol,history)= Krylov.bicgstab(mtx,
                                                    values(residual),
@@ -228,7 +231,7 @@ function _solve!(
                     nlhistory.nlin+=history.iters
                 end
             else
-                error("This should not happen")
+                values(update).=system.matrix\values(residual)
             end
 
             if control.max_lureuse>0
@@ -299,7 +302,18 @@ function _solve!(
     system.history=nlhistory
 end
 
+function zero!(m::ExtendableSparseMatrix{Tv,Ti}) where {Tv,Ti}
+    nzv  = nonzeros(m)
+    nzv .= zero(Tv)
+end
 
+zero!(m::AbstractMatrix{T}) where T = m.=zero(T)
+
+# function zero!(m::MultidiagonalMatrix{T}) where {T}
+#     for d ∈ m.shadow
+#         d.second.=0.0
+#     end
+# end
 
 ################################################################
 """
@@ -356,8 +370,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors    
     
     # Reset matrix + rhs
-    nzv  = nonzeros(matrix)
-    nzv .= 0.0
+    zero!(matrix)
     F   .= 0.0
     nparams::Int=system.num_parameters
     if nparams>0
@@ -750,9 +763,11 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
         end
     end
 
+    noallocs(m::ExtendableSparseMatrix)=isnothing(m.lnkmatrix)
+    noallocs(m::AbstractMatrix)=false
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
-    if isnothing(matrix.lnkmatrix) && !_check_allocs(system,ncalloc+nballoc)
+    if noallocs(matrix) && !_check_allocs(system,ncalloc+nballoc)
         error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
                             See the documentation of `check_allocs!` for more information""")
     end

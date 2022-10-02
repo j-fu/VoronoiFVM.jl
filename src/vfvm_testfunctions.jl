@@ -82,9 +82,13 @@ function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
     eval_and_assemble(factory.tfsystem,u,u,f,Inf,Inf,0.0,zeros(0))
 
     _initialize!(u,factory.tfsystem)
-    fact=factorization(factory.control)
-    factorize!(fact,factory.tfsystem.matrix)
-    ldiv!(vec(u),fact,vec(f))
+    if isa(factory.tfsystem.matrix,ExtendableSparseMatrix)
+        fact=factorization(factory.control)
+        factorize!(fact,factory.tfsystem.matrix)
+        ldiv!(vec(u),fact,vec(f))
+    else
+        vec(u).=factory.tfsystem.matrix\vec(f)
+    end
     return vec(u)
 end
 

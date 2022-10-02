@@ -53,12 +53,18 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:Abstr
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::ExtendableSparseMatrix{Tv,Tm}
+    matrix::Union{ExtendableSparseMatrix{Tv,Tm},
+                  Tridiagonal{Tv, Vector{Tv}},
+#                  MultidiagonalMatrix,
+                  BandedMatrix{Tv}}
 
     """
     Matrix factorization
     """
-    factorization::Union{Nothing,ExtendableSparse.AbstractFactorization{Tv,Tm}}
+    factorization::Union{Nothing,
+                         ExtendableSparse.AbstractFactorization{Tv,Tm},
+                         LU{Tv, Tridiagonal{Tv, Vector{Tv}}, Vector{Int64}}
+                         }
     
     """
     Flag which says if the number of unknowns per node is constant
@@ -147,6 +153,9 @@ Type alias for system with dense matrix based species management
 
 """
 const DenseSystem = System{Tv,Tc, Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Tc, Ti, Tm}
+
+
+isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = TSolArray<:Matrix
 
 
 """
@@ -614,7 +623,8 @@ function _complete!(system::AbstractSystem{Tv,Tc,Ti, Tm};create_newtonvectors=fa
     if isdefined(system,:matrix)
         return
     end
-    system.matrix=ExtendableSparseMatrix{Tv,Tm}(num_dof(system), num_dof(system))
+
+
     system.species_homogeneous=true
     species_added=false
     for inode=1:size(system.node_dof,2)
@@ -630,6 +640,43 @@ function _complete!(system::AbstractSystem{Tv,Tc,Ti, Tm};create_newtonvectors=fa
     if (!species_added)
         error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
     end
+    
+
+    
+    nspec=size(system.node_dof,1)
+    n=num_dof(system)
+    
+    matrixtype=:default
+    matrixtype=:sparse
+
+#    matrixtype=:multidiagonal
+#    matrixtype=:sparse
+#    matrixtype=:banded
+#    matrixtype=:tridiagonal
+# Sparse even in 1D is not bad, 
+    
+    if matrixtype==:default
+        if !isdensesystem(system)
+            matrixtype=:sparse
+        else
+            if nspec==1
+                matrixtype=:tridiagonal
+            else
+                matrixtype=:banded
+            end                
+        end
+    end
+
+    if matrixtype==:tridiagonal
+        system.matrix=Tridiagonal(zeros(Tv,n-1),zeros(Tv,n),zeros(Tv,n-1))
+    elseif matrixtype==:banded
+        system.matrix=BandedMatrix{Tv}(Zeros(n,n), (2*nspec-1,2*nspec-1))
+    # elseif matrixtype==:multidiagonal
+    #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
+    else # :sparse
+        system.matrix=ExtendableSparseMatrix{Tv,Tm}(n,n)
+    end
+
     
     if create_newtonvectors
         system.residual=unknowns(system)

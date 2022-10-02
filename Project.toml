@@ -4,6 +4,7 @@ authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
 version = "0.18.1"
 
 [deps]
+BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
@@ -26,6 +27,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+BandedMatrices = "0.17"
 DiffResults = "1"
 DocStringExtensions = "0.8,0.9"
 ExtendableGrids = "0.8.3,0.9"
