@@ -61,10 +61,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:Abstr
     """
     Matrix factorization
     """
-    factorization::Union{Nothing,
-                         ExtendableSparse.AbstractFactorization{Tv,Tm},
-                         LU{Tv, Tridiagonal{Tv, Vector{Tv}}, Vector{Int64}}
-                         }
+    factorization::Union{Nothing,ExtendableSparse.AbstractFactorization{Tv,Tm}}
     
     """
     Flag which says if the number of unknowns per node is constant
