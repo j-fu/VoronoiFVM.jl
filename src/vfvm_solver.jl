@@ -340,21 +340,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     
     grid    = system.grid
     physics = system.physics
-    node    = Node(system)
-    bnode   = BNode(system)
-    edge    = Edge(system)
-    bedge   = BEdge(system)
-
-    node.time=time
-    bnode.time=time
-    edge.time=time
-    bedge.time=time
-
-    node.embedparam=embedparam
-    bnode.embedparam=embedparam
-    edge.embedparam=embedparam
-    bedge.embedparam=embedparam
-
+    node    = Node(system,time,embedparam,params)
+    bnode   = BNode(system,time,embedparam,params)
+    edge    = Edge(system,time,embedparam,params)
+    bedge   = BEdge(system,time,embedparam,params)
 
     
     @create_physics_wrappers(physics, node, bnode, edge, bedge)
@@ -588,7 +577,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
 
             
             # Copy unknown values from solution into dense array
-            @views UK.=U[:,bnode.index]
+            @views UK[1:nspecies].=U[:,bnode.index]
 
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
@@ -799,6 +788,19 @@ function _eval_and_assemble_generic_operator(system::AbstractSystem,U,F)
             updateindex!(system.matrix,+,nzval[j],rowval[j],i)
         end
     end
+end
+
+
+function _eval_generic_operator(system::AbstractSystem,U,F)
+    if !has_generic_operator(system)
+        return
+    end
+    generic_operator(f,u)=system.physics.generic_operator(f,u,system)
+    vecF=values(F)
+    vecU=values(U)
+    y=similar(vecF)
+    generic_operator(y,vecU)
+    vecF.+=y
 end
 
 ################################################################

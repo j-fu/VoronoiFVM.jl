@@ -13,10 +13,34 @@ abstract type AbstractPhysics end
 $(TYPEDEF)
 
 Abstract type for user data.
-!!! compat  
-    Will be removed in future versions
 """
-abstract type AbstractData end
+abstract type AbstractData{Tv} end
+
+
+
+ForwardDiff.value(x::Real)=x
+function showstruct(io::IO,this::AbstractData)
+    myround(x; kwargs...)=round(Float64(value(x));kwargs...)
+    myround(s::Symbol; kwargs...)=s
+    myround(i::Int; kwargs...)=i
+    myround(b::Bool; kwargs...)=b
+    println(typeof(this))
+    for name in fieldnames(typeof(this))
+        println(io,"$(lpad(name,20)) = $(myround.(getfield(this,name),sigdigits=5))")
+    end
+end
+
+function Base.copy!(vdata::AbstractData{Tv},udata::AbstractData{Tu}) where {Tv, Tu}
+    vval(x::Any)=x
+    vval(x::Tu)=Tv(x)
+    for name in fieldnames(typeof(udata))
+        setproperty!(vdata,name,vval(getproperty(udata,name)))
+    end
+    vdata
+end
+
+Base.show(io::IO, ::MIME"text/plain", this::AbstractData)=showstruct(io,this)
+
 
 isdata(::Nothing)=false
 isdata(::Any)=true
@@ -212,6 +236,23 @@ function Physics(;num_species=0,
                    Int8(num_species)
                    )
 end
+
+
+function Physics(physics::Physics, data)
+    Physics(physic.flux,
+            physic.storage,
+            physic.reaction,
+            physic.source,
+            physic.bflux,
+            physic.breaction,
+            physic.bsource,
+            physic.bstorage,
+            physic.generic,
+            physic.generic_sparsity,
+            data,
+            physic.num_species)
+end
+
 
 """
 $(SIGNATURES)

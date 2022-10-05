@@ -50,6 +50,17 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:Abstr
     """
     node_dof::TSpecMat
 
+
+    
+    """
+    - :multidiagonal
+    - :sparse
+    - :banded
+    - :tridiagonal
+    """
+    matrixtype::Symbol
+
+    
     """
     Jacobi matrix for nonlinear problem
     """
@@ -223,6 +234,9 @@ Physics keyword arguments:
     This allows to pass various parameters to the callback functions. If `data` is given, all callback functions
     should accept a last `data` argument. Otherwise, no data are passed explicitely, and constitutive callbacks can
     take parameters from the closure where the function is defined.
+
+-  `matrixtype`: :default, :sparse, :tridiagonal, :banded
+
 """
 function System(grid::ExtendableGrid;
                 valuetype=coord_type(grid),
@@ -230,6 +244,7 @@ function System(grid::ExtendableGrid;
                 species=Int[],
                 unknown_storage=:dense,
                 matrixindextype=Int64,
+                matrixtype=:sparse,
                 check_allocs=default_check_allocs(),
                 nparams=0,
                 kwargs...)
@@ -260,6 +275,7 @@ function System(grid::ExtendableGrid;
     system.species_homogeneous=false
     system.num_quantities=0
     system.uhash=0x0
+    system.matrixtype=matrixtype
     system.allocs=-1000
     system.factorization=nothing
     system.history=nothing
@@ -643,14 +659,9 @@ function _complete!(system::AbstractSystem{Tv,Tc,Ti, Tm};create_newtonvectors=fa
     nspec=size(system.node_dof,1)
     n=num_dof(system)
     
-    matrixtype=:default
-    matrixtype=:sparse
-
-#    matrixtype=:multidiagonal
-#    matrixtype=:sparse
-#    matrixtype=:banded
-#    matrixtype=:tridiagonal
-# Sparse even in 1D is not bad, 
+    matrixtype=system.matrixtype
+    #    matrixtype=:sparse
+    # Sparse even in 1D is not bad, 
     
     if matrixtype==:default
         if !isdensesystem(system)
@@ -997,6 +1008,7 @@ end
 
 
 function _eval_and_assemble_inactive_species(system::AbstractSystem,U,Uold,F) end
+function _eval_inactive_species(system::AbstractSystem,U,Uold,F) end
 
 function _eval_and_assemble_inactive_species(system::DenseSystem,U,Uold,F)
     if system.species_homogeneous
@@ -1012,6 +1024,20 @@ function _eval_and_assemble_inactive_species(system::DenseSystem,U,Uold,F)
         end
     end
 end
+
+function _eval_inactive_species(system::DenseSystem,U,Uold,F)
+    if system.species_homogeneous
+        return
+    end
+    for inode=1:size(system.node_dof,2)
+        for ispec=1:size(system.node_dof,1)
+            if !isdof(system,ispec,inode)
+                F[ispec,inode]+= U[ispec,inode]-Uold[ispec,inode];
+            end
+        end
+    end
+end
+
 
 function _initialize_inactive_dof!(U::AbstractMatrix,system::AbstractSystem) end
 

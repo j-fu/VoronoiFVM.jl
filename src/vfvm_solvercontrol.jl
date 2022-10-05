@@ -88,6 +88,7 @@ $(TYPEDFIELDS)
     """
     factorization::Union{Symbol,AbstractFactorization}=:lu
 
+    
     """
     Maximum number of iterations of linear solver
     """
