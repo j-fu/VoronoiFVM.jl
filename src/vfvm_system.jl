@@ -1008,7 +1008,6 @@ end
 
 
 function _eval_and_assemble_inactive_species(system::AbstractSystem,U,Uold,F) end
-function _eval_inactive_species(system::AbstractSystem,U,Uold,F) end
 
 function _eval_and_assemble_inactive_species(system::DenseSystem,U,Uold,F)
     if system.species_homogeneous
@@ -1024,20 +1023,6 @@ function _eval_and_assemble_inactive_species(system::DenseSystem,U,Uold,F)
         end
     end
 end
-
-function _eval_inactive_species(system::DenseSystem,U,Uold,F)
-    if system.species_homogeneous
-        return
-    end
-    for inode=1:size(system.node_dof,2)
-        for ispec=1:size(system.node_dof,1)
-            if !isdof(system,ispec,inode)
-                F[ispec,inode]+= U[ispec,inode]-Uold[ispec,inode];
-            end
-        end
-    end
-end
-
 
 function _initialize_inactive_dof!(U::AbstractMatrix,system::AbstractSystem) end
 

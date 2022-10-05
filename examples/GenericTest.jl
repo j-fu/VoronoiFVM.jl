@@ -1,10 +1,15 @@
 module GenericTest
 
+# TODO:
+# More realistic test - use boundary flux as functional
+#
+
 using VoronoiFVM,ExtendableGrids
 using GridVisualize
 using ExtendableSparse
 using ForwardDiff,DiffResults
 using Plots
+
 function g!(f,u,edge)
     f[1]=u[1,1]^2-u[1,2]^2
 end
@@ -158,6 +163,7 @@ But first we can tag a new version with the current variant:
 - But this would mean have another assembly loop: 
    eval_dudp(system, sol, u), and we would pass parameters extra with given solution and be consistent
    with the global approach. Check with fvsys, probably we did the same there
+
   This is the way it _should be done_. How to pass this through ? We just need to evaluate with parameters
   as duals. Easy split of eval_and_assemble ?
   node.params 

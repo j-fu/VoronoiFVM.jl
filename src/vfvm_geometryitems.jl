@@ -143,7 +143,7 @@ mutable struct Node{Tc,Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
                                                                 coordinates(sys.grid),
                                                                 sys.grid[CellNodes],
                                                                 sys.grid[CellRegions],
-                                                                0,0
+                                                                time, embedparam,params
                                                                 )
 end
 

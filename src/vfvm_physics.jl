@@ -17,7 +17,9 @@ Abstract type for user data.
 abstract type AbstractData{Tv} end
 
 
-
+#
+# Experimental handling methods for AbstractData
+#
 ForwardDiff.value(x::Real)=x
 function showstruct(io::IO,this::AbstractData)
     myround(x; kwargs...)=round(Float64(value(x));kwargs...)

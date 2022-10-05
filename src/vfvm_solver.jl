@@ -330,7 +330,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                            F::AbstractMatrix{Tv},# Right hand side
                            time,
                            tstep,# time step size. Inf means stationary solution
-                           embedparam,
+                           λ,
                            params::AbstractVector;
                            edge_cutoff=0.0
                            ) where {Tv, Tc, Ti, Tm}
@@ -340,15 +340,13 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     
     grid    = system.grid
     physics = system.physics
-    node    = Node(system,time,embedparam,params)
-    bnode   = BNode(system,time,embedparam,params)
-    edge    = Edge(system,time,embedparam,params)
-    bedge   = BEdge(system,time,embedparam,params)
+    node    = Node(system,time,λ,params)
+    bnode   = BNode(system,time,λ,params)
+    edge    = Edge(system,time,λ,params)
+    bedge   = BEdge(system,time,λ,params)
 
     
     @create_physics_wrappers(physics, node, bnode, edge, bedge)
-
-
     
     nspecies::Int = num_species(system)
     matrix        = system.matrix
