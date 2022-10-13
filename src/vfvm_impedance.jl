@@ -49,7 +49,7 @@ mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
 end
 
 
-function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=0.0) where {Tv,Ti}
+function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; λ0=0.0) where {Tv,Tc,Ti}
     residual=copy(U0)
 
     if system.num_parameters>0
@@ -96,8 +96,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
 
     # Prepare calculation of derivative of the storage part
     data=physics.data
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
+    node=Node(system)
+    bnode=BNode(system)
     bfaceregions::Vector{Ti}=grid[BFaceRegions]
     nspecies=num_species(system)
     nodeparams=(node,)
@@ -197,11 +197,11 @@ $(SIGNATURES)
 Construct impedance system from time domain system `sys` and steady state solution `U0`
 under the assumption of a periodic perturbation of species `excited_spec` at  boundary `excited_bc`.
 """
-function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Ti}
+function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Tc,Ti}
     impedance_system=ImpedanceSystem(system,U0)
     grid=impedance_system.grid
     bgeom=grid[BFaceGeometries][1]
-    bnode=BNode{Tv,Ti}(system)
+    bnode=BNode(system)
     bfaceregions::Vector{Ti}=grid[BFaceRegions]
     nspecies=num_species(system)
     F=impedance_system.F

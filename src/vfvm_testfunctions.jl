@@ -8,17 +8,24 @@ test functions for boundary flux calculations.
 
 $(TYPEDFIELDS)
 """
-mutable struct TestFunctionFactory{Tv}
+mutable struct TestFunctionFactory
 
     """
     Original system
     """
-    system::AbstractSystem{Tv}
+    system::AbstractSystem
 
     """
     Test function system
     """
-    tfsystem::DenseSystem{Tv}
+    tfsystem::DenseSystem
+
+
+    """
+    Solver control
+    """
+    control::SolverControl
+    
 end
 
 
@@ -28,7 +35,7 @@ $(TYPEDSIGNATURES)
 
 Constructor for TestFunctionFactory from System
 """
-function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
+function TestFunctionFactory(system::AbstractSystem; control=SolverControl())
     physics=Physics( 
         flux=function(f,u,edge)
         f[1]=u[1]-u[2]
@@ -39,7 +46,7 @@ function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
     )
     tfsystem=System(system.grid,physics,unknown_storage=:dense)
     enable_species!(tfsystem,1,[i for i=1:num_cellregions(system.grid)])
-    return TestFunctionFactory{Tv}(system,tfsystem)
+    return TestFunctionFactory(system,tfsystem,control)
 end
 
 
@@ -52,7 +59,7 @@ Create testfunction which has Dirichlet zero boundary conditions  for boundary
 regions in bc0 and Dirichlet one boundary conditions  for boundary
 regions in bc1.
 """
-function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
+function testfunction(factory::TestFunctionFactory, bc0, bc1)
 
     u=unknowns(factory.tfsystem)
     f=unknowns(factory.tfsystem)
@@ -75,8 +82,13 @@ function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
     eval_and_assemble(factory.tfsystem,u,u,f,Inf,Inf,0.0,zeros(0))
 
     _initialize!(u,factory.tfsystem)
-    lufact=LinearAlgebra.lu(factory.tfsystem.matrix)
-    ldiv!(vec(u),lufact,vec(f))
+    if isa(factory.tfsystem.matrix,ExtendableSparseMatrix)
+        fact=factorization(factory.control)
+        factorize!(fact,factory.tfsystem.matrix)
+        ldiv!(vec(u),fact,vec(f))
+    else
+        vec(u).=factory.tfsystem.matrix\vec(f)
+    end
     return vec(u)
 end
 
@@ -88,8 +100,8 @@ $(SIGNATURES)
 
 Calculate test function integral for transient solution.
 """
-function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv},
-                   Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv,Ti}
+function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
+                   Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv}
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tv,nspecies)
@@ -99,11 +111,12 @@ function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatri
     storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
 
+    #!!! params etc 
     physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    bedge=Edge{Tv,Ti}(system)
+    node=Node(system)
+    bnode=BNode(system)
+    edge=Edge(system)
+    bedge=Edge(system)
     @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
     UKL=Array{Tv,1}(undef,2*nspecies)
@@ -160,7 +173,7 @@ $(SIGNATURES)
 
 Calculate test function integral for steady state solution.
 """
-integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}) where {Tv,Ti} =integrate(system,tf,U,U,Inf)
+integrate(system::AbstractSystem,tf::Vector{Tv},U::AbstractMatrix{Tu}) where {Tu,Tv} =integrate(system,tf,U,U,Inf)
 
 
 
@@ -170,7 +183,7 @@ $(SIGNATURES)
 
 Steady state part of test function integral.
 """
-function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
+function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
@@ -179,10 +192,10 @@ function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
     stor=zeros(Tu,nspecies)
 
     physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    bedge=BEdge{Tv,Ti}(system)
+    node=Node(system)
+    bnode=BNode(system)
+    edge=Edge(system)
+    bedge=BEdge(system)
     @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
     UKL=Array{Tu,1}(undef,2*nspecies)
@@ -229,7 +242,7 @@ $(SIGNATURES)
 
 Calculate transient part of test function integral.
 """
-function integrate_tran(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
+function integrate_tran(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
@@ -238,10 +251,10 @@ function integrate_tran(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::Abstract
 
 
     physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    bedge=BEdge{Tv,Ti}(system)
+    node=Node(system)
+    bnode=BNode(system)
+    edge=Edge(system)
+    bedge=BEdge(system)
     @create_physics_wrappers(physics,node,bnode,edge,bedge)
     
     UK=Array{Tu,1}(undef,nspecies)

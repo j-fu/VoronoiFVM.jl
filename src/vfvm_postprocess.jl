@@ -18,14 +18,14 @@ Integrate node function (same signature as reaction or storage)
  `F` of  solution vector region-wise over domain or boundary.
 The result is  `nspec x nregion` vector.
 """
-function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Ti,Tm}
+function integrate(system::AbstractSystem{Tv,Tc,Ti,Tm},F::Function,U::AbstractMatrix{Tu}; boundary=false) where {Tu,Tv,Tc,Ti,Tm}
     grid=system.grid
     data=system.physics.data
     nspecies=num_species(system)
     res=zeros(Tu,nspecies)
 
     if boundary
-        bnode=BNode{Tv,Ti}(system)
+        bnode=BNode(system)
         bnodeparams=(bnode,)
         if isdata(data)
             bnodeparams=(bnode,data,)
@@ -51,7 +51,7 @@ function integrate(system::AbstractSystem{Tv,Ti,Tm},F::Function,U::AbstractMatri
             end
         end
     else
-        node=Node{Tv,Ti}(system)
+        node=Node(system)
         nodeparams=(node,)
         if isdata(data)
             nodeparams=(node,data,)
@@ -115,7 +115,7 @@ CAVEAT: there is a possible unsolved problem with the values at domain
 corners in the code. Please see any potential boundary artifacts as a manifestation
 of this issue and report them.
 """
-function nodeflux(system::AbstractSystem{Tv,Ti},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
+function nodeflux(system::AbstractSystem{Tv,Tc,Ti,Tm},U::AbstractArray{Tu,2}) where {Tu,Tv,Tc,Ti,Tm}
     grid=system.grid
     dim=dim_space(grid)
     nnodes=num_nodes(grid)
@@ -127,10 +127,10 @@ function nodeflux(system::AbstractSystem{Tv,Ti},U::AbstractArray{Tu,2}) where {T
     nodevol=zeros(Tv,nnodes)
     cellnodes=grid[CellNodes]
     physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    bedge=BEdge{Tv,Ti}(system)
+    node=Node(system)
+    bnode=BNode(system)
+    edge=Edge(system)
+    bedge=BEdge(system)
     @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
     UKL=Array{Tu,1}(undef,2*nspecies)
@@ -163,3 +163,6 @@ function nodeflux(system::AbstractSystem{Tv,Ti},U::AbstractArray{Tu,2}) where {T
     end
     nodeflux
 end
+
+
+

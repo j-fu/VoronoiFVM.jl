@@ -123,7 +123,7 @@ end
 
 
 function test()
-    isapprox(main(), 1463.3732804776039, rtol=1.0e-13)
+    isapprox(main(), 1463.3732804776039, rtol=1.0e-12)
 end
 
 end

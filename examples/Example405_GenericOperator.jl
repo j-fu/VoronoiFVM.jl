@@ -1,3 +1,14 @@
+#=
+
+# 405: Generic operator
+ ([source code](SOURCE_URL))
+
+Handle an operator which does not fit into the storage/flux/reaction API.
+This uses automatic sparsity detection.
+=#
+
+
+
 module Example405_GenericOperator
 using Printf
 using VoronoiFVM

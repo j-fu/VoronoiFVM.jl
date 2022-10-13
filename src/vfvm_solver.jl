@@ -7,6 +7,11 @@ Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
 
+# These are needed to enable iterative solvers to work with dual numbers
+Base.Float64(x::ForwardDiff.Dual)=value(x)
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{ForwardDiff.Dual{T,V,N}}) where {T,V,N} = ForwardDiff.Dual{T,V,N}(rand(rng,V))
+
+
 ##################################################################
 """
 $(SIGNATURES)
@@ -36,6 +41,7 @@ Add value to matrix if it is nonzero
     end
 end
 
+ExtendableSparse.rawupdateindex!(m::AbstractMatrix,op,v,i,j)= m[i,j]=op(m[i,j],v)
 
 
 """
@@ -96,6 +102,7 @@ function _print_error(err,st)
     println()
 end
 
+
 """
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve
@@ -103,16 +110,16 @@ for implicit Euler and stationary solve
 function _solve!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    system::AbstractSystem{Tv}, # Finite volume system
+    system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
     control::NewtonControl,
-    time::Tv,
-    tstep::Tv,
-    embedparam::Tv,
-    params::AbstractVector{Tv};
+    time,
+    tstep,
+    embedparam,
+    params;
     mynorm=(u)->LinearAlgebra.norm(values(u),Inf),
     myrnorm=(u)->LinearAlgebra.norm(values(u),1),
     kwargs...
-) where Tv
+) where {Tv, Tc, Ti, Tm}
 
     _complete!(system, create_newtonvectors=true)
     nlhistory=NewtonSolverHistory()
@@ -120,11 +127,15 @@ function _solve!(
         solution.=oldsol
         residual=system.residual
         update=system.update
-        _initialize!(solution,system)
+        _initialize!(solution,system; time, λ=embedparam,params)
         SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
-        if typeof(control.factorization)!=typeof(system.factorization)
-            system.factorization=control.factorization
+        
+        if isnothing(system.factorization)
+            if isa(system.matrix,ExtendableSparseMatrix)
+                system.factorization=factorization(control; valuetype=Tv)
+            end
         end
+        
         oldnorm=1.0
         converged=false
         if control.verbose
@@ -135,8 +146,9 @@ function _solve!(
         damp=control.damp_initial
         tolx=0.0
         rnorm=myrnorm(solution)
-        
+
         for ii=1:control.max_iterations
+            # Create Jacobi matrix and RHS for Newton iteration
             try
                 eval_and_assemble(system,solution,oldsol,residual,time,tstep,embedparam,params,edge_cutoff=control.edge_cutoff)
             catch err
@@ -148,11 +160,13 @@ function _solve!(
                 end
             end
             
-            mtx=system.matrix
             
+            ## Linear system solution: mtx*update=residual
+            mtx=system.matrix
             nliniter=0
-            # Sparse LU factorization
-            if nlu_reuse==0 # (re)factorize, if possible reusing old factorization data
+            
+            ## (re)factorize, if possible reusing old factorization data
+            if !isnothing(system.factorization) && nlu_reuse==0 
                 try
                     factorize!(system.factorization,mtx)
                 catch err
@@ -167,8 +181,9 @@ function _solve!(
                     nlhistory.nlu+=1
                 end
             end
-            if issolver(system.factorization) && nlu_reuse==0
-                # Direct solution via LU solve
+            
+            ## Direct solution via LU solve:
+            if !isnothing(system.factorization)  && issolver(system.factorization) && nlu_reuse==0
                 try
                     ldiv!(values(update),system.factorization,values(residual))
                     if control.log
@@ -182,35 +197,71 @@ function _solve!(
                         rethrow(err)
                     end
                 end
-            elseif !issolver(system.factorization) || nlu_reuse>0
-                # Iterative solution
-                update.=zero(Tv)
-                if control.iteration == :bicgstab
-                    (sol,history)= bicgstabl!(values(update),
-                                              mtx,
-                                              values(residual),
-                                              1,
-                                              Pl=system.factorization,
-                                              reltol=control.tol_linear,
-                                              max_mv_products=100,
-                                              log=true)
+                
+            ## Iterative solution using factorization as preconditioner
+            elseif !isnothing(system.factorization) && !issolver(system.factorization)  || nlu_reuse>0
+                if control.iteration == :krylov_bicgstab
+                    (sol,history)= Krylov.bicgstab(mtx,
+                                                   values(residual),
+                                                   M=system.factorization,
+                                                   rtol=control.tol_linear,
+                                                   ldiv=true,
+                                                   itmax=control.max_iterations_linear,
+                                                   history=true)
+                    values(update).=sol
+                elseif control.iteration == :krylov_gmres
+                    (sol,history)= Krylov.gmres(mtx,
+                                                values(residual),
+                                                M=system.factorization,
+                                                rtol=control.tol_linear,
+                                                ldiv=true,
+                                                restart=true,
+                                                itmax=control.max_iterations_linear,
+                                                memory=control.gmres_restart,
+                                                history=true)
+                    values(update).=sol
+                elseif control.iteration == :krylov_cg
+                    (sol,history)= Krylov.cg(mtx,
+                                             values(residual),
+                                             M=system.factorization,
+                                             ldiv=true,
+                                             rtol=control.tol_linear,
+                                             itmax=control.max_iterations_linear,
+                                             history=true)
+                    values(update).=sol
                 elseif control.iteration == :cg
-                    (sol,history)= cg!(values(update),
-                                       mtx,
-                                       values(residual),
-                                       Pl=system.factorization,
-                                       reltol=control.tol_linear,
-                                       maxiter=100,
-                                       log=true)
+                    update.=zero(Tv)
+                    (sol,history)= IterativeSolvers.cg!(values(update),
+                                                        mtx,
+                                                        values(residual),
+                                                        Pl=system.factorization,
+                                                        reltol=control.tol_linear,
+                                                        maxiter=control.max_iterations_linear,
+                                                        log=true)
+                elseif control.iteration == :bicgstab
+                    update.=zero(Tv)
+                    (sol,history)= IterativeSolvers.bicgstabl!(values(update),
+                                                               mtx,
+                                                               values(residual),
+                                                               1,
+                                                               Pl=system.factorization,
+                                                               reltol=control.tol_linear,
+                                                               max_mv_products=control.max_iterations_linear,
+                                                               log=true)
                 else
-                    error("wrong value of `iteration`, choose either :cg or :bicgstab")
+                    error("wrong value of `iteration`, see documentation of SolverControl")
                 end
-                nliniter=history.iters
+
+                if control.iteration == :cg || control.iteration == :bicgstab 
+                    nliniter=history.iters
+                else
+                    nliniter=history.niter
+                end
                 if control.log
-                    nlhistory.nlin+=history.iters
+                    nlhistory.nlin+=history.niter
                 end
             else
-                error("This should not happen")
+                values(update).=system.matrix\values(residual)
             end
 
             if control.max_lureuse>0
@@ -281,7 +332,18 @@ function _solve!(
     system.history=nlhistory
 end
 
+function zero!(m::ExtendableSparseMatrix{Tv,Ti}) where {Tv,Ti}
+    nzv  = nonzeros(m)
+    nzv .= zero(Tv)
+end
 
+zero!(m::AbstractMatrix{T}) where T = m.=zero(T)
+
+# function zero!(m::MultidiagonalMatrix{T}) where {T}
+#     for d ∈ m.shadow
+#         d.second.=0.0
+#     end
+# end
 
 ################################################################
 """
@@ -292,42 +354,29 @@ Main assembly method.
 Evaluate solution with result in right hand side F and 
 assemble Jacobi matrix into system.matrix.
 """
-function eval_and_assemble(system::AbstractSystem{Tv, Ti},
+function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
                            time,
                            tstep,# time step size. Inf means stationary solution
-                           embedparam,
+                           λ,
                            params::AbstractVector;
                            edge_cutoff=0.0
-                           ) where {Tv, Ti}
+                           ) where {Tv, Tc, Ti, Tm}
     
 
     _complete!(system) # needed here as well for test function system which does not use newton
     
     grid    = system.grid
     physics = system.physics
-    node    = Node{Tv,Ti}(system)
-    bnode   = BNode{Tv,Ti}(system)
-    edge    = Edge{Tv,Ti}(system)
-    bedge   = BEdge{Tv,Ti}(system)
-
-    node.time=time
-    bnode.time=time
-    edge.time=time
-    bedge.time=time
-
-    node.embedparam=embedparam
-    bnode.embedparam=embedparam
-    edge.embedparam=embedparam
-    bedge.embedparam=embedparam
-
+    node    = Node(system,time,λ,params)
+    bnode   = BNode(system,time,λ,params)
+    edge    = Edge(system,time,λ,params)
+    bedge   = BEdge(system,time,λ,params)
 
     
     @create_physics_wrappers(physics, node, bnode, edge, bedge)
-
-
     
     nspecies::Int = num_species(system)
     matrix        = system.matrix
@@ -338,8 +387,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors    
     
     # Reset matrix + rhs
-    nzv  = nonzeros(matrix)
-    nzv .= 0.0
+    zero!(matrix)
     F   .= 0.0
     nparams::Int=system.num_parameters
     if nparams>0
@@ -505,7 +553,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
             L=edge.node[2]
             
             fac=celledgefactors[iedge,icell]
-            
             for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idofK,K)
                 idofL=dof(F,ispec,L)
@@ -558,7 +605,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
 
             
             # Copy unknown values from solution into dense array
-            @views UK.=U[:,bnode.index]
+            @views UK[1:nspecies].=U[:,bnode.index]
 
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
@@ -733,9 +780,11 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         end
     end
 
+    noallocs(m::ExtendableSparseMatrix)=isnothing(m.lnkmatrix)
+    noallocs(m::AbstractMatrix)=false
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
-    if isnothing(matrix.lnkmatrix) && !_check_allocs(system,ncalloc+nballoc)
+    if noallocs(matrix) && !_check_allocs(system,ncalloc+nballoc)
         error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
                             See the documentation of `check_allocs!` for more information""")
     end
@@ -769,6 +818,19 @@ function _eval_and_assemble_generic_operator(system::AbstractSystem,U,F)
     end
 end
 
+
+function _eval_generic_operator(system::AbstractSystem,U,F)
+    if !has_generic_operator(system)
+        return
+    end
+    generic_operator(f,u)=system.physics.generic_operator(f,u,system)
+    vecF=values(F)
+    vecU=values(U)
+    y=similar(vecF)
+    generic_operator(y,vecU)
+    vecF.+=y
+end
+
 ################################################################
 """
 ````
@@ -794,7 +856,7 @@ function solve!(
             _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
         end
     else 
-        _solve!(solution,inival,system,control,time,tstep,embedparam,params;kwargs...)
+        _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
     end
     return solution
 end
@@ -862,7 +924,7 @@ function solve(inival,
     
     solution=copy(inival)
     oldsolution=copy(inival)
-    _initialize_dirichlet!(inival,system)
+    _initialize_dirichlet!(inival,system;  time, λ=Float64(lambdas[1]),params)
     Δλ=Δλ_val(control,transient)
     
     if !transient

@@ -4,28 +4,31 @@ $(README)
 $(EXPORTS)
 """
 module VoronoiFVM
-
 using Printf
 using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
 using SuiteSparse
+using BandedMatrices
+# using MultidiagonalMatrices
+
 
 using Parameters
 using Statistics
 
 using ForwardDiff
 using DiffResults
-using IterativeSolvers
+using Krylov, IterativeSolvers
 using JLD2
-using StaticArrays
-using SparseDiffTools
-using Symbolics
 using RecursiveArrayTools
 
 using ExtendableSparse
 using ExtendableGrids
 
+using StaticArrays
+using SparseDiffTools
+using Symbolics
+using Random
 
 
 include("vfvm_physics.jl")

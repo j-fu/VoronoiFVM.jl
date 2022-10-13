@@ -4,7 +4,7 @@ $(TYPEDEF)
     
 Abstract type for finite volume system structure.
 """
-abstract type AbstractSystem{Tv<:Number, Ti <:Integer, Tm <:Integer} end
+abstract type AbstractSystem{Tv<:Number, Tc<:Number, Ti <:Integer, Tm <:Integer} end
 
 ##################################################################
 """
@@ -12,12 +12,12 @@ $(TYPEDEF)
 
 Structure holding data for finite volume system.
 """
-mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix} <: AbstractSystem{Tv,Ti, Tm}
+mutable struct System{Tv, Tc, Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix} <: AbstractSystem{Tv, Tc, Ti, Tm}
 
     """
     Grid
     """
-    grid::ExtendableGrid{Tv,Ti}
+    grid::ExtendableGrid{Tc,Ti}
 
     """
     Physics data
@@ -50,10 +50,24 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     """
     node_dof::TSpecMat
 
+
+    
+    """
+    - :multidiagonal  (currently disabled)
+    - :sparse
+    - :banded
+    - :tridiagonal
+    """
+    matrixtype::Symbol
+
+    
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::ExtendableSparseMatrix{Tv,Tm}
+    matrix::Union{ExtendableSparseMatrix{Tv,Tm},
+                  Tridiagonal{Tv, Vector{Tv}},
+#                  MultidiagonalMatrix,
+                  BandedMatrix{Tv}}
 
     """
     Matrix factorization
@@ -137,7 +151,7 @@ mutable struct System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMa
     """
     history
     
-    System{Tv,Ti,Tm, TSpecMat, TSolArray}() where {Tv,Ti,Tm, TSpecMat, TSolArray} = new()
+    System{Tv,Tc,Ti,Tm, TSpecMat, TSolArray}() where {Tv, Tc, Ti,Tm, TSpecMat, TSolArray} = new()
 end
 
 """
@@ -146,7 +160,10 @@ end
 Type alias for system with dense matrix based species management
 
 """
-const DenseSystem = System{Tv,Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Ti, Tm}
+const DenseSystem = System{Tv,Tc, Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Tc, Ti, Tm}
+
+
+isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = TSolArray<:Matrix
 
 
 """
@@ -155,7 +172,7 @@ const DenseSystem = System{Tv,Ti,Tm,Matrix{Ti},Matrix{Tv}} where {Tv, Ti, Tm}
 Type alias for system with sparse matrix based species management
 
 """
-const SparseSystem = System{Tv,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti} } where {Tv, Ti, Tm}
+const SparseSystem = System{Tv,Tc,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti} } where {Tv,Tc, Ti, Tm}
 
 default_check_allocs()= haskey(ENV,"VORONOIFVM_CHECK_ALLOCS") ? parse(Bool,ENV["VORONOIFVM_CHECK_ALLOCS"]) :  false
 
@@ -217,25 +234,32 @@ Physics keyword arguments:
     This allows to pass various parameters to the callback functions. If `data` is given, all callback functions
     should accept a last `data` argument. Otherwise, no data are passed explicitely, and constitutive callbacks can
     take parameters from the closure where the function is defined.
+
+-  `matrixtype`: :default, :sparse, :tridiagonal, :banded
+
 """
 function System(grid::ExtendableGrid;
+                valuetype=coord_type(grid),
+                indextype=index_type(grid),
                 species=Int[],
                 unknown_storage=:dense,
                 matrixindextype=Int64,
+                matrixtype=:sparse,
                 check_allocs=default_check_allocs(),
                 nparams=0,
                 kwargs...)
 
-    Tv=coord_type(grid)
-    Ti=index_type(grid)
+    Tv=valuetype
+    Tc=coord_type(grid)
+    Ti=indextype
     Tm=matrixindextype
     
     
     
     if Symbol(unknown_storage)==:dense
-        system=System{Tv,Ti,Tm,Matrix{Ti}, Matrix{Tv}}()
+        system=System{Tv,Tc,Ti,Tm,Matrix{Ti}, Matrix{Tv}}()
     elseif Symbol(unknown_storage)==:sparse
-        system=System{Tv,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti}}()
+        system=System{Tv,Tc,Ti,Tm,SparseMatrixCSC{Ti,Ti},SparseSolutionArray{Tv,Ti}}()
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
@@ -251,6 +275,7 @@ function System(grid::ExtendableGrid;
     system.species_homogeneous=false
     system.num_quantities=0
     system.uhash=0x0
+    system.matrixtype=matrixtype
     system.allocs=-1000
     system.factorization=nothing
     system.history=nothing
@@ -606,12 +631,13 @@ end
 
 # Create matrix in system and figure out if species
 # distribution is homgeneous
-function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false) where {Tv,Ti, Tm}
+function _complete!(system::AbstractSystem{Tv,Tc,Ti, Tm};create_newtonvectors=false) where {Tv,Tc,Ti, Tm}
 
     if isdefined(system,:matrix)
         return
     end
-    system.matrix=ExtendableSparseMatrix{Tv,Tm}(num_dof(system), num_dof(system))
+
+
     system.species_homogeneous=true
     species_added=false
     for inode=1:size(system.node_dof,2)
@@ -627,6 +653,38 @@ function _complete!(system::AbstractSystem{Tv,Ti, Tm};create_newtonvectors=false
     if (!species_added)
         error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
     end
+    
+
+    
+    nspec=size(system.node_dof,1)
+    n=num_dof(system)
+    
+    matrixtype=system.matrixtype
+    #    matrixtype=:sparse
+    # Sparse even in 1D is not bad, 
+    
+    if matrixtype==:default
+        if !isdensesystem(system)
+            matrixtype=:sparse
+        else
+            if nspec==1
+                matrixtype=:tridiagonal
+            else
+                matrixtype=:banded
+            end                
+        end
+    end
+
+    if matrixtype==:tridiagonal
+        system.matrix=Tridiagonal(zeros(Tv,n-1),zeros(Tv,n),zeros(Tv,n-1))
+    elseif matrixtype==:banded
+        system.matrix=BandedMatrix{Tv}(Zeros(n,n), (2*nspec-1,2*nspec-1))
+    # elseif matrixtype==:multidiagonal
+    #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
+    else # :sparse
+        system.matrix=ExtendableSparseMatrix{Tv,Tm}(n,n)
+    end
+
     
     if create_newtonvectors
         system.residual=unknowns(system)
@@ -918,21 +976,53 @@ num_species(a::AbstractArray)=size(a,1)
 #
 # Initialize Dirichlet BC
 #
-function _initialize_dirichlet!(U::AbstractMatrix,system::AbstractSystem)
+function _initialize_dirichlet!(U::AbstractMatrix,system::AbstractSystem{Tv, Tc, Ti, Tm}; time=0.0, λ=0.0, params::Vector{Tp}=Float64[]) where{Tv,Tp,Tc,Ti,Tm}
     _bfaceregions=bfaceregions(system.grid)
     _bfacenodes=bfacenodes(system.grid)
+    nspecies=num_species(system)
+
     # set up bnode
+    bnode = BNode(system,time,λ,params)
+    bnodeparams=(bnode,)
+    data=system.physics.data
+    if isdata(data)
+        bnodeparams=(bnode,data,)
+    end
+
+    # setup unknowns to be passed
+    UK=zeros(Tv,num_species(system)+length(params))
+    for iparm=1:length(params)
+        UK[nspecies+iparm]=params[iparm]
+    end
+    u=unknowns(bnode,UK)
+    
+    # right hand side to be passed
+    y=rhs(bnode,zeros(Tv,num_species(system)))
+
+    # loop over all boundary faces
     for ibface=1:num_bfaces(system.grid)
         ibreg=_bfaceregions[ibface]
-        # bnode.dirichlet_values.=Inf
-        # breaction(y,u,bnode,data)
-        for ispec=1:num_species(system)
-            # if !isinf(bnode.dirichlet_value)
-            #    U[ispec,_bfacenodes[inode,ibface]]=bnode.dirichlet_value
-            # end
-            if system.boundary_factors[ispec,ibreg]≈ Dirichlet
-                for inode=1:dim_grid(system.grid)
-                    U[ispec,_bfacenodes[inode,ibface]]=system.boundary_values[ispec,ibreg]
+
+        # loop over all nodes of boundary face        
+        for inode=1:dim_grid(system.grid)
+            # Set Diichlet values to uninitialized
+            _fill!(bnode,inode,ibface)
+            bnode.dirichlet_value.=Inf
+            jnode=_bfacenodes[inode,ibface]
+            # set up solution vector, call boundary reaction
+            @views UK[1:nspecies].=U[:,jnode]
+            system.physics.breaction(y,u,bnodeparams...)
+
+            # Check for Dirichlet bc
+            for ispec=1:nspecies
+                # Dirichlet bc given in breaction
+                if !isinf(bnode.dirichlet_value[ispec])
+                    U[ispec,jnode]=bnode.dirichlet_value[ispec]
+                end
+                
+                # Dirichlet bc given after system creation (old API)
+                if system.boundary_factors[ispec,ibreg]≈ Dirichlet
+                    U[ispec,jnode]=system.boundary_values[ispec,ibreg]
                 end
             end
         end
@@ -941,9 +1031,8 @@ end
 
 
 
-
-function _initialize!(U::AbstractMatrix,system::AbstractSystem)
-    _initialize_dirichlet!(U,system)
+function _initialize!(U::AbstractMatrix,system::AbstractSystem; time=0.0, λ=0.0, params=Number[] )
+    _initialize_dirichlet!(U,system; time, λ,params)
     _initialize_inactive_dof!(U,system)
 end
 
@@ -1009,20 +1098,6 @@ num_dof(system::DenseSystem)= length(system.node_dof)
 """
 $(SIGNATURES)
 
-Create a solution vector for system.
-If inival is not specified, the entries of the returned vector are undefined.
-"""
-function unknowns(system::AbstractSystem;inival=undef) end
-
-unknowns(sys::SparseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm}=unknowns(Tv,sys,inival=inival)
-
-unknowns(system::DenseSystem{Tv,Ti,Tm};inival=undef) where {Tv,Ti, Tm} = unknowns(Tv,system,inival=inival)
-
-
-
-"""
-$(SIGNATURES)
-
 Detect if array fits to the system.
 """
 isunknownsof(u::Any, sys::AbstractSystem)=false
@@ -1030,6 +1105,13 @@ isunknownsof(u::DenseSolutionArray, sys::DenseSystem) = size(u) == size(sys.node
 isunknownsof(u::SparseSolutionArray, sys::SparseSystem) = size(u) == size(sys.node_dof)
 
 
+"""
+$(SIGNATURES)
+
+Create a solution vector for system.
+If inival is not specified, the entries of the returned vector are undefined.
+"""
+unknowns(sys::AbstractSystem{Tv};inival=undef) where {Tv}=unknowns(Tv,sys,inival=inival)
 
 
 """
@@ -1148,8 +1230,14 @@ Create system with physics record.
 !!! info  
     Starting with version 0.14, all physics data can be passed directly to the system constructor
 """
-function System(grid::ExtendableGrid,physics::Physics; unknown_storage=:dense, matrixindextype=Int64, check_allocs=default_check_allocs(), kwargs...)
-    system=System(grid,unknown_storage=unknown_storage, matrixindextype=matrixindextype, check_allocs=check_allocs)
+function System(grid::ExtendableGrid,physics::Physics;
+                valuetype=coord_type(grid),
+                indextype=index_type(grid),
+                unknown_storage=:dense,
+                matrixindextype=Int64,
+                check_allocs=default_check_allocs(), kwargs...)
+
+    system=System(grid; valuetype,indextype, unknown_storage, matrixindextype, check_allocs, kwargs...)
     physics!(system,physics)
 end
 

@@ -107,6 +107,7 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
     
     control=VoronoiFVM.NewtonControl()
     control.verbose=verbose
+    control.factorization=:sparspak
     tstep=0.01
     time=0.0
     istep=0
