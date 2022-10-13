@@ -1,4 +1,10 @@
 # Changes
+## v0.18.2  Oct 13 2022
+- Emerging capability of differencing wrt. parameters (experimental, see example 430)
+- Allow iterative methods from Krylov.jl
+- Proper Dirichlet initialization with bcondition
+- Allow for more general matrix structures (banded, tridiagonal, multidiagonal)
+
 ## v0.18.1 September 25 2022
 - Working spherical symmetry case
 ## v0.18 September 12 2022

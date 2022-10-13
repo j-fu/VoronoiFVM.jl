@@ -53,7 +53,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:Abstr
 
     
     """
-    - :multidiagonal
+    - :multidiagonal  (currently disabled)
     - :sparse
     - :banded
     - :tridiagonal
@@ -976,21 +976,53 @@ num_species(a::AbstractArray)=size(a,1)
 #
 # Initialize Dirichlet BC
 #
-function _initialize_dirichlet!(U::AbstractMatrix,system::AbstractSystem)
+function _initialize_dirichlet!(U::AbstractMatrix,system::AbstractSystem{Tv, Tc, Ti, Tm}; time=0.0, λ=0.0, params::Vector{Tp}=Float64[]) where{Tv,Tp,Tc,Ti,Tm}
     _bfaceregions=bfaceregions(system.grid)
     _bfacenodes=bfacenodes(system.grid)
+    nspecies=num_species(system)
+
     # set up bnode
+    bnode = BNode(system,time,λ,params)
+    bnodeparams=(bnode,)
+    data=system.physics.data
+    if isdata(data)
+        bnodeparams=(bnode,data,)
+    end
+
+    # setup unknowns to be passed
+    UK=zeros(Tv,num_species(system)+length(params))
+    for iparm=1:length(params)
+        UK[nspecies+iparm]=params[iparm]
+    end
+    u=unknowns(bnode,UK)
+    
+    # right hand side to be passed
+    y=rhs(bnode,zeros(Tv,num_species(system)))
+
+    # loop over all boundary faces
     for ibface=1:num_bfaces(system.grid)
         ibreg=_bfaceregions[ibface]
-        # bnode.dirichlet_values.=Inf
-        # breaction(y,u,bnode,data)
-        for ispec=1:num_species(system)
-            # if !isinf(bnode.dirichlet_value)
-            #    U[ispec,_bfacenodes[inode,ibface]]=bnode.dirichlet_value
-            # end
-            if system.boundary_factors[ispec,ibreg]≈ Dirichlet
-                for inode=1:dim_grid(system.grid)
-                    U[ispec,_bfacenodes[inode,ibface]]=system.boundary_values[ispec,ibreg]
+
+        # loop over all nodes of boundary face        
+        for inode=1:dim_grid(system.grid)
+            # Set Diichlet values to uninitialized
+            _fill!(bnode,inode,ibface)
+            bnode.dirichlet_value.=Inf
+            jnode=_bfacenodes[inode,ibface]
+            # set up solution vector, call boundary reaction
+            @views UK[1:nspecies].=U[:,jnode]
+            system.physics.breaction(y,u,bnodeparams...)
+
+            # Check for Dirichlet bc
+            for ispec=1:nspecies
+                # Dirichlet bc given in breaction
+                if !isinf(bnode.dirichlet_value[ispec])
+                    U[ispec,jnode]=bnode.dirichlet_value[ispec]
+                end
+                
+                # Dirichlet bc given after system creation (old API)
+                if system.boundary_factors[ispec,ibreg]≈ Dirichlet
+                    U[ispec,jnode]=system.boundary_values[ispec,ibreg]
                 end
             end
         end
@@ -999,9 +1031,8 @@ end
 
 
 
-
-function _initialize!(U::AbstractMatrix,system::AbstractSystem)
-    _initialize_dirichlet!(U,system)
+function _initialize!(U::AbstractMatrix,system::AbstractSystem; time=0.0, λ=0.0, params=Number[] )
+    _initialize_dirichlet!(U,system; time, λ,params)
     _initialize_inactive_dof!(U,system)
 end
 

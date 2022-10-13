@@ -54,7 +54,7 @@ $(TYPEDFIELDS)
     """
     Maximum number of iterations.
     """
-    max_iterations::Int32 = 100
+    max_iterations::Int = 100
 
     """
     Maximum number of reuses of lu factorization.
@@ -63,19 +63,19 @@ $(TYPEDFIELDS)
     Otherwise, a BICGstab iterative method is used for linear system solution with a 
     LU factorization as preconditioner which is updated only every `max_lureuse` Newton step.
     """
-    max_lureuse::Int32 = 0
+    max_lureuse::Int = 0
 
     """
     Maximum number of consecutive iterations within roundoff error tolerance
     The default effectively disables this criterion.
     """
-    max_round::Int32 = 1000
+    max_round::Int = 1000
 
     """
     Relative tolerance of iterative linear solver.
     """
     tol_linear::Float64 = 1.0e-4
-
+    max_iterations_linear::Int=20
     """
     Factorization kind for linear sytems (see ExtendableSparse.jl).
     Possible values: 
@@ -102,7 +102,13 @@ $(TYPEDFIELDS)
     
     """   
     Iterative solver if factorization is incomplete.
-    Currently supported: :bicgstab, :cg
+    Currently supported: 
+    - :bicgstab : bicgstabl method from IterativeSolvers.jl
+    - :cg : cg method from IterativeSolvers.jl
+    - :krylov_cg : cg method from Krylov.jl
+    - :krylov_bicgstab : bicgstab method from Krylov.jl
+    - :krylov_gmres : gmres method from Krylov.jl
+
     """
     iteration::Symbol=:bicgstab
     

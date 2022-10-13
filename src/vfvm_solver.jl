@@ -7,6 +7,11 @@ Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
 
+# These are needed to enable iterative solvers to work with dual numbers
+Base.Float64(x::ForwardDiff.Dual)=value(x)
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{ForwardDiff.Dual{T,V,N}}) where {T,V,N} = ForwardDiff.Dual{T,V,N}(rand(rng,V))
+
+
 ##################################################################
 """
 $(SIGNATURES)
@@ -97,6 +102,7 @@ function _print_error(err,st)
     println()
 end
 
+
 """
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve
@@ -121,9 +127,9 @@ function _solve!(
         solution.=oldsol
         residual=system.residual
         update=system.update
-        _initialize!(solution,system)
+        _initialize!(solution,system; time, λ=embedparam,params)
         SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
-
+        
         if isnothing(system.factorization)
             if isa(system.matrix,ExtendableSparseMatrix)
                 system.factorization=factorization(control; valuetype=Tv)
@@ -140,7 +146,7 @@ function _solve!(
         damp=control.damp_initial
         tolx=0.0
         rnorm=myrnorm(solution)
-        
+
         for ii=1:control.max_iterations
             # Create Jacobi matrix and RHS for Newton iteration
             try
@@ -153,8 +159,8 @@ function _solve!(
                     rethrow(err)
                 end
             end
-
-
+            
+            
             ## Linear system solution: mtx*update=residual
             mtx=system.matrix
             nliniter=0
@@ -194,41 +200,65 @@ function _solve!(
                 
             ## Iterative solution using factorization as preconditioner
             elseif !isnothing(system.factorization) && !issolver(system.factorization)  || nlu_reuse>0
-                if control.iteration == :bicgstab
+                if control.iteration == :krylov_bicgstab
                     (sol,history)= Krylov.bicgstab(mtx,
                                                    values(residual),
                                                    M=system.factorization,
                                                    rtol=control.tol_linear,
                                                    ldiv=true,
-                                                   itmax=100,
+                                                   itmax=control.max_iterations_linear,
                                                    history=true)
                     values(update).=sol
-                elseif control.iteration == :gmres
+                elseif control.iteration == :krylov_gmres
                     (sol,history)= Krylov.gmres(mtx,
                                                 values(residual),
                                                 M=system.factorization,
                                                 rtol=control.tol_linear,
                                                 ldiv=true,
                                                 restart=true,
+                                                itmax=control.max_iterations_linear,
                                                 memory=control.gmres_restart,
-                                                itmax=100,
                                                 history=true)
                     values(update).=sol
-                elseif control.iteration == :cg
+                elseif control.iteration == :krylov_cg
                     (sol,history)= Krylov.cg(mtx,
                                              values(residual),
                                              M=system.factorization,
                                              ldiv=true,
                                              rtol=control.tol_linear,
-                                             itmax=100,
+                                             itmax=control.max_iterations_linear,
                                              history=true)
                     values(update).=sol
+                elseif control.iteration == :cg
+                    update.=zero(Tv)
+                    (sol,history)= IterativeSolvers.cg!(values(update),
+                                                        mtx,
+                                                        values(residual),
+                                                        Pl=system.factorization,
+                                                        reltol=control.tol_linear,
+                                                        maxiter=control.max_iterations_linear,
+                                                        log=true)
+                elseif control.iteration == :bicgstab
+                    update.=zero(Tv)
+                    (sol,history)= IterativeSolvers.bicgstabl!(values(update),
+                                                               mtx,
+                                                               values(residual),
+                                                               1,
+                                                               Pl=system.factorization,
+                                                               reltol=control.tol_linear,
+                                                               max_mv_products=control.max_iterations_linear,
+                                                               log=true)
                 else
-                    error("wrong value of `iteration`, choose either :cg or :bicgstab")
+                    error("wrong value of `iteration`, see documentation of SolverControl")
                 end
-                nliniter=history.niter
+
+                if control.iteration == :cg || control.iteration == :bicgstab 
+                    nliniter=history.iters
+                else
+                    nliniter=history.niter
+                end
                 if control.log
-                    nlhistory.nlin+=history.iters
+                    nlhistory.nlin+=history.niter
                 end
             else
                 values(update).=system.matrix\values(residual)
@@ -894,7 +924,7 @@ function solve(inival,
     
     solution=copy(inival)
     oldsolution=copy(inival)
-    _initialize_dirichlet!(inival,system)
+    _initialize_dirichlet!(inival,system;  time, λ=Float64(lambdas[1]),params)
     Δλ=Δλ_val(control,transient)
     
     if !transient

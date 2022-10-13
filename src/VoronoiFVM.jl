@@ -18,7 +18,7 @@ using Statistics
 
 using ForwardDiff
 using DiffResults
-using Krylov
+using Krylov, IterativeSolvers
 using JLD2
 using RecursiveArrayTools
 
@@ -28,7 +28,7 @@ using ExtendableGrids
 using StaticArrays
 using SparseDiffTools
 using Symbolics
-
+using Random
 
 
 include("vfvm_physics.jl")
