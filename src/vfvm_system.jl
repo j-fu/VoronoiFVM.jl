@@ -736,7 +736,7 @@ update_grid!(system; grid=system.grid)
 
 Update grid (e.g. after rescaling of coordinates).
 """
-function update_grid!(system::AbstractSystem{Tv,Ti,Tm}; grid=system.grid) where {Tv,Ti,Tm}
+function update_grid!(system::AbstractSystem{Tv,Tc,Ti,Tm}; grid=system.grid) where {Tv,Tc,Ti,Tm}
     
     geom        = grid[CellGeometries][1]
     csys        = grid[CoordinateSystem]
@@ -752,16 +752,22 @@ function update_grid!(system::AbstractSystem{Tv,Ti,Tm}; grid=system.grid) where 
     system.celledgefactors  = zeros(Tv, num_edges(geom), ncells)
     system.bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
     system.bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
-    
-    for icell=1:ncells
-        @views cellfactors!(geom, csys, coord, cellnodes, icell,
-                            system.cellnodefactors[:,icell],system.celledgefactors[:,icell])
+
+    function barrier(csys::Type{T}) where T
+        nalloc=@allocated for icell=1:ncells
+            @views cellfactors!(geom, csys, coord, cellnodes, icell,
+                                system.cellnodefactors[:,icell],system.celledgefactors[:,icell])
+        end
+        nalloc>0 &&  @warn "$nalloc allocations in cell factor calculation"
+            
+        nalloc=@allocated  for ibface=1:nbfaces
+            @views bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,
+                                 system.bfacenodefactors[:,ibface], system.bfaceedgefactors[:, ibface])
+        end
+        nalloc>0 &&  @warn "$nalloc allocations in bface factor calculation"
+
     end
-    
-    for ibface=1:nbfaces
-        @views bfacefactors!(bgeom,csys,coord,bfacenodes,ibface,
-                             system.bfacenodefactors[:,ibface], system.bfaceedgefactors[:, ibface])
-    end
+    barrier(csys)
 end
 
 ##################################################################
