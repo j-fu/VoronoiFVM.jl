@@ -1,21 +1,21 @@
 ### A Pluto.jl notebook ###
-# v0.19.13
+# v0.19.14
 
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
-md"""
-# Nonlinear solver control
-"""
-
-# ╔═╡ eb9ea477-6122-4774-b4a4-04dd7346e2b6
-md"""
-Generally, nonlinear systems in this package  are solved using Newton's method.  In many cases, the default settings provided by this package work well. However, the convergence of Newton's method is only guaranteed with initial values s7ufficiently close to the exact solution. This notebook describes how change the default settings for the solution of nonlinear problems with VoronoiFVM.jl. 
-"""
-
-# ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-TableOfContents(;aside=false)
+# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
+begin
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
+	using Revise
+	developing=true
+    end
+    initialized=true
+end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin
@@ -30,6 +30,19 @@ begin
 	GridVisualize.default_plotter!(PlutoVista)
     end
 end;
+
+# ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
+md"""
+# Nonlinear solver control
+"""
+
+# ╔═╡ eb9ea477-6122-4774-b4a4-04dd7346e2b6
+md"""
+Generally, nonlinear systems in this package  are solved using Newton's method.  In many cases, the default settings provided by this package work well. However, the convergence of Newton's method is only guaranteed with initial values s7ufficiently close to the exact solution. This notebook describes how change the default settings for the solution of nonlinear problems with VoronoiFVM.jl. 
+"""
+
+# ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
+TableOfContents(;aside=false)
 
 # ╔═╡ 9843b65c-6ca8-4ef8-a896-2c8cec4bff7c
 md"""
@@ -258,19 +271,6 @@ This notebook is also run during the automatic unit tests.
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
 
-# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
-begin
-    import Pkg as _Pkg
-    developing=false
-    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	_Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-	using Revise
-	developing=true
-    end
-    initialized=true
-end;
-
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
 if developing 
 	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
@@ -306,7 +306,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.2"
 manifest_format = "2.0"
-project_hash = "16d9aa557731d9361cd5247104ff0e7ddd6eddc7"
+project_hash = "7542c45844384a917f1d366d7b8ba3a31d0e7d9d"
 
 [[deps.AbstractAlgebra]]
 deps = ["GroupsCore", "InteractiveUtils", "LinearAlgebra", "MacroTools", "Markdown", "Random", "RandomExtensions", "SparseArrays", "Test"]
