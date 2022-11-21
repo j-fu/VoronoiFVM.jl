@@ -4,11 +4,15 @@
 
 Solve a Poisson equation
 ```math
-- \Delta u = 0
+- \Delta u = 0,
 ```
 
-in $\Omega=(-1,1)$
-with a point charge $Q$ at $x=0$. 
+in $\Omega=(-1,0)\cup (0,1)$ and
+```math
+u'_+(0) - u'_-(0) + Q = 0
+```
+at $x=0$. Unknown ``u`` corresponds to the electrostatic potential of a point charge $Q$ located at ``x=0``.
+The subscripts ``+`` and ``-`` denote the one-sided limits ``u'_+(0):=\lim_{x\to 0, x > 0} u(x)`` and ``u'_-(0):=\lim_{x\to 0, x < 0} u(x)``, respectively.
 =#
 
 module Example121_PoissonPointCharge1D
@@ -48,7 +52,7 @@ function main(;nref=0,Plotter=nothing, verbose=false, unknown_storage=:sparse, b
     end
 
     ## Define boundary reaction defining charge
-    ## Note that the term  is written on  the left hand side, therefore the - sign
+    ## Note that the breaction is implemented as a right hand side, therefore the - sign
     function breaction!(f,u,node)
         if node.region==3
             f[1]=-Q
