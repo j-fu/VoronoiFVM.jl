@@ -106,9 +106,15 @@ include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
 export measurement_derivative
 
+
+include("vfvm_diffeq_interface.jl")
+export eval_rhs!, eval_jacobian!, mass_matrix, prepare_diffeq!
+
 include("gridvisualize.jl")
 
-include("precompile.jl")
+
+
+# include("precompile.jl")
 
 end
 

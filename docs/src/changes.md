@@ -1,4 +1,8 @@
 # Changes
+## v0.18.4  Oct 18 2022
+- Add API methods used by VoronoiFVMDiffEq.jl
+## v0.18.3  Oct 18 2022
+- Removed some allocations
 ## v0.18.2  Oct 13 2022
 - Emerging capability of differencing wrt. parameters (experimental, see example 430)
 - Allow iterative methods from Krylov.jl

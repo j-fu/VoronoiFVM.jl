@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
-version = "0.18.3"
+version = "0.18.4"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -34,7 +34,6 @@ DocStringExtensions = "0.8,0.9"
 ExtendableGrids = "0.8.3,0.9"
 ExtendableSparse = "0.9"
 ForwardDiff = "^0.10"
-GridVisualize = "^0.4.7, 0.5"
 IterativeSolvers = "0.9.2"
 JLD2 = "^0.4"
 Krylov = "0.8.4"
@@ -44,3 +43,4 @@ SparseDiffTools = "^1.19"
 StaticArrays = "0.12,1"
 Symbolics = "^4.2"
 julia = "^1.6"
+
