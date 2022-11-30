@@ -1,5 +1,10 @@
 ################################################
-const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
+
+if VERSION>v"1.8"
+    const  default_umfpack_pivot_tolerance=SparseArrays.UMFPACK.get_umfpack_control(Float64,Int64)[3+1]
+else
+    const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
+end
 
 """
 $(TYPEDEF)

@@ -8,7 +8,11 @@ using Printf
 using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
-using SuiteSparse
+
+if VERSION<=v"1.8"
+    using SuiteSparse
+end
+
 using BandedMatrices
 # using MultidiagonalMatrices
 

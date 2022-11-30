@@ -128,7 +128,9 @@ function _solve!(
         residual=system.residual
         update=system.update
         _initialize!(solution,system; time, λ=embedparam,params)
-        SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
+        if VERSION<=v"1.8"
+            SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
+        end
         
         if isnothing(system.factorization)
             if isa(system.matrix,ExtendableSparseMatrix)
