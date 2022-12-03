@@ -5,7 +5,7 @@ using Pkg
 # Activate assembly loop allocation checking
 # as default.
 ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
-ENV["TEST_ALL"]="true"
+
 
 modname(fname)=splitext(basename(fname))[1]
 
@@ -98,7 +98,7 @@ function run_all_tests()
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
         end
 
-        if VERSION>=v"1.8" && haskey(ENV,"TEST_ALL") && ENV["TEST_ALL"]=="true" #  !Sys.iswindows() # there seems to be a time limit problem
+        if VERSION>=v"1.8" && VERSION<v"1.9" && haskey(ENV,"TEST_ALL") && ENV["TEST_ALL"]=="true" && !Sys.iswindows() # there seems to be a time limit problem
             @testset "notebooks" begin
                 for notebook in notebooks
                     #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))
