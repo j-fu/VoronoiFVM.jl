@@ -176,8 +176,8 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
             end
         end
     end
-    flush!(M)
-    isdiag(M.cscmatrix) ? Diagonal(M.cscmatrix) : M.cscmatrix
+    Mcsc=sparse(M)
+    isdiag(Mcsc) ? Diagonal([M[i,i] for i=1:ndof]) : M
 end
 
 """
