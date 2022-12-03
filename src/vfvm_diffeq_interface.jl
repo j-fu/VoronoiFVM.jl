@@ -63,8 +63,9 @@ end
 $(SIGNATURES)
 
 Calculate the mass matrix for use with DifferentialEquations.jl.
+Return a Diagonal matrix if it occurs to be diagonal, otherwise return a SparseMatrixCSC.
 """
-function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
+function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, Tm}
     physics=system.physics
     grid=system.grid
     data=physics.data
@@ -75,7 +76,8 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     bfacenodefactors=system.bfacenodefactors
     bgeom=grid[BFaceGeometries][1]
     nbfaces=num_bfaces(grid)
-
+    ndof=num_dof(system)
+    
     if isdata(data)
         isbstorage=(physics.bstorage!=nofunc)
 
@@ -113,7 +115,7 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
 
     U=unknowns(system,inival=1)
-    M=unknowns(system,inival=0)
+    M=ExtendableSparseMatrix{Tv,Tm}(ndof,ndof)
     
     geom=grid[CellGeometries][1]
     cellnodes=grid[CellNodes]
@@ -121,6 +123,7 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
     bfacenodes=grid[BFaceNodes]
 
     for icell=1:num_cells(grid)
+        ireg=cellregions[icell]
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
             for ispec=1:nspecies
@@ -130,13 +133,23 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
             res_stor=DiffResults.value(result_s)
             jac_stor=DiffResults.jacobian(result_s)
             K=node.index
-            for idof=_firstnodedof(M,K):_lastnodedof(M,K)
-                ispec=_spec(M,idof,K)
-                M[ispec,K]+=cellnodefactors[inode,icell]*jac_stor[ispec,ispec]
+
+            for idof=_firstnodedof(U,K):_lastnodedof(U,K)
+                ispec=_spec(U,idof,K)
+                if system.region_species[ispec,ireg]<=0
+                    continue
+                end
+                for jdof=_firstnodedof(U,K):_lastnodedof(U,K)
+                    jspec=_spec(U,jdof,K)
+                    if system.region_species[jspec,ireg]<=0
+                        continue
+                    end
+                    _addnz(M,idof,jdof,jac_stor[ispec,jspec],cellnodefactors[inode,icell])
+                end
             end
         end
     end
-    
+
     if isbstorage
         for ibface=1:nbfaces
             for ibnode=1:num_nodes(bgeom)
@@ -146,16 +159,25 @@ function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
                 end
                 ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
                 jac_bstor=DiffResults.jacobian(result_s)
-                for idof=_firstnodedof(M,K):_lastnodedof(M,K)
-                    ispec=_spec(M,idof,K)
-                    M[ispec,K]+=bfacenodefactors[ibnode,ibface]*jac_bstor[ispec,ispec]
+                for idof=_firstnodedof(U,K):_lastnodedof(U,K)
+                    ispec=_spec(U,idof,K)
+                    if !isdof(system,ispec,K)
+                        continue
+                    end
+                    for jdof=_firstnodedof(U,K):_lastnodedof(U,K)
+                        jspec=_spec(U,jdof,K)
+                        if !isdof(system,jspec,K)
+                            continue
+                        end
+                        _addnz(M,idof,jdof,jac_bstor[ispec,jspec],bfacenodefactors[ibnode,ibface])
+                    end
                 end
                 
             end
         end
     end
-    
-    return Diagonal(vec(M))
+    flush!(M)
+    isdiag(M.cscmatrix) ? Diagonal(M.cscmatrix) : M.cscmatrix
 end
 
 """
