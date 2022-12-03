@@ -5,7 +5,7 @@ using Pkg
 # Activate assembly loop allocation checking
 # as default.
 ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
-ENV["TEST_ALL"]="false"
+ENV["TEST_ALL"]="true"
 
 modname(fname)=splitext(basename(fname))[1]
 

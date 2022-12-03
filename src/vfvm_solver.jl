@@ -1057,7 +1057,9 @@ module NoModule end
 """
     VoronoiFVM.solve(system; kwargs...)
     
-Built-in solution method for VoronoiFVM.System.
+Built-in solution method for [`VoronoiFVM.System`](@ref).  
+For using ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl), see
+the [VoronoiFVMDiffEq.jl](https://github.com/j-fu/VoronoiFVMDiffEq.jl) package.
     
 Keyword arguments:
 - General for all solvers 

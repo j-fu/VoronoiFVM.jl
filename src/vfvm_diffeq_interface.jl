@@ -114,7 +114,7 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     cfg_s=ForwardDiff.JacobianConfig(storagewrap, Y, UK)
     cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
 
-    U=unknowns(system,inival=1)
+    U=unknowns(system,inival=0)
     M=ExtendableSparseMatrix{Tv,Tm}(ndof,ndof)
     
     geom=grid[CellGeometries][1]
@@ -126,14 +126,14 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
         ireg=cellregions[icell]
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
+            K=node.index
             for ispec=1:nspecies
-                UK[ispec]=U[ispec,node.index]
+                UK[ispec]=U[ispec,K]
             end
+            
             ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
             res_stor=DiffResults.value(result_s)
             jac_stor=DiffResults.jacobian(result_s)
-            K=node.index
-
             for idof=_firstnodedof(U,K):_lastnodedof(U,K)
                 ispec=_spec(U,idof,K)
                 if system.region_species[ispec,ireg]<=0
@@ -149,7 +149,7 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
             end
         end
     end
-
+    
     if isbstorage
         for ibface=1:nbfaces
             for ibnode=1:num_nodes(bgeom)
@@ -177,7 +177,7 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
         end
     end
     Mcsc=sparse(M)
-    isdiag(Mcsc) ? Diagonal([M[i,i] for i=1:ndof]) : M
+    isdiag(Mcsc) ? Diagonal([Mcsc[i,i] for i=1:ndof]) : Mcsc
 end
 
 """
