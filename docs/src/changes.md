@@ -1,5 +1,11 @@
 # Changes
-## v0.18.4  Oct 18 2022
+## v0.18.7  Dec 7, 2022
+- bump gridvisualize compat
+## v0.18.6  Dec 3, 2022
+- enable non-diagonal mass matrices for VoronoiFVMDiffEq
+## v0.18.5  Nov 30, 2022
+- ready for Julia 1.9, re-enable CI on nighly
+## v0.18.4  Nov 29, 2022
 - Add API methods used by VoronoiFVMDiffEq.jl
 ## v0.18.3  Oct 18 2022
 - Removed some allocations
