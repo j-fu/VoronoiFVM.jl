@@ -378,7 +378,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     bedge   = BEdge(system,time,λ,params)
 
     
-    @create_physics_wrappers(physics, node, bnode, edge, bedge)
     
     nspecies::Int = num_species(system)
     matrix        = system.matrix
@@ -398,14 +397,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     for iparam=1:nparams
         dudp[iparam].=0.0
     end
-    
-    # structs holding diff results for storage, reaction,  flux ...
-    result_r    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies + nparams))
-    result_s    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies + nparams))
-    result_flx  = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies + nparams))
-    result_bflx = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies + nparams))  
-    # Array holding function results
-    Y = Array{Tv,1}(undef,nspecies)
 
     # Arrays for gathering solution data
     UK    = Array{Tv,1}(undef,nspecies + nparams)
@@ -419,37 +410,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
         UKL[2*nspecies+1:end].=params
     end
     
-    # array holding source term
-    src   = zeros(Tv,nspecies)
-    bsrc  = zeros(Tv,nspecies)
-    # arrays holding storage terms for old solution
-    oldstor   = zeros(Tv, nspecies)
-    res_react = zeros(Tv, nspecies)
-    jac_react = zeros(Tv, nspecies, nspecies)
-    oldbstor  = zeros(Tv, nspecies)
-
-
-    # Due to
-
-    # https://github.com/JuliaDiff/ForwardDiff.jl/issues/516
-
-    # in   order   to  avoid   allocations,   we   directly  call   into
-    # vector_mode_jacobian!. However, by default,  this assumes that the
-    # length    of     the    argument     vector    is     less    than
-    # DEFAULT_CHUNK_THRESHOLD.
-
-    # This threshold can be increased by passing ForwardDiff.Chunk(UK,...).
-    
-    # See also https://juliadiff.org/ForwardDiff.jl/stable/user/advanced/#Configuring-Chunk-Size
-    
-    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    
-    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies + nparams))
-    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies + nparams))
-
     
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
@@ -460,9 +420,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2}  = system.boundary_values
-
-    hasbc = !iszero(boundary_factors) || !iszero(boundary_values)
-
     bfaceregions::Vector{Ti} = grid[BFaceRegions]
     cellregions::Vector{Ti} = grid[CellRegions]
 
@@ -470,10 +427,28 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     ncells  = num_cells(grid)
     geom=grid[CellGeometries][1]
     bgeom   = grid[BFaceGeometries][1]
-
     
     nn::Int = num_nodes(geom)
     ne::Int = num_edges(geom)
+
+    has_legacy_bc = !iszero(boundary_factors) || !iszero(boundary_values)
+
+
+    #
+    # These wrap the different physics functions.
+    #
+    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies)
+    rea_eval  = ResJacEvaluator(physics,:reaction,UK,node,nspecies)
+    stor_eval = ResJacEvaluator(physics,:storage,UK,node,nspecies)
+    oldstor_eval = ResEvaluator(physics,:storage,UK,node,nspecies)
+    flux_eval = ResJacEvaluator(physics,:flux,UKL,edge,nspecies)
+
+
+    bsrc_eval  = ResEvaluator(physics,:bsource,UK,bnode,nspecies)
+    brea_eval  = ResJacEvaluator(physics,:breaction,UK,bnode,nspecies)
+    bstor_eval = ResJacEvaluator(physics,:bstorage,UK,bnode,nspecies)
+    oldbstor_eval = ResEvaluator(physics,:bstorage,UK,bnode,nspecies)
+    bflux_eval = ResJacEvaluator(physics,:bflux,UKL,bedge,nspecies)
 
 
     ncalloc=@allocated  for icell=1:ncells
@@ -493,27 +468,20 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 #   UKOld[1:nspecies]=UOld[:,node.index]
                 # Evaluate source term
 
-            if issource
-                sourcewrap(src)
-            end
+            evaluate!(src_eval)
+            src = res(src_eval)
             
-            if isreaction
-                # Evaluate & differentiate reaction term if present
-                Y .= zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
-                res_react = DiffResults.value(result_r)
-                jac_react = DiffResults.jacobian(result_r)
-            end
+            evaluate!(rea_eval,UK)
+            res_react = res(rea_eval)
+            jac_react = jac(rea_eval)
             
-            # Evaluate & differentiate storage term
-            Y.=zero(Tv)
-            ForwardDiff.vector_mode_jacobian!(result_s,storagewrap,Y,UK,cfg_s)
-            res_stor = DiffResults.value(result_s)
-            jac_stor = DiffResults.jacobian(result_s)
+            evaluate!(stor_eval,UK)
+            res_stor = res(stor_eval)
+            jac_stor = jac(stor_eval)
 
-            # Evaluate storage term for old timestep
-            oldstor.=zero(Tv)
-            storagewrap(oldstor,UKOld)
+            evaluate!(oldstor_eval,UKOld)
+            oldstor = res(oldstor_eval)
+
             K=node.index
             for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                 ispec=_spec(F,idof,K)
@@ -546,10 +514,10 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             @views UKL[1:nspecies]            .= U[:, edge.node[1]]
             @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
 
-            Y.=zero(Tv)
-            ForwardDiff.vector_mode_jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
-            res=DiffResults.value(result_flx)
-            jac=DiffResults.jacobian(result_flx)
+
+            evaluate!(flux_eval,UKL)
+            res_flux = res(flux_eval)
+            jac_flux = jac(flux_eval)
 
             K=edge.node[1]
             L=edge.node[2]
@@ -565,8 +533,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                      continue
                 end
 
-                _add(F,idofK,fac*res[ispec])
-                _add(F,idofL,-fac*res[ispec])
+                _add(F,idofK,fac*res_flux[ispec])
+                _add(F,idofL,-fac*res_flux[ispec])
                 
                 for jdofK=_firstnodedof(F,K):_lastnodedof(F,K)
                     jspec=_spec(F,jdofK,K)
@@ -578,16 +546,16 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                         continue
                     end
                     
-                    _addnz(matrix,idofK,jdofK,+jac[ispec,jspec         ],fac)
-                    _addnz(matrix,idofL,jdofK,-jac[ispec,jspec         ],fac)
-                    _addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
-                    _addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
+                    _addnz(matrix,idofK,jdofK,+jac_flux[ispec,jspec         ],fac)
+                    _addnz(matrix,idofL,jdofK,-jac_flux[ispec,jspec         ],fac)
+                    _addnz(matrix,idofK,jdofL,+jac_flux[ispec,jspec+nspecies],fac)
+                    _addnz(matrix,idofL,jdofL,-jac_flux[ispec,jspec+nspecies],fac)
                 end
                 
                 for iparam=1:nparams
                     jparam=2*nspecies+iparam
-                    dudp[iparam][idofK]+=fac*jac[ispec,jparam]
-                    dudp[iparam][idofL]-=fac*jac[ispec,jparam]
+                    dudp[iparam][idofK]+=fac*jac_flux[ispec,jparam]
+                    dudp[iparam][idofL]-=fac*jac_flux[ispec,jparam]
                 end
             end
         end
@@ -613,15 +581,18 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
             bnode.Dirichlet=Dirichlet/bnode_factor
             
-            if isbsource
-                bsourcewrap(bsrc)
-            end
+            evaluate!(bsrc_eval)
+            bsrc = res(bsrc_eval)
+
+            # if isbsource
+            #     bsourcewrap(bsrc)
+            # end
 
             # Global index of node
             K::Int=bnode.index
 
 
-            if hasbc
+            if has_legacy_bc
                 # Assemble "standard" boundary conditions: Robin or
                 # Dirichlet
                 # valid only for interior species, currently not checked
@@ -651,15 +622,11 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                     end
                 end
             end
-            
-            # Boundary reaction term has been given.
-            # Valid for both boundary and interior species
-            if isbreaction
-                # Evaluate function + derivative
-                Y.=zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
-                res_breact=DiffResults.value(result_r)
-                jac_breact=DiffResults.jacobian(result_r)
+
+            if docall(brea_eval)
+                evaluate!(brea_eval,UK)
+                res_breact = res(brea_eval)
+                jac_breact = jac(brea_eval)
                 
                 # Assemble RHS + matrix
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
@@ -681,24 +648,16 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                         dudp[iparam][idof]+=jac_breact[ispec,jparam]*bnode_factor
                     end
                 end
-
             end
-            
-            # Boundary reaction term has been given.
-            # Valid only for boundary species, but system is currently not checked.
-            if isbstorage
+
+            if docall(bstor_eval)
+                evaluate!(bstor_eval,UK)
+                res_bstor = res(bstor_eval)
+                jac_bstor = jac(bstor_eval)
                 
-                # Fetch data for old timestep
                 @views UKOld.=UOld[:,bnode.index]
-
-                # Evaluate storage term for old timestep
-                bstoragewrap(oldbstor,UKOld)
-
-                # Evaluate & differentiate storage term for new time step value
-                Y.=zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
-                res_bstor=DiffResults.value(result_s)
-                jac_bstor=DiffResults.jacobian(result_s)
+                evaluate!(oldbstor_eval,UKOld)
+                oldbstor = res(oldbstor_eval)
                 
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
@@ -719,13 +678,13 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                     end
                     for iparam=1:nparams
                         jparam=nspecies+iparam
-                        dudp[iparam][idof]+=jac_bstor[ispec,jparam]*bnode_factor*tstepinv
+                    dudp[iparam][idof]+=jac_bstor[ispec,jparam]*bnode_factor*tstepinv
                     end
                 end
-            end # if isbstorage
-            
+            end
         end # ibnode=1:nbn
-        if isbflux
+        
+        if docall(bflux_eval)
             for ibedge=1:nbe
                 if abs(bfaceedgefactors[ibedge,ibface]) < edge_cutoff
                     continue
@@ -735,28 +694,27 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 @views UKL[1:nspecies]            .= U[:, bedge.node[1]]
                 @views UKL[nspecies+1:2*nspecies] .= U[:, bedge.node[2]]
 
-                Y.=zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_bflx, bfluxwrap, Y, UKL, cfg_bflx)
-                res = DiffResults.value(result_bflx)
-                jac = DiffResults.jacobian(result_bflx)
-                
+                evaluate!(bflux_eval,UKL)
+                res_bflux = res(bflux_eval)
+                jac_bflux = jac(bflux_eval)
+
                 K   = bedge.node[1]
                 L   = bedge.node[2]
-            
+                
                 fac = bfaceedgefactors[ibedge, ibface]
-
+                
                 for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
                     ispec =_spec(F, idofK, K)
                     if !isdof(system,ispec,K)
                         continue
                     end
-
+                    
                     idofL = dof(F, ispec, L)
                     if idofL == 0
                         continue
                     end
-                    _add(F, idofK,  fac*res[ispec])
-                    _add(F, idofL, -fac*res[ispec])
+                    _add(F, idofK,  fac*res_bflux[ispec])
+                    _add(F, idofL, -fac*res_bflux[ispec])
                     
                     for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
                         jspec = _spec(F,jdofK,K)
@@ -769,15 +727,15 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                             continue
                         end
                         
-                        _addnz(matrix, idofK, jdofK, +jac[ispec, jspec         ], fac)
-                        _addnz(matrix, idofL, jdofK, -jac[ispec, jspec         ], fac)
-                        _addnz(matrix, idofK, jdofL, +jac[ispec, jspec+nspecies], fac)
-                        _addnz(matrix, idofL, jdofL, -jac[ispec, jspec+nspecies], fac)
+                        _addnz(matrix, idofK, jdofK, +jac_bflux[ispec, jspec         ], fac)
+                        _addnz(matrix, idofL, jdofK, -jac_bflux[ispec, jspec         ], fac)
+                        _addnz(matrix, idofK, jdofL, +jac_bflux[ispec, jspec+nspecies], fac)
+                        _addnz(matrix, idofL, jdofL, -jac_bflux[ispec, jspec+nspecies], fac)
                      end
                 end
-
-
-
+                #!!! Param
+                
+                
             end
         end
     end

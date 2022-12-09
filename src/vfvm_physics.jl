@@ -290,7 +290,145 @@ function Base.show(io::IO,physics::AbstractPhysics)
 end
 
 
+abstract type AbstractEvaluator end
 
+#
+# Evaluator for functions from physics.
+# Allows to call different types of physic functions (flux, reaction, source)
+#
+struct  ResEvaluator{Tv<:Number,Func<:Function, G} <: AbstractEvaluator
+    fwrap::Func # wrapper to be called
+    y::Vector{Tv} # pre-allocated result
+    geom::G # geometry (node, edhe...)
+    nspec::Int # number of species
+    docall::Bool # has the function bee user defined ?
+end
+
+#
+# Here we pass physics + symbol instead of the cooresponding function
+#  uproto: solution vector protoype,
+#  geom: node, edge...
+# nspec: number of species
+function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) where Tv
+
+    func=getproperty(physics,symb)
+
+    # source functions need special handling her
+    if symb== :source || symb== :bsource
+        if isdata(physics.data)
+            fwrap=function(y)
+                y.=0
+                func(rhs(geom,y),geom,physics.data)
+                nothing
+            end
+            docall = func!=nofunc2
+        else
+            fwrap=function(y)
+                y.=0
+                func(rhs(geom,y),geom)
+                nothing
+            end
+            docall = func!=nofunc
+        end
+    else   # Normal functions wihth u as parameter     
+        if isdata(physics.data)
+            fwrap=function(y, u)
+                y.=0
+                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+                func(rhs(geom,y),unknowns(geom,u),geom,physics.data)
+                ## for ii in .. y[ii]=y[geom.speclist[ii]]
+                nothing
+            end
+            docall = func!=nofunc2
+        else
+            fwrap=function(y, u)
+                y.=0
+                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+                func(rhs(geom,y),unknowns(geom,u),geom)
+                ## for ii in .. y[ii]=y[geom.speclist[ii]]
+                nothing
+            end
+            docall = func!=nofunc
+        end
+    end
+    
+    y = zeros(Tv,nspec)
+    ResEvaluator(fwrap,y,geom,nspec,docall)
+end
+
+function evaluate!(e::ResEvaluator,u)
+    e.docall ? e.fwrap(e.y,u) : nothing
+    nothing
+end
+
+function evaluate!(e::ResEvaluator)
+    e.docall ? e.fwrap(e.y) : nothing
+    nothing
+end
+
+res(e::ResEvaluator) = e.y
+
+
+#
+# Evaluator for functions from physics. Evaluates residual and Jacobian.
+# Allows to call different types of physic functions (flux, reaction)
+#
+struct  ResJacEvaluator{Tv<:Number,Func<:Function,Cfg,Res,G} <: AbstractEvaluator
+    fwrap::Func # wrapper to be called
+    config::Cfg # ForwardDiff.JacobianConfig
+    result::Res # DiffResults.JacobianResult
+    y::Vector{Tv} # pre-allocated result
+    geom::G # geometry (node, edhe...)
+    nspec::Int # number of species
+    docall::Bool # has the function bee user defined ?
+end
+
+#
+# Here we pass physics + symbol instead of the cooresponding function
+#  uproto: solution vector protoype,
+#  geom: node, edge...
+# nspec: number of species
+function ResJacEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec) where Tv
+
+    func=getproperty(physics,symb)
+
+    if isdata(physics.data)
+        fwrap=function(y, u)
+            y.=0
+            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+            func(rhs(geom,y),unknowns(geom,u),geom,physics.data)
+            ## for ii in .. y[ii]=y[geom.speclist[ii]]
+            nothing
+        end
+        docall = func!=nofunc2
+    else
+        fwrap=function(y, u)
+            y.=0
+            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+            func(rhs(geom,y),unknowns(geom,u),geom)
+            ## for ii in .. y[ii]=y[geom.speclist[ii]]
+            nothing
+        end
+        docall = func!=nofunc
+    end
+    
+    y = zeros(Tv,nspec)
+    u = copy(uproto)
+    jac = zeros(Tv, nspec, length(u))
+    result=DiffResults.DiffResult(u,jac)
+    config=ForwardDiff.JacobianConfig(fwrap, y,u, ForwardDiff.Chunk(u,length(u)))
+    ResJacEvaluator(fwrap,config,result,y,geom,nspec,docall)
+end
+
+function evaluate!(e::ResJacEvaluator,u)
+    e.docall ? ForwardDiff.vector_mode_jacobian!(e.result,e.fwrap,e.y,u,e.config) : nothing
+    nothing
+end
+
+res(e::ResJacEvaluator) = DiffResults.value(e.result)
+jac(e::ResJacEvaluator) = DiffResults.jacobian(e.result)
+
+docall(e::AbstractEvaluator) = e.docall
 
 """
 ```
