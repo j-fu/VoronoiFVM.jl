@@ -105,24 +105,25 @@ function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tv,nspecies)
-    res=zeros(Tv,nspecies)
-    src=zeros(Tv,nspecies)
-    stor=zeros(Tv,nspecies)
-    storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
 
-    #!!! params etc 
+    # !!! params etc 
     physics=system.physics
     node=Node(system)
     bnode=BNode(system)
     edge=Edge(system)
     bedge=Edge(system)
-    @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
     UKL=Array{Tv,1}(undef,2*nspecies)
     UK=Array{Tv,1}(undef,nspecies)
     UKold=Array{Tv,1}(undef,nspecies)
-    
+
+    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies)
+    rea_eval  = ResEvaluator(physics,:reaction,UK,node,nspecies)
+    stor_eval = ResEvaluator(physics,:storage,UK,node,nspecies)
+    storold_eval = ResEvaluator(physics,:storage,UKold,node,nspecies)
+    flux_eval = ResEvaluator(physics,:flux,UKL,edge,nspecies)
+
 
     geom=grid[CellGeometries][1]
     
@@ -133,33 +134,34 @@ function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
             @views UKL[1:nspecies].=U[:,edge.node[1]]
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
 
-            res.=zero(Tv)
-            fluxwrap(res,UKL)
+            evaluate!(flux_eval,UKL)
+            flux=res(flux_eval)
             for ispec=1:nspecies
                 if isdof(system, ispec, edge.node[1]) && isdof(system, ispec, edge.node[2]) 
-                    integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+                    integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
         
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
-            begin
-                res.=zero(Tv)
-                stor.=zero(Tv)
-                storold.=zero(Tv)
-                for ispec=1:nspecies
-                    UK[ispec]=U[ispec,node.index]
-                    UKold[ispec]=Uold[ispec,node.index]
-                end
-                reactionwrap(res,UK)
-                sourcewrap(src)
-                storagewrap(stor,UK)
-                storagewrap(storold,UKold)
+            for ispec=1:nspecies
+                UK[ispec]=U[ispec,node.index]
+                UKold[ispec]=Uold[ispec,node.index]
             end
+
+            evaluate!(rea_eval,UK)
+            rea=res(rea_eval)
+            evaluate!(stor_eval,UK)
+            stor=res(stor_eval)
+            evaluate!(storold_eval,UKold)
+            storold=res(storold_eval)
+            evaluate!(src_eval)
+            src=res(src_eval)
+
             for ispec=1:nspecies
                 if isdof(system, ispec, node.index)
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
+                    integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
                 end
             end
         end
@@ -187,33 +189,33 @@ function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
-    res=zeros(Tu,nspecies)
-    src=zeros(Tu,nspecies)
-    stor=zeros(Tu,nspecies)
 
     physics=system.physics
     node=Node(system)
     bnode=BNode(system)
     edge=Edge(system)
     bedge=BEdge(system)
-    @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
     UKL=Array{Tu,1}(undef,2*nspecies)
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
-   
+
+    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies)
+    rea_eval  = ResEvaluator(physics,:reaction,UK,node,nspecies)
+    flux_eval = ResEvaluator(physics,:flux,UKL,edge,nspecies)
+
+    
     for icell=1:num_cells(grid)
         for iedge=1:num_edges(geom)
             _fill!(edge,iedge,icell)
 
             @views UKL[1:nspecies].=U[:,edge.node[1]]
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
-            res.=zero(Tv)
-            
-            fluxwrap(res,UKL)
+            evaluate!(flux_eval,UKL)
+            flux=res(flux_eval)
             for ispec=1:nspecies
                 if isdof(system, ispec, edge.node[1]) && isdof(system, ispec, edge.node[2]) 
-                    integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+                    integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
                 end
             end
         end
@@ -221,14 +223,15 @@ function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
 
-            res.=zeros(Tv)
-            src.=zeros(Tv)
             @views UK.=U[:,node.index]
-            reactionwrap(res,UK)
-            sourcewrap(src)
+
+            evaluate!(rea_eval,UK)
+            rea=res(rea_eval)
+            evaluate!(src_eval)
+            src=res(src_eval)
             for ispec=1:nspecies
                 if isdof(system, ispec, node.index)
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec])*tf[node.index]
+                    integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec])*tf[node.index]
                 end
             end
         end
@@ -246,30 +249,26 @@ function integrate_tran(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
-    res=zeros(Tu,nspecies)
-    stor=zeros(Tu,nspecies)
-
 
     physics=system.physics
     node=Node(system)
     bnode=BNode(system)
     edge=Edge(system)
     bedge=BEdge(system)
-    @create_physics_wrappers(physics,node,bnode,edge,bedge)
+
     
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
+    stor_eval = ResEvaluator(physics,:storage,UK,node,nspecies)
     
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
-
-            res.=zeros(Tv)
-            stor.=zeros(Tv)
             @views UK.=U[:,node.index]
+            evaluate!(stor_eval,UK)
+            stor=res(stor_eval)
 
-            storagewrap(stor,U[:,node.index])
             for ispec=1:nspecies
                 if isdof(system, ispec, node.index)
                     integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]

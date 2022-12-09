@@ -77,42 +77,10 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     bgeom=grid[BFaceGeometries][1]
     nbfaces=num_bfaces(grid)
     ndof=num_dof(system)
-    
-    if isdata(data)
-        isbstorage=(physics.bstorage!=nofunc)
 
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node,data)
-            nothing
-        end
-        
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode,data)
-            nothing
-        end
-        
-    else
-        isbstorage=(physics.bstorage!=nofunc2)
-
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node)
-            nothing
-        end
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode)
-            nothing
-        end
-    end        
-
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    Y=Array{Tv,1}(undef,nspecies)
     UK=Array{Tv,1}(undef,nspecies)
-    cfg_s=ForwardDiff.JacobianConfig(storagewrap, Y, UK)
-    cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
+    stor_eval = ResJacEvaluator(physics,:storage,UK,node,nspecies)
+    bstor_eval = ResJacEvaluator(physics,:bstorage,UK,node,nspecies)
 
     U=unknowns(system,inival=0)
     M=ExtendableSparseMatrix{Tv,Tm}(ndof,ndof)
@@ -130,10 +98,11 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
             for ispec=1:nspecies
                 UK[ispec]=U[ispec,K]
             end
-            
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
-            res_stor=DiffResults.value(result_s)
-            jac_stor=DiffResults.jacobian(result_s)
+
+            evaluate!(stor_eval,UK)
+            res_stor=res(stor_eval)
+            jac_stor=jac(stor_eval)
+
             for idof=_firstnodedof(U,K):_lastnodedof(U,K)
                 ispec=_spec(U,idof,K)
                 if system.region_species[ispec,ireg]<=0
@@ -150,15 +119,17 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
         end
     end
     
-    if isbstorage
+    if docall(bstor_eval)
         for ibface=1:nbfaces
             for ibnode=1:num_nodes(bgeom)
                 _fill!(bnode,ibnode,ibface)
+                K=bnode.index
                 for ispec=1:nspecies
                     UK[ispec]=U[ispec,bnode.index]
                 end
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
-                jac_bstor=DiffResults.jacobian(result_s)
+                evaluate!(bstor_eval,UK)
+                res_bstor=res(bstor_eval)
+                jac_bstor=jac(bstor_eval)
                 for idof=_firstnodedof(U,K):_lastnodedof(U,K)
                     ispec=_spec(U,idof,K)
                     if !isdof(system,ispec,K)

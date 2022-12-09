@@ -100,34 +100,16 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
     bnode=BNode(system)
     bfaceregions::Vector{Ti}=grid[BFaceRegions]
     nspecies=num_species(system)
-    nodeparams=(node,)
-    bnodeparams=(bnode,)
-    if isdata(data)
-        nodeparams=(node,data,)
-        bnodeparams=(bnode,data,)
-    end    
-
-    storagewrap=function(y::AbstractVector, u::AbstractVector)
-        y.=0
-        physics.storage(y,u,nodeparams...)
-    end
-    
-    bstoragewrap=function(y::AbstractVector, u::AbstractVector)
-        y.=0
-        physics.bstorage(y,u,bnodeparams...)
-    end
         
     UK=Array{Tv,1}(undef,nspecies)
-    Y=Array{Tv,1}(undef,nspecies)
+    stor_eval = ResJacEvaluator(physics,:storage,UK,node,nspecies)
+    bstor_eval = ResJacEvaluator(physics,:bstorage,UK,node,nspecies)
 
     F.=0.0
     if system.num_parameters>0
         F.-=system.dudp[1]
     end
-
     
-    # structs holding diffresults for storage
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
 
     geom=grid[CellGeometries][1]
 
@@ -140,8 +122,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
             @views UK[1:nspecies]=U0[:,node.index]
             
             # Evaluate & differentiate storage term at U0
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK)
-            jac_stor=DiffResults.jacobian(result_s)
+            evaluate!(stor_eval,UK)
+            jac_stor=jac(stor_eval)
 
             # Sort it into storderiv matrix.
             K=node.index
@@ -169,9 +151,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
                 _fill!(bnode,ibnode,ibface)
                 @views UK[1:nspecies]=U0[:,bnode.index]
                 # Evaluate & differentiate storage term
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK)
-                res_bstor=DiffResults.value(result_s)
-                jac_bstor=DiffResults.jacobian(result_s)
+                evaluate!(bstor_eval,UK)
+                jac_bstor=jac(bstor_eval)
                 K=bnode.index
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
                     ispec=_spec(F,idof,K)
