@@ -779,6 +779,201 @@ Check if degree of freedom is defined.
 isdof(system::AbstractSystem,ispec,inode)= system.node_dof[ispec,inode]==ispec
 
 
+#
+# Local node assembly methods receive nspec x nspec jacobians and nspec vectors of data
+# However, not all species slots correspond to a degree of freedon (indeed, here is the
+# largest reserve for assembly time - we pass too much to the callbacks).
+#
+# So we need to organize the degrees of freedom, and assembly routines
+# are only called for those ispec,jspec, which correspond to dofs.
+
+
+#
+# Assemble residual and jacobian for node functions
+# - asm_res(ispec,jspec) shall act on the local resisual in one given dof
+# - asm_jac(idof,jdof,ispec,jspec) shall  assemble the jacobian between two given dofs
+# - asm_param(idof,ispec,iparam) shall assemble parameter derivatives
+#
+function assemble_res_jac(system,F,node, asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
+    K=node.index
+    ireg=node.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if system.region_species[ispec,ireg]>0 # it is not enough to know if the species are defined...
+            asm_res(idof,ispec)
+            for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                jspec=_species_of_dof(F,jdof,K)
+                if system.region_species[jspec,ireg]>0
+                    asm_jac(idof,jdof,ispec,jspec)
+                end
+            end
+        end
+        for iparam=1:system.num_parameters
+            asm_param(idof,ispec,iparam) 
+        end
+    end
+end
+
+function assemble_res(system,F,node, asm_res::R) where {R}
+    K=node.index
+    ireg=node.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if system.region_species[ispec,ireg]>0
+            asm_res(idof,ispec)
+        end
+    end
+end
+
+
+function assemble_flux_res_jac(system,F, edge,asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
+    K=edge.node[1]
+    L=edge.node[2]
+    ireg=edge.region
+    
+    for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idofK,K)
+        idofL=dof(F,ispec,L)
+        if idofL==0
+            continue
+        end
+        if system.region_species[ispec,ireg]<=0
+            continue
+        end
+
+        asm_res(idofK,idofL,ispec)
+                
+        for jdofK=_firstnodedof(F,K):_lastnodedof(F,K)
+            jspec=_species_of_dof(F,jdofK,K)
+            if system.region_species[jspec,ireg]<=0
+                continue
+            end
+            jdofL=dof(F,jspec,L)
+            if jdofL==0
+                continue
+            end
+
+            asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+        end
+        
+        for iparam=1:system.num_parameters
+            asm_param(idofK,idofL,ispec,iparam)            
+        end
+    end
+
+end
+
+
+function assemble_flux_res(system,F, edge,asm_res::R) where {R}
+    K=edge.node[1]
+    L=edge.node[2]
+    ireg=edge.region
+    
+    for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idofK,K)
+        idofL=dof(F,ispec,L)
+        if idofL==0
+            continue
+        end
+        if system.region_species[ispec,ireg]<=0
+            continue
+        end
+        asm_res(idofK,idofL,ispec)
+    end
+end
+
+
+function bassemble_res_jac(system,F,node, asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
+    K=node.index
+    ireg=node.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if isdof(system,ispec,K)
+            asm_res(idof,ispec)
+            for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                jspec=_species_of_dof(F,jdof,K)
+                if isdof(system,jspec,K)
+                    asm_jac(idof,jdof,ispec,jspec)
+                end
+            end
+        end
+        for iparam=1:system.num_parameters
+            asm_param(idof,ispec,iparam) 
+        end
+    end
+end
+
+function bassemble_res(system,F,node, asm_res::R) where {R}
+    K=node.index
+    ireg=node.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if isdof(system,ispec,K)
+            asm_res(idof,ispec)
+        end
+    end
+end
+function bassemble_flux_res_jac(system,F, bedge,asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
+    K   = bedge.node[1]
+    L   = bedge.node[2]
+    
+    
+    for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
+        ispec =_species_of_dof(F, idofK, K)
+        if !isdof(system,ispec,K)
+            continue
+        end
+        
+        idofL = dof(F, ispec, L)
+        if idofL == 0
+            continue
+        end
+        
+        asm_res(idofK,idofL,ispec)
+        
+        for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
+            jspec = _species_of_dof(F,jdofK,K)
+            if !isdof(system,jspec,K)
+                continue
+            end
+            
+            jdofL = dof(F,jspec,L)
+            if jdofL == 0
+                continue
+            end
+            asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+        end
+    end
+    
+    for iparam=1:system.num_parameters
+        asm_param(idofK,idofL,ispec,iparam)            
+    end
+end
+        
+
+
+
+    
+function bassemble_flux_res(system,F,edge,asm_res::R) where {R}
+    K   = edge.node[1]
+    L   = edge.node[2]
+    for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
+        ispec =_species_of_dof(F, idofK, K)
+        if !isdof(system,ispec,K)
+            continue
+        end
+        
+        idofL = dof(F, ispec, L)
+        if idofL == 0
+            continue
+        end
+
+        asm_res(idofK,idofL,ispec)
+    end
+end
+    
+
+
 ##################################################################
 """
 $(SIGNATURES)

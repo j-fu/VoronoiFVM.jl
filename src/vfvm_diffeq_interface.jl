@@ -78,9 +78,8 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     nbfaces=num_bfaces(grid)
     ndof=num_dof(system)
 
-    UK=Array{Tv,1}(undef,nspecies)
-    stor_eval = ResJacEvaluator(physics,:storage,UK,node,nspecies)
-    bstor_eval = ResJacEvaluator(physics,:bstorage,UK,node,nspecies)
+    stor_eval = ResJacEvaluator(physics,:storage,zeros(Tv,nspecies),node,nspecies)
+    bstor_eval = ResJacEvaluator(physics,:bstorage,zeros(Tv,nspecies),node,nspecies)
 
     U=unknowns(system,inival=0)
     M=ExtendableSparseMatrix{Tv,Tm}(ndof,ndof)
@@ -90,60 +89,31 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     cellregions=grid[CellRegions]
     bfacenodes=grid[BFaceNodes]
 
+    asm_res(idof,ispec)=nothing
+    asm_param(idof,ispec,iparam)= nothing
     for icell=1:num_cells(grid)
         ireg=cellregions[icell]
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
             K=node.index
-            for ispec=1:nspecies
-                UK[ispec]=U[ispec,K]
-            end
 
-            evaluate!(stor_eval,UK)
-            res_stor=res(stor_eval)
+            @views evaluate!(stor_eval,U[:,K])
             jac_stor=jac(stor_eval)
 
-            for idof=_firstnodedof(U,K):_lastnodedof(U,K)
-                ispec=_spec(U,idof,K)
-                if system.region_species[ispec,ireg]<=0
-                    continue
-                end
-                for jdof=_firstnodedof(U,K):_lastnodedof(U,K)
-                    jspec=_spec(U,jdof,K)
-                    if system.region_species[jspec,ireg]<=0
-                        continue
-                    end
-                    _addnz(M,idof,jdof,jac_stor[ispec,jspec],cellnodefactors[inode,icell])
-                end
-            end
+            asm_jac(idof,jdof,ispec,jspec)= _addnz(M,idof,jdof,jac_stor[ispec,jspec],cellnodefactors[inode,icell])
+            assemble_res_jac(system,U, node, asm_res,asm_jac,asm_param)
         end
     end
     
-    if docall(bstor_eval)
+    if isnontrivial(bstor_eval)
         for ibface=1:nbfaces
             for ibnode=1:num_nodes(bgeom)
                 _fill!(bnode,ibnode,ibface)
                 K=bnode.index
-                for ispec=1:nspecies
-                    UK[ispec]=U[ispec,bnode.index]
-                end
-                evaluate!(bstor_eval,UK)
-                res_bstor=res(bstor_eval)
+                @views evaluate!(bstor_eval,U[:,K])
                 jac_bstor=jac(bstor_eval)
-                for idof=_firstnodedof(U,K):_lastnodedof(U,K)
-                    ispec=_spec(U,idof,K)
-                    if !isdof(system,ispec,K)
-                        continue
-                    end
-                    for jdof=_firstnodedof(U,K):_lastnodedof(U,K)
-                        jspec=_spec(U,jdof,K)
-                        if !isdof(system,jspec,K)
-                            continue
-                        end
-                        _addnz(M,idof,jdof,jac_bstor[ispec,jspec],bfacenodefactors[ibnode,ibface])
-                    end
-                end
-                
+                asm_jac(idof,jdof,ispec,jspec)= _addnz(M,idof,jdof,jac_bstor[ispec,jspec],bfacenodefactors[ibnode,ibface])
+                assemble_res_jac(system,U, node, asm_res,asm_jac,asm_param)
             end
         end
     end

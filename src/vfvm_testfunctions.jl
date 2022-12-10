@@ -136,11 +136,9 @@ function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
 
             evaluate!(flux_eval,UKL)
             flux=res(flux_eval)
-            for ispec=1:nspecies
-                if isdof(system, ispec, edge.node[1]) && isdof(system, ispec, edge.node[2]) 
-                    integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
-                end
-            end
+
+            asm_res(idofK,idofL,ispec)=integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+            assemble_flux_res(system,U, edge,asm_res)
         end
         
         for inode=1:num_nodes(geom)
@@ -159,11 +157,9 @@ function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
             evaluate!(src_eval)
             src=res(src_eval)
 
-            for ispec=1:nspecies
-                if isdof(system, ispec, node.index)
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
-                end
-            end
+
+            asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
+            assemble_res(system,U,node, asm_res)
         end
     end
     return integral
@@ -213,11 +209,10 @@ function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
             evaluate!(flux_eval,UKL)
             flux=res(flux_eval)
-            for ispec=1:nspecies
-                if isdof(system, ispec, edge.node[1]) && isdof(system, ispec, edge.node[2]) 
-                    integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
-                end
-            end
+
+
+            asm_res(idofK,idofL,ispec) = integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+            assemble_flux_res(system,U, edge,asm_res)
         end
         
         for inode=1:num_nodes(geom)
@@ -229,11 +224,10 @@ function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
             rea=res(rea_eval)
             evaluate!(src_eval)
             src=res(src_eval)
-            for ispec=1:nspecies
-                if isdof(system, ispec, node.index)
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec])*tf[node.index]
-                end
-            end
+
+            asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec])*tf[node.index]
+            assemble_res(system,U,node, asm_res)
+
         end
     end
     return integral
@@ -255,7 +249,7 @@ function integrate_tran(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
     bnode=BNode(system)
     edge=Edge(system)
     bedge=BEdge(system)
-
+    # !!! Parameters
     
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
@@ -269,11 +263,8 @@ function integrate_tran(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
             evaluate!(stor_eval,UK)
             stor=res(stor_eval)
 
-            for ispec=1:nspecies
-                if isdof(system, ispec, node.index)
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
-                end
-            end
+            asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
+            assemble_res(system,U,node, asm_res)
         end
     end
     return integral

@@ -341,6 +341,7 @@ end
 
 zero!(m::AbstractMatrix{T}) where T = m.=zero(T)
 
+#using JET
 # function zero!(m::MultidiagonalMatrix{T}) where {T}
 #     for d ∈ m.shadow
 #         d.second.=0.0
@@ -380,7 +381,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     
     
     nspecies::Int = num_species(system)
-    matrix        = system.matrix
     
     cellnodefactors::Array{Tv,2}  = system.cellnodefactors
     celledgefactors::Array{Tv,2}  = system.celledgefactors
@@ -388,7 +388,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors    
     
     # Reset matrix + rhs
-    zero!(matrix)
+    zero!(system.matrix)
     F   .= 0.0
     nparams::Int=system.num_parameters
     if nparams>0
@@ -457,20 +457,11 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             _fill!(node,inode,icell)
             @views UK[1:nspecies]    .= U[:,node.index]
             @views UKOld[1:nspecies] .= UOld[:,node.index]
-            # xx gather:
-                # ii=0
-                # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
-                #    ispec=Fdof.rowval[idof]
-                #    ii=ii+1
-                #    node.speclist[ii]=ispec
-                #    UK[ii]=U[ispec,K]
-                #   UK[1:nspecies]=U[:,node.index]
-                #   UKOld[1:nspecies]=UOld[:,node.index]
-                # Evaluate source term
+            fac=cellnodefactors[inode,icell]
 
             evaluate!(src_eval)
             src = res(src_eval)
-            
+
             evaluate!(rea_eval,UK)
             res_react = res(rea_eval)
             jac_react = jac(rea_eval)
@@ -478,121 +469,80 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             evaluate!(stor_eval,UK)
             res_stor = res(stor_eval)
             jac_stor = jac(stor_eval)
-
+            
             evaluate!(oldstor_eval,UKOld)
             oldstor = res(oldstor_eval)
 
-            K=node.index
-            for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                ispec=_spec(F,idof,K)
-                if system.region_species[ispec,ireg]<=0
-                    continue
-                end
-                _add(F,idof,cellnodefactors[inode,icell]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
-                for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    jspec=_spec(F,jdof,K)
-                    if system.region_species[jspec,ireg]<=0
-                        continue
-                    end
-                    val=jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv
-                    _addnz(matrix,idof,jdof,val,cellnodefactors[inode,icell])
-                end
-                for iparam=1:nparams
-                    jparam=nspecies+iparam
-                    dudp[iparam][idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*cellnodefactors[inode,icell]
-                end
+            asm_res(idof,ispec)=_add(F,idof,fac*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
+            
+            function asm_jac(idof,jdof,ispec,jspec)
+                _addnz(system.matrix, idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,fac)
             end
+            
+            function asm_param(idof,ispec,iparam)
+                jparam=nspecies+iparam
+                dudp[iparam][idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*fac
+            end
+            assemble_res_jac(system,F, node, asm_res,asm_jac,asm_param)
+
         end
 
         for iedge=1:ne
-            if abs(celledgefactors[iedge,icell])<edge_cutoff
-                continue
-            end
+            abs(celledgefactors[iedge,icell])<edge_cutoff&& continue
             _fill!(edge,iedge,icell)
-
+            fac=celledgefactors[iedge,icell]
+            
             #Set up argument for fluxwrap
             @views UKL[1:nspecies]            .= U[:, edge.node[1]]
             @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
-
-
+            
             evaluate!(flux_eval,UKL)
             res_flux = res(flux_eval)
             jac_flux = jac(flux_eval)
 
-            K=edge.node[1]
-            L=edge.node[2]
             
-            fac=celledgefactors[iedge,icell]
-            for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
-                ispec=_spec(F,idofK,K)
-                idofL=dof(F,ispec,L)
-                if idofL==0
-                    continue
-                end
-                if system.region_species[ispec,ireg]<=0
-                     continue
-                end
-
+            function asm_res(idofK,idofL,ispec)
                 _add(F,idofK,fac*res_flux[ispec])
                 _add(F,idofL,-fac*res_flux[ispec])
-                
-                for jdofK=_firstnodedof(F,K):_lastnodedof(F,K)
-                    jspec=_spec(F,jdofK,K)
-                    if system.region_species[jspec,ireg]<=0
-                        continue
-                    end
-                    jdofL=dof(F,jspec,L)
-                    if jdofL==0
-                        continue
-                    end
-                    
-                    _addnz(matrix,idofK,jdofK,+jac_flux[ispec,jspec         ],fac)
-                    _addnz(matrix,idofL,jdofK,-jac_flux[ispec,jspec         ],fac)
-                    _addnz(matrix,idofK,jdofL,+jac_flux[ispec,jspec+nspecies],fac)
-                    _addnz(matrix,idofL,jdofL,-jac_flux[ispec,jspec+nspecies],fac)
-                end
-                
-                for iparam=1:nparams
-                    jparam=2*nspecies+iparam
-                    dudp[iparam][idofK]+=fac*jac_flux[ispec,jparam]
-                    dudp[iparam][idofL]-=fac*jac_flux[ispec,jparam]
-                end
             end
+            
+            function asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+                _addnz(system.matrix,idofK,jdofK,+jac_flux[ispec,jspec         ],fac)
+                _addnz(system.matrix,idofL,jdofK,-jac_flux[ispec,jspec         ],fac)
+                _addnz(system.matrix,idofK,jdofL,+jac_flux[ispec,jspec+nspecies],fac)
+                _addnz(system.matrix,idofL,jdofL,-jac_flux[ispec,jspec+nspecies],fac)
+            end
+            
+            function asm_param(idofK,idofL,ispec,iparam)
+                jparam=2*nspecies+iparam
+                dudp[iparam][idofK]+=fac*jac_flux[ispec,jparam]
+                dudp[iparam][idofL]-=fac*jac_flux[ispec,jparam]
+            end
+            
+            assemble_flux_res_jac(system,F, edge,asm_res,asm_jac, asm_param )
+            
         end
     end
 
     nbn::Int = num_nodes(bgeom)
     nbe::Int = num_edges(bgeom)
-
+    
     # Assembly loop for boundary conditions
     nballoc= @allocated for ibface=1:nbfaces
         ibreg=bfaceregions[ibface]
-
+        
         # Loop over nodes of boundary face
         for ibnode=1:nbn
             # Fill bnode data shuttle with data from grid
             _fill!(bnode,ibnode,ibface)
 
-            
-            # Copy unknown values from solution into dense array
-            @views UK[1:nspecies].=U[:,bnode.index]
-
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
-            bnode.Dirichlet=Dirichlet/bnode_factor
             
-            evaluate!(bsrc_eval)
-            bsrc = res(bsrc_eval)
-
-            # if isbsource
-            #     bsourcewrap(bsrc)
-            # end
-
-            # Global index of node
-            K::Int=bnode.index
-
-
             if has_legacy_bc
+                # Global index of node
+                K=bnode.index
+                bnode.Dirichlet=Dirichlet/bnode_factor
                 # Assemble "standard" boundary conditions: Robin or
                 # Dirichlet
                 # valid only for interior species, currently not checked
@@ -613,44 +563,36 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                             
                             # Add penalty to matrix main diagonal (without bnode factor, so penalty
                             # is independent of h)
-                            _addnz(matrix,idof,idof,boundary_factor,1)
+                            _addnz(system.matrix,idof,idof,boundary_factor,1)
                         else
                             # Robin boundary condition
                             F[ispec,K]+=bnode_factor*(boundary_factor*U[ispec,K]-boundary_value)
-                            _addnz(matrix,idof,idof,boundary_factor, bnode_factor)
+                            _addnz(system.matrix,idof,idof,boundary_factor, bnode_factor)
                         end
                     end
                 end
             end
 
-            if docall(brea_eval)
-                evaluate!(brea_eval,UK)
-                res_breact = res(brea_eval)
-                jac_breact = jac(brea_eval)
-                
-                # Assemble RHS + matrix
-                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_spec(F,idof,K)
-                    if !isdof(system,ispec,K)
-                        continue
-                    end
-                    
-                    _add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
-                        if !isdof(system,jspec,K)
-                            continue
-                        end
-                        _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
-                    end
-                    for iparam=1:nparams
-                        jparam=nspecies+iparam
-                        dudp[iparam][idof]+=jac_breact[ispec,jparam]*bnode_factor
-                    end
-                end
-            end
+            # Copy unknown values from solution into dense array
+            @views UK[1:nspecies].=U[:,bnode.index]
 
-            if docall(bstor_eval)
+            evaluate!(bsrc_eval)
+            bsrc = res(bsrc_eval)
+            
+            evaluate!(brea_eval,UK)
+            res_breact = res(brea_eval)
+            jac_breact = jac(brea_eval)
+            
+            
+            asm_res1(idof,ispec)=_add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
+            
+            asm_jac1(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
+            
+            asm_param1(idof,ispec,iparam)= dudp[iparam][idof]+=jac_breact[ispec,nspecies+iparam]*bnode_factor
+            
+            bassemble_res_jac(system,F, bnode, asm_res1,asm_jac1,asm_param1)
+            
+            if isnontrivial(bstor_eval) 
                 evaluate!(bstor_eval,UK)
                 res_bstor = res(bstor_eval)
                 jac_bstor = jac(bstor_eval)
@@ -659,52 +601,62 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 evaluate!(oldbstor_eval,UKOld)
                 oldbstor = res(oldbstor_eval)
                 
-                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_spec(F,idof,K)
-                    if !isdof(system,ispec,K)
-                        continue
-                    end
-                    
-                    # Assemble finite difference in time for right hand side
-                    _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
-                    # Assemble matrix.
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
-                        if !isdof(system,jspec,K)
-                            continue
-                        end
-                        
-                        _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
-                    end
-                    for iparam=1:nparams
-                        jparam=nspecies+iparam
-                    dudp[iparam][idof]+=jac_bstor[ispec,jparam]*bnode_factor*tstepinv
-                    end
-                end
+                asm_res2(idof,ispec)= _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
+                
+                asm_jac2(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
+                
+                asm_param2(idof,ispec,iparam)= dudp[iparam][idof]+=jac_bstor[ispec,nspecies+iparam]*bnode_factor*tstepinv
+                
+                bassemble_res_jac(system,F, bnode, asm_res2,asm_jac2,asm_param2)
+                
             end
         end # ibnode=1:nbn
-        
-        if docall(bflux_eval)
+
+
+        if isnontrivial(bflux_eval)
             for ibedge=1:nbe
-                if abs(bfaceedgefactors[ibedge,ibface]) < edge_cutoff
+                fac = bfaceedgefactors[ibedge, ibface]
+                if abs(fac) < edge_cutoff
                     continue
                 end
-
+                
                 _fill!(bedge,ibedge,ibface)
                 @views UKL[1:nspecies]            .= U[:, bedge.node[1]]
                 @views UKL[nspecies+1:2*nspecies] .= U[:, bedge.node[2]]
-
+                
                 evaluate!(bflux_eval,UKL)
                 res_bflux = res(bflux_eval)
                 jac_bflux = jac(bflux_eval)
 
+
+                function asm_res(idofK,idofL,ispec)
+                    _add(F, idofK,  fac*res_bflux[ispec])
+                    _add(F, idofL, -fac*res_bflux[ispec])
+                end
+
+                function asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+                    _addnz(system.matrix, idofK, jdofK, +jac_bflux[ispec, jspec         ], fac)
+                    _addnz(system.matrix, idofL, jdofK, -jac_bflux[ispec, jspec         ], fac)
+                    _addnz(system.matrix, idofK, jdofL, +jac_bflux[ispec, jspec+nspecies], fac)
+                    _addnz(system.matrix, idofL, jdofL, -jac_bflux[ispec, jspec+nspecies], fac)
+                end
+
+                function asm_param(idofK,idofL,ispec,iparam)
+                    jparam=2*nspecies+iparam
+                    dudp[iparam][idofK]+=fac*jac_bflux[ispec,jparam]
+                    dudp[iparam][idofL]-=fac*jac_bflux[ispec,jparam]
+                end
+
+                
+                bassemble_flux_res_jac(system,F, bedge,asm_res,asm_jac, asm_param)
+
+                
                 K   = bedge.node[1]
                 L   = bedge.node[2]
                 
-                fac = bfaceedgefactors[ibedge, ibface]
                 
                 for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
-                    ispec =_spec(F, idofK, K)
+                    ispec =_species_of_dof(F, idofK, K)
                     if !isdof(system,ispec,K)
                         continue
                     end
@@ -713,40 +665,33 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                     if idofL == 0
                         continue
                     end
-                    _add(F, idofK,  fac*res_bflux[ispec])
-                    _add(F, idofL, -fac*res_bflux[ispec])
+                    
+                    
                     
                     for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec = _spec(F,jdofK,K)
+                        jspec = _species_of_dof(F,jdofK,K)
                         if !isdof(system,jspec,K)
                             continue
                         end
-
+                        
                         jdofL = dof(F,jspec,L)
                         if jdofL == 0
                             continue
                         end
                         
-                        _addnz(matrix, idofK, jdofK, +jac_bflux[ispec, jspec         ], fac)
-                        _addnz(matrix, idofL, jdofK, -jac_bflux[ispec, jspec         ], fac)
-                        _addnz(matrix, idofK, jdofL, +jac_bflux[ispec, jspec+nspecies], fac)
-                        _addnz(matrix, idofL, jdofL, -jac_bflux[ispec, jspec+nspecies], fac)
-                     end
+                    end
+                    #!!! Param
                 end
-                #!!! Param
-                
-                
             end
         end
     end
-
     noallocs(m::ExtendableSparseMatrix)=isnothing(m.lnkmatrix)
     noallocs(m::AbstractMatrix)=false
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
-    if noallocs(matrix) && !_check_allocs(system,ncalloc+nballoc)
-        error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
-                            See the documentation of `check_allocs!` for more information""")
+    if noallocs(system.matrix) && !_check_allocs(system,ncalloc+nballoc)
+        # error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
+        #                     See the documentation of `check_allocs!` for more information""")
     end
    _eval_and_assemble_generic_operator(system,U,F)
    _eval_and_assemble_inactive_species(system,U,UOld,F)

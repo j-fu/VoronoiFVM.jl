@@ -128,10 +128,10 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
             # Sort it into storderiv matrix.
             K=node.index
             for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                ispec=_spec(F,idof,K)
+                ispec=_species_of_dof(F,idof,K)
                 if isdof(system,ispec,K)
                     for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
+                        jspec=_species_of_dof(F,jdof,K)
                         if isdof(system,jspec,K)
                             updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
                         end
@@ -155,10 +155,10 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
                 jac_bstor=jac(bstor_eval)
                 K=bnode.index
                 for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_spec(F,idof,K)
+                    ispec=_species_of_dof(F,idof,K)
                     if isdof(system,ispec,K)
                         for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                            jspec=_spec(F,jdof,K)
+                            jspec=_species_of_dof(F,jdof,K)
                             if isdof(system,jspec,K)
                                 updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
                             end

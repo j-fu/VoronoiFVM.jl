@@ -241,6 +241,7 @@ end
 
 
 function Physics(physics::Physics, data)
+    @show "here"
     Physics(physic.flux,
             physic.storage,
             physic.reaction,
@@ -301,7 +302,7 @@ struct  ResEvaluator{Tv<:Number,Func<:Function, G} <: AbstractEvaluator
     y::Vector{Tv} # pre-allocated result
     geom::G # geometry (node, edhe...)
     nspec::Int # number of species
-    docall::Bool # has the function bee user defined ?
+    isnontrivial::Bool # has the function bee user defined ?
 end
 
 #
@@ -321,14 +322,12 @@ function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) w
                 func(rhs(geom,y),geom,physics.data)
                 nothing
             end
-            docall = func!=nofunc2
         else
             fwrap=function(y)
                 y.=0
                 func(rhs(geom,y),geom)
                 nothing
             end
-            docall = func!=nofunc
         end
     else   # Normal functions wihth u as parameter     
         if isdata(physics.data)
@@ -339,7 +338,6 @@ function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) w
                 ## for ii in .. y[ii]=y[geom.speclist[ii]]
                 nothing
             end
-            docall = func!=nofunc2
         else
             fwrap=function(y, u)
                 y.=0
@@ -348,21 +346,20 @@ function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) w
                 ## for ii in .. y[ii]=y[geom.speclist[ii]]
                 nothing
             end
-            docall = func!=nofunc
         end
     end
-    
+    isnontrivial = (func!=nofunc2) && (func!=nofunc)
     y = zeros(Tv,nspec)
-    ResEvaluator(fwrap,y,geom,nspec,docall)
+    ResEvaluator(fwrap,y,geom,nspec,isnontrivial)
 end
 
 function evaluate!(e::ResEvaluator,u)
-    e.docall ? e.fwrap(e.y,u) : nothing
+    e.isnontrivial ? e.fwrap(e.y,u) : nothing
     nothing
 end
 
 function evaluate!(e::ResEvaluator)
-    e.docall ? e.fwrap(e.y) : nothing
+    e.isnontrivial ? e.fwrap(e.y) : nothing
     nothing
 end
 
@@ -380,7 +377,7 @@ struct  ResJacEvaluator{Tv<:Number,Func<:Function,Cfg,Res,G} <: AbstractEvaluato
     y::Vector{Tv} # pre-allocated result
     geom::G # geometry (node, edhe...)
     nspec::Int # number of species
-    docall::Bool # has the function bee user defined ?
+    isnontrivial::Bool # has the function bee user defined ?
 end
 
 #
@@ -400,7 +397,6 @@ function ResJacEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec) whe
             ## for ii in .. y[ii]=y[geom.speclist[ii]]
             nothing
         end
-        docall = func!=nofunc2
     else
         fwrap=function(y, u)
             y.=0
@@ -409,26 +405,27 @@ function ResJacEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec) whe
             ## for ii in .. y[ii]=y[geom.speclist[ii]]
             nothing
         end
-        docall = func!=nofunc
     end
     
+    isnontrivial = (func!=nofunc2) && (func!=nofunc)
+
     y = zeros(Tv,nspec)
-    u = copy(uproto)
+    u = zeros(Tv,length(uproto))
     jac = zeros(Tv, nspec, length(u))
     result=DiffResults.DiffResult(u,jac)
     config=ForwardDiff.JacobianConfig(fwrap, y,u, ForwardDiff.Chunk(u,length(u)))
-    ResJacEvaluator(fwrap,config,result,y,geom,nspec,docall)
+    ResJacEvaluator(fwrap,config,result,y,geom,nspec,isnontrivial)
 end
 
 function evaluate!(e::ResJacEvaluator,u)
-    e.docall ? ForwardDiff.vector_mode_jacobian!(e.result,e.fwrap,e.y,u,e.config) : nothing
+    e.isnontrivial ? ForwardDiff.vector_mode_jacobian!(e.result,e.fwrap,e.y,u,e.config) : nothing
     nothing
 end
 
 res(e::ResJacEvaluator) = DiffResults.value(e.result)
 jac(e::ResJacEvaluator) = DiffResults.jacobian(e.result)
 
-docall(e::AbstractEvaluator) = e.docall
+isnontrivial(e::AbstractEvaluator) = e.isnontrivial
 
 
 
