@@ -646,42 +646,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                     dudp[iparam][idofK]+=fac*jac_bflux[ispec,jparam]
                     dudp[iparam][idofL]-=fac*jac_bflux[ispec,jparam]
                 end
-
-                
                 bassemble_flux_res_jac(system,F, bedge,asm_res,asm_jac, asm_param)
-
-                
-                K   = bedge.node[1]
-                L   = bedge.node[2]
-                
-                
-                for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
-                    ispec =_species_of_dof(F, idofK, K)
-                    if !isdof(system,ispec,K)
-                        continue
-                    end
-                    
-                    idofL = dof(F, ispec, L)
-                    if idofL == 0
-                        continue
-                    end
-                    
-                    
-                    
-                    for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec = _species_of_dof(F,jdofK,K)
-                        if !isdof(system,jspec,K)
-                            continue
-                        end
-                        
-                        jdofL = dof(F,jspec,L)
-                        if jdofL == 0
-                            continue
-                        end
-                        
-                    end
-                    #!!! Param
-                end
             end
         end
     end
@@ -690,8 +655,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
     if noallocs(system.matrix) && !_check_allocs(system,ncalloc+nballoc)
-        # error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
-        #                     See the documentation of `check_allocs!` for more information""")
+        error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
+                            See the documentation of `check_allocs!` for more information""")
     end
    _eval_and_assemble_generic_operator(system,U,F)
    _eval_and_assemble_inactive_species(system,U,UOld,F)
