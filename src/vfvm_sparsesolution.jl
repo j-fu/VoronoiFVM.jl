@@ -159,6 +159,12 @@ end
 _firstnodedof(U::SparseSolutionArray, K::Integer) =U.node_dof.colptr[K]
 _lastnodedof(U::SparseSolutionArray, K::Integer) =U.node_dof.colptr[K+1]-1
 _species_of_dof(U::SparseSolutionArray,idof,K) =U.node_dof.rowval[idof]
+
+"""
+$(TYPEDSIGNATURES)
+
+Add residual value into global degree of freedom
+"""
 _add(U::SparseSolutionArray,idof,val)=U.node_dof.nzval[idof]+=val
 
 

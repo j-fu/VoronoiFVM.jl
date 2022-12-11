@@ -12,25 +12,10 @@ Base.Float64(x::ForwardDiff.Dual)=value(x)
 Random.rand(rng::AbstractRNG, ::Random.SamplerType{ForwardDiff.Dual{T,V,N}}) where {T,V,N} = ForwardDiff.Dual{T,V,N}(rand(rng,V))
 
 
-##################################################################
 """
 $(SIGNATURES)
 
-Extract derivatives from dual number.
-"""
-const partials=ForwardDiff.partials
-
-##################################################################
-"""
-$(SIGNATURES)
-
-Extract number of derivatives from dual number.
-"""
-const npartials=ForwardDiff.npartials
-
-
-"""
-Add value to matrix if it is nonzero
+Add value `v*fac` to matrix if `v` is nonzero
 """
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if isnan(v)
@@ -104,6 +89,8 @@ end
 
 
 """
+$(SIGNATURES)
+
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve
 """
@@ -341,13 +328,6 @@ end
 
 zero!(m::AbstractMatrix{T}) where T = m.=zero(T)
 
-#using JET
-# function zero!(m::MultidiagonalMatrix{T}) where {T}
-#     for d ∈ m.shadow
-#         d.second.=0.0
-#     end
-# end
-
 ################################################################
 """
 $(SIGNATURES)
@@ -483,7 +463,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 jparam=nspecies+iparam
                 dudp[iparam][idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*fac
             end
-            assemble_res_jac(system,F, node, asm_res,asm_jac,asm_param)
+            assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
 
         end
 
@@ -519,7 +499,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 dudp[iparam][idofL]-=fac*jac_flux[ispec,jparam]
             end
             
-            assemble_flux_res_jac(system,F, edge,asm_res,asm_jac, asm_param )
+            assemble_res_jac(edge,system,asm_res,asm_jac, asm_param )
             
         end
     end
@@ -590,7 +570,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             
             asm_param1(idof,ispec,iparam)= dudp[iparam][idof]+=jac_breact[ispec,nspecies+iparam]*bnode_factor
             
-            bassemble_res_jac(system,F, bnode, asm_res1,asm_jac1,asm_param1)
+            assemble_res_jac( bnode, system, asm_res1,asm_jac1,asm_param1)
             
             if isnontrivial(bstor_eval) 
                 evaluate!(bstor_eval,UK)
@@ -607,7 +587,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 
                 asm_param2(idof,ispec,iparam)= dudp[iparam][idof]+=jac_bstor[ispec,nspecies+iparam]*bnode_factor*tstepinv
                 
-                bassemble_res_jac(system,F, bnode, asm_res2,asm_jac2,asm_param2)
+                assemble_res_jac(bnode, system, asm_res2,asm_jac2,asm_param2)
                 
             end
         end # ibnode=1:nbn
@@ -646,7 +626,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                     dudp[iparam][idofK]+=fac*jac_bflux[ispec,jparam]
                     dudp[iparam][idofL]-=fac*jac_bflux[ispec,jparam]
                 end
-                bassemble_flux_res_jac(system,F, bedge,asm_res,asm_jac, asm_param)
+                assemble_res_jac(bedge,system,asm_res,asm_jac, asm_param)
             end
         end
     end

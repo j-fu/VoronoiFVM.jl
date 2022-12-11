@@ -78,7 +78,7 @@ function testfunction(factory::TestFunctionFactory, bc0, bc1)
         factory.tfsystem.boundary_factors[1,bc0[i]]=Dirichlet
         factory.tfsystem.boundary_values[1,bc0[i]]=0
     end
-
+    _complete!(factory.tfsystem,create_newtonvectors=true) #!!! no need when assembly refers directly to system
     eval_and_assemble(factory.tfsystem,u,u,f,Inf,Inf,0.0,zeros(0))
 
     _initialize!(u,factory.tfsystem)
@@ -138,7 +138,7 @@ function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
             flux=res(flux_eval)
 
             asm_res(idofK,idofL,ispec)=integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
-            assemble_flux_res(system,U, edge,asm_res)
+            assemble_res(edge,system,asm_res)
         end
         
         for inode=1:num_nodes(geom)
@@ -159,7 +159,7 @@ function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
 
 
             asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
-            assemble_res(system,U,node, asm_res)
+            assemble_res(node,system,asm_res)
         end
     end
     return integral
@@ -212,7 +212,7 @@ function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
 
 
             asm_res(idofK,idofL,ispec) = integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
-            assemble_flux_res(system,U, edge,asm_res)
+            assemble_res(edge,system,asm_res)
         end
         
         for inode=1:num_nodes(geom)
@@ -226,7 +226,7 @@ function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
             src=res(src_eval)
 
             asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec])*tf[node.index]
-            assemble_res(system,U,node, asm_res)
+            assemble_res(node,system,asm_res)
 
         end
     end
@@ -264,7 +264,7 @@ function integrate_tran(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{T
             stor=res(stor_eval)
 
             asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
-            assemble_res(system,U,node, asm_res)
+            assemble_res(node,system,asm_res)
         end
     end
     return integral

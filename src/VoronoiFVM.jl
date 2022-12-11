@@ -58,6 +58,15 @@ include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmetric!
 export coordinates
 
+
+
+"""
+$(TYPEDEF)
+    
+Abstract type for finite volume system structure.
+"""
+abstract type AbstractSystem{Tv<:Number, Tc<:Number, Ti <:Integer, Tm <:Integer} end
+include("vfvm_geometryitems.jl")
 include("vfvm_system.jl")
 export unknowns
 export enable_species!
@@ -73,7 +82,8 @@ export check_allocs!
 export physics!
 export history,history_summary,history_details
 export evaluate_residual_and_jacobian
-include("vfvm_geometryitems.jl")
+
+
 include("vfvm_formfactors.jl")
 export meas,project
 export unknown_indices

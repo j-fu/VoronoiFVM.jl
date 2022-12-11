@@ -1,6 +1,9 @@
 #
 # Interface to VoronoiFVMDiffEq.jl
 #
+# For VoronoiFVM v0.18, v0.19 we allow breaking changes on
+# this part of the API in patch revisions.
+#
 """
     $(TYPEDEF)
 
@@ -20,8 +23,12 @@ details(h::DiffEqHistory)=(nd=h.nd,njac=h.njac,nf=h.nf)
 Base.summary(h::DiffEqHistory)=details(h)
 
 
-#Evaluate functiaon and Jacobian at u if they have not been evaluated before at u.
-#See https://github.com/SciML/DifferentialEquations.jl/issues/521 for discussion of another way to do this.
+"""
+    $(SIGNATURES)
+
+Evaluate functiaon and Jacobian at u if they have not been evaluated before at u.
+See https://github.com/SciML/DifferentialEquations.jl/issues/521 for discussion of another way to do this.
+"""
 function _eval_res_jac!(sys,u,t)
     uhash=hash(u)
     if uhash!=sys.uhash
@@ -101,7 +108,7 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
             jac_stor=jac(stor_eval)
 
             asm_jac(idof,jdof,ispec,jspec)= _addnz(M,idof,jdof,jac_stor[ispec,jspec],cellnodefactors[inode,icell])
-            assemble_res_jac(system,U, node, asm_res,asm_jac,asm_param)
+            assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
         end
     end
     
@@ -113,7 +120,7 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
                 @views evaluate!(bstor_eval,U[:,K])
                 jac_bstor=jac(bstor_eval)
                 asm_jac(idof,jdof,ispec,jspec)= _addnz(M,idof,jdof,jac_bstor[ispec,jspec],bfacenodefactors[ibnode,ibface])
-                assemble_res_jac(system,U, node, asm_res,asm_jac,asm_param)
+                assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
             end
         end
     end

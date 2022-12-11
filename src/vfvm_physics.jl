@@ -291,25 +291,47 @@ function Base.show(io::IO,physics::AbstractPhysics)
 end
 
 
+"""
+    $(TYPEDEF)
+
+Abstract type for evaluator.
+"""
 abstract type AbstractEvaluator end
 
-#
-# Evaluator for functions from physics.
-# Allows to call different types of physic functions (flux, reaction, source)
-#
+"""
+    $(TYPEDEF)
+
+Evaluator for functions from physics. Allows to call different types of physic functions (flux, reaction, source)
+an provides  a common interface to different function formats (with data, without data etc.)
+
+$(TYPEDFIELDS)
+"""
 struct  ResEvaluator{Tv<:Number,Func<:Function, G} <: AbstractEvaluator
-    fwrap::Func # wrapper to be called
-    y::Vector{Tv} # pre-allocated result
-    geom::G # geometry (node, edhe...)
-    nspec::Int # number of species
-    isnontrivial::Bool # has the function bee user defined ?
+    """ wrapper function in Format ready for Diffetential equations"""
+    fwrap::Func 
+    """ pre-allocated result """
+    y::Vector{Tv} 
+    """ Geomtry object # geometry (node, edge...)"""
+    geom::G
+    """ number of species """
+    nspec::Int
+
+    """ Is the  function not one of nofunc ot nofunc2 """
+    isnontrivial::Bool 
 end
 
-#
-# Here we pass physics + symbol instead of the cooresponding function
-#  uproto: solution vector protoype,
-#  geom: node, edge...
-# nspec: number of species
+
+
+"""
+     ResEvaluator(physics,symb,uproto,geom,nspec)
+
+Constructor for ResEvaluator
+- `physics` Physics object
+- `symb`: symbol naming one of the functions in physics to be wrapped.
+- `uproto`: solution vector protoype,
+- `geom`: node, edge...
+- `nspec`: number of species
+"""
 function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) where Tv
 
     func=getproperty(physics,symb)
@@ -353,38 +375,69 @@ function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) w
     ResEvaluator(fwrap,y,geom,nspec,isnontrivial)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Call function in evaluator, store result in predefined memory.
+"""
 function evaluate!(e::ResEvaluator,u)
     e.isnontrivial ? e.fwrap(e.y,u) : nothing
     nothing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Call function in evaluator, store result in predefined memory.
+"""
 function evaluate!(e::ResEvaluator)
     e.isnontrivial ? e.fwrap(e.y) : nothing
     nothing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve evaluation result
+"""
 res(e::ResEvaluator) = e.y
 
 
-#
-# Evaluator for functions from physics. Evaluates residual and Jacobian.
-# Allows to call different types of physic functions (flux, reaction)
-#
+"""
+    $(TYPEDEF)
+
+Evaluator for functions from physics and their Jacobians. Allows to call different types of physic functions (flux, reaction, source)
+an provides  a common interface to different function formats (with data, without data etc.)
+
+$(TYPEDFIELDS)
+"""
 struct  ResJacEvaluator{Tv<:Number,Func<:Function,Cfg,Res,G} <: AbstractEvaluator
-    fwrap::Func # wrapper to be called
-    config::Cfg # ForwardDiff.JacobianConfig
-    result::Res # DiffResults.JacobianResult
-    y::Vector{Tv} # pre-allocated result
-    geom::G # geometry (node, edhe...)
-    nspec::Int # number of species
-    isnontrivial::Bool # has the function bee user defined ?
+    """ wrapper function in Format ready for Differential equations"""
+    fwrap::Func
+    """ ForwardDiff.JacobianConfig """
+    config::Cfg
+    """ DiffResults.JacobianResult"""
+    result::Res 
+    """ pre-allocated result """
+    y::Vector{Tv}
+    """ Geomtry object # geometry (node, edge...)"""
+    geom::G 
+    """ number of species """
+    nspec::Int
+    """ Is the  function not one of nofunc ot nofunc2 """
+    isnontrivial::Bool 
 end
 
-#
-# Here we pass physics + symbol instead of the cooresponding function
-#  uproto: solution vector protoype,
-#  geom: node, edge...
-# nspec: number of species
+"""
+    $(SIGNATURES)
+
+Constructor for ResJEvaluator
+- `physics` Physics object
+- `symb`: symbol naming one of the functions in physics to be wrapped.
+- `uproto`: solution vector protoype,
+- `geom`: node, edge...
+- `nspec`: number of species
+"""
 function ResJacEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec) where Tv
 
     func=getproperty(physics,symb)
@@ -417,14 +470,36 @@ function ResJacEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec) whe
     ResJacEvaluator(fwrap,config,result,y,geom,nspec,isnontrivial)
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Call function in evaluator, store result and jacobian in predefined memory.
+"""
 function evaluate!(e::ResJacEvaluator,u)
     e.isnontrivial ? ForwardDiff.vector_mode_jacobian!(e.result,e.fwrap,e.y,u,e.config) : nothing
     nothing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve evaluation result
+"""
 res(e::ResJacEvaluator) = DiffResults.value(e.result)
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve Jacobian
+"""
 jac(e::ResJacEvaluator) = DiffResults.jacobian(e.result)
 
+
+"""
+$(TYPEDSIGNATURES)
+
+Does calling the evaluator giva nontrivial (nonzero) result?
+"""
 isnontrivial(e::AbstractEvaluator) = e.isnontrivial
 
 
