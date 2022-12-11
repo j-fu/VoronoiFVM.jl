@@ -1,9 +1,11 @@
 # Physics & special functions
 
 ## Physics
-```@autodocs
-Modules = [VoronoiFVM]
-Pages = ["vfvm_physics.jl"]
+```@docs
+VoronoiFVM.AbstractPhysics
+VoronoiFVM.Physics
+VoronoiFVM.Physics(;kwargs...)
+Base.show(io::IO,physics::VoronoiFVM.AbstractPhysics)
 ```
 
 ## Edge and node data
@@ -18,9 +20,3 @@ Pages = ["vfvm_geometryitems.jl"]
 Modules = [VoronoiFVM]
 Pages = ["vfvm_functions.jl"]
 ```
-
-
-
-
-
-

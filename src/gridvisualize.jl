@@ -1,19 +1,44 @@
 # Extend GridVisualize methods
 import GridVisualize
 
+"""
+    $(TYPEDSIGNATURES)
+
+Plot grid behind system
+"""
 GridVisualize.gridplot(sys::AbstractSystem; kwargs...)=GridVisualize.gridplot(sys.grid; kwargs...)
 
+"""
+    $(TYPEDSIGNATURES)
+
+Plot grid behind system
+"""
 GridVisualize.gridplot!(vis,sys::AbstractSystem; kwargs...)=GridVisualize.gridplot!(vis,sys.grid; kwargs...)
 
+"""
+    $(TYPEDSIGNATURES)
+
+Plot one species from solution
+"""
 function GridVisualize.scalarplot(sys::AbstractSystem, sol::AbstractMatrix; species=1, kwargs...)
     GridVisualize.scalarplot(sys.grid,sol[species,:]; kwargs...)
 end
 
+"""
+    $(TYPEDSIGNATURES)
+
+Plot one species from solution
+"""
 function GridVisualize.scalarplot!(vis,sys::AbstractSystem, sol::AbstractMatrix; species=1, kwargs...)
     GridVisualize.scalarplot!(vis,sys.grid,sol[species,:]; kwargs...)
 end
 
 
+"""
+    $(TYPEDSIGNATURES)
+
+Plot one species from transient solution
+"""
 function GridVisualize.scalarplot(sys::AbstractSystem, sol::TransientSolution; species=1, kwargs...)
     @assert dim_space(grid)==1
     vis=GridVisualizer(kwargs...)
@@ -25,6 +50,11 @@ end
 
 
 
+"""
+    $(TYPEDSIGNATURES)
+
+Plot one species from transient solution
+"""
 function GridVisualize.scalarplot!(vis,sys::AbstractSystem, sol::TransientSolution; species=1,tscale=:identity,tlabel="t", kwargs...)
     if !isnothing(vis)
         grid=sys.grid

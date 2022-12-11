@@ -127,13 +127,12 @@ function nodeflux(system::AbstractSystem{Tv,Tc,Ti,Tm},U::AbstractArray{Tu,2}) wh
     nodevol=zeros(Tv,nnodes)
     cellnodes=grid[CellNodes]
     physics=system.physics
-    node=Node(system)
-    bnode=BNode(system)
     edge=Edge(system)
-    bedge=BEdge(system)
-    @create_physics_wrappers(physics,node,bnode,edge,bedge)
 
+    # !!! TODO Parameter handling here
     UKL=Array{Tu,1}(undef,2*nspecies)
+    flux_eval = ResEvaluator(system.physics,:flux,UKL,edge,nspecies)
+    
     geom=grid[CellGeometries][1]
 
     for icell=1:num_cells(grid)
@@ -144,8 +143,8 @@ function nodeflux(system::AbstractSystem{Tv,Tc,Ti,Tm},U::AbstractArray{Tu,2}) wh
             fac=system.celledgefactors[iedge,icell]
             @views UKL[1:nspecies].=U[:,edge.node[1]]
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
-            edgeflux.=zero(Tv)
-            fluxwrap(edgeflux,UKL)
+            evaluate!(flux_eval,UKL)
+            edgeflux = res(flux_eval)
             for ispec=1:nspecies
                 if isdof(system, ispec,K) && isdof(system, ispec,L) 
                     @views nodeflux[:,ispec,K].+=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,K])

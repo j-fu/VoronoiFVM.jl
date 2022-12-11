@@ -1,12 +1,3 @@
-##########################################################
-"""
-$(TYPEDEF)
-    
-Abstract type for finite volume system structure.
-"""
-abstract type AbstractSystem{Tv<:Number, Tc<:Number, Ti <:Integer, Tm <:Integer} end
-
-##################################################################
 """
 $(TYPEDEF)
 
@@ -777,6 +768,255 @@ $(SIGNATURES)
 Check if degree of freedom is defined.
 """
 isdof(system::AbstractSystem,ispec,inode)= system.node_dof[ispec,inode]==ispec
+
+
+"""
+$(SIGNATURES)
+
+Assemble residual and jacobian for node functions. Parameters:
+
+- `system`: System to be worked with
+- `node`: node
+- `asm_res(idof,ispec)`: e.g. assemble local ispec to global degree of freedom in unknowns
+- `asm_jac(idof,jdof,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry `idof,jdof` of global matrix
+- `asm_param(idof,ispec,iparam)` shall assemble parameter derivatives
+"""
+function assemble_res_jac(node::Node,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
+    F=system.residual
+    K=node.index
+    ireg=node.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if system.region_species[ispec,ireg]>0 # it is not enough to know if the species are defined...
+            asm_res(idof,ispec)
+            for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                jspec=_species_of_dof(F,jdof,K)
+                if system.region_species[jspec,ireg]>0
+                    asm_jac(idof,jdof,ispec,jspec)
+                end
+            end
+        end
+        for iparam=1:system.num_parameters
+            asm_param(idof,ispec,iparam) 
+        end
+    end
+end
+
+"""
+$(SIGNATURES)
+
+Assemble residual and jacobian for boundary node functions.
+See [`assemble_res_jac`](@ref) for more explanations.
+"""
+function assemble_res_jac(bnode::BNode,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
+    F=system.residual
+    K=bnode.index
+    ireg=bnode.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if isdof(system,ispec,K)
+            asm_res(idof,ispec)
+            for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
+                jspec=_species_of_dof(F,jdof,K)
+                if isdof(system,jspec,K)
+                    asm_jac(idof,jdof,ispec,jspec)
+                end
+            end
+        end
+        for iparam=1:system.num_parameters
+            asm_param(idof,ispec,iparam) 
+        end
+    end
+end
+
+
+"""
+$(SIGNATURES)
+
+Assemble residual for node functions.
+See [`assemble_res_jac`](@ref) for more explanations.
+"""
+function assemble_res(node::Node, system::AbstractSystem, asm_res::R) where {R}
+    F=system.residual
+    K=node.index
+    ireg=node.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if system.region_species[ispec,ireg]>0
+            asm_res(idof,ispec)
+        end
+    end
+end
+
+"""
+$(SIGNATURES)
+
+Assemble residual for boundary node functions.
+See [`assemble_res_jac`](@ref) for more explanations.
+"""
+function assemble_res(bnode::BNode, system::AbstractSystem, asm_res::R) where {R}
+    F=system.residual
+    K=bnode.index
+    ireg=node.region
+    for idof=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idof,K)
+        if isdof(system,ispec,K)
+            asm_res(idof,ispec)
+        end
+    end
+end
+
+
+"""
+$(SIGNATURES)
+
+Assemble residual and jacobian for edge (flux) functions. Parameters:
+
+- `system`: System to be worked with
+- `node`: node
+- `asm_res(idofK,idofL,ispec)`: e.g. assemble local ispec to global degrees of freedom in unknowns
+- `asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry four entries defined by `idofK` and `idofL` of global matrix
+- `asm_param(idofK,idofL,ispec,iparam)` shall assemble parameter derivatives
+"""
+function assemble_res_jac(edge::Edge,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
+    F=system.residual
+    K=edge.node[1]
+    L=edge.node[2]
+    ireg=edge.region
+    
+    for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idofK,K)
+        idofL=dof(F,ispec,L)
+        if idofL==0
+            continue
+        end
+        if system.region_species[ispec,ireg]<=0
+            continue
+        end
+
+        asm_res(idofK,idofL,ispec)
+                
+        for jdofK=_firstnodedof(F,K):_lastnodedof(F,K)
+            jspec=_species_of_dof(F,jdofK,K)
+            if system.region_species[jspec,ireg]<=0
+                continue
+            end
+            jdofL=dof(F,jspec,L)
+            if jdofL==0
+                continue
+            end
+
+            asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+        end
+        
+        for iparam=1:system.num_parameters
+            asm_param(idofK,idofL,ispec,iparam)            
+        end
+    end
+
+end
+
+
+"""
+$(SIGNATURES)
+
+Assemble residual for edge (flux) functions.
+See [`assemble_res_jac`](@ref) for more explanations.
+"""
+function assemble_res(edge::Edge,system::AbstractSystem, asm_res::R) where {R}
+    F=system.residual
+    K=edge.node[1]
+    L=edge.node[2]
+    ireg=edge.region
+    
+    for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
+        ispec=_species_of_dof(F,idofK,K)
+        idofL=dof(F,ispec,L)
+        if idofL==0
+            continue
+        end
+        if system.region_species[ispec,ireg]<=0
+            continue
+        end
+        asm_res(idofK,idofL,ispec)
+    end
+end
+
+
+
+"""
+$(SIGNATURES)
+
+Assemble residual and jacobian for boundary edge (flux) functions.
+See [`assemble_res_jac`](@ref) for more explanations.
+"""
+function assemble_res_jac(bedge::BEdge,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
+    F=system.residual
+    K   = bedge.node[1]
+    L   = bedge.node[2]
+    
+    
+    for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
+        ispec =_species_of_dof(F, idofK, K)
+        if !isdof(system,ispec,K)
+            continue
+        end
+        
+        idofL = dof(F, ispec, L)
+        if idofL == 0
+            continue
+        end
+        
+        asm_res(idofK,idofL,ispec)
+        
+        for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
+            jspec = _species_of_dof(F,jdofK,K)
+            if !isdof(system,jspec,K)
+                continue
+            end
+            
+            jdofL = dof(F,jspec,L)
+            if jdofL == 0
+                continue
+            end
+            asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+        end
+    end
+    
+    for iparam=1:system.num_parameters
+        asm_param(idofK,idofL,ispec,iparam)            
+    end
+end
+        
+
+
+
+    
+"""
+$(SIGNATURES)
+
+Assemble residual for boundary edge (flux) functions.
+See [`assemble_res_jac`](@ref) for more explanations.
+"""
+function assemble_res(bedge::BEdge,system::AbstractSystem,asm_res::R) where {R}
+    F=system.residual
+    K   = bedge.node[1]
+    L   = bedge.node[2]
+    for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
+        ispec =_species_of_dof(F, idofK, K)
+        if !isdof(system,ispec,K)
+            continue
+        end
+        
+        idofL = dof(F, ispec, L)
+        if idofL == 0
+            continue
+        end
+
+        asm_res(idofK,idofL,ispec)
+    end
+end
+    
 
 
 ##################################################################
