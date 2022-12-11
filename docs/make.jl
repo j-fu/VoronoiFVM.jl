@@ -145,6 +145,6 @@ this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
     end
 end
 
-#make_all(with_examples=true,run_notebooks=true)
-make_all(with_examples=false,run_notebooks=false)
+make_all(with_examples=true,run_notebooks=true)
+#make_all(with_examples=false,run_notebooks=false)
 

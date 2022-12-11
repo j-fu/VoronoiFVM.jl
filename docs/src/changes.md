@@ -1,4 +1,6 @@
 # Changes
+## v0.18.7  Dec 11, 2022
+- Internal restructuring: remove @create_physics_wrappers macro, reduce boilerplate in assembly
 ## v0.18.7  Dec 7, 2022
 - bump gridvisualize compat
 ## v0.18.6  Dec 3, 2022
