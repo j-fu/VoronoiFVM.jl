@@ -26,13 +26,6 @@ Array of values in solution array.
 values(a::DenseSolutionArray{Tv}) where Tv = vec(a)
 
 
-#
-# Accessors for node-dof based loops
-#
-_firstnodedof(U::DenseSolutionArray{Tv},K::Integer) where Tv = (K-1)*size(U,1)+1
-_lastnodedof(U::DenseSolutionArray{Tv},K::Integer) where Tv = K*size(U,1)
-_species_of_dof(U::DenseSolutionArray{Tv},idof,K) where Tv =   idof-(K-1)*size(U,1)
-
 
 
 """

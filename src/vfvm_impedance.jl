@@ -14,16 +14,11 @@ Concrete type for impedance system.
 $(TYPEDFIELDS)
 """
 mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
-
+    
     """
     Nonzero pattern of time domain system matrix
     """
     sysnzval::AbstractVector{Complex{Tv}}
-
-    """
-    Discretization grid
-    """
-    grid
 
     """
     Derivative of storage term
@@ -49,6 +44,11 @@ mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
 end
 
 
+"""
+$(SIGNATURES)
+
+Construct impedance system from time domain system `sys` and steady state solution `U0`
+"""
 function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î»0=0.0) where {Tv,Tc,Ti}
     residual=copy(U0)
 
@@ -68,7 +68,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
     eval_and_assemble(system,U0,U0,residual,0.0,1.0e30,0.0,params)
 
     impedance_system=ImpedanceSystem{Tv}()
-    impedance_system.grid=system.grid
+
     # catch the nonzero values of the system matrix
     impedance_system.sysnzval=complex(nonzeros(system.matrix))
     m,n=size(system.matrix)
@@ -98,7 +98,6 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
     data=physics.data
     node=Node(system)
     bnode=BNode(system)
-    bfaceregions::Vector{Ti}=grid[BFaceRegions]
     nspecies=num_species(system)
         
     UK=Array{Tv,1}(undef,nspecies)
@@ -115,6 +114,9 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
 
     bgeom=grid[BFaceGeometries][1]
 
+    asm_res(idof,ispec)=nothing
+    asm_param(idof,ispec,iparam)= nothing
+
     # Interior cell loop for building up storage derivative
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
@@ -127,18 +129,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
 
             # Sort it into storderiv matrix.
             K=node.index
-            for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                ispec=_species_of_dof(F,idof,K)
-                if isdof(system,ispec,K)
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_species_of_dof(F,jdof,K)
-                        if isdof(system,jspec,K)
-                            updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
-                        end
-                    end
-                end
-            end
-
+            asm_jac(idof,jdof,ispec,jspec)=updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
+            assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
         end
     end
     
@@ -146,7 +138,6 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
     # and right hand side contribution from boundary condition
     if isdefined(physics, :bstorage) # should involve only bspecies
         for ibface=1:num_bfaces(grid)
-            ibreg=bfaceregions[ibface]
             for ibnode=1:num_nodes(bgeom)
                 _fill!(bnode,ibnode,ibface)
                 @views UK[1:nspecies]=U0[:,bnode.index]
@@ -154,17 +145,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; Î
                 evaluate!(bstor_eval,UK)
                 jac_bstor=jac(bstor_eval)
                 K=bnode.index
-                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_species_of_dof(F,idof,K)
-                    if isdof(system,ispec,K)
-                        for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                            jspec=_species_of_dof(F,jdof,K)
-                            if isdof(system,jspec,K)
-                                updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
-                            end
-                        end
-                    end
-                end
+                asm_jac(idof,jdof,ispec,jspec)=updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
+                assemble_res_jac(bnode,system,asm_res,asm_jac,asm_param)
             end
         end
     end
@@ -180,7 +162,7 @@ under the assumption of a periodic perturbation of species `excited_spec` at  bo
 """
 function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Tc,Ti}
     impedance_system=ImpedanceSystem(system,U0)
-    grid=impedance_system.grid
+    grid=system.grid
     bgeom=grid[BFaceGeometries][1]
     bnode=BNode(system)
     bfaceregions::Vector{Ti}=grid[BFaceRegions]
@@ -235,22 +217,24 @@ function solve!(UZ::AbstractMatrix{Complex{Tv}},impedance_system::ImpedanceSyste
     iÏ‰=Ï‰*1im
     matrix=impedance_system.matrix
     storderiv=impedance_system.storderiv
-    grid=impedance_system.grid
     # Reset the matrix nonzero values
     nzval=nonzeros(matrix)
     nzval.=impedance_system.sysnzval
     # Add the Ï‰ dependent term to main diagonal.
     # This makes the implicit assumption that storderiv does not
     # introduce new matrix entries.
-    U0=impedance_system.U0
-    for inode=1:num_nodes(grid)
-        for idof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
-            for jdof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
-                updateindex!(matrix,+,storderiv[idof,jdof]*iÏ‰,idof,jdof)
-            end
+
+    rowval=storderiv.rowval
+    colptr=storderiv.colptr
+    inzval=storderiv.nzval
+
+    for i=1:length(colptr)-1
+        for k=colptr[i]:colptr[i+1]-1
+            j=rowval[k]
+            updateindex!(matrix,+,inzval[k]*iÏ‰,i,j)
         end
     end
-    # Factorize + solve
+    
     lufact=LinearAlgebra.lu(matrix)
     ldiv!(values(UZ),lufact,values(impedance_system.F))
 end
