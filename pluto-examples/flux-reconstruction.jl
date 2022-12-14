@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.13
+# v0.19.18
 
 using Markdown
 using InteractiveUtils
@@ -14,6 +14,30 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ 33365518-b403-4fad-aca8-1670a12ff715
+begin
+    import Pkg as _Pkg
+    developing=false
+    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
+	_Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
+	using Revise
+	developing=true
+    end
+    initialized=true
+end;
+
+
+# ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
+begin
+    if initialized
+        using Test
+        using SimplexGridFactory,Triangulate,ExtendableGrids,VoronoiFVM
+	using PlutoUI,GridVisualize,PlutoVista
+	GridVisualize.default_plotter!(PlutoVista)
+    end
+end;
+
 # ╔═╡ de468cb9-b34d-4d2e-b911-9b93920caca1
 md"""
 # Flux reconstruction and visualization for the Laplace operator
@@ -26,16 +50,6 @@ We demonstrate the reconstruction of the gradient vector field from the solution
 
 # ╔═╡ 184193b6-39ef-4d0c-92a3-157fa5809832
 TableOfContents(;aside=false)
-
-# ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
-begin
-    if initialized
-        using Test
-        using SimplexGridFactory,Triangulate,ExtendableGrids,VoronoiFVM
-	using PlutoUI,GridVisualize,PlutoVista
-	GridVisualize.default_plotter!(PlutoVista)
-    end
-end;
 
 # ╔═╡ 30dc968f-44df-45ea-bdb3-c938a8026224
 md"""
@@ -158,16 +172,6 @@ md"""
 Solve, and trigger solution upon boundary value change
 """
 
-# ╔═╡ 27efdcac-8ee4-47e4-905d-8d8c7313ddd1
-begin
-    params.val11=val11
-    sol=solve(system)
-end;
-
-
-# ╔═╡ 18d5bc33-2578-41d0-a390-c164d754b8e1
-@test params.val11!=5.0 || isapprox(sum(sol),7842.2173682050525, rtol=1.0e-12)
-
 # ╔═╡ 90bd1da0-c371-4889-a00f-a17a27463c88
 md"""
 ## Flux reconstruction
@@ -184,13 +188,6 @@ R. Eymard, T. Gallouet, R. Herbin, IMA Journal of Numerical Analysis (2006)
 
 """
 
-# ╔═╡ 41f427c1-b6ad-46d4-9151-1d872b4efeb6
-nf=nodeflux(system,sol)
-
-
-# ╔═╡ 0e34c818-021b-44c9-8ee4-1a737c3de9cb
-@test params.val11!=5.0 || isapprox(sum(nf),978.000534849034, rtol=1.0e-14)
-
 # ╔═╡ 17be52fb-f55b-4b3d-85e5-33f36134046b
 vis=GridVisualizer(dim=2,resolution=(400,400))
 
@@ -198,6 +195,23 @@ vis=GridVisualizer(dim=2,resolution=(400,400))
 md"""
 ``v_{11}:`` $(@bind  val11 Slider(0:0.1:10,default=5,show_value=true))
 """
+
+# ╔═╡ 27efdcac-8ee4-47e4-905d-8d8c7313ddd1
+begin
+    params.val11=val11
+    sol=solve(system)
+end;
+
+
+# ╔═╡ 18d5bc33-2578-41d0-a390-c164d754b8e1
+@test params.val11!=5.0 || isapprox(sum(sol),7842.2173682050525, rtol=1.0e-12)
+
+# ╔═╡ 41f427c1-b6ad-46d4-9151-1d872b4efeb6
+nf=nodeflux(system,sol)
+
+
+# ╔═╡ 0e34c818-021b-44c9-8ee4-1a737c3de9cb
+@test params.val11!=5.0 || isapprox(sum(nf),978.000534849034, rtol=1.0e-14)
 
 # ╔═╡ 9468db0c-e924-4737-9b75-6bec753aafa9
 md"""
@@ -273,20 +287,6 @@ This notebook is also run during the automatic unit tests.
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
 
-# ╔═╡ 33365518-b403-4fad-aca8-1670a12ff715
-begin
-    import Pkg as _Pkg
-    developing=false
-    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	_Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-	using Revise
-	developing=true
-    end
-    initialized=true
-end;
-
-
 # ╔═╡ 3cce3948-42b5-45dc-a2d5-e50fabfee5ea
 if developing 
 	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
@@ -324,9 +324,9 @@ VoronoiFVM = "~0.18.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.2"
+julia_version = "1.8.3"
 manifest_format = "2.0"
-project_hash = "9e72a72e3c517033a3a514cbddcbec230aabdf2a"
+project_hash = "2a0a25ad928e1f99b710036d46418f58e1d72366"
 
 [[deps.AbstractAlgebra]]
 deps = ["GroupsCore", "InteractiveUtils", "LinearAlgebra", "MacroTools", "Markdown", "Random", "RandomExtensions", "SparseArrays", "Test"]
@@ -877,9 +877,9 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [[deps.Libiconv_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "42b62845d70a619f063a7da093d995ec8e15e778"
+git-tree-sha1 = "c7cb1f5d892775ba13767a87c7ada0b980ea0a71"
 uuid = "94ce4f54-9a6c-5748-9c1c-f9c7231a4531"
-version = "1.16.1+1"
+version = "1.16.1+2"
 
 [[deps.LightXML]]
 deps = ["Libdl", "XML2_jll"]

@@ -763,50 +763,74 @@ end
 
 ################################################################################################
 # Degree of freedom handling
-"""
-We need to be more clear in the notatons here.
-Distinguish
-- active degrees of freedom (dof): these are the actual degrees of freedom 
-- degree of freedom slots (dofslot)  potential degrees of freedom - the may be active dofs or dummy ones
-  With sparse arrays there are no dummy ones, with dense arrays dummy ones may be masked out.
-- species: each degree of freedom is charactrized by the species it respresents and the node index where it is localized  
-"""
 
 
 """
 $(SIGNATURES)
     
-Check if degree of freedom is defined.
+Check if species is defined in node.
 """
-isdof(system::AbstractSystem,ispec,inode) = system.node_dof[ispec,inode]==ispec
+isnodespecies(system::AbstractSystem,ispec,inode) = system.node_dof[ispec,inode]==ispec
 
-# This works only
+# This would works only
 # for those calculated earlier in the right way, so depends on context
 # => speaks for dispatching the whole assembly methods on the system type
 # => speaks for enabling homogeneous systems as well
-#isdof(system::SparseSystem,ispec,inode) = true
+# isdof(system::SparseSystem,ispec,inode) = true
 
-isregiondof(system::AbstractSystem,ispec,ireg) = system.region_species[ispec,ireg]>0 
+"""
+    $(SIGNATURES)
 
-# -> dofslot
-dof(sys::DenseSystem{Tv}, ispec::Integer, K::Integer) where Tv = (K-1)*num_species(sys)+ispec
+Check if species is defined in region.
+"""
+isregionspecies(system::AbstractSystem,ispec,ireg) = system.region_species[ispec,ireg]>0 
 
-# -> dofslot
-_firstnodedof(sys::DenseSystem{Tv},K::Integer) where Tv = (K-1)*num_species(sys)+1
-_lastnodedof(sys::DenseSystem{Tv},K::Integer) where Tv = K*num_species(sys)
-_species_of_dof(sys::DenseSystem{Tv},idof) where Tv =  mod1(idof,num_species(sys))
 
-_firstnodedof(sys::SparseSystem, K::Integer) =sys.node_dof.colptr[K]
-_lastnodedof(sys::SparseSystem, K::Integer) =sys.node_dof.colptr[K+1]-1
-_species_of_dof(sys::SparseSystem,idof) =sys.node_dof.rowval[idof]
+"""
+    getnodedof(system,ispec,inode)
 
-# -> dofslot
-function dof(sys::SparseSystem{Tv,Tc,Ti},i, j) where {Tv,Tc,Ti}
+Get active or dummy degree of freedom associated with node and species
+"""
+function getnodedof end
+
+"""
+    firstnodedof(system, inode)
+
+Get first degree of freedom associated with node.
+"""
+function firstnodedof end
+
+
+"""
+    lastnodedof(system, inode)
+
+Get last  degree of freedom associated with node.
+"""
+function firstnodedof end
+
+"""
+    getspecies(system,idof)
+
+Get species associated to degree of freedom
+"""
+function getspecies end
+
+
+firstnodedof(sys::DenseSystem{Tv},K::Integer) where Tv = (K-1)*num_species(sys)+1
+lastnodedof(sys::DenseSystem{Tv},K::Integer) where Tv = K*num_species(sys)
+getspecies(sys::DenseSystem{Tv},idof) where Tv =  mod1(idof,num_species(sys))
+getnodedof(sys::DenseSystem{Tv}, ispec::Integer, inode::Integer) where Tv = (inode-1)*num_species(sys)+ispec
+
+
+firstnodedof(sys::SparseSystem, K::Integer) =sys.node_dof.colptr[K]
+lastnodedof(sys::SparseSystem, K::Integer) =sys.node_dof.colptr[K+1]-1
+getspecies(sys::SparseSystem,idof) =sys.node_dof.rowval[idof]
+function getnodedof(sys::SparseSystem{Tv,Tc,Ti},ispec, inode) where {Tv,Tc,Ti}
     A=sys.node_dof
-    coljfirstk = A.colptr[j]
-    coljlastk = A.colptr[j+1] - one(Ti)
-    searchk = searchsortedfirst(A.rowval, i, coljfirstk, coljlastk, Base.Order.Forward)
-    if searchk <= coljlastk && A.rowval[searchk] == i
+    coljfirstk = A.colptr[inode]
+    coljlastk = A.colptr[inode+1] - one(Ti)
+    searchk = searchsortedfirst(A.rowval, ispec, coljfirstk, coljlastk, Base.Order.Forward)
+    if searchk <= coljlastk && A.rowval[searchk] == ispec
         return searchk
     end
     return 0
@@ -826,13 +850,13 @@ Assemble residual and jacobian for node functions. Parameters:
 function assemble_res_jac(node::Node,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
     K=node.index
     ireg=node.region
-    for idof=_firstnodedof(system,K):_lastnodedof(system,K)
-        ispec=_species_of_dof(system,idof)
-        if isregiondof(system,ispec,ireg) # it is not enough to know if the species are defined...
+    for idof=firstnodedof(system,K):lastnodedof(system,K)
+        ispec=getspecies(system,idof)
+        if isregionspecies(system,ispec,ireg) # it is not enough to know if the species are defined...
             asm_res(idof,ispec)
-            for jdof=_firstnodedof(system,K):_lastnodedof(system,K)
-                jspec=_species_of_dof(system,jdof)
-                if isregiondof(system,jspec,ireg)
+            for jdof=firstnodedof(system,K):lastnodedof(system,K)
+                jspec=getspecies(system,jdof)
+                if isregionspecies(system,jspec,ireg)
                     asm_jac(idof,jdof,ispec,jspec)
                 end
             end
@@ -851,13 +875,13 @@ See [`assemble_res_jac`](@ref) for more explanations.
 """
 function assemble_res_jac(bnode::BNode,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
     K=bnode.index
-    for idof=_firstnodedof(system,K):_lastnodedof(system,K)
-        ispec=_species_of_dof(system,idof)
-        if isdof(system,ispec,K)
+    for idof=firstnodedof(system,K):lastnodedof(system,K)
+        ispec=getspecies(system,idof)
+        if isnodespecies(system,ispec,K)
             asm_res(idof,ispec)
-            for jdof=_firstnodedof(system,K):_lastnodedof(system,K)
-                jspec=_species_of_dof(system,jdof)
-                if isdof(system,jspec,K)
+            for jdof=firstnodedof(system,K):lastnodedof(system,K)
+                jspec=getspecies(system,jdof)
+                if isnodespecies(system,jspec,K)
                     asm_jac(idof,jdof,ispec,jspec)
                 end
             end
@@ -878,9 +902,9 @@ See [`assemble_res_jac`](@ref) for more explanations.
 function assemble_res(node::Node, system::AbstractSystem, asm_res::R) where {R}
     K=node.index
     ireg=node.region
-    for idof=_firstnodedof(system,K):_lastnodedof(system,K)
-        ispec=_species_of_dof(system,idof)
-        if isregiondof(system,ispec,ireg)
+    for idof=firstnodedof(system,K):lastnodedof(system,K)
+        ispec=getspecies(system,idof)
+        if isregionspecies(system,ispec,ireg)
             asm_res(idof,ispec)
         end
     end
@@ -894,9 +918,9 @@ See [`assemble_res_jac`](@ref) for more explanations.
 """
 function assemble_res(bnode::BNode, system::AbstractSystem, asm_res::R) where {R}
     K=bnode.index
-    for idof=_firstnodedof(system,K):_lastnodedof(system,K)
-        ispec=_species_of_dof(system,idof)
-        if isdof(system,ispec,K)
+    for idof=firstnodedof(system,K):lastnodedof(system,K)
+        ispec=getspecies(system,idof)
+        if isnodespecies(system,ispec,K)
             asm_res(idof,ispec)
         end
     end
@@ -919,16 +943,16 @@ function assemble_res_jac(edge::Edge,system::AbstractSystem, asm_res::R,asm_jac:
     L=edge.node[2]
     ireg=edge.region
     
-    for idofK=_firstnodedof(system,K):_lastnodedof(system,K)
-        ispec=_species_of_dof(system,idofK)
-        if isregiondof(system,ispec,ireg)
-            idofL=dof(system,ispec,L)
+    for idofK=firstnodedof(system,K):lastnodedof(system,K)
+        ispec=getspecies(system,idofK)
+        if isregionspecies(system,ispec,ireg)
+            idofL=getnodedof(system,ispec,L)
             if idofL>0 
                 asm_res(idofK,idofL,ispec)
-                for jdofK=_firstnodedof(system,K):_lastnodedof(system,K)
-                    jspec=_species_of_dof(system,jdofK)
-                    if isregiondof(system,jspec,ireg)
-                        jdofL=dof(system,jspec,L)
+                for jdofK=firstnodedof(system,K):lastnodedof(system,K)
+                    jspec=getspecies(system,jdofK)
+                    if isregionspecies(system,jspec,ireg)
+                        jdofL=getnodedof(system,jspec,L)
                         if jdofL>0
                             asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
                         end
@@ -955,10 +979,10 @@ function assemble_res(edge::Edge,system::AbstractSystem, asm_res::R) where {R}
     L=edge.node[2]
     ireg=edge.region
     
-    for idofK=_firstnodedof(system,K):_lastnodedof(system,K)
-        ispec=_species_of_dof(system,idofK)
-        if isregiondof(system,ispec,ireg)
-            idofL=dof(system,ispec,L)
+    for idofK=firstnodedof(system,K):lastnodedof(system,K)
+        ispec=getspecies(system,idofK)
+        if isregionspecies(system,ispec,ireg)
+            idofL=getnodedof(system,ispec,L)
             if idofL>0
                 asm_res(idofK,idofL,ispec)
             end
@@ -977,18 +1001,18 @@ See [`assemble_res_jac`](@ref) for more explanations.
 function assemble_res_jac(bedge::BEdge,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
     K   = bedge.node[1]
     L   = bedge.node[2]
-    for idofK = _firstnodedof(system, K):_lastnodedof(system, K)
-        ispec =_species_of_dof(system, idofK)
-        if isdof(system,ispec,K)
-            idofL = dof(system, ispec, L)
+    for idofK = firstnodedof(system, K):lastnodedof(system, K)
+        ispec =getspecies(system, idofK)
+        if isnodespecies(system,ispec,K)
+            idofL = getnodedof(system, ispec, L)
             if idofL >0
                 
                 asm_res(idofK,idofL,ispec)
                 
-                for jdofK = _firstnodedof(system,K):_lastnodedof(system,K)
-                    jspec = _species_of_dof(system,jdofK)
-                    if isdof(system,jspec,K)
-                        jdofL = dof(system,jspec,L)
+                for jdofK = firstnodedof(system,K):lastnodedof(system,K)
+                    jspec = getspecies(system,jdofK)
+                    if isnodespecies(system,jspec,K)
+                        jdofL = getnodedof(system,jspec,L)
                         if jdofL >0
                             asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
                         end
@@ -1016,9 +1040,9 @@ See [`assemble_res_jac`](@ref) for more explanations.
 function assemble_res(bedge::BEdge,system::AbstractSystem,asm_res::R) where {R}
     K   = bedge.node[1]
     L   = bedge.node[2]
-    for idofK = _firstnodedof(system, K):_lastnodedof(system, K)
-        ispec =_species_of_dof(system, idofK)
-        if isdof(system,ispec,K)
+    for idofK = firstnodedof(system, K):lastnodedof(system, K)
+        ispec =getspecies(system, idofK)
+        if isnodespecies(system,ispec,K)
             idofL = dof(F, ispec, L)
             if idofL >0
                 asm_res(idofK,idofL,ispec)
@@ -1302,7 +1326,7 @@ function _eval_and_assemble_inactive_species(system::DenseSystem,U,Uold,F)
     end
     for inode=1:size(system.node_dof,2)
         for ispec=1:size(system.node_dof,1)
-            if !isdof(system,ispec,inode)
+            if !isnodespecies(system,ispec,inode)
                 F[ispec,inode]+= U[ispec,inode]-Uold[ispec,inode];
                 idof=dof(F,ispec,inode)
                 system.matrix[idof,idof]+=1.0
@@ -1319,7 +1343,7 @@ function _initialize_inactive_dof!(U::DenseSolutionArray,system::DenseSystem)
     end
     for inode=1:size(system.node_dof,2)
         for ispec=1:size(system.node_dof,1)
-            if !isdof(system,ispec,inode)
+            if !isnodespecies(system,ispec,inode)
                 U[ispec,inode]=0
             end
         end

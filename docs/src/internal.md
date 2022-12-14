@@ -33,8 +33,24 @@ VoronoiFVM.isnontrivial
 
 ## Degree of Freedom management
 
+
+
+We distinguish
+- active degrees of freedom: these are the actual degrees of freedom 
+- degrees of freedom (dof)  potential degrees of freedom - the may be active dofs or dummy ones
+  With sparse arrays there are no dummy ones, with dense arrays dummy are maske in the node_dof field
+- species: each degree of freedom  has associated the species it respresents and the node index where it is localized  
+
+
+
+
 ```@docs 
-VoronoiFVM.isdof
+VoronoiFVM.isnodepecies
+VoronoiFVM.isregionspecies
+VoronoiFVM.firstnodedof
+VoronoiFVM.lastnodedof
+VoronoiFVM.getspecies
+VoronoiFVM.getnodedof
 ```
 ## Local node and edge assembly loops
 
@@ -44,7 +60,7 @@ E.g. for an node residual for `nspec` defined species, only those entries need t
 Similarly for  `nspec x nspec` node Jacobian, an for the `nparam x nspec` parameter derivatives.
 
 These local assembly methods organize the correct loops and call back to the concrete assembly methods passed to them.
-These are passed global degrees of freedom and the local species numbers to be handeled. The callbacks can be used as well for other purposes than assembly
+These receive global degrees of freedom and the local species numbers to be handeled. The callbacks can be used as well for other purposes than assembly
 
 ```@docs 
 VoronoiFVM.assemble_res_jac
