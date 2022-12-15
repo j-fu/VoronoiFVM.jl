@@ -936,7 +936,7 @@ Assemble residual and jacobian for edge (flux) functions. Parameters:
 - `node`: node
 - `asm_res(idofK,idofL,ispec)`: e.g. assemble local ispec to global degrees of freedom in unknowns
 - `asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry four entries defined by `idofK` and `idofL` of global matrix
-    - `asm_param(idofK,idofL,ispec,iparam)` shall assemble parameter derivatives
+- `asm_param(idofK,idofL,ispec,iparam)` shall assemble parameter derivatives
 """
 function assemble_res_jac(edge::Edge,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
     K=edge.node[1]
