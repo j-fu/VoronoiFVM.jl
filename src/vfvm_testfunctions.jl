@@ -78,7 +78,7 @@ function testfunction(factory::TestFunctionFactory, bc0, bc1)
         factory.tfsystem.boundary_factors[1,bc0[i]]=Dirichlet
         factory.tfsystem.boundary_values[1,bc0[i]]=0
     end
-    _complete!(factory.tfsystem,create_newtonvectors=true) #!!! no need when assembly refers directly to system
+    _complete!(factory.tfsystem)
     eval_and_assemble(factory.tfsystem,u,u,f,Inf,Inf,0.0,zeros(0))
 
     _initialize!(u,factory.tfsystem)
