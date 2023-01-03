@@ -126,9 +126,7 @@ export eval_rhs!, eval_jacobian!, mass_matrix, prepare_diffeq!
 
 include("gridvisualize.jl")
 
-
-
-# include("precompile.jl")
+include("precompile.jl")
 
 end
 

@@ -13,8 +13,11 @@
                 (y,u,edge)-> y[1]=D(u[1,1]+u[1,2])*(u[1,1]-u[1,2])
             end
             
+
             flux!(y,u,edge)= y[1]= u[1,1]-u[1,2]
+
             reaction!(y,u,node)=  y[1]= u[1,1]^3-10
+
             function bc!(args...)
                 boundary_dirichlet!(args...,region=1,value=0)
                 boundary_dirichlet!(args...,region=3,value=1)
