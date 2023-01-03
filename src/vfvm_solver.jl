@@ -417,18 +417,18 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     #
     # These wrap the different physics functions.
     #
-    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies)
-    rea_eval  = ResJacEvaluator(physics,:reaction,UK,node,nspecies)
-    stor_eval = ResJacEvaluator(physics,:storage,UK,node,nspecies)
-    oldstor_eval = ResEvaluator(physics,:storage,UK,node,nspecies)
-    flux_eval = ResJacEvaluator(physics,:flux,UKL,edge,nspecies)
+    src_evaluator  = ResEvaluator(physics,:source,UK,node,nspecies)
+    rea_evaluator  = ResJacEvaluator(physics,:reaction,UK,node,nspecies)
+    stor_evaluator = ResJacEvaluator(physics,:storage,UK,node,nspecies)
+    oldstor_evaluator = ResEvaluator(physics,:storage,UK,node,nspecies)
+    flux_evaluator = ResJacEvaluator(physics,:flux,UKL,edge,nspecies)
 
 
-    bsrc_eval  = ResEvaluator(physics,:bsource,UK,bnode,nspecies)
-    brea_eval  = ResJacEvaluator(physics,:breaction,UK,bnode,nspecies)
-    bstor_eval = ResJacEvaluator(physics,:bstorage,UK,bnode,nspecies)
-    oldbstor_eval = ResEvaluator(physics,:bstorage,UK,bnode,nspecies)
-    bflux_eval = ResJacEvaluator(physics,:bflux,UKL,bedge,nspecies)
+    bsrc_evaluator  = ResEvaluator(physics,:bsource,UK,bnode,nspecies)
+    brea_evaluator  = ResJacEvaluator(physics,:breaction,UK,bnode,nspecies)
+    bstor_evaluator = ResJacEvaluator(physics,:bstorage,UK,bnode,nspecies)
+    oldbstor_evaluator = ResEvaluator(physics,:bstorage,UK,bnode,nspecies)
+    bflux_evaluator = ResJacEvaluator(physics,:bflux,UKL,bedge,nspecies)
 
 
     ncalloc=@allocated  for icell=1:ncells
@@ -439,30 +439,31 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             @views UKOld[1:nspecies] .= UOld[:,node.index]
             fac=cellnodefactors[inode,icell]
 
-            evaluate!(src_eval)
-            src = res(src_eval)
+            evaluate!(src_evaluator)
+            src = res(src_evaluator)
 
-            evaluate!(rea_eval,UK)
-            res_react = res(rea_eval)
-            jac_react = jac(rea_eval)
+            evaluate!(rea_evaluator,UK)
+            res_react = res(rea_evaluator)
+            jac_react = jac(rea_evaluator)
             
-            evaluate!(stor_eval,UK)
-            res_stor = res(stor_eval)
-            jac_stor = jac(stor_eval)
+            evaluate!(stor_evaluator,UK)
+            res_stor = res(stor_evaluator)
+            jac_stor = jac(stor_evaluator)
             
-            evaluate!(oldstor_eval,UKOld)
-            oldstor = res(oldstor_eval)
+            evaluate!(oldstor_evaluator,UKOld)
+            oldstor = res(oldstor_evaluator)
 
-            asm_res(idof,ispec)=_add(F,idof,fac*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
+            @inline asm_res(idof,ispec)=_add(F,idof,fac*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
             
-            function asm_jac(idof,jdof,ispec,jspec)
+            @inline function asm_jac(idof,jdof,ispec,jspec)
                 _addnz(system.matrix, idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,fac)
             end
             
-            function asm_param(idof,ispec,iparam)
+            @inline function asm_param(idof,ispec,iparam)
                 jparam=nspecies+iparam
                 dudp[iparam][idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*fac
             end
+            
             assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
 
         end
@@ -476,24 +477,25 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             @views UKL[1:nspecies]            .= U[:, edge.node[1]]
             @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
             
-            evaluate!(flux_eval,UKL)
-            res_flux = res(flux_eval)
-            jac_flux = jac(flux_eval)
+            evaluate!(flux_evaluator,UKL)
+            res_flux = res(flux_evaluator)
+            jac_flux = jac(flux_evaluator)
 
             
-            function asm_res(idofK,idofL,ispec)
-                _add(F,idofK,fac*res_flux[ispec])
-                _add(F,idofL,-fac*res_flux[ispec])
+            @inline function asm_res(idofK,idofL,ispec)
+                val=fac*res_flux[ispec]
+                _add(F,idofK,val)
+                _add(F,idofL,-val)
             end
             
-            function asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+            @inline function asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
                 _addnz(system.matrix,idofK,jdofK,+jac_flux[ispec,jspec         ],fac)
                 _addnz(system.matrix,idofL,jdofK,-jac_flux[ispec,jspec         ],fac)
                 _addnz(system.matrix,idofK,jdofL,+jac_flux[ispec,jspec+nspecies],fac)
                 _addnz(system.matrix,idofL,jdofL,-jac_flux[ispec,jspec+nspecies],fac)
             end
             
-            function asm_param(idofK,idofL,ispec,iparam)
+            @inline function asm_param(idofK,idofL,ispec,iparam)
                 jparam=2*nspecies+iparam
                 dudp[iparam][idofK]+=fac*jac_flux[ispec,jparam]
                 dudp[iparam][idofL]-=fac*jac_flux[ispec,jparam]
@@ -556,12 +558,12 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             # Copy unknown values from solution into dense array
             @views UK[1:nspecies].=U[:,bnode.index]
 
-            evaluate!(bsrc_eval)
-            bsrc = res(bsrc_eval)
+            evaluate!(bsrc_evaluator)
+            bsrc = res(bsrc_evaluator)
             
-            evaluate!(brea_eval,UK)
-            res_breact = res(brea_eval)
-            jac_breact = jac(brea_eval)
+            evaluate!(brea_evaluator,UK)
+            res_breact = res(brea_evaluator)
+            jac_breact = jac(brea_evaluator)
             
             
             asm_res1(idof,ispec)=_add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
@@ -572,14 +574,14 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             
             assemble_res_jac( bnode, system, asm_res1,asm_jac1,asm_param1)
             
-            if isnontrivial(bstor_eval) 
-                evaluate!(bstor_eval,UK)
-                res_bstor = res(bstor_eval)
-                jac_bstor = jac(bstor_eval)
+            if isnontrivial(bstor_evaluator) 
+                evaluate!(bstor_evaluator,UK)
+                res_bstor = res(bstor_evaluator)
+                jac_bstor = jac(bstor_evaluator)
                 
                 @views UKOld.=UOld[:,bnode.index]
-                evaluate!(oldbstor_eval,UKOld)
-                oldbstor = res(oldbstor_eval)
+                evaluate!(oldbstor_evaluator,UKOld)
+                oldbstor = res(oldbstor_evaluator)
                 
                 asm_res2(idof,ispec)= _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
                 
@@ -593,7 +595,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
         end # ibnode=1:nbn
 
 
-        if isnontrivial(bflux_eval)
+        if isnontrivial(bflux_evaluator)
             for ibedge=1:nbe
                 fac = bfaceedgefactors[ibedge, ibface]
                 if abs(fac) < edge_cutoff
@@ -604,9 +606,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 @views UKL[1:nspecies]            .= U[:, bedge.node[1]]
                 @views UKL[nspecies+1:2*nspecies] .= U[:, bedge.node[2]]
                 
-                evaluate!(bflux_eval,UKL)
-                res_bflux = res(bflux_eval)
-                jac_bflux = jac(bflux_eval)
+                evaluate!(bflux_evaluator,UKL)
+                res_bflux = res(bflux_evaluator)
+                jac_bflux = jac(bflux_evaluator)
 
 
                 function asm_res(idofK,idofL,ispec)

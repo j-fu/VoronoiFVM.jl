@@ -825,7 +825,7 @@ getnodedof(sys::DenseSystem{Tv}, ispec::Integer, inode::Integer) where Tv = (ino
 firstnodedof(sys::SparseSystem, K::Integer) =sys.node_dof.colptr[K]
 lastnodedof(sys::SparseSystem, K::Integer) =sys.node_dof.colptr[K+1]-1
 getspecies(sys::SparseSystem,idof) =sys.node_dof.rowval[idof]
-function getnodedof(sys::SparseSystem{Tv,Tc,Ti},ispec, inode) where {Tv,Tc,Ti}
+@inline function getnodedof(sys::SparseSystem{Tv,Tc,Ti},ispec, inode) where {Tv,Tc,Ti}
     A=sys.node_dof
     coljfirstk = A.colptr[inode]
     coljlastk = A.colptr[inode+1] - one(Ti)
@@ -847,7 +847,7 @@ Assemble residual and jacobian for node functions. Parameters:
 - `asm_jac(idof,jdof,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry `idof,jdof` of global matrix
 - `asm_param(idof,ispec,iparam)` shall assemble parameter derivatives
 """
-function assemble_res_jac(node::Node,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
+@inline function assemble_res_jac(node::Node,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
     K=node.index
     ireg=node.region
     for idof=firstnodedof(system,K):lastnodedof(system,K)
@@ -873,7 +873,7 @@ $(SIGNATURES)
 Assemble residual and jacobian for boundary node functions.
 See [`assemble_res_jac`](@ref) for more explanations.
 """
-function assemble_res_jac(bnode::BNode,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
+@inline function assemble_res_jac(bnode::BNode,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P) where {R,J,P}
     K=bnode.index
     for idof=firstnodedof(system,K):lastnodedof(system,K)
         ispec=getspecies(system,idof)
@@ -899,7 +899,7 @@ $(SIGNATURES)
 Assemble residual for node functions.
 See [`assemble_res_jac`](@ref) for more explanations.
 """
-function assemble_res(node::Node, system::AbstractSystem, asm_res::R) where {R}
+@inline function assemble_res(node::Node, system::AbstractSystem, asm_res::R) where {R}
     K=node.index
     ireg=node.region
     for idof=firstnodedof(system,K):lastnodedof(system,K)
@@ -916,7 +916,7 @@ $(SIGNATURES)
 Assemble residual for boundary node functions.
 See [`assemble_res_jac`](@ref) for more explanations.
 """
-function assemble_res(bnode::BNode, system::AbstractSystem, asm_res::R) where {R}
+@inline function assemble_res(bnode::BNode, system::AbstractSystem, asm_res::R) where {R}
     K=bnode.index
     for idof=firstnodedof(system,K):lastnodedof(system,K)
         ispec=getspecies(system,idof)
@@ -938,7 +938,7 @@ Assemble residual and jacobian for edge (flux) functions. Parameters:
 - `asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry four entries defined by `idofK` and `idofL` of global matrix
 - `asm_param(idofK,idofL,ispec,iparam)` shall assemble parameter derivatives
 """
-function assemble_res_jac(edge::Edge,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
+@inline function assemble_res_jac(edge::Edge,system::AbstractSystem, asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
     K=edge.node[1]
     L=edge.node[2]
     ireg=edge.region
@@ -974,7 +974,7 @@ $(SIGNATURES)
 Assemble residual for edge (flux) functions.
 See [`assemble_res_jac`](@ref) for more explanations.
 """
-function assemble_res(edge::Edge,system::AbstractSystem, asm_res::R) where {R}
+@inline function assemble_res(edge::Edge,system::AbstractSystem, asm_res::R) where {R}
     K=edge.node[1]
     L=edge.node[2]
     ireg=edge.region
@@ -998,7 +998,7 @@ $(SIGNATURES)
 Assemble residual and jacobian for boundary edge (flux) functions.
 See [`assemble_res_jac`](@ref) for more explanations.
 """
-function assemble_res_jac(bedge::BEdge,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
+@inline function assemble_res_jac(bedge::BEdge,system::AbstractSystem,asm_res::R,asm_jac::J, asm_param::P ) where {R,J,P}
     K   = bedge.node[1]
     L   = bedge.node[2]
     for idofK = firstnodedof(system, K):lastnodedof(system, K)
@@ -1037,7 +1037,7 @@ $(SIGNATURES)
 Assemble residual for boundary edge (flux) functions.
 See [`assemble_res_jac`](@ref) for more explanations.
 """
-function assemble_res(bedge::BEdge,system::AbstractSystem,asm_res::R) where {R}
+@inline function assemble_res(bedge::BEdge,system::AbstractSystem,asm_res::R) where {R}
     K   = bedge.node[1]
     L   = bedge.node[2]
     for idofK = firstnodedof(system, K):lastnodedof(system, K)
