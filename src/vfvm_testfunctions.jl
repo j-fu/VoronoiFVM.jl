@@ -101,28 +101,37 @@ $(SIGNATURES)
 Calculate test function integral for transient solution.
 """
 function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
-                   Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv}
+                   Uold::AbstractMatrix{Tv}, tstep; params=Tv[]) where {Tv}
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
 
+    nparams=system.num_parameters
+    @assert nparams==length(params)
+    
     # !!! params etc 
     physics=system.physics
-    node=Node(system)
-    bnode=BNode(system)
-    edge=Edge(system)
-    bedge=Edge(system)
+    node=Node(system, 0.0, 1.0, params)
+    bnode=BNode(system, 0.0, 1.0, params)
+    edge=Edge(system, 0.0, 1.0, params)
+    bedge=Edge(system, 0.0, 1.0, params)
 
-    UKL=Array{Tv,1}(undef,2*nspecies)
-    UK=Array{Tv,1}(undef,nspecies)
-    UKold=Array{Tv,1}(undef,nspecies)
+    UKL=Array{Tv,1}(undef,2*nspecies+nparams)
+    UK=Array{Tv,1}(undef,nspecies+nparams)
+    UKold=Array{Tv,1}(undef,nspecies+nparams)
 
-    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies)
-    rea_eval  = ResEvaluator(physics,:reaction,UK,node,nspecies)
-    stor_eval = ResEvaluator(physics,:storage,UK,node,nspecies)
-    storold_eval = ResEvaluator(physics,:storage,UKold,node,nspecies)
-    flux_eval = ResEvaluator(physics,:flux,UKL,edge,nspecies)
+    if nparams>0
+        UK[nspecies+1:end].=params
+        UKold[nspecies+1:end].=params
+        UKL[2*nspecies+1:end].=params
+    end
+
+    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies+nparams)
+    rea_eval  = ResEvaluator(physics,:reaction,UK,node,nspecies+nparams)
+    stor_eval = ResEvaluator(physics,:storage,UK,node,nspecies+nparams)
+    storold_eval = ResEvaluator(physics,:storage,UKold,node,nspecies+nparams)
+    flux_eval = ResEvaluator(physics,:flux,UKL,edge,nspecies+nparams)
 
 
     geom=grid[CellGeometries][1]
@@ -157,7 +166,6 @@ function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
             evaluate!(src_eval)
             src=res(src_eval)
 
-
             asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
             assemble_res(node,system,asm_res)
         end
@@ -171,7 +179,7 @@ $(SIGNATURES)
 
 Calculate test function integral for steady state solution.
 """
-integrate(system::AbstractSystem,tf::Vector{Tv},U::AbstractMatrix{Tu}) where {Tu,Tv} =integrate(system,tf,U,U,Inf)
+integrate(system::AbstractSystem,tf::Vector{Tv},U::AbstractMatrix{Tu}; kwargs... ) where {Tu,Tv} = integrate(system,tf,U,U,Inf; kwargs...)
 
 
 

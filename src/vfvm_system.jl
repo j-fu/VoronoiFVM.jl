@@ -680,10 +680,8 @@ function _complete!(system::AbstractSystem{Tv,Tc,Ti, Tm};create_newtonvectors=fa
     if create_newtonvectors
         system.residual=unknowns(system)
         system.update=unknowns(system)
-        if system.num_parameters>0
-            system.dudp=[unknowns(system) for i=1:system.num_parameters]
-        end
     end
+    system.dudp=[unknowns(system) for i=1:system.num_parameters]
 
     
     update_grid!(system)

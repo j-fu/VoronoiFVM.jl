@@ -71,8 +71,9 @@ Base.size(u::AbstractEdgeData)=(u.n1,2)
 Base.getindex(u::AbstractEdgeData,i,j)=@inbounds u.val[(j-1)*u.n1+i]
 
 function parameters(u::AbstractEdgeData{Tv}) where {Tv<:Number}
-    DParameters(u.val,2*u.n1)
+    DParameters(u.val,u.n1+u.n1)
 end
+
 
 
 ##################################################################

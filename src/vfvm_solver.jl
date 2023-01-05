@@ -337,7 +337,7 @@ Main assembly method.
 Evaluate solution with result in right hand side F and 
 assemble Jacobi matrix into system.matrix.
 """
-function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
+function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
@@ -346,7 +346,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                            λ,
                            params::AbstractVector;
                            edge_cutoff=0.0
-                           ) where {Tv, Tc, Ti, Tm}
+                           ) where {Tv, Tc, Ti, Tm,  TSpecMat, TSolArray}
     
 
     _complete!(system) # needed here as well for test function system which does not use newton
@@ -371,9 +371,9 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
     zero!(system.matrix)
     F   .= 0.0
     nparams::Int=system.num_parameters
-    if nparams>0
-        dudp=system.dudp
-    end
+
+    dudp=system.dudp
+
     for iparam=1:nparams
         dudp[iparam].=0.0
     end
@@ -461,7 +461,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             
             @inline function asm_param(idof,ispec,iparam)
                 jparam=nspecies+iparam
-                dudp[iparam][idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*fac
+                dudp[iparam][ispec,idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*fac
             end
             
             assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
@@ -497,8 +497,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             
             @inline function asm_param(idofK,idofL,ispec,iparam)
                 jparam=2*nspecies+iparam
-                dudp[iparam][idofK]+=fac*jac_flux[ispec,jparam]
-                dudp[iparam][idofL]-=fac*jac_flux[ispec,jparam]
+                dudp[iparam][ispec,idofK]+=fac*jac_flux[ispec,jparam]
+                dudp[iparam][ispec,idofL]-=fac*jac_flux[ispec,jparam]
             end
             
             assemble_res_jac(edge,system,asm_res,asm_jac, asm_param )
@@ -570,7 +570,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
             
             asm_jac1(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
             
-            asm_param1(idof,ispec,iparam)= dudp[iparam][idof]+=jac_breact[ispec,nspecies+iparam]*bnode_factor
+            asm_param1(idof,ispec,iparam)= dudp[iparam][ispec,idof]+=jac_breact[ispec,nspecies+iparam]*bnode_factor
             
             assemble_res_jac( bnode, system, asm_res1,asm_jac1,asm_param1)
             
@@ -587,7 +587,7 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
                 
                 asm_jac2(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
                 
-                asm_param2(idof,ispec,iparam)= dudp[iparam][idof]+=jac_bstor[ispec,nspecies+iparam]*bnode_factor*tstepinv
+                asm_param2(idof,ispec,iparam)= dudp[iparam][ispec,idof]+=jac_bstor[ispec,nspecies+iparam]*bnode_factor*tstepinv
                 
                 assemble_res_jac(bnode, system, asm_res2,asm_jac2,asm_param2)
                 
@@ -625,8 +625,8 @@ function eval_and_assemble(system::AbstractSystem{Tv, Tc, Ti, Tm},
 
                 function asm_param(idofK,idofL,ispec,iparam)
                     jparam=2*nspecies+iparam
-                    dudp[iparam][idofK]+=fac*jac_bflux[ispec,jparam]
-                    dudp[iparam][idofL]-=fac*jac_bflux[ispec,jparam]
+                    dudp[iparam][ispec,idofK]+=fac*jac_bflux[ispec,jparam]
+                    dudp[iparam][ispec,idofL]-=fac*jac_bflux[ispec,jparam]
                 end
                 assemble_res_jac(bedge,system,asm_res,asm_jac, asm_param)
             end
