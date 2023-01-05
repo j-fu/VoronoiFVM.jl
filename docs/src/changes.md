@@ -1,6 +1,10 @@
 # Changes
-## v0.18.7  Dec 11, 2022
-- Internal restructuring: remove @create_physics_wrappers macro, reduce boilerplate in assembly
+## v0.18.8 - 0.18.10  Dec 11, 2022 - Jan 5, 2023
+- Internal restructuring: remove @create_physics_wrappers macro, reduce boilerplate in assembly, wrap repeating pattenrns
+  into functions.  The price in the moment is a bit of a slowdown of assembly.
+- Fix parameter dependency handling (now we can get parameter derivative without solving in dual numbers; see
+  the runh() example in Example430. However in the moment the advantatge is not very clear, so this  is
+  on hold...
 ## v0.18.7  Dec 7, 2022
 - bump gridvisualize compat
 ## v0.18.6  Dec 3, 2022
