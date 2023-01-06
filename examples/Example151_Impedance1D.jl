@@ -46,7 +46,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
 
     X=VoronoiFVM.geomspace(0,L,h0,h1)
 
-    # Create discretitzation grid
+    # Create discretization grid
     grid=VoronoiFVM.Grid(X)
 
     # Create and fill data
@@ -67,7 +67,6 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
 
 
     excited_bc=1
-    excited_bcval=1.0
     excited_spec=1
     meas_bc=2
 
@@ -122,21 +121,14 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
     allomega=zeros(0)
 
     # for calculated data
-    allI0=zeros(Complex{Float64},0)
     allIL=zeros(Complex{Float64},0)
 
     # for exact data
-    allIx0=zeros(Complex{Float64},0)
     allIxL=zeros(Complex{Float64},0)
 
     ω=ω0
 
-    UZ=unknowns(isys)
     while ω<ω1
-
-        # solve impedance system
-        solve!(UZ,isys,ω)
-
         # calculate aproximate solution
         # obtain measurement in frequency  domain
         IL=impedance(isys,ω,steadystate, dmeas_stdy, dmeas_tran)
