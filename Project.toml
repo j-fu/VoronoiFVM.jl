@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Juergen Fuhrmann <juergen.fuhrmann@wias-berlin.de>"]
-version = "0.18.10"
+version = "0.18.11-dev"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -43,5 +43,5 @@ Parameters = "^0.12"
 RecursiveArrayTools = "^2.14.2"
 SparseDiffTools = "^1.19"
 StaticArrays = "0.12,1"
-Symbolics = "^4.2"
+Symbolics = "^4.2, 5"
 julia = "^1.6"
