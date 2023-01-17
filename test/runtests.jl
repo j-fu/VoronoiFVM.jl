@@ -6,6 +6,7 @@ using Pkg
 # as default.
 ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
 
+
 modname(fname)=splitext(basename(fname))[1]
 
 #
@@ -50,7 +51,16 @@ function testnotebook(input)
 
     # run notebook and check for cell errors
     session = Pluto.ServerSession();
-    notebook = Pluto.SessionActions.open(session, input; run_async=false)
+    session.options.server.disable_writing_notebook_files=true
+    session.options.server.show_file_system=false
+    session.options.server.launch_browser=false
+    session.options.server.dismiss_update_notification
+    session.options.evaluation.capture_stdout=false
+    session.options.evaluation.workspace_use_distributed=false # this makes it fast
+
+    wd=pwd()
+    @time notebook = Pluto.SessionActions.open(session, input; run_async=false)
+    cd(wd)
     errored=false
     for c in notebook.cells
         if c.errored
@@ -88,10 +98,11 @@ function run_all_tests()
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
         end
 
-        if !Sys.iswindows() # there seems to be a time limit problem
+        if VERSION>=v"1.8" && VERSION<v"1.9" && haskey(ENV,"TEST_ALL") && ENV["TEST_ALL"]=="true" && !Sys.iswindows() # there seems to be a time limit problem
             @testset "notebooks" begin
                 for notebook in notebooks
                     #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))
+                    @info "notebook $(notebook):"
                     @test testnotebook(joinpath(@__DIR__,"..","pluto-examples",notebook))
                     @info "notebook $(notebook) ok"
                 end

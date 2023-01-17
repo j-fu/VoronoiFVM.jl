@@ -1,6 +1,11 @@
 # Miscellaneous
 
 
+## Useful helpers
+```@docs
+value
+```
+
 ## Form factor calculatione
 ```@autodocs
 Modules = [VoronoiFVM]

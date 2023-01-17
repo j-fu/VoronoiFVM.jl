@@ -1,14 +1,27 @@
 # Solution methods
 
-## Solve method
+## Built-in solver
+The package comes with a built-in solve method which solves 
+stationary problems, simple homotopy embedding problems and transient problems 
+via the implicit Euler method.  This solver and its default parameters are tuned for robustness,
+possibly at the expense of solution speed. Careful tuning of the parameters, or -- in the case of transient problems --
+the choice of the [DifferentialEquations.jl solver](@ref diffeq) can significantly improve the performance.
 
 ```@docs
-solve(system::VoronoiFVM.AbstractSystem; kwargs...)
-solve(inival, system::VoronoiFVM.AbstractSystem, times; kwargs...)
-solve(inival, system::VoronoiFVM.AbstractSystem; kwargs...)
-solve!(solution,inival, system::VoronoiFVM.AbstractSystem; kwargs...)
+VoronoiFVM.solve(system::VoronoiFVM.AbstractSystem; kwargs...)
 ``` 
-## Solver history
+
+## [DifferentialEquations.jl solver](@id diffeq)
+This solver is in the process of being outsourced into a glue package.
+
+
+## Built-in solver control
+```@docs 
+SolverControl
+NewtonControl
+```
+
+## Built-in solver history handling
 If `log` is set to true in `solve`, the history of newton iterations and  time/embedding
 steps is recorded and. For the respective previous solution step it can be obtained via
 `history(system)`.
@@ -16,25 +29,26 @@ steps is recorded and. For the respective previous solution step it can be obtai
 ```@docs
 NewtonSolverHistory
 TransientSolverHistory
-Base.summary
+Base.summary(::NewtonSolverHistory)
+Base.summary(::TransientSolverHistory)
 details
 history
 history_details
 history_summary
 ```
 
+## Matrix extraction
+For testing and teaching purposes, one can obtain residual and linearization at a given vector of unknowns
 
-## Solver control
-```@docs 
-SolverControl
-NewtonControl
+```@docs
+evaluate_residual_and_jacobian
 ```
 
+## Legacy API
+During the development of the code, a number of API variants have been developed which are supported for backward compatibility.
 
-## [Interface to DifferentialEquations.jl](@id diffeq)
-
-```@autodocs
-Modules = [VoronoiFVM]
-Pages = ["vfvm_diffeq_interface.jl"]
-```
-
+```@docs
+VoronoiFVM.solve(inival, system::VoronoiFVM.AbstractSystem, times; kwargs...)
+VoronoiFVM.solve(inival, system::VoronoiFVM.AbstractSystem; kwargs...)
+VoronoiFVM.solve!(solution,inival, system::VoronoiFVM.AbstractSystem; kwargs...)
+``` 

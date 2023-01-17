@@ -26,12 +26,13 @@ Array of values in solution array.
 values(a::DenseSolutionArray{Tv}) where Tv = vec(a)
 
 
-#
-# Accessors for node-dof based loops
-#
-_firstnodedof(U::DenseSolutionArray{Tv},K) where Tv = (K-1)*size(U,1)+1
-_lastnodedof(U::DenseSolutionArray{Tv},K) where Tv = K*size(U,1)
-_spec(U::DenseSolutionArray{Tv},idof,K) where Tv =   idof-(K-1)*size(U,1)
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Add residual value into global degree of freedom
+"""
 _add(U::DenseSolutionArray{Tv},idof,val) where Tv=U[CartesianIndices(U)[idof]]+=val
 
 

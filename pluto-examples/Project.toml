@@ -1,10 +1,11 @@
 [deps]
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
+ExtendableSparse = "95c220a8-a1cf-11e9-0c77-dbfce5f500b3"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
-OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
@@ -14,3 +15,6 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
+
+[extras]
+CPUSummary = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"

@@ -13,10 +13,36 @@ abstract type AbstractPhysics end
 $(TYPEDEF)
 
 Abstract type for user data.
-!!! compat  
-    Will be removed in future versions
 """
-abstract type AbstractData end
+abstract type AbstractData{Tv} end
+
+
+#
+# Experimental handling methods for AbstractData
+#
+ForwardDiff.value(x::Real)=x
+function showstruct(io::IO,this::AbstractData)
+    myround(x; kwargs...)=round(Float64(value(x));kwargs...)
+    myround(s::Symbol; kwargs...)=s
+    myround(i::Int; kwargs...)=i
+    myround(b::Bool; kwargs...)=b
+    println(typeof(this))
+    for name in fieldnames(typeof(this))
+        println(io,"$(lpad(name,20)) = $(myround.(getfield(this,name),sigdigits=5))")
+    end
+end
+
+function Base.copy!(vdata::AbstractData{Tv},udata::AbstractData{Tu}) where {Tv, Tu}
+    vval(x::Any)=x
+    vval(x::Tu)=Tv(x)
+    for name in fieldnames(typeof(udata))
+        setproperty!(vdata,name,vval(getproperty(udata,name)))
+    end
+    vdata
+end
+
+Base.show(io::IO, ::MIME"text/plain", this::AbstractData)=showstruct(io,this)
+
 
 isdata(::Nothing)=false
 isdata(::Any)=true
@@ -213,6 +239,24 @@ function Physics(;num_species=0,
                    )
 end
 
+
+function Physics(physics::Physics, data)
+    @show "here"
+    Physics(physic.flux,
+            physic.storage,
+            physic.reaction,
+            physic.source,
+            physic.bflux,
+            physic.breaction,
+            physic.bsource,
+            physic.bstorage,
+            physic.generic,
+            physic.generic_sparsity,
+            data,
+            physic.num_species)
+end
+
+
 """
 $(SIGNATURES)
 
@@ -247,149 +291,217 @@ function Base.show(io::IO,physics::AbstractPhysics)
 end
 
 
+"""
+    $(TYPEDEF)
+
+Abstract type for evaluator.
+"""
+abstract type AbstractEvaluator end
+
+"""
+    $(TYPEDEF)
+
+Evaluator for functions from physics. Allows to call different types of physic functions (flux, reaction, source)
+an provides  a common interface to different function formats (with data, without data etc.)
+
+$(TYPEDFIELDS)
+"""
+struct  ResEvaluator{Tv<:Number,Func<:Function, G} <: AbstractEvaluator
+    """ wrapper function in Format ready for Diffetential equations"""
+    fwrap::Func 
+    """ pre-allocated result """
+    y::Vector{Tv} 
+    """ Geomtry object # geometry (node, edge...)"""
+    geom::G
+    """ number of species """
+    nspec::Int
+
+    """ Is the  function not one of nofunc ot nofunc2 """
+    isnontrivial::Bool 
+end
+
 
 
 """
-```
-@create_physics_wrappers(physics,node,bnode,edge,bedge)
-```
+     ResEvaluator(physics,symb,uproto,geom,nspec)
 
-Create wrapper functions around physics callbacks which
-fit the API of `ForwardDiff.jacobian!` and pass the `data` parameter
-if necessary. These are meant to  be defined
-before performing assembly loops. The macro creates the follwing variables:
-
-- wrapper functions: `fluxwrap`,`storagewrap`,`reactionwrap`,`bstoragewrap`, `breactionwrap`
-- flag variables: `issource`, `isreaction`,`isbreaction`,`isbstorage`
-
+Constructor for ResEvaluator
+- `physics` Physics object
+- `symb`: symbol naming one of the functions in physics to be wrapped.
+- `uproto`: solution vector protoype,
+- `geom`: node, edge...
+- `nspec`: number of species
 """
-macro create_physics_wrappers(physics,node,bnode,edge,bedge)
-    return quote
-        data=$(esc(physics)).data
-        if isdata(data)
-            global issource=($(esc(physics)).source!=nofunc)
-            global isreaction=($(esc(physics)).reaction!=nofunc)
-            global isbreaction=($(esc(physics)).breaction!=nofunc)
-            global isbstorage=($(esc(physics)).bstorage!=nofunc)
-            global isbsource=($(esc(physics)).bsource!=nofunc)
-            global isbflux=($(esc(physics)).bflux!=nofunc)
-            
-            global fluxwrap=function(y, u)
-                y.=0
-                $(esc(physics)).flux( rhs($(esc(edge)),y),
-                                      unknowns($(esc(edge)),u),
-                                      $(esc(edge)),
-                                      data)
-                nothing
-            end
-            
-            global reactionwrap=function (y, u)
-                y.=0
-                ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-                $(esc(physics)).reaction(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)),data)
-                ## for ii in .. y[ii]=y[node.speclist[ii]]
-                nothing
-            end
-            
-            global storagewrap= function(y, u)
-                y.=0
-                $(esc(physics)).storage(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)),data)
-                nothing
-            end
-        
-            global sourcewrap=function(y)
-                y.=0
-                $(esc(physics)).source(rhs($(esc(node)),y),$(esc(node)),data)
-                nothing
-            end
+function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) where Tv
 
-            global bfluxwrap=function(y, u)
-                y.=0
-                $(esc(physics)).bflux(rhs($(esc(bedge)),y),unknowns($(esc(bedge)),u),$(esc(bedge)),data)
-                nothing
-            end
-            
-            global breactionwrap=function(y, u)
-                y.=0
-                $(esc(physics)).breaction(rhs($(esc(bnode)),y),unknowns($(esc(bnode)),u),$(esc(bnode)),data)
-                nothing
-            end
+    func=getproperty(physics,symb)
 
-            global bsourcewrap=function(y)
+    # source functions need special handling here
+    if symb== :source || symb== :bsource
+        if isdata(physics.data)
+            fwrap=function(y)
                 y.=0
-                $(esc(physics)).bsource(rhs($(esc(bnode)),y),$(esc(bnode)),data)
+                func(rhs(geom,y),geom,physics.data)
                 nothing
             end
-            
-            global bstoragewrap=function(y, u)
-                y.=0
-                $(esc(physics)).bstorage(rhs($(esc(bnode)),y),unknowns($(esc(bnode)),u),$(esc(bnode)),data)
-                nothing
-            end
-        
         else
-            global issource    = ($(esc(physics)).source    != nofunc2)
-            global isreaction  = ($(esc(physics)).reaction  != nofunc2)
-            global isbreaction = ($(esc(physics)).breaction != nofunc2)
-            global isbsource   = ($(esc(physics)).source    != nofunc2)
-            global isbflux     = ($(esc(physics)).bflux     != nofunc2)
-            global isbstorage  = ($(esc(physics)).bstorage  != nofunc2)
-            
-            global fluxwrap=function(y, u)
+            fwrap=function(y)
                 y.=0
-                $(esc(physics)).flux( rhs(     $(esc(edge)),y),
-                                      unknowns($(esc(edge)),u),
-                                      $(esc(edge)))
+                func(rhs(geom,y),geom)
                 nothing
             end
-            
-            global reactionwrap=function(y, u)
+        end
+    else   # Normal functions wihth u as parameter     
+        if isdata(physics.data)
+            fwrap=function(y, u)
                 y.=0
-                ## for ii in ..  uu[node.speclist[ii]]=u[ii]
-                $(esc(physics)).reaction(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)))
-                ## for ii in .. y[ii]=y[node.speclist[ii]]
+                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+                func(rhs(geom,y),unknowns(geom,u),geom,physics.data)
+                ## for ii in .. y[ii]=y[geom.speclist[ii]]
                 nothing
             end
-            
-            global storagewrap= function(y, u)
+        else
+            fwrap=function(y, u)
                 y.=0
-                $(esc(physics)).storage(rhs($(esc(node)),y),unknowns($(esc(node)),u),$(esc(node)))
+                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+                func(rhs(geom,y),unknowns(geom,u),geom)
+                ## for ii in .. y[ii]=y[geom.speclist[ii]]
                 nothing
             end
-            
-            global sourcewrap=function(y)
-                y.=0
-                $(esc(physics)).source(rhs($(esc(node)),y),$(esc(node)))
-                nothing
-            end
-
-            global bfluxwrap=function(y, u)
-                y.=0
-                $(esc(physics)).bflux(rhs($(esc(bedge)),y),unknowns($(esc(bedge)),u),$(esc(bedge)))
-                nothing
-            end
-            
-            global breactionwrap=function(y, u)
-                y.=0
-                $(esc(physics)).breaction(rhs($(esc(bnode)),y),unknowns($(esc(bnode)),u),$(esc(bnode)))
-                nothing
-            end
-
-            global bsourcewrap=function(y)
-                y.=0
-                $(esc(physics)).bsource(rhs($(esc(bnode)),y),$(esc(bnode)))
-                nothing
-            end
-            
-            global bstoragewrap=function(y, u)
-                y.=0
-                $(esc(physics)).bstorage(rhs($(esc(bnode)),y),unknowns($(esc(bnode)),u),$(esc(bnode)))
-                nothing
-            end
-            
         end
     end
+    isnontrivial = (func!=nofunc2) && (func!=nofunc)
+    y = zeros(Tv,nspec)
+    ResEvaluator(fwrap,y,geom,nspec,isnontrivial)
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Call function in evaluator, store result in predefined memory.
+"""
+function evaluate!(e::ResEvaluator,u)
+    e.isnontrivial ? e.fwrap(e.y,u) : nothing
+    nothing
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Call function in evaluator, store result in predefined memory.
+"""
+function evaluate!(e::ResEvaluator)
+    e.isnontrivial ? e.fwrap(e.y) : nothing
+    nothing
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve evaluation result
+"""
+res(e::ResEvaluator) = e.y
+
+
+"""
+    $(TYPEDEF)
+
+Evaluator for functions from physics and their Jacobians. Allows to call different types of physic functions (flux, reaction, source)
+an provides  a common interface to different function formats (with data, without data etc.)
+
+$(TYPEDFIELDS)
+"""
+struct  ResJacEvaluator{Tv<:Number,Func<:Function,Cfg,Res,G} <: AbstractEvaluator
+    """ wrapper function in Format ready for Differential equations"""
+    fwrap::Func
+    """ ForwardDiff.JacobianConfig """
+    config::Cfg
+    """ DiffResults.JacobianResult"""
+    result::Res 
+    """ pre-allocated result """
+    y::Vector{Tv}
+    """ Geomtry object # geometry (node, edge...)"""
+    geom::G 
+    """ number of species """
+    nspec::Int
+    """ Is the  function not one of nofunc ot nofunc2 """
+    isnontrivial::Bool 
+end
+
+"""
+    $(SIGNATURES)
+
+Constructor for ResJEvaluator
+- `physics` Physics object
+- `symb`: symbol naming one of the functions in physics to be wrapped.
+- `uproto`: solution vector protoype,
+- `geom`: node, edge...
+- `nspec`: number of species
+"""
+function ResJacEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec) where Tv
+
+    func=getproperty(physics,symb)
+
+    if isdata(physics.data)
+        fwrap=function(y, u)
+            y.=0
+            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+            func(rhs(geom,y),unknowns(geom,u),geom,physics.data)
+            ## for ii in .. y[ii]=y[geom.speclist[ii]]
+            nothing
+        end
+    else
+        fwrap=function(y, u)
+            y.=0
+            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+            func(rhs(geom,y),unknowns(geom,u),geom)
+            ## for ii in .. y[ii]=y[geom.speclist[ii]]
+            nothing
+        end
+    end
+    
+    isnontrivial = (func!=nofunc2) && (func!=nofunc)
+
+    y = zeros(Tv,nspec)
+    u = zeros(Tv,length(uproto))
+    jac = zeros(Tv, nspec, length(u))
+    result=DiffResults.DiffResult(u,jac)
+    config=ForwardDiff.JacobianConfig(fwrap, y,u, ForwardDiff.Chunk(u,length(u)))
+    ResJacEvaluator(fwrap,config,result,y,geom,nspec,isnontrivial)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Call function in evaluator, store result and jacobian in predefined memory.
+"""
+function evaluate!(e::ResJacEvaluator,u)
+    e.isnontrivial ? ForwardDiff.vector_mode_jacobian!(e.result,e.fwrap,e.y,u,e.config) : nothing
+    nothing
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve evaluation result
+"""
+res(e::ResJacEvaluator) = DiffResults.value(e.result)
+
+"""
+$(TYPEDSIGNATURES)
+
+Retrieve Jacobian
+"""
+jac(e::ResJacEvaluator) = DiffResults.jacobian(e.result)
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Does calling the evaluator giva nontrivial (nonzero) result?
+"""
+isnontrivial(e::AbstractEvaluator) = e.isnontrivial
+
 
 
 ##########################################################

@@ -8,17 +8,24 @@ test functions for boundary flux calculations.
 
 $(TYPEDFIELDS)
 """
-mutable struct TestFunctionFactory{Tv}
+mutable struct TestFunctionFactory
 
     """
     Original system
     """
-    system::AbstractSystem{Tv}
+    system::AbstractSystem
 
     """
     Test function system
     """
-    tfsystem::DenseSystem{Tv}
+    tfsystem::DenseSystem
+
+
+    """
+    Solver control
+    """
+    control::SolverControl
+    
 end
 
 
@@ -28,7 +35,7 @@ $(TYPEDSIGNATURES)
 
 Constructor for TestFunctionFactory from System
 """
-function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
+function TestFunctionFactory(system::AbstractSystem; control=SolverControl())
     physics=Physics( 
         flux=function(f,u,edge)
         f[1]=u[1]-u[2]
@@ -39,7 +46,7 @@ function TestFunctionFactory(system::AbstractSystem{Tv}) where Tv
     )
     tfsystem=System(system.grid,physics,unknown_storage=:dense)
     enable_species!(tfsystem,1,[i for i=1:num_cellregions(system.grid)])
-    return TestFunctionFactory{Tv}(system,tfsystem)
+    return TestFunctionFactory(system,tfsystem,control)
 end
 
 
@@ -52,7 +59,7 @@ Create testfunction which has Dirichlet zero boundary conditions  for boundary
 regions in bc0 and Dirichlet one boundary conditions  for boundary
 regions in bc1.
 """
-function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
+function testfunction(factory::TestFunctionFactory, bc0, bc1)
 
     u=unknowns(factory.tfsystem)
     f=unknowns(factory.tfsystem)
@@ -71,12 +78,17 @@ function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where Tv
         factory.tfsystem.boundary_factors[1,bc0[i]]=Dirichlet
         factory.tfsystem.boundary_values[1,bc0[i]]=0
     end
-
+    _complete!(factory.tfsystem)
     eval_and_assemble(factory.tfsystem,u,u,f,Inf,Inf,0.0,zeros(0))
 
     _initialize!(u,factory.tfsystem)
-    lufact=LinearAlgebra.lu(factory.tfsystem.matrix)
-    ldiv!(vec(u),lufact,vec(f))
+    if isa(factory.tfsystem.matrix,ExtendableSparseMatrix)
+        fact=factorization(factory.control)
+        factorize!(fact,factory.tfsystem.matrix)
+        ldiv!(vec(u),fact,vec(f))
+    else
+        vec(u).=factory.tfsystem.matrix\vec(f)
+    end
     return vec(u)
 end
 
@@ -88,28 +100,39 @@ $(SIGNATURES)
 
 Calculate test function integral for transient solution.
 """
-function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv},
-                   Uold::AbstractMatrix{Tv}, tstep::Real) where {Tv,Ti}
+function integrate(system::AbstractSystem,tf,U::AbstractMatrix{Tv},
+                   Uold::AbstractMatrix{Tv}, tstep; params=Tv[]) where {Tv}
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tv,nspecies)
-    res=zeros(Tv,nspecies)
-    src=zeros(Tv,nspecies)
-    stor=zeros(Tv,nspecies)
-    storold=zeros(Tv,nspecies)
     tstepinv=1.0/tstep
 
-    physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    bedge=Edge{Tv,Ti}(system)
-    @create_physics_wrappers(physics,node,bnode,edge,bedge)
-
-    UKL=Array{Tv,1}(undef,2*nspecies)
-    UK=Array{Tv,1}(undef,nspecies)
-    UKold=Array{Tv,1}(undef,nspecies)
+    nparams=system.num_parameters
+    @assert nparams==length(params)
     
+    # !!! params etc 
+    physics=system.physics
+    node=Node(system, 0.0, 1.0, params)
+    bnode=BNode(system, 0.0, 1.0, params)
+    edge=Edge(system, 0.0, 1.0, params)
+    bedge=Edge(system, 0.0, 1.0, params)
+
+    UKL=Array{Tv,1}(undef,2*nspecies+nparams)
+    UK=Array{Tv,1}(undef,nspecies+nparams)
+    UKold=Array{Tv,1}(undef,nspecies+nparams)
+
+    if nparams>0
+        UK[nspecies+1:end].=params
+        UKold[nspecies+1:end].=params
+        UKL[2*nspecies+1:end].=params
+    end
+
+    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies+nparams)
+    rea_eval  = ResEvaluator(physics,:reaction,UK,node,nspecies+nparams)
+    stor_eval = ResEvaluator(physics,:storage,UK,node,nspecies+nparams)
+    storold_eval = ResEvaluator(physics,:storage,UKold,node,nspecies+nparams)
+    flux_eval = ResEvaluator(physics,:flux,UKL,edge,nspecies+nparams)
+
 
     geom=grid[CellGeometries][1]
     
@@ -120,35 +143,31 @@ function integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatri
             @views UKL[1:nspecies].=U[:,edge.node[1]]
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
 
-            res.=zero(Tv)
-            fluxwrap(res,UKL)
-            for ispec=1:nspecies
-                if system.node_dof[ispec,edge.node[1]]==ispec && system.node_dof[ispec,edge.node[2]]==ispec
-                    integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
-                end
-            end
+            evaluate!(flux_eval,UKL)
+            flux=res(flux_eval)
+
+            asm_res(idofK,idofL,ispec)=integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+            assemble_res(edge,system,asm_res)
         end
         
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
-            begin
-                res.=zero(Tv)
-                stor.=zero(Tv)
-                storold.=zero(Tv)
-                for ispec=1:nspecies
-                    UK[ispec]=U[ispec,node.index]
-                    UKold[ispec]=Uold[ispec,node.index]
-                end
-                reactionwrap(res,UK)
-                sourcewrap(src)
-                storagewrap(stor,UK)
-                storagewrap(storold,UKold)
-            end
             for ispec=1:nspecies
-                if system.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
-                end
+                UK[ispec]=U[ispec,node.index]
+                UKold[ispec]=Uold[ispec,node.index]
             end
+
+            evaluate!(rea_eval,UK)
+            rea=res(rea_eval)
+            evaluate!(stor_eval,UK)
+            stor=res(stor_eval)
+            evaluate!(storold_eval,UKold)
+            storold=res(storold_eval)
+            evaluate!(src_eval)
+            src=res(src_eval)
+
+            asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec]+(stor[ispec]-storold[ispec])*tstepinv)*tf[node.index]
+            assemble_res(node,system,asm_res)
         end
     end
     return integral
@@ -160,7 +179,7 @@ $(SIGNATURES)
 
 Calculate test function integral for steady state solution.
 """
-integrate(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractMatrix{Tv}) where {Tv,Ti} =integrate(system,tf,U,U,Inf)
+integrate(system::AbstractSystem,tf::Vector{Tv},U::AbstractMatrix{Tu}; kwargs... ) where {Tu,Tv} = integrate(system,tf,U,U,Inf; kwargs...)
 
 
 
@@ -170,54 +189,53 @@ $(SIGNATURES)
 
 Steady state part of test function integral.
 """
-function integrate_stdy(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
+function integrate_stdy(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
-    res=zeros(Tu,nspecies)
-    src=zeros(Tu,nspecies)
-    stor=zeros(Tu,nspecies)
 
     physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    bedge=BEdge{Tv,Ti}(system)
-    @create_physics_wrappers(physics,node,bnode,edge,bedge)
+    node=Node(system)
+    bnode=BNode(system)
+    edge=Edge(system)
+    bedge=BEdge(system)
 
     UKL=Array{Tu,1}(undef,2*nspecies)
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
-   
+
+    src_eval  = ResEvaluator(physics,:source,UK,node,nspecies)
+    rea_eval  = ResEvaluator(physics,:reaction,UK,node,nspecies)
+    flux_eval = ResEvaluator(physics,:flux,UKL,edge,nspecies)
+
+    
     for icell=1:num_cells(grid)
         for iedge=1:num_edges(geom)
             _fill!(edge,iedge,icell)
 
             @views UKL[1:nspecies].=U[:,edge.node[1]]
             @views UKL[nspecies+1:2*nspecies].=U[:,edge.node[2]]
-            res.=zero(Tv)
-            
-            fluxwrap(res,UKL)
-            for ispec=1:nspecies
-                if system.node_dof[ispec,edge.node[1]]==ispec && system.node_dof[ispec,edge.node[2]]==ispec
-                    integral[ispec]+=system.celledgefactors[iedge,icell]*res[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
-                end
-            end
+            evaluate!(flux_eval,UKL)
+            flux=res(flux_eval)
+
+
+            asm_res(idofK,idofL,ispec) = integral[ispec]+=system.celledgefactors[iedge,icell]*flux[ispec]*(tf[edge.node[1]]-tf[edge.node[2]])
+            assemble_res(edge,system,asm_res)
         end
         
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
 
-            res.=zeros(Tv)
-            src.=zeros(Tv)
             @views UK.=U[:,node.index]
-            reactionwrap(res,UK)
-            sourcewrap(src)
-            for ispec=1:nspecies
-                if system.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*(res[ispec]-src[ispec])*tf[node.index]
-                end
-            end
+
+            evaluate!(rea_eval,UK)
+            rea=res(rea_eval)
+            evaluate!(src_eval)
+            src=res(src_eval)
+
+            asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*(rea[ispec]-src[ispec])*tf[node.index]
+            assemble_res(node,system,asm_res)
+
         end
     end
     return integral
@@ -229,39 +247,32 @@ $(SIGNATURES)
 
 Calculate transient part of test function integral.
 """
-function integrate_tran(system::AbstractSystem{Tv,Ti},tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv,Ti}
+function integrate_tran(system::AbstractSystem,tf::Vector{Tv},U::AbstractArray{Tu,2}) where {Tu,Tv}
     grid=system.grid
     nspecies=num_species(system)
     integral=zeros(Tu,nspecies)
-    res=zeros(Tu,nspecies)
-    stor=zeros(Tu,nspecies)
-
 
     physics=system.physics
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    edge=Edge{Tv,Ti}(system)
-    bedge=BEdge{Tv,Ti}(system)
-    @create_physics_wrappers(physics,node,bnode,edge,bedge)
+    node=Node(system)
+    bnode=BNode(system)
+    edge=Edge(system)
+    bedge=BEdge(system)
+    # !!! Parameters
     
     UK=Array{Tu,1}(undef,nspecies)
     geom=grid[CellGeometries][1]
     csys=grid[CoordinateSystem]
+    stor_eval = ResEvaluator(physics,:storage,UK,node,nspecies)
     
     for icell=1:num_cells(grid)
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
-
-            res.=zeros(Tv)
-            stor.=zeros(Tv)
             @views UK.=U[:,node.index]
+            evaluate!(stor_eval,UK)
+            stor=res(stor_eval)
 
-            storagewrap(stor,U[:,node.index])
-            for ispec=1:nspecies
-                if system.node_dof[ispec,node.index]==ispec
-                    integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
-                end
-            end
+            asm_res(idof,ispec)=integral[ispec]+=system.cellnodefactors[inode,icell]*stor[ispec]*tf[node.index]
+            assemble_res(node,system,asm_res)
         end
     end
     return integral

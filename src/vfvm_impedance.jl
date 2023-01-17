@@ -14,16 +14,11 @@ Concrete type for impedance system.
 $(TYPEDFIELDS)
 """
 mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
-
+    
     """
     Nonzero pattern of time domain system matrix
     """
     sysnzval::AbstractVector{Complex{Tv}}
-
-    """
-    Discretization grid
-    """
-    grid
 
     """
     Derivative of storage term
@@ -49,7 +44,12 @@ mutable struct ImpedanceSystem{Tv} <: AbstractImpedanceSystem{Tv}
 end
 
 
-function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=0.0) where {Tv,Ti}
+"""
+$(SIGNATURES)
+
+Construct impedance system from time domain system `sys` and steady state solution `U0`
+"""
+function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix; λ0=0.0) where {Tv,Tc,Ti}
     residual=copy(U0)
 
     if system.num_parameters>0
@@ -68,7 +68,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
     eval_and_assemble(system,U0,U0,residual,0.0,1.0e30,0.0,params)
 
     impedance_system=ImpedanceSystem{Tv}()
-    impedance_system.grid=system.grid
+
     # catch the nonzero values of the system matrix
     impedance_system.sysnzval=complex(nonzeros(system.matrix))
     m,n=size(system.matrix)
@@ -78,8 +78,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
 
     # create sparse matrix with the same nonzero pattern of original matrix
     impedance_system.matrix=SparseMatrixCSC(m,n,
-                                colptrs(system.matrix),
-                                rowvals(system.matrix),
+                                SparseArrays.getcolptr(system.matrix),
+                                SparseArrays.getrowval(system.matrix),
                                 copy(impedance_system.sysnzval)
                                 )
     impedance_system.U0=U0
@@ -96,42 +96,26 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
 
     # Prepare calculation of derivative of the storage part
     data=physics.data
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
-    bfaceregions::Vector{Ti}=grid[BFaceRegions]
+    node=Node(system)
+    bnode=BNode(system)
     nspecies=num_species(system)
-    nodeparams=(node,)
-    bnodeparams=(bnode,)
-    if isdata(data)
-        nodeparams=(node,data,)
-        bnodeparams=(bnode,data,)
-    end    
-
-    storagewrap=function(y::AbstractVector, u::AbstractVector)
-        y.=0
-        physics.storage(y,u,nodeparams...)
-    end
-    
-    bstoragewrap=function(y::AbstractVector, u::AbstractVector)
-        y.=0
-        physics.bstorage(y,u,bnodeparams...)
-    end
         
     UK=Array{Tv,1}(undef,nspecies)
-    Y=Array{Tv,1}(undef,nspecies)
+    stor_eval = ResJacEvaluator(physics,:storage,UK,node,nspecies)
+    bstor_eval = ResJacEvaluator(physics,:bstorage,UK,node,nspecies)
 
     F.=0.0
     if system.num_parameters>0
         F.-=system.dudp[1]
     end
-
     
-    # structs holding diffresults for storage
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
 
     geom=grid[CellGeometries][1]
 
     bgeom=grid[BFaceGeometries][1]
+
+    asm_res(idof,ispec)=nothing
+    asm_param(idof,ispec,iparam)= nothing
 
     # Interior cell loop for building up storage derivative
     for icell=1:num_cells(grid)
@@ -140,19 +124,13 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
             @views UK[1:nspecies]=U0[:,node.index]
             
             # Evaluate & differentiate storage term at U0
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK)
-            jac_stor=DiffResults.jacobian(result_s)
+            evaluate!(stor_eval,UK)
+            jac_stor=jac(stor_eval)
 
             # Sort it into storderiv matrix.
             K=node.index
-            for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                ispec=_spec(F,idof,K)
-                for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    jspec=_spec(F,jdof,K)
-                    updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
-                end
-            end
-
+            asm_jac(idof,jdof,ispec,jspec)=updateindex!(storderiv,+,jac_stor[ispec,jspec]*system.cellnodefactors[inode,icell],idof,jdof)
+            assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
         end
     end
     
@@ -160,22 +138,15 @@ function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix; λ0=
     # and right hand side contribution from boundary condition
     if isdefined(physics, :bstorage) # should involve only bspecies
         for ibface=1:num_bfaces(grid)
-            ibreg=bfaceregions[ibface]
             for ibnode=1:num_nodes(bgeom)
                 _fill!(bnode,ibnode,ibface)
                 @views UK[1:nspecies]=U0[:,bnode.index]
                 # Evaluate & differentiate storage term
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK)
-                res_bstor=DiffResults.value(result_s)
-                jac_bstor=DiffResults.jacobian(result_s)
+                evaluate!(bstor_eval,UK)
+                jac_bstor=jac(bstor_eval)
                 K=bnode.index
-                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_spec(F,idof,K)
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
-                        updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
-                    end
-                end
+                asm_jac(idof,jdof,ispec,jspec)=updateindex!(storderiv,+,jac_bstor[ispec,jspec]*system.bfacenodefactors[ibnode,ibface],idof,jdof)
+                assemble_res_jac(bnode,system,asm_res,asm_jac,asm_param)
             end
         end
     end
@@ -189,11 +160,11 @@ $(SIGNATURES)
 Construct impedance system from time domain system `sys` and steady state solution `U0`
 under the assumption of a periodic perturbation of species `excited_spec` at  boundary `excited_bc`.
 """
-function ImpedanceSystem(system::AbstractSystem{Tv,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Ti}
+function ImpedanceSystem(system::AbstractSystem{Tv,Tc,Ti}, U0::AbstractMatrix, excited_spec,excited_bc) where {Tv,Tc,Ti}
     impedance_system=ImpedanceSystem(system,U0)
-    grid=impedance_system.grid
+    grid=system.grid
     bgeom=grid[BFaceGeometries][1]
-    bnode=BNode{Tv,Ti}(system)
+    bnode=BNode(system)
     bfaceregions::Vector{Ti}=grid[BFaceRegions]
     nspecies=num_species(system)
     F=impedance_system.F
@@ -246,22 +217,24 @@ function solve!(UZ::AbstractMatrix{Complex{Tv}},impedance_system::ImpedanceSyste
     iω=ω*1im
     matrix=impedance_system.matrix
     storderiv=impedance_system.storderiv
-    grid=impedance_system.grid
     # Reset the matrix nonzero values
     nzval=nonzeros(matrix)
     nzval.=impedance_system.sysnzval
     # Add the ω dependent term to main diagonal.
     # This makes the implicit assumption that storderiv does not
     # introduce new matrix entries.
-    U0=impedance_system.U0
-    for inode=1:num_nodes(grid)
-        for idof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
-            for jdof=_firstnodedof(U0,inode):_lastnodedof(U0,inode)
-                updateindex!(matrix,+,storderiv[idof,jdof]*iω,idof,jdof)
-            end
+
+    rowval=storderiv.rowval
+    colptr=storderiv.colptr
+    inzval=storderiv.nzval
+
+    for i=1:length(colptr)-1
+        for k=colptr[i]:colptr[i+1]-1
+            j=rowval[k]
+            updateindex!(matrix,+,inzval[k]*iω,i,j)
         end
     end
-    # Factorize + solve
+    
     lufact=LinearAlgebra.lu(matrix)
     ldiv!(values(UZ),lufact,values(impedance_system.F))
 end

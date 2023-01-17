@@ -4,27 +4,35 @@ $(README)
 $(EXPORTS)
 """
 module VoronoiFVM
-
 using Printf
 using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
-using SuiteSparse
+
+if VERSION<=v"1.8"
+    using SuiteSparse
+end
+
+using BandedMatrices
+# using MultidiagonalMatrices
+
 
 using Parameters
 using Statistics
 
 using ForwardDiff
 using DiffResults
-using IterativeSolvers
+using Krylov, IterativeSolvers
 using JLD2
-using StaticArrays
-using SparseDiffTools
-using Symbolics
 using RecursiveArrayTools
 
 using ExtendableSparse
 using ExtendableGrids
+
+using StaticArrays
+using SparseDiffTools
+using Symbolics
+using Random
 
 
 include("vfvm_physics.jl")
@@ -47,9 +55,18 @@ include("vfvm_history.jl")
 export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_xgrid.jl")
-export cartesian!, circular_symmetric!, spherical_symmmetric!
+export cartesian!, circular_symmetric!, spherical_symmetric!
 export coordinates
 
+
+
+"""
+$(TYPEDEF)
+    
+Abstract type for finite volume system structure.
+"""
+abstract type AbstractSystem{Tv<:Number, Tc<:Number, Ti <:Integer, Tm <:Integer} end
+include("vfvm_geometryitems.jl")
 include("vfvm_system.jl")
 export unknowns
 export enable_species!
@@ -64,8 +81,9 @@ export value
 export check_allocs!
 export physics!
 export history,history_summary,history_details
+export evaluate_residual_and_jacobian
 
-include("vfvm_geometryitems.jl")
+
 include("vfvm_formfactors.jl")
 export meas,project
 export unknown_indices
@@ -79,7 +97,6 @@ export viewK,viewL,data
 
 
 include("vfvm_solver.jl")
-include("vfvm_diffeq_interface.jl")
 export evolve!
 export embed!
 export solve!,solve
@@ -90,21 +107,26 @@ export nodeflux
 include("vfvm_testfunctions.jl")
 export integrate
 export testfunction
+export TestFunctionFactory
 
 include("vfvm_quantities.jl")
 export ContinuousQuantity
 export DiscontinuousQuantity
 export InterfaceQuantity
+export subgrids,views
 
 
 include("vfvm_impedance.jl")
 export impedance,freqdomain_impedance
 export measurement_derivative
 
+
+include("vfvm_diffeq_interface.jl")
+export eval_rhs!, eval_jacobian!, mass_matrix, prepare_diffeq!
+
 include("gridvisualize.jl")
 
 include("precompile.jl")
-
 
 end
 

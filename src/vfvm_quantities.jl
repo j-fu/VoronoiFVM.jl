@@ -40,7 +40,7 @@ automtically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function ContinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions; ispec=0, id=0) where {Tv,Ti,Tm}
+function ContinuousQuantity(sys::AbstractSystem{Tv,Tc,Ti,Tm},regions; ispec=0, id=0) where {Tv,Tc,Ti,Tm}
     if ispec==0
         nspec=num_species(sys)
         nspec=nspec+1
@@ -72,6 +72,11 @@ struct InterfaceQuantity{Ti}<: AbstractQuantity{Ti}
     ispec::Ti
 
     """
+    boundary regions, where interface quantity is defined
+    """
+    bregspec::Vector{Ti}
+
+    """
     Quantity identifier allowing to use the quantity as index
     in parameter fields
     """
@@ -82,26 +87,26 @@ end
      InterfaceQuantity(system,regions; ispec=0, id=0)
 
 
-Add interface quantity to the boundary regions listed in `regions`.
+Add interface quantity to the boundary regions given in `breg`.
 
 Unless specified in `ispec`, the species number is generated
 automtically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function InterfaceQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions;ispec=0,id=0) where {Tv,Ti,Tm}
+function InterfaceQuantity(sys::AbstractSystem{Tv,Tc,Ti,Tm},bregions::AbstractVector ;ispec=0,id=0) where {Tv,Tc,Ti,Tm}
     if ispec==0
         nspec=num_species(sys)
         nspec=nspec+1
     else
         nspec=ispec
     end
-    enable_boundary_species!(sys,nspec,[regions])
+    enable_boundary_species!(sys,nspec, bregions)
     sys.num_quantities+=1
     if id==0
         id=sys.num_quantities
     end
-    InterfaceQuantity{Ti}(nspec,id)
+    InterfaceQuantity{Ti}(nspec,bregions,id)
 end
 
 ###########################################################
@@ -137,7 +142,7 @@ are generated automatically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
-function DiscontinuousQuantity(sys::AbstractSystem{Tv,Ti,Tm},regions; regionspec=nothing, id=0) where {Tv,Ti,Tm}
+function DiscontinuousQuantity(sys::AbstractSystem{Tv,Tc,Ti,Tm},regions::AbstractVector; regionspec=nothing, id=0) where {Tv,Tc,Ti,Tm}
     rspec=zeros(Ti,num_cellregions(sys.grid))
     if regionspec==nothing
         nspec=num_species(sys)
@@ -173,8 +178,8 @@ num_quantities(system::AbstractSystem) = system.num_quantities
 """
     subgrids(quantity, system)
 
-Return a vector of subgrids containing a subgrid for each 
-region where discontinuous quantitiy is defined.
+Return a vector of subgrids containing a subgrid for each
+region where discontinuous quantity is defined.
 """
 function subgrids(quantity::DiscontinuousQuantity, sys)
     grid=sys.grid
@@ -189,10 +194,22 @@ function subgrids(quantity::DiscontinuousQuantity, sys)
 end
 
 """
+    subgrids(quantity, system)
+
+Return the subgrid where interface quantity is defined.
+"""
+function subgrids(quantity::InterfaceQuantity, sys)
+    grid=sys.grid
+    bgrid=Vector{ExtendableGrid}(undef,0)
+    bgrid=subgrid(grid, quantity.bregspec, boundary = true)
+end
+
+
+"""
     views(quantity, subgrids,system)
 
-Return a vector of subgrids containing a subgrid for each 
-region where discontinuous quantitiy is defined.
+Return a vector of solutions containing the solutions with respect tp
+each region where discontinuous quantity is defined.
 """
 function views(U, quantity::DiscontinuousQuantity, subgrids,sys)
     grid=sys.grid
@@ -219,6 +236,9 @@ function views(U, quantity::ContinuousQuantity, subgrids,sys)
     projections
 end
 
+function views(U, quantity::InterfaceQuantity, bgrid, sys)
+    view(U[quantity.ispec,:],bgrid)
+end
 
 
 # just return the first which comes into mind.
@@ -308,7 +328,7 @@ Base.getindex(q::DiscontinuousQuantity,node::Node)=@inbounds q.regionspec[node.r
 """
     bnode[quantity]
 Return species number of discontinuous quantity region `ireg`  adjacent
-to  [`BoundaryNode`](@ref) for outer boundary nodes.
+to  [`BNode`](@ref) for outer boundary nodes.
 """
 Base.getindex(q::DiscontinuousQuantity,bnode::BNode)=@inbounds q.regionspec[bnode.cellregions[1]]
 
@@ -316,7 +336,7 @@ Base.getindex(q::DiscontinuousQuantity,bnode::BNode)=@inbounds q.regionspec[bnod
 """
     bnode[quantity,ireg]
 Return species number of discontinuous quantity region `ireg`  adjacent
-to  [`BoundaryNode`](@ref).
+to  [`BNode`](@ref).
 """
 Base.getindex(q::DiscontinuousQuantity,bnode::BNode,j)=@inbounds q.regionspec[bnode.cellregions[j]]
 
@@ -382,3 +402,11 @@ Base.getindex(A::AbstractArray,q::AbstractQuantity)= A[q.id]
 Set element of `A` using id of quantity `q`
 """
 Base.setindex!(A::AbstractArray,v,q::AbstractQuantity)= A[q.id]=v
+
+
+
+
+Base.getindex(I::SolutionIntegral,cspec::ContinuousQuantity,ireg)=I[cspec.id,ireg]
+Base.getindex(I::SolutionIntegral,dspec::DiscontinuousQuantity,ireg)=I[dspec.regionspec[ireg],ireg]
+Base.getindex(I::SolutionIntegral,dspec::DiscontinuousQuantity,::Colon)=[I[dspec.regionspec[ireg],ireg] for ireg=1:size(I,2)]
+

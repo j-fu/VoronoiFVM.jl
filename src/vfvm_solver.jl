@@ -7,25 +7,15 @@ Re-exported from ForwardDiff.jl
 """
 const value=ForwardDiff.value
 
-##################################################################
+# These are needed to enable iterative solvers to work with dual numbers
+Base.Float64(x::ForwardDiff.Dual)=value(x)
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{ForwardDiff.Dual{T,V,N}}) where {T,V,N} = ForwardDiff.Dual{T,V,N}(rand(rng,V))
+
+
 """
 $(SIGNATURES)
 
-Extract derivatives from dual number.
-"""
-const partials=ForwardDiff.partials
-
-##################################################################
-"""
-$(SIGNATURES)
-
-Extract number of derivatives from dual number.
-"""
-const npartials=ForwardDiff.npartials
-
-
-"""
-Add value to matrix if it is nonzero
+Add value `v*fac` to matrix if `v` is nonzero
 """
 @inline function _addnz(matrix,i,j,v::Tv,fac) where Tv
     if isnan(v)
@@ -36,6 +26,7 @@ Add value to matrix if it is nonzero
     end
 end
 
+ExtendableSparse.rawupdateindex!(m::AbstractMatrix,op,v,i,j)= m[i,j]=op(m[i,j],v)
 
 
 """
@@ -96,20 +87,26 @@ function _print_error(err,st)
     println()
 end
 
+
 """
+$(SIGNATURES)
+
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve
 """
 function _solve!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    system::AbstractSystem{Tv}, # Finite volume system
+    system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
     control::NewtonControl,
-    time::Tv,
-    tstep::Tv,
-    embedparam::Tv,
-    params::AbstractVector{Tv}
-) where Tv
+    time,
+    tstep,
+    embedparam,
+    params;
+    mynorm=(u)->LinearAlgebra.norm(values(u),Inf),
+    myrnorm=(u)->LinearAlgebra.norm(values(u),1),
+    kwargs...
+) where {Tv, Tc, Ti, Tm}
 
     _complete!(system, create_newtonvectors=true)
     nlhistory=NewtonSolverHistory()
@@ -117,11 +114,17 @@ function _solve!(
         solution.=oldsol
         residual=system.residual
         update=system.update
-        _initialize!(solution,system)
-        SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
-        if typeof(control.factorization)!=typeof(system.factorization)
-            system.factorization=control.factorization
+        _initialize!(solution,system; time, λ=embedparam,params)
+        if VERSION<=v"1.8"
+            SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
         end
+        
+        if isnothing(system.factorization)
+            if isa(system.matrix,ExtendableSparseMatrix)
+                system.factorization=factorization(control; valuetype=Tv)
+            end
+        end
+        
         oldnorm=1.0
         converged=false
         if control.verbose
@@ -131,9 +134,10 @@ function _solve!(
         nround=0
         damp=control.damp_initial
         tolx=0.0
-        rnorm=LinearAlgebra.norm(values(solution),1)
-        
+        rnorm=myrnorm(solution)
+
         for ii=1:control.max_iterations
+            # Create Jacobi matrix and RHS for Newton iteration
             try
                 eval_and_assemble(system,solution,oldsol,residual,time,tstep,embedparam,params,edge_cutoff=control.edge_cutoff)
             catch err
@@ -145,11 +149,13 @@ function _solve!(
                 end
             end
             
-            mtx=system.matrix
             
+            ## Linear system solution: mtx*update=residual
+            mtx=system.matrix
             nliniter=0
-            # Sparse LU factorization
-            if nlu_reuse==0 # (re)factorize, if possible reusing old factorization data
+            
+            ## (re)factorize, if possible reusing old factorization data
+            if !isnothing(system.factorization) && nlu_reuse==0 
                 try
                     factorize!(system.factorization,mtx)
                 catch err
@@ -164,8 +170,9 @@ function _solve!(
                     nlhistory.nlu+=1
                 end
             end
-            if issolver(system.factorization) && nlu_reuse==0
-                # Direct solution via LU solve
+            
+            ## Direct solution via LU solve:
+            if !isnothing(system.factorization)  && issolver(system.factorization) && nlu_reuse==0
                 try
                     ldiv!(values(update),system.factorization,values(residual))
                     if control.log
@@ -179,23 +186,71 @@ function _solve!(
                         rethrow(err)
                     end
                 end
-            elseif !issolver(system.factorization) || nlu_reuse>0
-                # Iterative solution
-                update.=zero(Tv)
-                (sol,history)= bicgstabl!(values(update),
-                                          mtx,
-                                      values(residual),
-                                          1,
-                                          Pl=system.factorization,
-                                          reltol=control.tol_linear,
-                                          max_mv_products=100,
-                                          log=true)
-                nliniter=history.iters
+                
+            ## Iterative solution using factorization as preconditioner
+            elseif !isnothing(system.factorization) && !issolver(system.factorization)  || nlu_reuse>0
+                if control.iteration == :krylov_bicgstab
+                    (sol,history)= Krylov.bicgstab(mtx,
+                                                   values(residual),
+                                                   M=system.factorization,
+                                                   rtol=control.tol_linear,
+                                                   ldiv=true,
+                                                   itmax=control.max_iterations_linear,
+                                                   history=true)
+                    values(update).=sol
+                elseif control.iteration == :krylov_gmres
+                    (sol,history)= Krylov.gmres(mtx,
+                                                values(residual),
+                                                M=system.factorization,
+                                                rtol=control.tol_linear,
+                                                ldiv=true,
+                                                restart=true,
+                                                itmax=control.max_iterations_linear,
+                                                memory=control.gmres_restart,
+                                                history=true)
+                    values(update).=sol
+                elseif control.iteration == :krylov_cg
+                    (sol,history)= Krylov.cg(mtx,
+                                             values(residual),
+                                             M=system.factorization,
+                                             ldiv=true,
+                                             rtol=control.tol_linear,
+                                             itmax=control.max_iterations_linear,
+                                             history=true)
+                    values(update).=sol
+                elseif control.iteration == :cg
+                    update.=zero(Tv)
+                    (sol,history)= IterativeSolvers.cg!(values(update),
+                                                        mtx,
+                                                        values(residual),
+                                                        Pl=system.factorization,
+                                                        reltol=control.tol_linear,
+                                                        maxiter=control.max_iterations_linear,
+                                                        log=true)
+                elseif control.iteration == :bicgstab
+                    update.=zero(Tv)
+                    (sol,history)= IterativeSolvers.bicgstabl!(values(update),
+                                                               mtx,
+                                                               values(residual),
+                                                               1,
+                                                               Pl=system.factorization,
+                                                               reltol=control.tol_linear,
+                                                               max_mv_products=control.max_iterations_linear,
+                                                               log=true)
+                else
+                    error("wrong value of `iteration`, see documentation of SolverControl")
+                end
+
+                if control.iteration == :cg || control.iteration == :bicgstab 
+                    nliniter=history.iters
+                else
+                    nliniter=history.niter
+                end
                 if control.log
-                    nlhistory.nlin+=history.iters
+                    nlhistory.nlin+=history.niter
                 end
             else
-                error("This should not happen")
+                values(update).=system.matrix\values(residual)
             end
 
             if control.max_lureuse>0
@@ -204,12 +259,12 @@ function _solve!(
             solval=values(solution)
             solval.-=damp*values(update)
             damp=min(damp*control.damp_growth,1.0)
-            norm=LinearAlgebra.norm(values(update),Inf)
+            norm=mynorm(update)
             if tolx==0.0
                 tolx=norm*control.tol_relative
             end
             dnorm=1.0
-            rnorm_new=LinearAlgebra.norm(values(solution),1)
+            rnorm_new=myrnorm(solution)
             if rnorm>1.0e-50
                 dnorm=abs((rnorm-rnorm_new)/rnorm)
             end
@@ -266,7 +321,12 @@ function _solve!(
     system.history=nlhistory
 end
 
+function zero!(m::ExtendableSparseMatrix{Tv,Ti}) where {Tv,Ti}
+    nzv  = nonzeros(m)
+    nzv .= zero(Tv)
+end
 
+zero!(m::AbstractMatrix{T}) where T = m.=zero(T)
 
 ################################################################
 """
@@ -277,45 +337,30 @@ Main assembly method.
 Evaluate solution with result in right hand side F and 
 assemble Jacobi matrix into system.matrix.
 """
-function eval_and_assemble(system::AbstractSystem{Tv, Ti},
+function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
-                           time::Tv,
-                           tstep::Tv,# time step size. Inf means stationary solution
-                           embedparam::Tv,
-                           params::AbstractVector{Tv};
+                           time,
+                           tstep,# time step size. Inf means stationary solution
+                           λ,
+                           params::AbstractVector;
                            edge_cutoff=0.0
-                           ) where {Tv, Ti}
+                           ) where {Tv, Tc, Ti, Tm,  TSpecMat, TSolArray}
     
 
     _complete!(system) # needed here as well for test function system which does not use newton
     
     grid    = system.grid
     physics = system.physics
-    node    = Node{Tv,Ti}(system)
-    bnode   = BNode{Tv,Ti}(system)
-    edge    = Edge{Tv,Ti}(system)
-    bedge   = BEdge{Tv,Ti}(system)
-
-    node.time=time
-    bnode.time=time
-    edge.time=time
-    bedge.time=time
-
-    node.embedparam=embedparam
-    bnode.embedparam=embedparam
-    edge.embedparam=embedparam
-    bedge.embedparam=embedparam
-
+    node    = Node(system,time,λ,params)
+    bnode   = BNode(system,time,λ,params)
+    edge    = Edge(system,time,λ,params)
+    bedge   = BEdge(system,time,λ,params)
 
     
-    @create_physics_wrappers(physics, node, bnode, edge, bedge)
-
-
     
     nspecies::Int = num_species(system)
-    matrix        = system.matrix
     
     cellnodefactors::Array{Tv,2}  = system.cellnodefactors
     celledgefactors::Array{Tv,2}  = system.celledgefactors
@@ -323,24 +368,15 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors    
     
     # Reset matrix + rhs
-    nzv  = nonzeros(matrix)
-    nzv .= 0.0
+    zero!(system.matrix)
     F   .= 0.0
     nparams::Int=system.num_parameters
-    if nparams>0
-        dudp=system.dudp
-    end
+
+    dudp=system.dudp
+
     for iparam=1:nparams
         dudp[iparam].=0.0
     end
-    
-    # structs holding diff results for storage, reaction,  flux ...
-    result_r    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies + nparams))
-    result_s    = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, nspecies + nparams))
-    result_flx  = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies + nparams))
-    result_bflx = DiffResults.DiffResult(Vector{Tv}(undef, nspecies), Matrix{Tv}(undef, nspecies, 2*nspecies + nparams))  
-    # Array holding function results
-    Y = Array{Tv,1}(undef,nspecies)
 
     # Arrays for gathering solution data
     UK    = Array{Tv,1}(undef,nspecies + nparams)
@@ -354,37 +390,6 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
         UKL[2*nspecies+1:end].=params
     end
     
-    # array holding source term
-    src   = zeros(Tv,nspecies)
-    bsrc  = zeros(Tv,nspecies)
-    # arrays holding storage terms for old solution
-    oldstor   = zeros(Tv, nspecies)
-    res_react = zeros(Tv, nspecies)
-    jac_react = zeros(Tv, nspecies, nspecies)
-    oldbstor  = zeros(Tv, nspecies)
-
-
-    # Due to
-
-    # https://github.com/JuliaDiff/ForwardDiff.jl/issues/516
-
-    # in   order   to  avoid   allocations,   we   directly  call   into
-    # vector_mode_jacobian!. However, by default,  this assumes that the
-    # length    of     the    argument     vector    is     less    than
-    # DEFAULT_CHUNK_THRESHOLD.
-
-    # This threshold can be increased by passing ForwardDiff.Chunk(UK,...).
-    
-    # See also https://juliadiff.org/ForwardDiff.jl/stable/user/advanced/#Configuring-Chunk-Size
-    
-    cfg_r     = ForwardDiff.JacobianConfig(reactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    cfg_s     = ForwardDiff.JacobianConfig(storagewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    cfg_br    = ForwardDiff.JacobianConfig(breactionwrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    cfg_bs    = ForwardDiff.JacobianConfig(bstoragewrap, Y, UK, ForwardDiff.Chunk(UK,nspecies + nparams))
-    
-    cfg_bflx  = ForwardDiff.JacobianConfig(bfluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies + nparams))
-    cfg_flx   = ForwardDiff.JacobianConfig(fluxwrap, Y, UKL,ForwardDiff.Chunk(UKL,2*nspecies + nparams))
-
     
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
@@ -395,153 +400,131 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
     
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2}  = system.boundary_values
-
-    hasbc = !iszero(boundary_factors) || !iszero(boundary_values)
-
     bfaceregions::Vector{Ti} = grid[BFaceRegions]
+    cellregions::Vector{Ti} = grid[CellRegions]
 
     nbfaces = num_bfaces(grid)
     ncells  = num_cells(grid)
     geom=grid[CellGeometries][1]
     bgeom   = grid[BFaceGeometries][1]
-
     
     nn::Int = num_nodes(geom)
     ne::Int = num_edges(geom)
 
+    has_legacy_bc = !iszero(boundary_factors) || !iszero(boundary_values)
+
+
+    #
+    # These wrap the different physics functions.
+    #
+    src_evaluator  = ResEvaluator(physics,:source,UK,node,nspecies)
+    rea_evaluator  = ResJacEvaluator(physics,:reaction,UK,node,nspecies)
+    stor_evaluator = ResJacEvaluator(physics,:storage,UK,node,nspecies)
+    oldstor_evaluator = ResEvaluator(physics,:storage,UK,node,nspecies)
+    flux_evaluator = ResJacEvaluator(physics,:flux,UKL,edge,nspecies)
+
+
+    bsrc_evaluator  = ResEvaluator(physics,:bsource,UK,bnode,nspecies)
+    brea_evaluator  = ResJacEvaluator(physics,:breaction,UK,bnode,nspecies)
+    bstor_evaluator = ResJacEvaluator(physics,:bstorage,UK,bnode,nspecies)
+    oldbstor_evaluator = ResEvaluator(physics,:bstorage,UK,bnode,nspecies)
+    bflux_evaluator = ResJacEvaluator(physics,:bflux,UKL,bedge,nspecies)
+
 
     ncalloc=@allocated  for icell=1:ncells
+        ireg=cellregions[icell]
         for inode=1:nn
             _fill!(node,inode,icell)
             @views UK[1:nspecies]    .= U[:,node.index]
             @views UKOld[1:nspecies] .= UOld[:,node.index]
-            # xx gather:
-                # ii=0
-                # for i region_spec.colptr[ireg]:region_spec.colptr[ireg+1]-1
-                #    ispec=Fdof.rowval[idof]
-                #    ii=ii+1
-                #    node.speclist[ii]=ispec
-                #    UK[ii]=U[ispec,K]
-                #   UK[1:nspecies]=U[:,node.index]
-                #   UKOld[1:nspecies]=UOld[:,node.index]
-                # Evaluate source term
+            fac=cellnodefactors[inode,icell]
 
-            if issource
-                sourcewrap(src)
+            evaluate!(src_evaluator)
+            src = res(src_evaluator)
+
+            evaluate!(rea_evaluator,UK)
+            res_react = res(rea_evaluator)
+            jac_react = jac(rea_evaluator)
+            
+            evaluate!(stor_evaluator,UK)
+            res_stor = res(stor_evaluator)
+            jac_stor = jac(stor_evaluator)
+            
+            evaluate!(oldstor_evaluator,UKOld)
+            oldstor = res(oldstor_evaluator)
+
+            @inline asm_res(idof,ispec)=_add(F,idof,fac*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
+            
+            @inline function asm_jac(idof,jdof,ispec,jspec)
+                _addnz(system.matrix, idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,fac)
             end
             
-            if isreaction
-                # Evaluate & differentiate reaction term if present
-                Y .= zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_r,reactionwrap,Y,UK,cfg_r)
-                res_react = DiffResults.value(result_r)
-                jac_react = DiffResults.jacobian(result_r)
+            @inline function asm_param(idof,ispec,iparam)
+                jparam=nspecies+iparam
+                dudp[iparam][ispec,idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*fac
             end
             
-            # Evaluate & differentiate storage term
-            Y.=zero(Tv)
-            ForwardDiff.vector_mode_jacobian!(result_s,storagewrap,Y,UK,cfg_s)
-            res_stor = DiffResults.value(result_s)
-            jac_stor = DiffResults.jacobian(result_s)
+            assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
 
-            # Evaluate storage term for old timestep
-            oldstor.=zero(Tv)
-            storagewrap(oldstor,UKOld)
-            K=node.index
-            for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                ispec=_spec(F,idof,K)
-                _add(F,idof,cellnodefactors[inode,icell]*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
-                for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    jspec=_spec(F,jdof,K)
-                    _addnz(matrix,idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,cellnodefactors[inode,icell])
-                end
-                for iparam=1:nparams
-                    jparam=nspecies+iparam
-                    dudp[iparam][idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*cellnodefactors[inode,icell]
-                end
-            end
         end
 
         for iedge=1:ne
-            if abs(celledgefactors[iedge,icell])<edge_cutoff
-                continue
-            end
+            abs(celledgefactors[iedge,icell])<edge_cutoff&& continue
             _fill!(edge,iedge,icell)
-
+            fac=celledgefactors[iedge,icell]
+            
             #Set up argument for fluxwrap
             @views UKL[1:nspecies]            .= U[:, edge.node[1]]
             @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
-
-            Y.=zero(Tv)
-            ForwardDiff.vector_mode_jacobian!(result_flx,fluxwrap,Y,UKL,cfg_flx)
-            res=DiffResults.value(result_flx)
-            jac=DiffResults.jacobian(result_flx)
-
-            K=edge.node[1]
-            L=edge.node[2]
             
-            fac=celledgefactors[iedge,icell]
+            evaluate!(flux_evaluator,UKL)
+            res_flux = res(flux_evaluator)
+            jac_flux = jac(flux_evaluator)
+
             
-            for idofK=_firstnodedof(F,K):_lastnodedof(F,K)
-                ispec=_spec(F,idofK,K)
-                idofL=dof(F,ispec,L)
-                if idofL==0
-                    continue
-                end
-                _add(F,idofK,fac*res[ispec])
-                _add(F,idofL,-fac*res[ispec])
-                
-                for jdofK=_firstnodedof(F,K):_lastnodedof(F,K)
-                    jspec=_spec(F,jdofK,K)
-                    jdofL=dof(F,jspec,L)
-                    if jdofL==0
-                        continue
-                    end
-                    
-                    _addnz(matrix,idofK,jdofK,+jac[ispec,jspec         ],fac)
-                    _addnz(matrix,idofL,jdofK,-jac[ispec,jspec         ],fac)
-                    _addnz(matrix,idofK,jdofL,+jac[ispec,jspec+nspecies],fac)
-                    _addnz(matrix,idofL,jdofL,-jac[ispec,jspec+nspecies],fac)
-                end
-                
-                for iparam=1:nparams
-                    jparam=2*nspecies+iparam
-                    dudp[iparam][idofK]+=fac*jac[ispec,jparam]
-                    dudp[iparam][idofL]-=fac*jac[ispec,jparam]
-                end
+            @inline function asm_res(idofK,idofL,ispec)
+                val=fac*res_flux[ispec]
+                _add(F,idofK,val)
+                _add(F,idofL,-val)
             end
+            
+            @inline function asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+                _addnz(system.matrix,idofK,jdofK,+jac_flux[ispec,jspec         ],fac)
+                _addnz(system.matrix,idofL,jdofK,-jac_flux[ispec,jspec         ],fac)
+                _addnz(system.matrix,idofK,jdofL,+jac_flux[ispec,jspec+nspecies],fac)
+                _addnz(system.matrix,idofL,jdofL,-jac_flux[ispec,jspec+nspecies],fac)
+            end
+            
+            @inline function asm_param(idofK,idofL,ispec,iparam)
+                jparam=2*nspecies+iparam
+                dudp[iparam][ispec,idofK]+=fac*jac_flux[ispec,jparam]
+                dudp[iparam][ispec,idofL]-=fac*jac_flux[ispec,jparam]
+            end
+            
+            assemble_res_jac(edge,system,asm_res,asm_jac, asm_param )
+            
         end
     end
 
     nbn::Int = num_nodes(bgeom)
     nbe::Int = num_edges(bgeom)
-
+    
     # Assembly loop for boundary conditions
     nballoc= @allocated for ibface=1:nbfaces
         ibreg=bfaceregions[ibface]
-
+        
         # Loop over nodes of boundary face
         for ibnode=1:nbn
             # Fill bnode data shuttle with data from grid
             _fill!(bnode,ibnode,ibface)
 
-            
-            # Copy unknown values from solution into dense array
-            @views UK.=U[:,bnode.index]
-
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
-            bnode.Dirichlet=Dirichlet/bnode_factor
             
-            if isbsource
-                bsourcewrap(bsrc)
-            end
-
-            # Global index of node
-            K::Int=bnode.index
-
-
-            if hasbc
+            if has_legacy_bc
+                # Global index of node
+                K=bnode.index
+                bnode.Dirichlet=Dirichlet/bnode_factor
                 # Assemble "standard" boundary conditions: Robin or
                 # Dirichlet
                 # valid only for interior species, currently not checked
@@ -562,126 +545,98 @@ function eval_and_assemble(system::AbstractSystem{Tv, Ti},
                             
                             # Add penalty to matrix main diagonal (without bnode factor, so penalty
                             # is independent of h)
-                            _addnz(matrix,idof,idof,boundary_factor,1)
+                            _addnz(system.matrix,idof,idof,boundary_factor,1)
                         else
                             # Robin boundary condition
                             F[ispec,K]+=bnode_factor*(boundary_factor*U[ispec,K]-boundary_value)
-                            _addnz(matrix,idof,idof,boundary_factor, bnode_factor)
+                            _addnz(system.matrix,idof,idof,boundary_factor, bnode_factor)
                         end
                     end
                 end
             end
-            
-            # Boundary reaction term has been given.
-            # Valid for both boundary and interior species
-            if isbreaction
-                # Evaluate function + derivative
-                Y.=zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_r,breactionwrap,Y,UK,cfg_br)
-                res_breact=DiffResults.value(result_r)
-                jac_breact=DiffResults.jacobian(result_r)
-                
-                # Assemble RHS + matrix
-                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_spec(F,idof,K)
-                    _add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
-                        _addnz(matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
-                    end
-                    for iparam=1:nparams
-                        jparam=nspecies+iparam
-                        dudp[iparam][idof]+=jac_breact[ispec,jparam]*bnode_factor
-                    end
-                end
 
-            end
+            # Copy unknown values from solution into dense array
+            @views UK[1:nspecies].=U[:,bnode.index]
+
+            evaluate!(bsrc_evaluator)
+            bsrc = res(bsrc_evaluator)
             
-            # Boundary reaction term has been given.
-            # Valid only for boundary species, but system is currently not checked.
-            if isbstorage
+            evaluate!(brea_evaluator,UK)
+            res_breact = res(brea_evaluator)
+            jac_breact = jac(brea_evaluator)
+            
+            
+            asm_res1(idof,ispec)=_add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
+            
+            asm_jac1(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
+            
+            asm_param1(idof,ispec,iparam)= dudp[iparam][ispec,idof]+=jac_breact[ispec,nspecies+iparam]*bnode_factor
+            
+            assemble_res_jac( bnode, system, asm_res1,asm_jac1,asm_param1)
+            
+            if isnontrivial(bstor_evaluator) 
+                evaluate!(bstor_evaluator,UK)
+                res_bstor = res(bstor_evaluator)
+                jac_bstor = jac(bstor_evaluator)
                 
-                # Fetch data for old timestep
                 @views UKOld.=UOld[:,bnode.index]
-
-                # Evaluate storage term for old timestep
-                bstoragewrap(oldbstor,UKOld)
-
-                # Evaluate & differentiate storage term for new time step value
-                Y.=zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
-                res_bstor=DiffResults.value(result_s)
-                jac_bstor=DiffResults.jacobian(result_s)
+                evaluate!(oldbstor_evaluator,UKOld)
+                oldbstor = res(oldbstor_evaluator)
                 
-                for idof=_firstnodedof(F,K):_lastnodedof(F,K)
-                    ispec=_spec(F,idof,K)
-                    # Assemble finite difference in time for right hand side
-                    _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
-                    # Assemble matrix.
-                    for jdof=_firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec=_spec(F,jdof,K)
-                        _addnz(matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
-                    end
-                    for iparam=1:nparams
-                        jparam=nspecies+iparam
-                        dudp[iparam][idof]+=jac_bstor[ispec,jparam]*bnode_factor*tstepinv
-                    end
-                end
-            end # if isbstorage
-            
+                asm_res2(idof,ispec)= _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
+                
+                asm_jac2(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
+                
+                asm_param2(idof,ispec,iparam)= dudp[iparam][ispec,idof]+=jac_bstor[ispec,nspecies+iparam]*bnode_factor*tstepinv
+                
+                assemble_res_jac(bnode, system, asm_res2,asm_jac2,asm_param2)
+                
+            end
         end # ibnode=1:nbn
-        if isbflux
+
+
+        if isnontrivial(bflux_evaluator)
             for ibedge=1:nbe
-                if abs(bfaceedgefactors[ibedge,ibface]) < edge_cutoff
+                fac = bfaceedgefactors[ibedge, ibface]
+                if abs(fac) < edge_cutoff
                     continue
                 end
-
+                
                 _fill!(bedge,ibedge,ibface)
                 @views UKL[1:nspecies]            .= U[:, bedge.node[1]]
                 @views UKL[nspecies+1:2*nspecies] .= U[:, bedge.node[2]]
-
-                Y.=zero(Tv)
-                ForwardDiff.vector_mode_jacobian!(result_bflx, bfluxwrap, Y, UKL, cfg_bflx)
-                res = DiffResults.value(result_bflx)
-                jac = DiffResults.jacobian(result_bflx)
                 
-                K   = bedge.node[1]
-                L   = bedge.node[2]
-            
-                fac = bfaceedgefactors[ibedge, ibface]
+                evaluate!(bflux_evaluator,UKL)
+                res_bflux = res(bflux_evaluator)
+                jac_bflux = jac(bflux_evaluator)
 
-                for idofK = _firstnodedof(F, K):_lastnodedof(F, K)
-                    ispec =_spec(F, idofK, K)
-                    idofL = dof(F, ispec, L)
-                    if idofL == 0
-                        continue
-                    end
-                    _add(F, idofK,  fac*res[ispec])
-                    _add(F, idofL, -fac*res[ispec])
-                    
-                    for jdofK = _firstnodedof(F,K):_lastnodedof(F,K)
-                        jspec = _spec(F,jdofK,K)
-                        jdofL = dof(F,jspec,L)
-                        if jdofL == 0
-                            continue
-                        end
-                        
-                        _addnz(matrix, idofK, jdofK, +jac[ispec, jspec         ], fac)
-                        _addnz(matrix, idofL, jdofK, -jac[ispec, jspec         ], fac)
-                        _addnz(matrix, idofK, jdofL, +jac[ispec, jspec+nspecies], fac)
-                        _addnz(matrix, idofL, jdofL, -jac[ispec, jspec+nspecies], fac)
-                     end
+
+                function asm_res(idofK,idofL,ispec)
+                    _add(F, idofK,  fac*res_bflux[ispec])
+                    _add(F, idofL, -fac*res_bflux[ispec])
                 end
 
+                function asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
+                    _addnz(system.matrix, idofK, jdofK, +jac_bflux[ispec, jspec         ], fac)
+                    _addnz(system.matrix, idofL, jdofK, -jac_bflux[ispec, jspec         ], fac)
+                    _addnz(system.matrix, idofK, jdofL, +jac_bflux[ispec, jspec+nspecies], fac)
+                    _addnz(system.matrix, idofL, jdofL, -jac_bflux[ispec, jspec+nspecies], fac)
+                end
 
-
+                function asm_param(idofK,idofL,ispec,iparam)
+                    jparam=2*nspecies+iparam
+                    dudp[iparam][ispec,idofK]+=fac*jac_bflux[ispec,jparam]
+                    dudp[iparam][ispec,idofL]-=fac*jac_bflux[ispec,jparam]
+                end
+                assemble_res_jac(bedge,system,asm_res,asm_jac, asm_param)
             end
         end
     end
-
+    noallocs(m::ExtendableSparseMatrix)=isnothing(m.lnkmatrix)
+    noallocs(m::AbstractMatrix)=false
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
-    if isnothing(matrix.lnkmatrix) && !_check_allocs(system,ncalloc+nballoc)
+    if noallocs(system.matrix) && !_check_allocs(system,ncalloc+nballoc)
         error("""Allocations in assembly loop: cells: $(ncalloc), bfaces: $(nballoc)
                             See the documentation of `check_allocs!` for more information""")
     end
@@ -715,6 +670,19 @@ function _eval_and_assemble_generic_operator(system::AbstractSystem,U,F)
     end
 end
 
+
+function _eval_generic_operator(system::AbstractSystem,U,F)
+    if !has_generic_operator(system)
+        return
+    end
+    generic_operator(f,u)=system.physics.generic_operator(f,u,system)
+    vecF=values(F)
+    vecU=values(U)
+    y=similar(vecF)
+    generic_operator(y,vecU)
+    vecF.+=y
+end
+
 ################################################################
 """
 ````
@@ -737,17 +705,13 @@ function solve!(
 )
     if control.verbose
         @time begin
-            _solve!(solution,inival,system,control,time,tstep,embedparam,params)
+            _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
         end
     else 
-        _solve!(solution,inival,system,control,time,tstep,embedparam,params)
+        _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
     end
     return solution
 end
-
-
-
-
 
 
 
@@ -772,7 +736,7 @@ function solve(
     params=zeros(0),
     kwargs...
 )
-    solve!(unknowns(system),inival,system,control=control,time=time, tstep=tstep, params=params)
+    solve!(unknowns(system),inival,system; control=control,time=time, tstep=tstep, params=params, kwargs...)
 end
 
 
@@ -812,11 +776,13 @@ function solve(inival,
     
     solution=copy(inival)
     oldsolution=copy(inival)
-    _initialize_dirichlet!(inival,system)
+    _initialize_dirichlet!(inival,system;  time, λ=Float64(lambdas[1]),params)
     Δλ=Δλ_val(control,transient)
     
     if !transient
-        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]),params=params)
+        pre(solution,Float64(lambdas[1]))
+        solution=solve!(solution,oldsolution, system; control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]),params=params, kwargs...)
+        post(solution,oldsolution,lambdas[1], 0)
         if control.log
             push!(allhistory,system.history)
             push!(allhistory.times,lambdas[1])
@@ -832,13 +798,13 @@ function solve(inival,
         @printf("  Evolution: start\n")
     end
     
+    istep=0
     for i=1:length(lambdas)-1
         
         Δλ=max(Δλ,Δλ_min(control,transient))
         λstart=lambdas[i]
         λend=lambdas[i+1]
         λ=Float64(λstart)
-        istep=0
         
         while λ<λend
             solved=false
@@ -850,9 +816,9 @@ function solve(inival,
                     λ=λ0+Δλ
                     pre(solution,λ)
                     if transient
-                        solution=solve!(solution,oldsolution, system ,control=control,time=λ,tstep=Δλ,params=params)
+                        solution=solve!(solution,oldsolution, system; control=control,time=λ,tstep=Δλ,params=params, kwargs...)
                     else
-                        solution=solve!(solution,oldsolution, system ,control=control,time=time,tstep=Inf,embedparam=λ,params=params)
+                        solution=solve!(solution,oldsolution, system; control=control,time=time,tstep=Inf,embedparam=λ,params=params,kwargs...)
                     end
                 catch err
                     if (control.handle_exceptions)
@@ -918,35 +884,48 @@ function solve(inival,
 end
 
 
+"""
+    evaluate_residual_and_jacobian(system,u;
+                                   t=0.0, tstep=Inf,embed=0.0)
+
+Evaluate residual and jacobian at solution value u.
+Returns a solution vector containing the residual, and an ExendableSparseMatrix
+containing the linearization at u.
+
+"""
+function evaluate_residual_and_jacobian(sys,u;t=0.0, tstep=Inf,embed=0.0)
+    _complete!(sys, create_newtonvectors=true)
+
+    eval_and_assemble(sys,u,u,sys.residual,t,tstep,embed,zeros(0))
+    copy(sys.residual), copy(flush!(sys.matrix))
+end
+
+
 module NoModule end
 
 #####################################################################
 """
-    solve(system; kwargs...)
-
-Main solution method for VoronoiFVM.System.
-
+    VoronoiFVM.solve(system; kwargs...)
+    
+Built-in solution method for [`VoronoiFVM.System`](@ref).  
+For using ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl), see
+the [VoronoiFVMDiffEq.jl](https://github.com/j-fu/VoronoiFVMDiffEq.jl) package.
+    
 Keyword arguments:
 - General for all solvers 
-  - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
-  -  All elements of [`SolverControl`](@ref) can be used as kwargs except in the case of the DifferentialEquations based solver
-  - `damp` (default: 1): alias for `damp_initial`
-  - `damp_grow` (default: 1): alias for `damp_growth`
-  - `abstol`: alias for `tol_absolute`
-  - `reltol`: alias for `tol_relative`
-  - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
-  - `params`: Parameters (Parameter handling is experimental and may change)
+   - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
+   -  All elements of [`SolverControl`](@ref) can be used as kwargs.
+   - `damp` (default: 1): alias for `damp_initial`
+   - `damp_grow` (default: 1): alias for `damp_growth`
+   - `abstol`: alias for `tol_absolute`
+   - `reltol`: alias for `tol_relative`
+   - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
+   - `params`: Parameters (Parameter handling is experimental and may change)
     
 - __Stationary solver__:
-  Invoked if neither `times` nor `embed`  nor `tspan` nor `tstep` are given as keyword argument.
+  Invoked if neither `times` nor `embed`, nor `tstep` are given as keyword argument.
   - `time` (default: `0`): Set time value. 
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
-
-- __Implicit Euler timestep solver__. Invoked if `tstep` kwarg is given.
-  - `time` (default: `0`): Set time value. 
-  - `tstep`: time step
-  Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
-
 
 - __Embedding (homotopy) solver__: Invoked if `embed` kwarg is given.
   Use homotopy embedding + damped Newton's method  to 
@@ -954,8 +933,7 @@ Keyword arguments:
   Parameter step control is performed according to solver control data.  kwargs and default values are:
   - `embed` (default: `nothing` ): vector of parameter values to be reached exactly
   In addition,  all kwargs of the implicit Euler solver (besides `times`) are handled.  
-  Returns a transient solution object `sol` containing the stored solution,
-  see [`TransientSolution`](@ref).
+  Returns a transient solution object `sol` containing the stored solution(s),  see [`TransientSolution`](@ref).
   
 - __Implicit Euler transient solver__: Invoked if `times` kwarg is given.
   Use implicit Euler method  + damped   Newton's method  to 
@@ -968,25 +946,15 @@ Keyword arguments:
   - `delta` (default:  `(u,v,t, Δt)->norm(sys,u-v,Inf)` ):  Value  used to control the time step size `Δu`
   If `control.handle_error` is true, if step solution  throws an error,
   stepsize  is lowered, and  step solution is called again with a smaller time value.
-  If `control.Δt<control.Δt_min`, solution is aborted
-  with error.
-  Returns a transient solution object `sol` containing the stored solution,
-  see [`TransientSolution`](@ref).
+  If `control.Δt<control.Δt_min`, solution is aborted with error.
+  Returns a transient solution object `sol` containing the stored solution,  see [`TransientSolution`](@ref).
   
-- __Transient solver via  `DifferentialEquations.jl`/`OrdinaryDiffEq.jl`__: invoked if `tspan` and `diffeq` kwargs are given.
-  - `tspan`: Time interval for differential equations.
-  - `diffeq`: `DifferentialEquations` or `OrdinaryDiffEq` module made available via `import` or `using`.
-  - `solver`: specify solver from [DifferentialEquations](https://diffeq.sciml.ai/stable/solvers/dae_solve/#dae_solve_full).  
-     By default, [`Rosenbrock23()`](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Rosenbrock-W-Methods) is used. 
-     Any  stiff  solver   capable  to  work  with   mass  matrices  is possible. 
-     If the system contains  elliptic equations, it needs to be a DAE solver able to  work with mass matrices.
-     Currently, the mass matrix must  be constant and diagonal which  means that only storage terms  of the  form `s(u)=  c u`  are allowed.  
-  - All other kwargs   are  passed   to  `DifferentialEquations.solve()`,  see [here](https://diffeq.sciml.ai/stable/basics/common_solver_opts/)
-    for  an  overview.  
-  Returns  a transient  solution  object  `sol` containing stored solutions, see [`TransientSolution`](@ref).
-
+- __Implicit Euler timestep solver__.  Invoked if `tstep` kwarg is given. Solve one time step of the implicit Euler method.
+  - `time` (default: `0`): Set time value. 
+  - `tstep`: time step
+  Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
-function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros(0), control=VoronoiFVM.NewtonControl(), diffeq::Module=NoModule, solver=nothing, kwargs...)
+function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros(0), control=VoronoiFVM.NewtonControl(), kwargs...)
     if isa(inival,Number)
         inival=unknowns(sys,inival=inival)
     elseif  !VoronoiFVM.isunknownsof(inival,sys)
@@ -1005,9 +973,7 @@ function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros
         end
     end
     
-    if isdefined(diffeq,:ODEProblem) &&  haskey(kwargs,:tspan)
-        solve(diffeq,inival,sys,kwargs[:tspan]; solver=solver, kwargs...)
-    elseif haskey(kwargs,:times)
+    if haskey(kwargs,:times)
         solve(inival,sys,kwargs[:times]; control=control, transient=true, params=params,kwargs...)
     elseif haskey(kwargs,:embed)
         solve(inival,sys,kwargs[:embed]; control=control, transient=false,params=params, kwargs...)

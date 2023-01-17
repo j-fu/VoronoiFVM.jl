@@ -43,7 +43,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
     # Create array which is refined close to 0
     h0=0.005/2.0^nref
     h1=0.1/2.0^nref
-    
+
     X=VoronoiFVM.geomspace(0,L,h0,h1)
 
     # Create discretitzation grid
@@ -65,7 +65,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
         f[1]=data.R*u[1]
     end
 
-    
+
     excited_bc=1
     excited_bcval=1.0
     excited_spec=1
@@ -76,7 +76,7 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
         boundary_dirichlet!(f,u,node,region=excited_bc,value=p[1])
         boundary_dirichlet!(f,u,node,region=meas_bc,value=0.0)
     end
-    
+
 
     # Create discrete system and enabe species
     sys=VoronoiFVM.System(grid,unknown_storage=unknown_storage,
@@ -89,10 +89,10 @@ function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
                           species=1
                           )
 
- 
+
     # Create test functions for current measurement
-    
-    factory=VoronoiFVM.TestFunctionFactory(sys)
+
+    factory=TestFunctionFactory(sys)
     measurement_testfunction=testfunction(factory,[excited_bc],[meas_bc])
 
     steadystate=solve(sys,inival=0.0,params=[1.0])

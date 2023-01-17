@@ -7,7 +7,7 @@ Test current calculation for jumping species. Here, we have three cases:
     a. Problem initialized as usual
     b. Problem initialized with Continuousquantity
     c. Problem initialized with Discontinuousquantity with adjusted reaction rate
-We see that the resulting current coincides for all three cases when adjusting the 
+We see that the resulting current coincides for all three cases when adjusting the
 reaction rate.
 
 =#
@@ -19,7 +19,7 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
-mutable struct Data 
+mutable struct Data
     rate::Float64 # rate which is within DiscontinuousQuantities
     Data() = new()
 end
@@ -34,7 +34,7 @@ function main(;N=3, Plotter=nothing, unknown_storage=:sparse)
     grid = simplexgrid(xcoord)
     for i=1:N
         cellmask!(grid, [i-1], [i], i)
-    end	
+    end
     for i=1:N-1
         bfacemask!(grid, [i], [i], i+2)
     end
@@ -42,7 +42,7 @@ function main(;N=3, Plotter=nothing, unknown_storage=:sparse)
     sysQ  = VoronoiFVM.System(grid, unknown_storage=unknown_storage)
     cspec = ContinuousQuantity(sysQ, 1:N, id = 1)                    # continuous quantity
     dspec = DiscontinuousQuantity(sysQ, 1:N, id = 2)                 # discontinuous quantity
- 
+
     data = Data();    rate = 0.0;     data.rate = rate
 
     function fluxQ(f,u,edge, data) # For both quantities, we define simple diffusion fluxes
@@ -63,10 +63,10 @@ function main(;N=3, Plotter=nothing, unknown_storage=:sparse)
         flux=fluxQ,
         breaction=breactionQ
     ))
-    
+
     ##########################################################
     icc   = 1 # for system without AbstractQuantities
-    
+
     function flux!(f,u,edge) # analogous as for other system
         f[icc] = u[icc, 1]-u[icc, 2]
     end
@@ -80,7 +80,7 @@ function main(;N=3, Plotter=nothing, unknown_storage=:sparse)
     boundary_dirichlet!(sys,  icc,   1, 0.0)
 
     subgrids = VoronoiFVM.subgrids(dspec, sysQ)
-    
+
     # solve
     inivalQ  = unknowns(sysQ);  inival  = unknowns(sys)
     UQ       = unknowns(sysQ);  U       = unknowns(sys)
@@ -100,7 +100,7 @@ function main(;N=3, Plotter=nothing, unknown_storage=:sparse)
             inivalQ .= UQ
 
             ## get current
-            factoryQ  = VoronoiFVM.TestFunctionFactory(sysQ)
+            factoryQ  = TestFunctionFactory(sysQ)
             tfQ       = testfunction(factoryQ, [1], [2])
             IQ        = integrate(sysQ, tfQ, UQ)
 
@@ -114,10 +114,10 @@ function main(;N=3, Plotter=nothing, unknown_storage=:sparse)
             # second problem
             boundary_dirichlet!(sys,  icc,   2, Δu)
 
-            solve!(U,  inival,  sys)        
+            solve!(U,  inival,  sys)
             inival  .= U
 
-            factory  = VoronoiFVM.TestFunctionFactory(sys)
+            factory = TestFunctionFactory(sys)
             tf      = testfunction(factory, [1], [2])
             I       = integrate(sys, tf, U)
 
@@ -127,12 +127,12 @@ function main(;N=3, Plotter=nothing, unknown_storage=:sparse)
         end # bias loop
 
         # plot
-        dvws = VoronoiFVM.views(UQ, dspec, subgrids, sysQ)
-        cvws = VoronoiFVM.views(UQ, cspec, subgrids, sysQ)
+        dvws = views(UQ, dspec, subgrids, sysQ)
+        cvws = views(UQ, cspec, subgrids, sysQ)
 
         vis  = GridVisualizer(layout = (2,1), resolution = (600,300), Plotter = Plotter)
 
-        for i=1:length(dvws)
+        for i in eachindex(dvws)
             scalarplot!(vis[1, 1], subgrids[i], dvws[i], flimits=(-0.5,1.5), title = @sprintf("Solution with rate=%.2f",data.rate),  label="discont quantity", clear = false, color=:red)
             scalarplot!(vis[1, 1], subgrids[i], cvws[i], label="cont quantity",  clear = false, color=:green)
         end

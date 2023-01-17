@@ -113,7 +113,7 @@ which under proper conditions on $r,g,s$ has a unique solution.
 
 The implicit Euler method is the default solver for time dependent problems.
 Alternatively, ODE and DAE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl)
-can be [used](@ref diffeq).
+can be [used](@ref diffeq) with an upcoming glue package.
 
 
 ### Generalizations to systems

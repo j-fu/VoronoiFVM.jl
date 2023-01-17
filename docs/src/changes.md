@@ -1,4 +1,66 @@
 # Changes
+## v0.18.8 - 0.18.10  Dec 11, 2022 - Jan 5, 2023
+- Internal restructuring: remove @create_physics_wrappers macro, reduce boilerplate in assembly, wrap repeating pattenrns
+  into functions.  The price in the moment is a bit of a slowdown of assembly.
+- Fix parameter dependency handling (now we can get parameter derivative without solving in dual numbers; see
+  the runh() example in Example430. However in the moment the advantatge is not very clear, so this  is
+  on hold...
+## v0.18.7  Dec 7, 2022
+- bump gridvisualize compat
+## v0.18.6  Dec 3, 2022
+- enable non-diagonal mass matrices for VoronoiFVMDiffEq
+## v0.18.5  Nov 30, 2022
+- ready for Julia 1.9, re-enable CI on nighly
+## v0.18.4  Nov 29, 2022
+- Add API methods used by VoronoiFVMDiffEq.jl
+## v0.18.3  Oct 18 2022
+- Removed some allocations
+## v0.18.2  Oct 13 2022
+- Emerging capability of differencing wrt. parameters (experimental, see example 430)
+- Allow iterative methods from Krylov.jl
+- Proper Dirichlet initialization with bcondition
+- Allow for more general matrix structures (banded, tridiagonal, multidiagonal)
+
+## v0.18.1 September 25 2022
+- Working spherical symmetry case
+## v0.18 September 12 2022
+- Remove DifferentialEquations interface (move this to a glue package)
+The current method of activating it through require is too brittle with
+respect to versioning.
+
+## v0.17.1 August 20 2022
+- Fix DifferentialEquations interface, start transition to LinearSolve
+
+## v0.17.0 July 1 2022
+- ensure not to assemble data for species where they are not enabled 
+  This change should be breaking only for incorrect code where physics
+  callbacks write into degrees of freedom which are not enabled
+
+## v0.16.5 June 30, 2022
+- add `iteration` to solver options, allow to choose :cg, :bicgstab.
+- allow setting penalty with boundary_dirichlet!
+
+## v0.16.4 May 25, 2022
+- fix x-t plots 
+
+## v0.16.3 March 18, 2022
+- Linearization API
+- relax some type constraints
+
+## v0.16.2 Feb 18, 2022
+- ExtendableGrids 0.9
+
+## v0.16.1 Feb 17, 2022
+- fix quantity postprocessing
+- define unknown access for abstract vectors instead of vectors
+- pass rhs/unknowns wrappers in postprocessing methods
+- integrals as a wrapper type with proper quantity handling
+
+## v0.16.0 Feb 13, 2022
+- Expose ODEProblem (and possibly ODEFunc) from VoronoiFVM.System.
+- __Breaking__: Remove `solve` wrapper for DifferentialEquations.solve, instead recommend to call that directly
+- __Breaking__: Handle DifferentialEquations.jl via Requires.jl.
+
 ## v0.15.1 Jan 15, 2022
 - Documentation fixes
 - Fix OrdinaryDiffEq interface
@@ -8,7 +70,7 @@
 ## v0.15.0 Jan 1, 2022
 - __Breaking__: History is not anymore returned by `solve`, instead it can be accessed via [`history`](@ref) after the solution.
 - Cleaned API:
-  - [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) is now the main method of `solve` which allows to 
+  - [`VoronoiFVM.solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) is now the main method of `solve` which allows to 
     access stationary, transient, embedding and DifferentialEquations based solvers.
   - Joint implementation for implicit Euler timestepping and parameter embedding
   - Handle more kwargs via SolverControl (e.g. log)

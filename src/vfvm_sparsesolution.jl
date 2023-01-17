@@ -1,5 +1,4 @@
 
-
 #################################################################
 """
 $(TYPEDEF)
@@ -153,12 +152,12 @@ function Base.getindex(a::SparseSolutionArray, ispec::Integer, inode::Integer)
 end
 
 
-#
-# Accessors for node-dof based loops
-#
-_firstnodedof(U::SparseSolutionArray,K) =U.node_dof.colptr[K]
-_lastnodedof(U::SparseSolutionArray,K) =U.node_dof.colptr[K+1]-1
-_spec(U::SparseSolutionArray,idof,K) =U.node_dof.rowval[idof]
+
+"""
+$(TYPEDSIGNATURES)
+
+Add residual value into global degree of freedom
+"""
 _add(U::SparseSolutionArray,idof,val)=U.node_dof.nzval[idof]+=val
 
 

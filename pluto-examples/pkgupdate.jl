@@ -15,7 +15,8 @@ notebooks=["nbproto.jl",
            "problemcase.jl",
            "nonlinear-solvers.jl"
            ]
-    
+
+
 tmp=mktempdir()
 tmpjl=joinpath(tmp,"tmp.jl")
 
@@ -27,7 +28,6 @@ for notebook in notebooks
     println("Updating of  $(notebook) done\n")
     Pkg.activate(@__DIR__)
 end
-
 
 dirs=["test","pluto-examples","docs"]
 for dir in dirs 

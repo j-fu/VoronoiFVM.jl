@@ -1,5 +1,8 @@
 #
-# Interface to DifferentialEquations.jl
+# Interface to VoronoiFVMDiffEq.jl
+#
+# For VoronoiFVM v0.18, v0.19 we allow breaking changes on
+# this part of the API in patch revisions.
 #
 """
     $(TYPEDEF)
@@ -7,25 +10,25 @@
 History information for DiffEqHistory
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct DiffEqHistory 
-    """ number of combined jacobi/rhs evolutions"""
+Base.@kwdef mutable struct DiffEqHistory 
+    """ number of combined jacobi/rhs evaluations"""
     nd=0
-    """ number of combined jacobi evolutions"""
+    """ number of combined jacobi evaluations"""
     njac=0
-    """ number of rhs evolutions"""
+    """ number of rhs evaluations"""
     nf=0
 end
 
 details(h::DiffEqHistory)=(nd=h.nd,njac=h.njac,nf=h.nf)
 Base.summary(h::DiffEqHistory)=details(h)
-    
-#
-# Evaluate function and Jacobian at u if they have not
-# been evaluated before at u.
-#
-# See https://github.com/SciML/DifferentialEquations.jl/issues/521
-# for discussion of another way to do this
-#
+
+
+"""
+    $(SIGNATURES)
+
+Evaluate functiaon and Jacobian at u if they have not been evaluated before at u.
+See https://github.com/SciML/DifferentialEquations.jl/issues/521 for discussion of another way to do this.
+"""
 function _eval_res_jac!(sys,u,t)
     uhash=hash(u)
     if uhash!=sys.uhash
@@ -67,150 +70,77 @@ end
 $(SIGNATURES)
 
 Calculate the mass matrix for use with DifferentialEquations.jl.
+Return a Diagonal matrix if it occurs to be diagonal, otherwise return a SparseMatrixCSC.
 """
-function mass_matrix(system::AbstractSystem{Tv, Ti}) where {Tv, Ti}
+function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, Tm}
     physics=system.physics
     grid=system.grid
     data=physics.data
-    node=Node{Tv,Ti}(system)
-    bnode=BNode{Tv,Ti}(system)
+    node=Node(system)
+    bnode=BNode(system)
     nspecies=num_species(system)
     cellnodefactors=system.cellnodefactors
     bfacenodefactors=system.bfacenodefactors
     bgeom=grid[BFaceGeometries][1]
     nbfaces=num_bfaces(grid)
+    ndof=num_dof(system)
 
-    if isdata(data)
-        isbstorage=(physics.bstorage!=nofunc)
+    stor_eval = ResJacEvaluator(physics,:storage,zeros(Tv,nspecies),node,nspecies)
+    bstor_eval = ResJacEvaluator(physics,:bstorage,zeros(Tv,nspecies),node,nspecies)
 
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node,data)
-            nothing
-        end
-        
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode,data)
-            nothing
-        end
-        
-    else
-        isbstorage=(physics.bstorage!=nofunc2)
-
-        storagewrap= function(y, u)
-            y.=0
-            physics.storage(y,u,node)
-            nothing
-        end
-        bstoragewrap=function(y, u)
-            y.=0
-            physics.bstorage(y,u,bnode)
-            nothing
-        end
-    end        
-
-    result_s=DiffResults.DiffResult(Vector{Tv}(undef,nspecies),Matrix{Tv}(undef,nspecies,nspecies))
-    Y=Array{Tv,1}(undef,nspecies)
-    UK=Array{Tv,1}(undef,nspecies)
-    cfg_s=ForwardDiff.JacobianConfig(storagewrap, Y, UK)
-    cfg_bs=ForwardDiff.JacobianConfig(bstoragewrap, Y, UK)
-
-    U=unknowns(system,inival=1)
-    M=unknowns(system,inival=0)
+    U=unknowns(system,inival=0)
+    M=ExtendableSparseMatrix{Tv,Tm}(ndof,ndof)
     
     geom=grid[CellGeometries][1]
     cellnodes=grid[CellNodes]
     cellregions=grid[CellRegions]
     bfacenodes=grid[BFaceNodes]
 
+    asm_res(idof,ispec)=nothing
+    asm_param(idof,ispec,iparam)= nothing
     for icell=1:num_cells(grid)
+        ireg=cellregions[icell]
         for inode=1:num_nodes(geom)
             _fill!(node,inode,icell)
-            for ispec=1:nspecies
-                UK[ispec]=U[ispec,node.index]
-            end
-            ForwardDiff.jacobian!(result_s,storagewrap,Y,UK,cfg_s)
-            res_stor=DiffResults.value(result_s)
-            jac_stor=DiffResults.jacobian(result_s)
             K=node.index
-            for idof=_firstnodedof(M,K):_lastnodedof(M,K)
-                ispec=_spec(M,idof,K)
-                M[ispec,K]+=cellnodefactors[inode,icell]*jac_stor[ispec,ispec]
-            end
+
+            @views evaluate!(stor_eval,U[:,K])
+            jac_stor=jac(stor_eval)
+
+            asm_jac(idof,jdof,ispec,jspec)= _addnz(M,idof,jdof,jac_stor[ispec,jspec],cellnodefactors[inode,icell])
+            assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
         end
     end
     
-    if isbstorage
+    if isnontrivial(bstor_eval)
         for ibface=1:nbfaces
             for ibnode=1:num_nodes(bgeom)
                 _fill!(bnode,ibnode,ibface)
-                for ispec=1:nspecies
-                    UK[ispec]=U[ispec,bnode.index]
-                end
-                ForwardDiff.jacobian!(result_s,bstoragewrap,Y,UK,cfg_bs)
-                jac_bstor=DiffResults.jacobian(result_s)
-                for idof=_firstnodedof(M,K):_lastnodedof(M,K)
-                    ispec=_spec(M,idof,K)
-                    M[ispec,K]+=bfacenodefactors[ibnode,ibface]*jac_bstor[ispec,ispec]
-                end
-                
+                K=bnode.index
+                @views evaluate!(bstor_eval,U[:,K])
+                jac_bstor=jac(bstor_eval)
+                asm_jac(idof,jdof,ispec,jspec)= _addnz(M,idof,jdof,jac_bstor[ispec,jspec],bfacenodefactors[ibnode,ibface])
+                assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
             end
         end
     end
-    
-    return Diagonal(vec(M))
+    Mcsc=sparse(M)
+    isdiag(Mcsc) ? Diagonal([Mcsc[i,i] for i=1:ndof]) : Mcsc
 end
 
-
 """
-        solve mit Union{Module, Nothing}
-    package=DifferentialEquations
-    solve(inival,sys,tspan,pkg=..., solver=...)
+$(SIGNATURES)
+Prepare system for use with VoronoiFVMDiffEq.
 
-    saveat,tstops,tspan vs tsample
-    => tstops=tsample
-       tspan=[tstops[1],tstops[end]]
-       save=:all, :sample,:nothing
-    FunctionCallingCallback for collecting data 
-    SavingCallback
-    TerminateSteadyState
-    keep evolve ?
+- `jacval`: value at which to evaluate jacobian to obtatin prototype
+- `tjac`: time moment for jacobian
+ 
+Returns a prototype for the jacobian.
 """
-
-
-"""
-````
-solve(DifferentialEquations, inival, system, tspan;  solver=nothing,   kwargs...)
-````
-
-Solve using timestepping scheme  from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
-
-Alias for [`solve(system::VoronoiFVM.AbstractSystem)`](@ref) with the corresponding keyword arguments.
-
-"""
-@noinline function solve(DiffEq::Module,
-               inival::AbstractArray,
-               sys::AbstractSystem,
-               tspan; solver=nothing, kwargs...)
-
-    if isnothing(solver)
-        solver=DiffEq.Rosenbrock23(linsolve=DiffEq.KLUFactorization())
-    end
-
+function prepare_diffeq!(sys,jacval,tjac)
     sys.history=DiffEqHistory()
-    
     _complete!(sys, create_newtonvectors=true)
-    _eval_res_jac!(sys,inival,tspan[1])
+    _eval_res_jac!(sys,jacval,tjac)
     flush!(sys.matrix)
-    f = DiffEq.ODEFunction(eval_rhs!,
-                           jac=eval_jacobian!,
-                           jac_prototype=sys.matrix.cscmatrix,
-                           mass_matrix=mass_matrix(sys))
-
-    prob = DiffEq.ODEProblem(f,vec(inival),tspan,sys)
-    sol = DiffEq.solve(prob,solver; kwargs...)
-    # Return solution as TransientSolution such that sol[i] adheres to the
-    # different storage schemes for multispecies cases.
-    TransientSolution([reshape(sol.u[i],sys) for i=1:length(sol.u)] ,sol.t)
+    sys.matrix.cscmatrix
 end

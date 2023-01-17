@@ -1,5 +1,11 @@
 ################################################
-const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
+
+if VERSION>v"1.8"
+    # const  default_umfpack_pivot_tolerance=SparseArrays.UMFPACK.get_umfpack_control(Float64,Int64)[3+1]
+    const default_umfpack_pivot_tolerance=0.1
+else
+    const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
+end
 
 """
 $(TYPEDEF)
@@ -54,7 +60,7 @@ $(TYPEDFIELDS)
     """
     Maximum number of iterations.
     """
-    max_iterations::Int32 = 100
+    max_iterations::Int = 100
 
     """
     Maximum number of reuses of lu factorization.
@@ -63,24 +69,54 @@ $(TYPEDFIELDS)
     Otherwise, a BICGstab iterative method is used for linear system solution with a 
     LU factorization as preconditioner which is updated only every `max_lureuse` Newton step.
     """
-    max_lureuse::Int32 = 0
+    max_lureuse::Int = 0
 
     """
     Maximum number of consecutive iterations within roundoff error tolerance
     The default effectively disables this criterion.
     """
-    max_round::Int32 = 1000
+    max_round::Int = 1000
 
     """
-    Tolerance of iterative linear solver.
+    Relative tolerance of iterative linear solver.
     """
     tol_linear::Float64 = 1.0e-4
+    max_iterations_linear::Int=20
+    """
+    Factorization kind for linear sytems (see ExtendableSparse.jl).
+    Possible values: 
+    - :lu, :default  : LU factorization from UMFPACK (for Float64) or Sparspak.jl
+    - :sparspak  : LU Factorization from Sparspak
+    - :pardiso  : LU Factorization from Pardiso.jl using Pardiso from pardiso.org. Install and `use` Pardiso.jl to use this option.
+    - :mklpardiso  : LU Factorization from Pardiso.jl using MKL Pardiso. Install and `use` Pardiso.jl to use this option.
+    - :ilu0 : Zero-fillin ILU factorization preconditioner
+    - :jacobi : Jacobi (Diagonal) preconditioner
+    """
+    factorization::Union{Symbol,AbstractFactorization}=:lu
+
+    
+    """
+    Maximum number of iterations of linear solver
+    """
+    max_linear_iterations::Int=100
 
     """
-    Factorization kind for linear sytems (see ExtendableSparse.jl). 
-    Default: Standard Julia LU Factorization (UMFPACK).
+    GMRES Krylov dimension for restart
     """
-    factorization::AbstractFactorization = LUFactorization()
+    gmres_restart::Int=10
+
+    
+    """   
+    Iterative solver if factorization is incomplete.
+    Currently supported: 
+    - :bicgstab : bicgstabl method from IterativeSolvers.jl
+    - :cg : cg method from IterativeSolvers.jl
+    - :krylov_cg : cg method from Krylov.jl
+    - :krylov_bicgstab : bicgstab method from Krylov.jl
+    - :krylov_gmres : gmres method from Krylov.jl
+
+    """
+    iteration::Symbol=:bicgstab
     
     """
     Verbosity flag.
@@ -171,6 +207,34 @@ $(TYPEDFIELDS)
     """
     log=false
 end
+
+function factorization(control;valuetype=Float64)
+    if isa(control.factorization,Symbol)
+        if control.factorization in  [:lu, :default]
+            if valuetype==Float64
+                ExtendableSparse.LUFactorization(;valuetype)
+            else
+                ExtendableSparse.SparspakLU(;valuetype)
+            end
+        elseif control.factorization == :sparspak
+            ExtendableSparse.SparspakLU(;valuetype)
+        elseif  control.factorization == :pardiso
+            ExtendableSparse.PardisoLU(;valuetype)
+        elseif  control.factorization == :mklpardiso
+            ExtendableSparse.PardisoLU(;valuetype)
+        elseif  control.factorization == :ilu0
+            ExtendableSparse.ILU0Preconditioner(;valuetype)
+        elseif  control.factorization == :jacobi
+            ExtendableSparse.JacobiPreconditioner(;valuetype)
+        else
+            error("factorization :$(control.factorization) not supported for $valuetype, see documenation of VoronoiFVM.SolverControl for options")
+        end
+        
+    else
+        control.factorization
+    end
+end
+
 
 
 """
