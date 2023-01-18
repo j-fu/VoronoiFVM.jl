@@ -118,13 +118,13 @@ function _solve!(
         if VERSION<=v"1.8"
             SuiteSparse.UMFPACK.umf_ctrl[3+1]=control.umfpack_pivot_tolerance
         end
-        
+
         if isnothing(system.factorization)
             if isa(system.matrix,ExtendableSparseMatrix)
                 system.factorization=factorization(control; valuetype=Tv)
             end
         end
-        
+
         oldnorm=1.0
         converged=false
         if control.verbose
@@ -148,14 +148,14 @@ function _solve!(
                     rethrow(err)
                 end
             end
-            
-            
+
+
             ## Linear system solution: mtx*update=residual
             mtx=system.matrix
             nliniter=0
-            
+
             ## (re)factorize, if possible reusing old factorization data
-            if !isnothing(system.factorization) && nlu_reuse==0 
+            if !isnothing(system.factorization) && nlu_reuse==0
                 try
                     factorize!(system.factorization,mtx)
                 catch err
@@ -170,7 +170,7 @@ function _solve!(
                     nlhistory.nlu+=1
                 end
             end
-            
+
             ## Direct solution via LU solve:
             if !isnothing(system.factorization)  && issolver(system.factorization) && nlu_reuse==0
                 try
@@ -186,7 +186,7 @@ function _solve!(
                         rethrow(err)
                     end
                 end
-                
+
             ## Iterative solution using factorization as preconditioner
             elseif !isnothing(system.factorization) && !issolver(system.factorization)  || nlu_reuse>0
                 if control.iteration == :krylov_bicgstab
@@ -241,7 +241,7 @@ function _solve!(
                     error("wrong value of `iteration`, see documentation of SolverControl")
                 end
 
-                if control.iteration == :cg || control.iteration == :bicgstab 
+                if control.iteration == :cg || control.iteration == :bicgstab
                     nliniter=history.iters
                 else
                     nliniter=history.niter
@@ -268,7 +268,7 @@ function _solve!(
             if rnorm>1.0e-50
                 dnorm=abs((rnorm-rnorm_new)/rnorm)
             end
-            
+
             if dnorm<control.tol_round
                 nround=nround+1
             else
@@ -295,14 +295,14 @@ function _solve!(
                 converged=false
             break
             end
-            
+
             if norm<control.tol_absolute || norm <tolx
                 converged=true
                 break
             end
             oldnorm=norm
             rnorm=rnorm_new
-            
+
             if nround>control.max_round
             converged=true
                 break
@@ -334,7 +334,7 @@ $(SIGNATURES)
 
 Main assembly method.
 
-Evaluate solution with result in right hand side F and 
+Evaluate solution with result in right hand side F and
 assemble Jacobi matrix into system.matrix.
 """
 function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
@@ -347,10 +347,10 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                            params::AbstractVector;
                            edge_cutoff=0.0
                            ) where {Tv, Tc, Ti, Tm,  TSpecMat, TSolArray}
-    
+
 
     _complete!(system) # needed here as well for test function system which does not use newton
-    
+
     grid    = system.grid
     physics = system.physics
     node    = Node(system,time,λ,params)
@@ -358,21 +358,21 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     edge    = Edge(system,time,λ,params)
     bedge   = BEdge(system,time,λ,params)
 
-    
-    
+
+
     nspecies::Int = num_species(system)
-    
+
     cellnodefactors::Array{Tv,2}  = system.cellnodefactors
     celledgefactors::Array{Tv,2}  = system.celledgefactors
     bfacenodefactors::Array{Tv,2} = system.bfacenodefactors
-    bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors    
-    
+    bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors
+
     # Reset matrix + rhs
     zero!(system.matrix)
     F   .= 0.0
     nparams::Int=system.num_parameters
 
-    dudp=system.dudp
+        dudp=system.dudp
 
     for iparam=1:nparams
         dudp[iparam].=0.0
@@ -389,15 +389,15 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
         UKOld[nspecies+1:end].=params
         UKL[2*nspecies+1:end].=params
     end
-    
-    
+
+
     # Inverse of timestep
     # According to Julia documentation, 1/Inf=0 which
     # comes handy to write compact code here for the
     # case of stationary problems.
-    tstepinv = 1.0/tstep 
+    tstepinv = 1.0/tstep
 
-    
+
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2}  = system.boundary_values
     bfaceregions::Vector{Ti} = grid[BFaceRegions]
@@ -407,7 +407,7 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     ncells  = num_cells(grid)
     geom=grid[CellGeometries][1]
     bgeom   = grid[BFaceGeometries][1]
-    
+
     nn::Int = num_nodes(geom)
     ne::Int = num_edges(geom)
 
@@ -445,25 +445,25 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
             evaluate!(rea_evaluator,UK)
             res_react = res(rea_evaluator)
             jac_react = jac(rea_evaluator)
-            
+
             evaluate!(stor_evaluator,UK)
             res_stor = res(stor_evaluator)
             jac_stor = jac(stor_evaluator)
-            
+
             evaluate!(oldstor_evaluator,UKOld)
             oldstor = res(oldstor_evaluator)
 
             @inline asm_res(idof,ispec)=_add(F,idof,fac*(res_react[ispec]-src[ispec] + (res_stor[ispec]-oldstor[ispec])*tstepinv))
-            
+
             @inline function asm_jac(idof,jdof,ispec,jspec)
                 _addnz(system.matrix, idof,jdof,jac_react[ispec,jspec]+ jac_stor[ispec,jspec]*tstepinv,fac)
             end
-            
+
             @inline function asm_param(idof,ispec,iparam)
                 jparam=nspecies+iparam
                 dudp[iparam][ispec,idof]+=(jac_react[ispec,jparam]+ jac_stor[ispec,jparam]*tstepinv)*fac
             end
-            
+
             assemble_res_jac(node,system,asm_res,asm_jac,asm_param)
 
         end
@@ -472,47 +472,47 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
             abs(celledgefactors[iedge,icell])<edge_cutoff&& continue
             _fill!(edge,iedge,icell)
             fac=celledgefactors[iedge,icell]
-            
+
             #Set up argument for fluxwrap
             @views UKL[1:nspecies]            .= U[:, edge.node[1]]
             @views UKL[nspecies+1:2*nspecies] .= U[:, edge.node[2]]
-            
+
             evaluate!(flux_evaluator,UKL)
             res_flux = res(flux_evaluator)
             jac_flux = jac(flux_evaluator)
 
-            
+
             @inline function asm_res(idofK,idofL,ispec)
                 val=fac*res_flux[ispec]
                 _add(F,idofK,val)
                 _add(F,idofL,-val)
             end
-            
+
             @inline function asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)
                 _addnz(system.matrix,idofK,jdofK,+jac_flux[ispec,jspec         ],fac)
                 _addnz(system.matrix,idofL,jdofK,-jac_flux[ispec,jspec         ],fac)
                 _addnz(system.matrix,idofK,jdofL,+jac_flux[ispec,jspec+nspecies],fac)
                 _addnz(system.matrix,idofL,jdofL,-jac_flux[ispec,jspec+nspecies],fac)
             end
-            
+
             @inline function asm_param(idofK,idofL,ispec,iparam)
                 jparam=2*nspecies+iparam
                 dudp[iparam][ispec,idofK]+=fac*jac_flux[ispec,jparam]
                 dudp[iparam][ispec,idofL]-=fac*jac_flux[ispec,jparam]
             end
-            
+
             assemble_res_jac(edge,system,asm_res,asm_jac, asm_param )
-            
+
         end
     end
 
     nbn::Int = num_nodes(bgeom)
     nbe::Int = num_edges(bgeom)
-    
+
     # Assembly loop for boundary conditions
     nballoc= @allocated for ibface=1:nbfaces
         ibreg=bfaceregions[ibface]
-        
+
         # Loop over nodes of boundary face
         for ibnode=1:nbn
             # Fill bnode data shuttle with data from grid
@@ -520,7 +520,7 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
 
             # Measure of boundary face part assembled to node
             bnode_factor::Tv=bfacenodefactors[ibnode,ibface]
-            
+
             if has_legacy_bc
                 # Global index of node
                 K=bnode.index
@@ -535,14 +535,14 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                         # Get user specified data
                         boundary_factor = boundary_factors[ispec,ibreg]
                         boundary_value  = boundary_values[ispec,ibreg]
-                        
+
                         if boundary_factor==Dirichlet
                             # Dirichlet is encoded in the boundary condition factor
                             # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
-                            
+
                             # Add penalty*boundry_value to right hand side
                             F[ispec,K]+=boundary_factor*(U[ispec,K]-boundary_value)
-                            
+
                             # Add penalty to matrix main diagonal (without bnode factor, so penalty
                             # is independent of h)
                             _addnz(system.matrix,idof,idof,boundary_factor,1)
@@ -560,37 +560,37 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
 
             evaluate!(bsrc_evaluator)
             bsrc = res(bsrc_evaluator)
-            
+
             evaluate!(brea_evaluator,UK)
             res_breact = res(brea_evaluator)
             jac_breact = jac(brea_evaluator)
-            
-            
+
+
             asm_res1(idof,ispec)=_add(F,idof,bnode_factor*(res_breact[ispec]-bsrc[ispec]))
-            
+
             asm_jac1(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_breact[ispec,jspec],bnode_factor)
-            
+
             asm_param1(idof,ispec,iparam)= dudp[iparam][ispec,idof]+=jac_breact[ispec,nspecies+iparam]*bnode_factor
-            
+
             assemble_res_jac( bnode, system, asm_res1,asm_jac1,asm_param1)
-            
-            if isnontrivial(bstor_evaluator) 
+
+            if isnontrivial(bstor_evaluator)
                 evaluate!(bstor_evaluator,UK)
                 res_bstor = res(bstor_evaluator)
                 jac_bstor = jac(bstor_evaluator)
-                
+
                 @views UKOld.=UOld[:,bnode.index]
                 evaluate!(oldbstor_evaluator,UKOld)
                 oldbstor = res(oldbstor_evaluator)
-                
+
                 asm_res2(idof,ispec)= _add(F,idof,bnode_factor*(res_bstor[ispec]-oldbstor[ispec])*tstepinv)
-                
+
                 asm_jac2(idof,jdof,ispec,jspec)=_addnz(system.matrix,idof,jdof,jac_bstor[ispec,jspec],bnode_factor*tstepinv)
-                
+
                 asm_param2(idof,ispec,iparam)= dudp[iparam][ispec,idof]+=jac_bstor[ispec,nspecies+iparam]*bnode_factor*tstepinv
-                
+
                 assemble_res_jac(bnode, system, asm_res2,asm_jac2,asm_param2)
-                
+
             end
         end # ibnode=1:nbn
 
@@ -601,11 +601,11 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                 if abs(fac) < edge_cutoff
                     continue
                 end
-                
+
                 _fill!(bedge,ibedge,ibface)
                 @views UKL[1:nspecies]            .= U[:, bedge.node[1]]
                 @views UKL[nspecies+1:2*nspecies] .= U[:, bedge.node[2]]
-                
+
                 evaluate!(bflux_evaluator,UKL)
                 res_bflux = res(bflux_evaluator)
                 jac_bflux = jac(bflux_evaluator)
@@ -686,15 +686,15 @@ end
 ################################################################
 """
 ````
-solve!(solution, inival, system; 
-    control=NewtonControl(), 
+solve!(solution, inival, system;
+    control=NewtonControl(),
     tstep=Inf)
 ````
 Mutating version of [`solve(inival,system)`](@ref)
 """
 function solve!(
     solution, # Solution
-    inival,   # Initial value 
+    inival,   # Initial value
     system::VoronoiFVM.AbstractSystem;     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     time=Inf,
@@ -707,7 +707,7 @@ function solve!(
         @time begin
             _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
         end
-    else 
+    else
         _solve!(solution,inival,system,control,time,tstep,embedparam,params; kwargs...)
     end
     return solution
@@ -728,7 +728,7 @@ Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using 
 value. Returns a solution array.
 """
 function solve(
-    inival,   # Initial value 
+    inival,   # Initial value
     system::AbstractSystem;     # Finite volume system
     control=NewtonControl(),      # Newton solver control information
     time=Inf,
@@ -766,19 +766,19 @@ function solve(inival,
                params=zeros(0),
                kwargs...
                )
-    
+
     λstr="t"
     if !transient
         λstr="p"
     end
 
     allhistory=TransientSolverHistory()
-    
+
     solution=copy(inival)
     oldsolution=copy(inival)
     _initialize_dirichlet!(inival,system;  time, λ=Float64(lambdas[1]),params)
     Δλ=Δλ_val(control,transient)
-    
+
     if !transient
         pre(solution,Float64(lambdas[1]))
         solution=solve!(solution,oldsolution, system; control=control,time=time,tstep=Inf,embedparam=Float64(lambdas[1]),params=params, kwargs...)
@@ -791,21 +791,21 @@ function solve(inival,
         end
         oldsolution.=solution
     end
-    
+
     tsol=TransientSolution(Float64(lambdas[1]),solution, in_memory=control.in_memory)
-    
+
     if control.verbose
         @printf("  Evolution: start\n")
     end
-    
+
     istep=0
     for i=1:length(lambdas)-1
-        
+
         Δλ=max(Δλ,Δλ_min(control,transient))
         λstart=lambdas[i]
         λend=lambdas[i+1]
         λ=Float64(λstart)
-        
+
         while λ<λend
             solved=false
             λ0=λ
@@ -861,6 +861,9 @@ function solve(inival,
             if control.store_all
                 append!(tsol,λ,solution)
             end
+            if control.print_time
+                @printf("  time = %s\n", λ)
+            end
             post(solution,oldsolution,λ, Δλ)
             oldsolution.=solution
             if λ<λend
@@ -875,10 +878,11 @@ function solve(inival,
         end
         sample(solution,lambdas[i+1])
     end
+
     if control.verbose
         @printf("  Evolution: success\n")
     end
-    
+
     system.history=allhistory
     return tsol
 end
@@ -906,13 +910,13 @@ module NoModule end
 #####################################################################
 """
     VoronoiFVM.solve(system; kwargs...)
-    
-Built-in solution method for [`VoronoiFVM.System`](@ref).  
+
+Built-in solution method for [`VoronoiFVM.System`](@ref).
 For using ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl), see
 the [VoronoiFVMDiffEq.jl](https://github.com/j-fu/VoronoiFVMDiffEq.jl) package.
-    
+
 Keyword arguments:
-- General for all solvers 
+- General for all solvers
    - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
    -  All elements of [`SolverControl`](@ref) can be used as kwargs.
    - `damp` (default: 1): alias for `damp_initial`
@@ -921,22 +925,22 @@ Keyword arguments:
    - `reltol`: alias for `tol_relative`
    - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
    - `params`: Parameters (Parameter handling is experimental and may change)
-    
+
 - __Stationary solver__:
   Invoked if neither `times` nor `embed`, nor `tstep` are given as keyword argument.
-  - `time` (default: `0`): Set time value. 
+  - `time` (default: `0`): Set time value.
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 
 - __Embedding (homotopy) solver__: Invoked if `embed` kwarg is given.
-  Use homotopy embedding + damped Newton's method  to 
+  Use homotopy embedding + damped Newton's method  to
   solve stationary problem or to solve series of parameter dependent problems.
   Parameter step control is performed according to solver control data.  kwargs and default values are:
   - `embed` (default: `nothing` ): vector of parameter values to be reached exactly
-  In addition,  all kwargs of the implicit Euler solver (besides `times`) are handled.  
+  In addition,  all kwargs of the implicit Euler solver (besides `times`) are handled.
   Returns a transient solution object `sol` containing the stored solution(s),  see [`TransientSolution`](@ref).
-  
+
 - __Implicit Euler transient solver__: Invoked if `times` kwarg is given.
-  Use implicit Euler method  + damped   Newton's method  to 
+  Use implicit Euler method  + damped   Newton's method  to
   solve time dependent problem. Time step control is performed
   according to solver control data.  kwargs and default values are:
   - `times` (default: `nothing` ): vector of time values to be reached exactly
@@ -948,9 +952,9 @@ Keyword arguments:
   stepsize  is lowered, and  step solution is called again with a smaller time value.
   If `control.Δt<control.Δt_min`, solution is aborted with error.
   Returns a transient solution object `sol` containing the stored solution,  see [`TransientSolution`](@ref).
-  
+
 - __Implicit Euler timestep solver__.  Invoked if `tstep` kwarg is given. Solve one time step of the implicit Euler method.
-  - `time` (default: `0`): Set time value. 
+  - `time` (default: `0`): Set time value.
   - `tstep`: time step
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
@@ -972,7 +976,7 @@ function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival=0, params=zeros
             setproperty!(control,key,k[2])
         end
     end
-    
+
     if haskey(kwargs,:times)
         solve(inival,sys,kwargs[:times]; control=control, transient=true, params=params,kwargs...)
     elseif haskey(kwargs,:embed)

@@ -22,7 +22,7 @@ $(TYPEDFIELDS)
 @with_kw mutable struct SolverControl
 
     """
-    Tolerance (in terms of norm of Newton update):  
+    Tolerance (in terms of norm of Newton update):
     terminate if ``\\Delta u_i=||u_{i+1}-u_i||_\\infty <`` `tol_absolute`.
     """
     tol_absolute::Float64 = 1.0e-10
@@ -64,9 +64,9 @@ $(TYPEDFIELDS)
 
     """
     Maximum number of reuses of lu factorization.
-    It this value is 0, linear systems are solved by a sparse direct solver, 
+    It this value is 0, linear systems are solved by a sparse direct solver,
     and it's LU factorization is called in every Newton step.
-    Otherwise, a BICGstab iterative method is used for linear system solution with a 
+    Otherwise, a BICGstab iterative method is used for linear system solution with a
     LU factorization as preconditioner which is updated only every `max_lureuse` Newton step.
     """
     max_lureuse::Int = 0
@@ -84,7 +84,7 @@ $(TYPEDFIELDS)
     max_iterations_linear::Int=20
     """
     Factorization kind for linear sytems (see ExtendableSparse.jl).
-    Possible values: 
+    Possible values:
     - :lu, :default  : LU factorization from UMFPACK (for Float64) or Sparspak.jl
     - :sparspak  : LU Factorization from Sparspak
     - :pardiso  : LU Factorization from Pardiso.jl using Pardiso from pardiso.org. Install and `use` Pardiso.jl to use this option.
@@ -94,7 +94,7 @@ $(TYPEDFIELDS)
     """
     factorization::Union{Symbol,AbstractFactorization}=:lu
 
-    
+
     """
     Maximum number of iterations of linear solver
     """
@@ -105,10 +105,10 @@ $(TYPEDFIELDS)
     """
     gmres_restart::Int=10
 
-    
-    """   
+
+    """
     Iterative solver if factorization is incomplete.
-    Currently supported: 
+    Currently supported:
     - :bicgstab : bicgstabl method from IterativeSolvers.jl
     - :cg : cg method from IterativeSolvers.jl
     - :krylov_cg : cg method from Krylov.jl
@@ -117,19 +117,19 @@ $(TYPEDFIELDS)
 
     """
     iteration::Symbol=:bicgstab
-    
+
     """
     Verbosity flag.
     """
-    verbose::Bool = false     
+    verbose::Bool = false
 
     """
-    Handle exceptions during transient solver and parameter embedding. 
-    If `true`, exceptions in Newton solves are catched, the embedding resp. time step is lowered, 
-    and solution is retried.  
+    Handle exceptions during transient solver and parameter embedding.
+    If `true`, exceptions in Newton solves are catched, the embedding resp. time step is lowered,
+    and solution is retried.
     """
     handle_exceptions::Bool = false
-    
+
     """
     Initial parameter step for embedding.
     """
@@ -139,14 +139,14 @@ $(TYPEDFIELDS)
     Maximal parameter step size.
     """
     Δp_max::Float64 = 1.0
-    
+
     """
     Minimal parameter step size.
     """
     Δp_min::Float64 = 1.0e-3
 
     """
-    Maximal parameter step size growth. 
+    Maximal parameter step size growth.
     """
     Δp_grow::Float64 = 1.0
 
@@ -156,7 +156,7 @@ $(TYPEDFIELDS)
     Δt::Float64 = 0.1
 
     """
-    Maximal time step size. 
+    Maximal time step size.
     """
     Δt_max::Float64 = 1.0
 
@@ -172,16 +172,21 @@ $(TYPEDFIELDS)
 
     """
     Optimal size of update for time stepping and embeding.
-    The algorithm tries to keep the difference in norm between "old" and "new" 
+    The algorithm tries to keep the difference in norm between "old" and "new"
     solutions  approximately at this value.
     """
     Δu_opt::Float64 = 0.1
 
     """
+    Print current time step.
+    """
+    print_time::Bool = false
+
+    """
     Force first timestep.
     """
     force_first_step::Bool = false
-    
+
     """
     Edge parameter cutoff for rectangular triangles.
     """
@@ -229,7 +234,7 @@ function factorization(control;valuetype=Float64)
         else
             error("factorization :$(control.factorization) not supported for $valuetype, see documenation of VoronoiFVM.SolverControl for options")
         end
-        
+
     else
         control.factorization
     end
