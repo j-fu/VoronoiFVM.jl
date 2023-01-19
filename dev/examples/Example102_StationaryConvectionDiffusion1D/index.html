@@ -10,23 +10,23 @@ using GridVisualize
 # number v*h/D&gt;1, the monotonicity property is lost.  Grid refinement
 # can fix this situation by decreasing $h$.
 
-function central_flux!(f,u,edge,data)
-    f_diff=data.D*(u[1,1]-u[1,2])
-    vh=project(edge,data.v)
-    f[1]=f_diff+vh*(u[1,1]+u[1,2])/2
+function central_flux!(f, u, edge, data)
+    f_diff = data.D * (u[1, 1] - u[1, 2])
+    vh = project(edge, data.v)
+    f[1] = f_diff + vh * (u[1, 1] + u[1, 2]) / 2
 end
 
 # The simple upwind flux corrects the monotonicity properties essentially
 # via brute force and loses one order of convergence for small $h$ compared
 # to the central flux.
 
-function upwind_flux!(f,u,edge,data)
-    fdiff=data.D*(u[1,]-u[1,2])
-    vh=project(edge,data.v)
-    if vh&gt;0
-        f[1]=fdiff+vh*u[1,1]
+function upwind_flux!(f, u, edge, data)
+    fdiff = data.D * (u[1] - u[1, 2])
+    vh = project(edge, data.v)
+    if vh &gt; 0
+        f[1] = fdiff + vh * u[1, 1]
     else
-        f[1]=fdiff+vh*u[1,2]
+        f[1] = fdiff + vh * u[1, 2]
     end
 end
 
@@ -37,64 +37,62 @@ end
 
 # Bernoulli function used in the exponential fitting discretization
 function bernoulli(x)
-    if abs(x)&lt;nextfloat(eps(typeof(x)))
+    if abs(x) &lt; nextfloat(eps(typeof(x)))
         return 1
     end
-    return x/(exp(x)-1)
+    return x / (exp(x) - 1)
 end
 
-function exponential_flux!(f,u,edge,data)
-    vh=project(edge,data.v)
-    Bplus= data.D*bernoulli(vh/data.D)
-    Bminus=data.D*bernoulli(-vh/data.D)
-    f[1]=Bminus*u[1,1]-Bplus*u[1,2]
+function exponential_flux!(f, u, edge, data)
+    vh = project(edge, data.v)
+    Bplus = data.D * bernoulli(vh / data.D)
+    Bminus = data.D * bernoulli(-vh / data.D)
+    f[1] = Bminus * u[1, 1] - Bplus * u[1, 2]
 end
 
-
-function calculate(grid,data,flux,verbose)
-
-    sys=VoronoiFVM.System(grid,VoronoiFVM.Physics(flux=flux, data=data))
+function calculate(grid, data, flux, verbose)
+    sys = VoronoiFVM.System(grid, VoronoiFVM.Physics(; flux = flux, data = data))
 
     # Add species 1 to region 1
-    enable_species!(sys,1,[1])
+    enable_species!(sys, 1, [1])
 
     # Set boundary conditions
-    boundary_dirichlet!(sys,1,1,0.0)
-    boundary_dirichlet!(sys,1,2,1.0)
+    boundary_dirichlet!(sys, 1, 1, 0.0)
+    boundary_dirichlet!(sys, 1, 2, 1.0)
 
     # Create a solution array
-    inival=unknowns(sys,inival=0.5)
-    solution=unknowns(sys)
+    inival = unknowns(sys; inival = 0.5)
+    solution = unknowns(sys)
 
     # Create solver control info
-    control=VoronoiFVM.NewtonControl()
-    control.verbose=verbose
+    control = VoronoiFVM.NewtonControl()
+    control.verbose = verbose
 
     # Stationary solution of the problem
-    solve!(solution,inival,sys, control=control)
+    solve!(solution, inival, sys; control = control)
     return solution
 end
 
-function main(;n=10,Plotter=nothing,verbose=false,D=0.01,v=1.0)
+function main(; n = 10, Plotter = nothing, verbose = false, D = 0.01, v = 1.0)
 
     # Create a one-dimensional discretization
-    h=1.0/convert(Float64,n)
-    grid=VoronoiFVM.Grid(collect(0:h:1))
+    h = 1.0 / convert(Float64, n)
+    grid = VoronoiFVM.Grid(collect(0:h:1))
 
-    data=(v=[v],D=D)</code></pre><p>Calculate three stationary solutions with different ways to calculate flux</p><pre><code class="language-julia hljs">    solution_exponential=calculate(grid,data,exponential_flux!,verbose)
-    solution_upwind=calculate(grid,data,upwind_flux!,verbose)
-    solution_central=calculate(grid,data,central_flux!,verbose)</code></pre><p>Visualize solutions using GridVisualize.jl</p><pre><code class="language-julia hljs">    p=GridVisualizer(Plotter=Plotter,layout=(3,1))
-    scalarplot!(p[1,1],grid,solution_exponential[1,:],title=&quot;exponential&quot;)
-    scalarplot!(p[2,1],grid,solution_upwind[1,:],title=&quot;upwind&quot;)
-    scalarplot!(p[3,1],grid,solution_central[1,:],title=&quot;centered&quot;,show=true)
+    data = (v = [v], D = D)</code></pre><p>Calculate three stationary solutions with different ways to calculate flux</p><pre><code class="language-julia hljs">    solution_exponential = calculate(grid, data, exponential_flux!, verbose)
+    solution_upwind = calculate(grid, data, upwind_flux!, verbose)
+    solution_central = calculate(grid, data, central_flux!, verbose)</code></pre><p>Visualize solutions using GridVisualize.jl</p><pre><code class="language-julia hljs">    p = GridVisualizer(; Plotter = Plotter, layout = (3, 1))
+    scalarplot!(p[1, 1], grid, solution_exponential[1, :]; title = &quot;exponential&quot;)
+    scalarplot!(p[2, 1], grid, solution_upwind[1, :]; title = &quot;upwind&quot;)
+    scalarplot!(p[3, 1], grid, solution_central[1, :]; title = &quot;centered&quot;, show = true)
 
     # Return test value
-    return sum(solution_exponential)+sum(solution_upwind)+sum(solution_central)
+    return sum(solution_exponential) + sum(solution_upwind) + sum(solution_central)
 end
 
 function test()
-    testval=2.523569744561089
+    testval = 2.523569744561089
     main() ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example101_Laplace1D/">« 101: 1D Laplace equation</a><a class="docs-footer-nextpage" href="../Example103_ConvectionDiffusion1D/">103: 1D Convection-diffusion equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 15 January 2023 12:54">Sunday 15 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example101_Laplace1D/">« 101: 1D Laplace equation</a><a class="docs-footer-nextpage" href="../Example103_ConvectionDiffusion1D/">103: 1D Convection-diffusion equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Thursday 19 January 2023 22:20">Thursday 19 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

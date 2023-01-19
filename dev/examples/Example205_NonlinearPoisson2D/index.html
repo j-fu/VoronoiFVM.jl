@@ -7,80 +7,72 @@ using ExtendableGrids
 using ExtendableSparse
 using GridVisualize
 
+function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
+              max_lureuse = 0,
+              factorization = LUFactorization(), iteration = :cg)
+    h = 1.0 / convert(Float64, n)
+    X = collect(0.0:h:1.0)
+    Y = collect(0.0:h:1.0)
 
+    grid = VoronoiFVM.Grid(X, Y)
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse, max_lureuse=0,
-              factorization=LUFactorization(),iteration=:cg)
-    h=1.0/convert(Float64,n)
-    X=collect(0.0:h:1.0)
-    Y=collect(0.0:h:1.0)
+    eps = 1.0e-2
 
+    physics = VoronoiFVM.Physics(; reaction = function (f, u, node)
+                                     f[1] = u[1]^2
+                                 end, flux = function (f, u, edge)
+                                     f[1] = eps * (u[1, 1]^2 - u[1, 2]^2)
+                                 end, source = function (f, node)
+                                     x1 = node[1] - 0.5
+                                     x2 = node[2] - 0.5
+                                     f[1] = exp(-20.0 * (x1^2 + x2^2))
+                                 end, storage = function (f, u, node)
+                                     f[1] = u[1]
+                                 end)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
+    enable_species!(sys, 1, [1])
 
-    grid=VoronoiFVM.Grid(X,Y)
+    boundary_dirichlet!(sys, 1, 2, 0.1)
+    boundary_dirichlet!(sys, 1, 4, 0.1)
 
-    eps=1.0e-2
+    inival = unknowns(sys)
+    U = unknowns(sys)
+    inival .= 0.5
 
-    physics=VoronoiFVM.Physics(
-        reaction=function(f,u,node)
-        f[1]=u[1]^2
-        end,
-
-        flux=function(f,u,edge)
-        f[1]=eps*(u[1,1]^2-u[1,2]^2)
-        end,
-
-        source=function(f,node)
-        x1=node[1]-0.5
-        x2=node[2]-0.5
-        f[1]=exp(-20.0*(x1^2+x2^2))
-        end,
-
-        storage=function(f,u,node)
-        f[1]=u[1]
-        end)
-    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
-    enable_species!(sys,1,[1])
-
-    boundary_dirichlet!(sys,1,2,0.1)
-    boundary_dirichlet!(sys,1,4,0.1)
-
-    inival=unknowns(sys)
-    U=unknowns(sys)
-    inival.=0.5
-
-
-    control=VoronoiFVM.NewtonControl()
-    control.verbose=verbose
-    control.iteration=iteration
-    control.tol_linear=1.0e-5
-    control.max_lureuse=max_lureuse
-    control.factorization=factorization
-    tstep=0.01
-    time=0.0
-    u15=0
-    p=GridVisualizer(Plotter=Plotter)
-    while time&lt;1.0
-        time=time+tstep
-        solve!(U,inival,sys,control=control,tstep=tstep)
-        u15=U[15]
-        inival.=U
+    control = VoronoiFVM.NewtonControl()
+    control.verbose = verbose
+    control.iteration = iteration
+    control.tol_linear = 1.0e-5
+    control.max_lureuse = max_lureuse
+    control.factorization = factorization
+    tstep = 0.01
+    time = 0.0
+    u15 = 0
+    p = GridVisualizer(; Plotter = Plotter)
+    while time &lt; 1.0
+        time = time + tstep
+        solve!(U, inival, sys; control = control, tstep = tstep)
+        u15 = U[15]
+        inival .= U
 
         if verbose
-            @printf(&quot;time=%g\n&quot;,time)
+            @printf(&quot;time=%g\n&quot;, time)
         end
 
-        scalarplot!(p[1,1],grid,U[1,:],Plotter=Plotter,clear=true,show=true)
-        tstep*=1.0
+        scalarplot!(p[1, 1], grid, U[1, :]; Plotter = Plotter, clear = true, show = true)
+        tstep *= 1.0
     end
     return u15
 end
 
-function test()</code></pre><p>test at once for iterative solution here</p><pre><code class="language-julia hljs">    testval=0.3554284760906605
-    main(unknown_storage=:sparse,max_lureuse=0) ≈  testval &amp;&amp;
-        main(unknown_storage=:dense,max_lureuse=0) ≈ testval &amp;&amp;
-        main(unknown_storage=:sparse,max_lureuse=10) ≈ testval &amp;&amp;
-        main(unknown_storage=:dense,max_lureuse=10) ≈ testval &amp;&amp;
-        main(unknown_storage=:sparse,max_lureuse=0, factorization=ILU0Preconditioner(), iteration=:cg) ≈ testval &amp;&amp;
-        main(unknown_storage=:dense,max_lureuse=0, factorization=ILU0Preconditioner(), iteration=:bicgstab) ≈ testval
+function test()</code></pre><p>test at once for iterative solution here</p><pre><code class="language-julia hljs">    testval = 0.3554284760906605
+    main(; unknown_storage = :sparse, max_lureuse = 0) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, max_lureuse = 0) ≈ testval &amp;&amp;
+        main(; unknown_storage = :sparse, max_lureuse = 10) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, max_lureuse = 10) ≈ testval &amp;&amp;
+        main(; unknown_storage = :sparse, max_lureuse = 0,
+             factorization = ILU0Preconditioner(), iteration = :cg) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, max_lureuse = 0,
+             factorization = ILU0Preconditioner(), iteration = :bicgstab) ≈ testval
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example204_HagenPoiseuille/">« 204: 2D Convection in Hagen-Poiseuille flow</a><a class="docs-footer-nextpage" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 15 January 2023 12:54">Sunday 15 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example204_HagenPoiseuille/">« 204: 2D Convection in Hagen-Poiseuille flow</a><a class="docs-footer-nextpage" href="../Example210_NonlinearPoisson2D_Reaction/">210: 2D Nonlinear Poisson with reaction »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Thursday 19 January 2023 22:20">Thursday 19 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

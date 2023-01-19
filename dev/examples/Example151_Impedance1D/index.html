@@ -6,90 +6,86 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(;nref=0,Plotter=nothing,verbose=false, unknown_storage=:sparse,
-              L=1.0, R=1.0, D=1.0, C=1.0,
-              ω0=1.0e-3,ω1=5.0e1)</code></pre><p>Create array which is refined close to 0</p><pre><code class="language-julia hljs">    h0=0.005/2.0^nref
-    h1=0.1/2.0^nref
+function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse,
+              L = 1.0, R = 1.0, D = 1.0, C = 1.0,
+              ω0 = 1.0e-3, ω1 = 5.0e1)</code></pre><p>Create array which is refined close to 0</p><pre><code class="language-julia hljs">    h0 = 0.005 / 2.0^nref
+    h1 = 0.1 / 2.0^nref
 
-    X=VoronoiFVM.geomspace(0,L,h0,h1)</code></pre><p>Create discretitzation grid</p><pre><code class="language-julia hljs">    grid=VoronoiFVM.Grid(X)</code></pre><p>Create and fill data</p><pre><code class="language-julia hljs">    data = (R=R, D=D, C=C)</code></pre><p>Declare constitutive functions</p><pre><code class="language-julia hljs">    flux=function(f,u,edge,data)
-        f[1]=data.D*(u[1,1]-u[1,2])
+    X = VoronoiFVM.geomspace(0, L, h0, h1)</code></pre><p>Create discretitzation grid</p><pre><code class="language-julia hljs">    grid = VoronoiFVM.Grid(X)</code></pre><p>Create and fill data</p><pre><code class="language-julia hljs">    data = (R = R, D = D, C = C)</code></pre><p>Declare constitutive functions</p><pre><code class="language-julia hljs">    flux = function (f, u, edge, data)
+        f[1] = data.D * (u[1, 1] - u[1, 2])
     end
 
-    storage=function(f,u,node,data)
-        f[1]=data.C*u[1]
+    storage = function (f, u, node, data)
+        f[1] = data.C * u[1]
     end
 
-    reaction=function(f,u,node,data)
-        f[1]=data.R*u[1]
+    reaction = function (f, u, node, data)
+        f[1] = data.R * u[1]
     end
 
+    excited_bc = 1
+    excited_bcval = 1.0
+    excited_spec = 1
+    meas_bc = 2
 
-    excited_bc=1
-    excited_bcval=1.0
-    excited_spec=1
-    meas_bc=2
+    bc = function (f, u, node, data)
+        p = parameters(u)
+        boundary_dirichlet!(f, u, node; region = excited_bc, value = p[1])
+        boundary_dirichlet!(f, u, node; region = meas_bc, value = 0.0)
+    end</code></pre><p>Create discrete system and enabe species</p><pre><code class="language-julia hljs">    sys = VoronoiFVM.System(grid; unknown_storage = unknown_storage,
+                            data = data,
+                            flux = flux,
+                            storage = storage,
+                            reaction = reaction,
+                            bcondition = bc,
+                            nparams = 1,
+                            species = 1)</code></pre><p>Create test functions for current measurement</p><pre><code class="language-julia hljs">    factory = TestFunctionFactory(sys)
+    measurement_testfunction = testfunction(factory, [excited_bc], [meas_bc])
 
-    bc=function(f,u,node,data)
-        p=parameters(u)
-        boundary_dirichlet!(f,u,node,region=excited_bc,value=p[1])
-        boundary_dirichlet!(f,u,node,region=meas_bc,value=0.0)
-    end</code></pre><p>Create discrete system and enabe species</p><pre><code class="language-julia hljs">    sys=VoronoiFVM.System(grid,unknown_storage=unknown_storage,
-                          data=data,
-                          flux=flux,
-                          storage=storage,
-                          reaction=reaction,
-                          bcondition=bc,
-                          nparams=1,
-                          species=1
-                          )</code></pre><p>Create test functions for current measurement</p><pre><code class="language-julia hljs">    factory=TestFunctionFactory(sys)
-    measurement_testfunction=testfunction(factory,[excited_bc],[meas_bc])
+    steadystate = solve(sys; inival = 0.0, params = [1.0])
 
-    steadystate=solve(sys,inival=0.0,params=[1.0])
-
-    function meas_stdy(meas,U)
-        u=reshape(U,sys)
-        meas[1]=-VoronoiFVM.integrate_stdy(sys,measurement_testfunction,u)[excited_spec]
+    function meas_stdy(meas, U)
+        u = reshape(U, sys)
+        meas[1] = -VoronoiFVM.integrate_stdy(sys, measurement_testfunction, u)[excited_spec]
         nothing
     end
 
-    function meas_tran(meas,U)
-        u=reshape(U,sys)
-        meas[1]=-VoronoiFVM.integrate_tran(sys,measurement_testfunction,u)[excited_spec]
+    function meas_tran(meas, U)
+        u = reshape(U, sys)
+        meas[1] = -VoronoiFVM.integrate_tran(sys, measurement_testfunction, u)[excited_spec]
         nothing
     end
 
+    dmeas_stdy = measurement_derivative(sys, meas_stdy, steadystate)
+    dmeas_tran = measurement_derivative(sys, meas_tran, steadystate)</code></pre><p>Create Impeadancs system from steady state</p><pre><code class="language-julia hljs">    isys = VoronoiFVM.ImpedanceSystem(sys, steadystate)</code></pre><p>Prepare recording of impedance results</p><pre><code class="language-julia hljs">    allomega = zeros(0)</code></pre><p>for calculated data</p><pre><code class="language-julia hljs">    allI0 = zeros(Complex{Float64}, 0)
+    allIL = zeros(Complex{Float64}, 0)</code></pre><p>for exact data</p><pre><code class="language-julia hljs">    allIx0 = zeros(Complex{Float64}, 0)
+    allIxL = zeros(Complex{Float64}, 0)
 
-    dmeas_stdy=measurement_derivative(sys,meas_stdy,steadystate)
-    dmeas_tran=measurement_derivative(sys,meas_tran,steadystate)</code></pre><p>Create Impeadancs system from steady state</p><pre><code class="language-julia hljs">    isys=VoronoiFVM.ImpedanceSystem(sys,steadystate)</code></pre><p>Prepare recording of impedance results</p><pre><code class="language-julia hljs">    allomega=zeros(0)</code></pre><p>for calculated data</p><pre><code class="language-julia hljs">    allI0=zeros(Complex{Float64},0)
-    allIL=zeros(Complex{Float64},0)</code></pre><p>for exact data</p><pre><code class="language-julia hljs">    allIx0=zeros(Complex{Float64},0)
-    allIxL=zeros(Complex{Float64},0)
+    ω = ω0
 
-    ω=ω0
+    UZ = unknowns(isys)
+    while ω &lt; ω1</code></pre><p>solve impedance system</p><pre><code class="language-julia hljs">        solve!(UZ, isys, ω)</code></pre><p>calculate aproximate solution obtain measurement in frequency  domain</p><pre><code class="language-julia hljs">        IL = impedance(isys, ω, steadystate, dmeas_stdy, dmeas_tran)</code></pre><p>record approximate solution</p><pre><code class="language-julia hljs">        push!(allomega, ω)
+        push!(allIL, IL)</code></pre><p>record exact solution</p><pre><code class="language-julia hljs">        iω = 1im * ω
+        z = sqrt(iω * data.C / data.D + data.R / data.D)
+        eplus = exp(z * L)
+        eminus = exp(-z * L)
+        IxL = 2.0 * data.D * z / (eplus - eminus)
 
-    UZ=unknowns(isys)
-    while ω&lt;ω1</code></pre><p>solve impedance system</p><pre><code class="language-julia hljs">        solve!(UZ,isys,ω)</code></pre><p>calculate aproximate solution obtain measurement in frequency  domain</p><pre><code class="language-julia hljs">        IL=impedance(isys,ω,steadystate, dmeas_stdy, dmeas_tran)</code></pre><p>record approximate solution</p><pre><code class="language-julia hljs">        push!(allomega, ω)
-        push!(allIL,IL)</code></pre><p>record exact solution</p><pre><code class="language-julia hljs">        iω=1im*ω
-        z=sqrt(iω*data.C/data.D+data.R/data.D)
-        eplus=exp(z*L)
-        eminus=exp(-z*L)
-        IxL=2.0*data.D*z/(eplus-eminus)
-
-        push!(allIxL,1/IxL)</code></pre><p>increase omega</p><pre><code class="language-julia hljs">        ω=ω*1.1
-
+        push!(allIxL, 1 / IxL)</code></pre><p>increase omega</p><pre><code class="language-julia hljs">        ω = ω * 1.1
     end
 
-    p=GridVisualizer(Plotter=Plotter)
-    scalarplot!(p,real(allIxL),imag(allIxL),label=&quot;exact&quot;,color=:red,linestyle=:dot)
-    scalarplot!(p,real(allIL),imag(allIL),label=&quot;calc&quot;,show=true,clear=false,color=:blue,linestyle=:solid)
+    p = GridVisualizer(; Plotter = Plotter)
+    scalarplot!(p, real(allIxL), imag(allIxL); label = &quot;exact&quot;, color = :red,
+                linestyle = :dot)
+    scalarplot!(p, real(allIL), imag(allIL); label = &quot;calc&quot;, show = true, clear = false,
+                color = :blue, linestyle = :solid)
 
     sum(allIL)
 end
 
-
 function test()
-    tval=57.92710286186797 + 23.163945443946027im
-    main(unknown_storage=:dense) ≈ tval  &amp;&amp;  main(unknown_storage=:sparse) ≈ tval
+    tval = 57.92710286186797 + 23.163945443946027im
+    main(; unknown_storage = :dense) ≈ tval &amp;&amp; main(; unknown_storage = :sparse) ≈ tval
 end
 
-
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example160_UnipolarDriftDiffusion1D/">160: Unipolar degenerate drift-diffusion »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 15 January 2023 12:54">Sunday 15 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example150_Impedance1D/">« 150: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example160_UnipolarDriftDiffusion1D/">160: Unipolar degenerate drift-diffusion »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Thursday 19 January 2023 22:20">Thursday 19 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -6,43 +6,42 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
+function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
+              unknown_storage = :sparse, tend = 10, rely_on_corrections = false)
+    h = 3.0 / (n - 1)
+    X = collect(0:h:3.0)
+    grid = VoronoiFVM.Grid(X)
+    cellmask!(grid, [0.0], [1.0], 1)
+    cellmask!(grid, [1.0], [2.1], 2)
+    cellmask!(grid, [1.9], [3.0], 3)
 
-
-function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_storage=:sparse,tend=10,rely_on_corrections=false)
-    h=3.0/(n-1)
-    X=collect(0:h:3.0)
-    grid=VoronoiFVM.Grid(X)
-    cellmask!(grid,[0.0],[1.0],1)
-    cellmask!(grid,[1.0],[2.1],2)
-    cellmask!(grid,[1.9],[3.0],3)
-
-    subgrid1=subgrid(grid,[1])
-    subgrid2=subgrid(grid,[1,2,3])
-    subgrid3=subgrid(grid,[3])
+    subgrid1 = subgrid(grid, [1])
+    subgrid2 = subgrid(grid, [1, 2, 3])
+    subgrid3 = subgrid(grid, [3])
 
     if plot_grid
-        plotgrid(grid,Plotter=Plotter)
+        plotgrid(grid; Plotter = Plotter)
         return
     end
 
-    eps=[1,1,1]
-    k=[1,1,1]
+    eps = [1, 1, 1]
+    k = [1, 1, 1]
 
-    function reaction(f,u,node)
-        if node.region==1
-            f[1]=k[1]*u[1]
-            f[2]=-k[1]*u[1]
-        elseif node.region==3
-            f[2]=k[3]*u[2]
-            f[3]=-k[3]*u[2]
+    function reaction(f, u, node)
+        if node.region == 1
+            f[1] = k[1] * u[1]
+            f[2] = -k[1] * u[1]
+        elseif node.region == 3
+            f[2] = k[3] * u[2]
+            f[3] = -k[3] * u[2]
         else
-            f[1]=0
+            f[1] = 0
         end
     end
 
-    function source(f,node)
-        if node.region==1
-           f[1]=1.0e-4*(3.0-node[1])
+    function source(f, node)
+        if node.region == 1
+            f[1] = 1.0e-4 * (3.0 - node[1])
         end
     end
 
@@ -51,86 +50,88 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
         # write into the result also where
         # the corresponding species has not been enabled
         # Species information is used to prevent the assembly.
-        flux=function(f,u,edge)
-            for i=1:3
-                f[i]=eps[i]*(u[i,1]-u[i,2])
+        flux = function (f, u, edge)
+            for i = 1:3
+                f[i] = eps[i] * (u[i, 1] - u[i, 2])
             end
         end
 
-        storage=function(f,u,node)
-            f.=u
+        storage = function (f, u, node)
+            f .= u
         end
     else
         # This is the &quot;old&quot; way:
         # Write into result only where
         # the corresponding species has been enabled
-        flux=function(f,u,edge)
-            if edge.region==1
-                f[1]=eps[1]*(u[1,1]-u[1,2])
-                f[2]=eps[2]*(u[2,1]-u[2,2])
-            elseif edge.region==2
-                f[2]=eps[2]*(u[2,1]-u[2,2])
-            elseif edge.region==3
-                f[2]=eps[2]*(u[2,1]-u[2,2])
-                f[3]=eps[3]*(u[3,1]-u[3,2])
+        flux = function (f, u, edge)
+            if edge.region == 1
+                f[1] = eps[1] * (u[1, 1] - u[1, 2])
+                f[2] = eps[2] * (u[2, 1] - u[2, 2])
+            elseif edge.region == 2
+                f[2] = eps[2] * (u[2, 1] - u[2, 2])
+            elseif edge.region == 3
+                f[2] = eps[2] * (u[2, 1] - u[2, 2])
+                f[3] = eps[3] * (u[3, 1] - u[3, 2])
             end
         end
 
-
-        storage=function(f,u,node)
-            if node.region==1
-                f[1]=u[1]
-                f[2]=u[2]
-            elseif node.region==2
-                f[2]=u[2]
-            elseif node.region==3
-                f[2]=u[2]
-                f[3]=u[3]
+        storage = function (f, u, node)
+            if node.region == 1
+                f[1] = u[1]
+                f[2] = u[2]
+            elseif node.region == 2
+                f[2] = u[2]
+            elseif node.region == 3
+                f[2] = u[2]
+                f[3] = u[3]
             end
         end
-
     end
 
-    sys=VoronoiFVM.System(grid; flux, reaction,storage, source,unknown_storage=unknown_storage)
+    sys = VoronoiFVM.System(grid; flux, reaction, storage, source,
+                            unknown_storage = unknown_storage)
 
-    enable_species!(sys,1,[1])
-    enable_species!(sys,2,[1,2,3])
-    enable_species!(sys,3,[3])
+    enable_species!(sys, 1, [1])
+    enable_species!(sys, 2, [1, 2, 3])
+    enable_species!(sys, 3, [3])
 
-    boundary_dirichlet!(sys,3,2,0.0)
+    boundary_dirichlet!(sys, 3, 2, 0.0)
 
-    inival=unknowns(sys)
-    U=unknowns(sys)
-    inival.=0
+    inival = unknowns(sys)
+    U = unknowns(sys)
+    inival .= 0
 
-    control=VoronoiFVM.NewtonControl()
-    control.verbose=verbose
-    control.factorization=:sparspak
-    tstep=0.01
-    time=0.0
-    istep=0
-    testval=0
-    p=GridVisualizer(Plotter=Plotter,layout=(1,1))
-    while time&lt;tend
-        time=time+tstep
-        solve!(U,inival,sys,control=control,tstep=tstep)
-        inival.=U
+    control = VoronoiFVM.NewtonControl()
+    control.verbose = verbose
+    control.factorization = :sparspak
+    tstep = 0.01
+    time = 0.0
+    istep = 0
+    testval = 0
+    p = GridVisualizer(; Plotter = Plotter, layout = (1, 1))
+    while time &lt; tend
+        time = time + tstep
+        solve!(U, inival, sys; control = control, tstep = tstep)
+        inival .= U
         if verbose
-            @printf(&quot;time=%g\n&quot;,time)
+            @printf(&quot;time=%g\n&quot;, time)
         end
-        tstep*=1.1
-        istep=istep+1
-        testval=U[2,5]
+        tstep *= 1.1
+        istep = istep + 1
+        testval = U[2, 5]
 
-        U1=view(U[1,:],subgrid1)
-        U2=view(U[2,:],subgrid2)
-        U3=view(U[3,:],subgrid3)
+        U1 = view(U[1, :], subgrid1)
+        U2 = view(U[2, :], subgrid2)
+        U3 = view(U[3, :], subgrid3)
 
-        scalarplot!(p[1,1],subgrid1, U1,label=&quot;spec1&quot;, color=(0.5,0,0),xlimits=(0,3),flimits=(0,1e-3),
-                  title=@sprintf(&quot;three regions t=%.3g&quot;,time))
-        scalarplot!(p[1,1],subgrid2, U2,label=&quot;spec2&quot;, color=(0.0,0.5,0),clear=false)
-        scalarplot!(p[1,1],subgrid3, U3,label=&quot;spec3&quot;, color=(0.0,0.0,0.5),clear=false,show=true)
-        if Plotter !=nothing
+        scalarplot!(p[1, 1], subgrid1, U1; label = &quot;spec1&quot;, color = (0.5, 0, 0),
+                    xlimits = (0, 3), flimits = (0, 1e-3),
+                    title = @sprintf(&quot;three regions t=%.3g&quot;, time))
+        scalarplot!(p[1, 1], subgrid2, U2; label = &quot;spec2&quot;, color = (0.0, 0.5, 0),
+                    clear = false)
+        scalarplot!(p[1, 1], subgrid3, U3; label = &quot;spec3&quot;, color = (0.0, 0.0, 0.5),
+                    clear = false, show = true)
+        if Plotter != nothing
             sleep(1.0e-2)
         end
     end
@@ -138,12 +139,11 @@ function main(;n=30,Plotter=nothing,plot_grid=false, verbose=false,unknown_stora
 end
 
 function test()
-    testval=0.0005967243505359461
-    main(unknown_storage=:sparse,rely_on_corrections=false) ≈ testval &amp;&amp;
-        main(unknown_storage=:dense,rely_on_corrections=false) ≈ testval# &amp;&amp;
-        main(unknown_storage=:sparse,rely_on_corrections=true) ≈ testval &amp;&amp;
-        main(unknown_storage=:dense,rely_on_corrections=true) ≈ testval
-
+    testval = 0.0005967243505359461
+    main(; unknown_storage = :sparse, rely_on_corrections = false) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, rely_on_corrections = false) ≈ testval# &amp;&amp;
+    main(; unknown_storage = :sparse, rely_on_corrections = true) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, rely_on_corrections = true) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 15 January 2023 12:54">Sunday 15 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Thursday 19 January 2023 22:20">Thursday 19 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

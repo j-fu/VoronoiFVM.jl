@@ -9,75 +9,74 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
+function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse)
 
     # Create a one-dimensional discretization
-    h=1.0/convert(Float64,n)
-    grid=VoronoiFVM.Grid(collect(0:h:1))
+    h = 1.0 / convert(Float64, n)
+    grid = VoronoiFVM.Grid(collect(0:h:1))
 
     # A parameter which is &quot;passed&quot; to the flux function via scope
-    ϵ=1.0e-3
+    ϵ = 1.0e-3
 
     # Flux function which describes the flux
     # between neigboring control volumes
-    function flux!(f,u,edge)
-        f[1]=ϵ*(u[1,1]-u[1,2])
+    function flux!(f, u, edge)
+        f[1] = ϵ * (u[1, 1] - u[1, 2])
     end
 
     # Source term
-    function source!(f,node)
-        if node[1]&lt;=0.5
-            f[1]=1
+    function source!(f, node)
+        if node[1] &lt;= 0.5
+            f[1] = 1
         else
-            f[1]=-1
+            f[1] = -1
         end
     end
 
     # Reaction term
-    function reaction!(f,u,node)
-        f[1]=exp(u[1]) - exp(-u[1])
+    function reaction!(f, u, node)
+        f[1] = exp(u[1]) - exp(-u[1])
     end
 
     # Create a physics structure
-    physics=VoronoiFVM.Physics(
-        flux=flux!,
-        source=source!,
-        reaction=reaction!)
-
+    physics = VoronoiFVM.Physics(; flux = flux!,
+                                 source = source!,
+                                 reaction = reaction!)
 
     # Create a finite volume system - either
     # in the dense or  the sparse version.
     # The difference is in the way the solution object
     # is stored - as dense or as sparse matrix
 
-    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
 
     # Add species 1 to region 1
-    enable_species!(sys,1,[1])
+    enable_species!(sys, 1, [1])
 
     # Set boundary conditions
-    boundary_dirichlet!(sys,1,1,0.0)
-    boundary_dirichlet!(sys,1,2,1.0)
+    boundary_dirichlet!(sys, 1, 1, 0.0)
+    boundary_dirichlet!(sys, 1, 2, 1.0)
 
     # Create a solution array
-    inival=unknowns(sys,inival=0.5)
-    solution=unknowns(sys)
+    inival = unknowns(sys; inival = 0.5)
+    solution = unknowns(sys)
 
     # Create solver control info
-    control=VoronoiFVM.NewtonControl()
-    control.verbose=verbose
+    control = VoronoiFVM.NewtonControl()
+    control.verbose = verbose
 
     # Stationary solution of the problem
-    solve!(solution,inival,sys, control=control)
+    solve!(solution, inival, sys; control = control)
 
-    scalarplot(grid,solution[1,:],title=&quot;Nonlinear Poisson&quot;, Plotter=Plotter)
+    scalarplot(grid, solution[1, :]; title = &quot;Nonlinear Poisson&quot;, Plotter = Plotter)
 
     return sum(solution)
 end
 
 function test()
-    testval=1.5247901344230088
-    main(unknown_storage=:sparse) ≈ testval &amp;&amp; main(unknown_storage=:dense) ≈ testval
+    testval = 1.5247901344230088
+    main(; unknown_storage = :sparse) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example103_ConvectionDiffusion1D/">« 103: 1D Convection-diffusion equation</a><a class="docs-footer-nextpage" href="../Example106_NonlinearDiffusion1D/">106: 1D Nonlinear Diffusion equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Sunday 15 January 2023 12:54">Sunday 15 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example103_ConvectionDiffusion1D/">« 103: 1D Convection-diffusion equation</a><a class="docs-footer-nextpage" href="../Example106_NonlinearDiffusion1D/">106: 1D Nonlinear Diffusion equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Thursday 19 January 2023 22:20">Thursday 19 January 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
