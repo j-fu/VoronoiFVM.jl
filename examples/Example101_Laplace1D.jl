@@ -1,9 +1,7 @@
 #=
 
-
 # 101: 1D Laplace equation 
 ([source code](SOURCE_URL))
-
 
 Let $\Omega=(\gamma_1,\gamma_2)$ with $\gamma_1=0$, $\gamma_2=1$.
 This is the simplest second order boundary value problem (BVP)
@@ -26,7 +24,6 @@ condition with a penalty parameter $\frac{1}{\varepsilon}$:
 
 This penalty method for the implementation of Dirichlet
 boundary conditions is used throughout VoronoiFVM.
-
 
 In order to discretize it, we choose collocation points
 $\gamma_1=x_1 < x_2 < \dots < x_n=\gamma_2$.
@@ -82,8 +79,6 @@ and initialize them.
 
 With these data, we solve the system.
 
-
-
 We wrap this example and all later ones
 into a module structure. This allows to load
 all of them at once into the REPL without name
@@ -96,35 +91,33 @@ module Example101_Laplace1D
 
 using VoronoiFVM
 
-
 function main()
-    ispec=1    ## Index of species we are working with
-    
+    ispec = 1    ## Index of species we are working with
+
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    function flux!(f,u,edge)
-        f[1]=u[1,1]-u[1,2]
+    function flux!(f, u, edge)
+        f[1] = u[1, 1] - u[1, 2]
     end
 
     function bcond!(args...)
-        boundary_dirichlet!(args...,region=1,value=0)
-        boundary_dirichlet!(args...,region=2,value=1)
+        boundary_dirichlet!(args...; region = 1, value = 0)
+        boundary_dirichlet!(args...; region = 2, value = 1)
     end
 
     ## Create a one dimensional discretization grid
     ## Each grid cell belongs to a region marked by a region number
     ## By default, there is only one region numbered with 1
-    grid=VoronoiFVM.Grid(0:0.2:1)
+    grid = VoronoiFVM.Grid(0:0.2:1)
 
     ## Create a finite volume system 
-    sys=VoronoiFVM.System(grid; flux=flux!,breaction=bcond!,species=ispec)
-    
+    sys = VoronoiFVM.System(grid; flux = flux!, breaction = bcond!, species = ispec)
+
     ## Solve stationary problem
-    solution=solve(sys;inival=0)
+    solution = solve(sys; inival = 0)
 
     ## Return test value
     return sum(solution)
-    
 end
 
 ## Called by unit test
@@ -134,4 +127,3 @@ function test()
 end
 
 end
-

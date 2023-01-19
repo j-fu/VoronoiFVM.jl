@@ -6,8 +6,6 @@ Abstract type for physics.
 """
 abstract type AbstractPhysics end
 
-
-
 ##########################################################
 """
 $(TYPEDEF)
@@ -16,66 +14,63 @@ Abstract type for user data.
 """
 abstract type AbstractData{Tv} end
 
-
 #
 # Experimental handling methods for AbstractData
 #
-ForwardDiff.value(x::Real)=x
-function showstruct(io::IO,this::AbstractData)
-    myround(x; kwargs...)=round(Float64(value(x));kwargs...)
-    myround(s::Symbol; kwargs...)=s
-    myround(i::Int; kwargs...)=i
-    myround(b::Bool; kwargs...)=b
+ForwardDiff.value(x::Real) = x
+function showstruct(io::IO, this::AbstractData)
+    myround(x; kwargs...) = round(Float64(value(x)); kwargs...)
+    myround(s::Symbol; kwargs...) = s
+    myround(i::Int; kwargs...) = i
+    myround(b::Bool; kwargs...) = b
     println(typeof(this))
     for name in fieldnames(typeof(this))
-        println(io,"$(lpad(name,20)) = $(myround.(getfield(this,name),sigdigits=5))")
+        println(io, "$(lpad(name,20)) = $(myround.(getfield(this,name),sigdigits=5))")
     end
 end
 
-function Base.copy!(vdata::AbstractData{Tv},udata::AbstractData{Tu}) where {Tv, Tu}
-    vval(x::Any)=x
-    vval(x::Tu)=Tv(x)
+function Base.copy!(vdata::AbstractData{Tv}, udata::AbstractData{Tu}) where {Tv, Tu}
+    vval(x::Any) = x
+    vval(x::Tu) = Tv(x)
     for name in fieldnames(typeof(udata))
-        setproperty!(vdata,name,vval(getproperty(udata,name)))
+        setproperty!(vdata, name, vval(getproperty(udata, name)))
     end
     vdata
 end
 
-Base.show(io::IO, ::MIME"text/plain", this::AbstractData)=showstruct(io,this)
+Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = showstruct(io, this)
 
-
-isdata(::Nothing)=false
-isdata(::Any)=true
+isdata(::Nothing) = false
+isdata(::Any) = true
 
 #
 # Dummy callbacks
 #
-function nofunc(f,u,node,data)
+function nofunc(f, u, node, data)
 end
 
-function nosrc(f,node,data)
+function nosrc(f, node, data)
 end
 
-function default_storage(f,u,node,data)
-    f.=u
+function default_storage(f, u, node, data)
+    f .= u
 end
 
-function nofunc2(f,u,node)
+function nofunc2(f, u, node)
 end
 
-function nosrc2(f,node)
+function nosrc2(f, node)
 end
 
-function default_storage2(f,u,node)
-    f.=u
+function default_storage2(f, u, node)
+    f .= u
 end
 
-function nofunc_generic(f,u,sys)
+function nofunc_generic(f, u, sys)
 end
 
 function nofunc_generic_sparsity(sys)
 end
-
 
 ##########################################################
 """
@@ -87,16 +82,16 @@ Physics data record with the following fields:
 
 $(TYPEDFIELDS)
 """
-struct Physics{Flux<:Function,
-               Reaction<:Function,
-               Storage<:Function,
-               Source<:Function,
-               BFlux<:Function,
-               BReaction<:Function,
-               BSource<:Function,
-               BStorage<:Function,
-               GenericOperator<:Function,
-               GenericOperatorSparsity<:Function,
+struct Physics{Flux <: Function,
+               Reaction <: Function,
+               Storage <: Function,
+               Source <: Function,
+               BFlux <: Function,
+               BReaction <: Function,
+               BSource <: Function,
+               BStorage <: Function,
+               GenericOperator <: Function,
+               GenericOperatorSparsity <: Function,
                Data} <: AbstractPhysics
     """
     Flux between neigboring control volumes: `flux(f,_u,edge)` or `flux(f,_u,edge,data)`
@@ -140,7 +135,6 @@ struct Physics{Flux<:Function,
     """
     breaction::BReaction
 
-
     """
     Boundary source term: `bsource(f,node)` or `bsource(f,node,data)`.
 
@@ -160,14 +154,12 @@ struct Physics{Flux<:Function,
     """
     generic_operator::GenericOperator
 
-    
     """
     Function defining the sparsity structure of the generic operator.
     This should return the sparsity pattern of the `generic_operator`.
     """
     generic_operator_sparsity::GenericOperatorSparsity
 
-    
     """
     User data (parameters).
     This allows to pass various parameters to the callback functions.
@@ -178,7 +170,6 @@ struct Physics{Flux<:Function,
     Number of species including boundary species.
     """
     num_species::Int8
-
 end
 
 ##########################################################
@@ -199,31 +190,30 @@ Physics(;num_species=0,
 
 Constructor for physics data. For the meaning of the optional keyword arguments, see [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
-function Physics(;num_species=0,
-                 data=nothing,
-                 flux::Function=nofunc,
-                 reaction::Function=nofunc,
-                 storage::Function=default_storage,
-                 source::Function=nosrc,
-                 bflux::Function=nofunc,
-                 breaction::Function=nofunc,
-                 bsource::Function=nosrc,
-                 bstorage::Function=nofunc,
-                 generic::Function=nofunc_generic,
-                 generic_sparsity::Function=nofunc_generic_sparsity,
-                 kwargs...
-                 )
+function Physics(; num_species = 0,
+                 data = nothing,
+                 flux::Function = nofunc,
+                 reaction::Function = nofunc,
+                 storage::Function = default_storage,
+                 source::Function = nosrc,
+                 bflux::Function = nofunc,
+                 breaction::Function = nofunc,
+                 bsource::Function = nosrc,
+                 bstorage::Function = nofunc,
+                 generic::Function = nofunc_generic,
+                 generic_sparsity::Function = nofunc_generic_sparsity,
+                 kwargs...)
     if !isdata(data)
-        flux==nofunc ? flux=nofunc2 : true
-        reaction==nofunc ? reaction=nofunc2 : true
-        storage==default_storage ? storage=default_storage2 : true
-        source==nosrc ? source=nosrc2 : true
-        bflux==nofunc ? bflux=nofunc2 : true
-        breaction==nofunc ? breaction=nofunc2 : true
-        bsource==nosrc ? bsource=nosrc2 : true
-        bstorage==nofunc ? bstorage=nofunc2 : true
+        flux == nofunc ? flux = nofunc2 : true
+        reaction == nofunc ? reaction = nofunc2 : true
+        storage == default_storage ? storage = default_storage2 : true
+        source == nosrc ? source = nosrc2 : true
+        bflux == nofunc ? bflux = nofunc2 : true
+        breaction == nofunc ? breaction = nofunc2 : true
+        bsource == nosrc ? bsource = nosrc2 : true
+        bstorage == nofunc ? bstorage = nofunc2 : true
     end
-    
+
     return Physics(flux,
                    storage,
                    reaction,
@@ -235,10 +225,8 @@ function Physics(;num_species=0,
                    generic,
                    generic_sparsity,
                    data,
-                   Int8(num_species)
-                   )
+                   Int8(num_species))
 end
-
 
 function Physics(physics::Physics, data)
     @show "here"
@@ -256,40 +244,37 @@ function Physics(physics::Physics, data)
             physic.num_species)
 end
 
-
 """
 $(SIGNATURES)
 
 Check if physics object has data
 """
-hasdata(physics::Physics)=isdata(physics.data)
-
+hasdata(physics::Physics) = isdata(physics.data)
 
 """
 $(SIGNATURES)
 
 Show physics object
 """
-function Base.show(io::IO,physics::AbstractPhysics)
-    str=@sprintf("VoronoiFVM.Physics(num_species=%d",physics.num_species)
+function Base.show(io::IO, physics::AbstractPhysics)
+    str = @sprintf("VoronoiFVM.Physics(num_species=%d", physics.num_species)
     if isdata(physics.data)
-        str=str*", data=$(typeof(physics.data))"
+        str = str * ", data=$(typeof(physics.data))"
     end
-    function addfunc(func,name)
-        if func!=nofunc
-            str=str*", $(name)=$(nameof(func))"
+    function addfunc(func, name)
+        if func != nofunc
+            str = str * ", $(name)=$(nameof(func))"
         end
     end
 
     for name in fieldnames(typeof(physics))
-        if (name!=:num_species)  && (name!=:data) && getfield(physics,name)!=nofunc
-             str=str*", $(name)=$(nameof(getfield(physics,name)))"
+        if (name != :num_species) && (name != :data) && getfield(physics, name) != nofunc
+            str = str * ", $(name)=$(nameof(getfield(physics,name)))"
         end
     end
-    str=str*")"
-    println(io,str)
+    str = str * ")"
+    println(io, str)
 end
-
 
 """
     $(TYPEDEF)
@@ -306,21 +291,19 @@ an provides  a common interface to different function formats (with data, withou
 
 $(TYPEDFIELDS)
 """
-struct  ResEvaluator{Tv<:Number,Func<:Function, G} <: AbstractEvaluator
+struct ResEvaluator{Tv <: Number, Func <: Function, G} <: AbstractEvaluator
     """ wrapper function in Format ready for Diffetential equations"""
-    fwrap::Func 
+    fwrap::Func
     """ pre-allocated result """
-    y::Vector{Tv} 
+    y::Vector{Tv}
     """ Geomtry object # geometry (node, edge...)"""
     geom::G
     """ number of species """
     nspec::Int
 
     """ Is the  function not one of nofunc ot nofunc2 """
-    isnontrivial::Bool 
+    isnontrivial::Bool
 end
-
-
 
 """
      ResEvaluator(physics,symb,uproto,geom,nspec)
@@ -332,47 +315,46 @@ Constructor for ResEvaluator
 - `geom`: node, edge...
 - `nspec`: number of species
 """
-function ResEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec::Int) where Tv
-
-    func=getproperty(physics,symb)
+function ResEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec::Int) where {Tv}
+    func = getproperty(physics, symb)
 
     # source functions need special handling here
-    if symb== :source || symb== :bsource
+    if symb == :source || symb == :bsource
         if isdata(physics.data)
-            fwrap=function(y)
-                y.=0
-                func(rhs(geom,y),geom,physics.data)
+            fwrap = function (y)
+                y .= 0
+                func(rhs(geom, y), geom, physics.data)
                 nothing
             end
         else
-            fwrap=function(y)
-                y.=0
-                func(rhs(geom,y),geom)
+            fwrap = function (y)
+                y .= 0
+                func(rhs(geom, y), geom)
                 nothing
             end
         end
     else   # Normal functions wihth u as parameter     
         if isdata(physics.data)
-            fwrap=function(y, u)
-                y.=0
+            fwrap = function (y, u)
+                y .= 0
                 ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-                func(rhs(geom,y),unknowns(geom,u),geom,physics.data)
+                func(rhs(geom, y), unknowns(geom, u), geom, physics.data)
                 ## for ii in .. y[ii]=y[geom.speclist[ii]]
                 nothing
             end
         else
-            fwrap=function(y, u)
-                y.=0
+            fwrap = function (y, u)
+                y .= 0
                 ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-                func(rhs(geom,y),unknowns(geom,u),geom)
+                func(rhs(geom, y), unknowns(geom, u), geom)
                 ## for ii in .. y[ii]=y[geom.speclist[ii]]
                 nothing
             end
         end
     end
-    isnontrivial = (func!=nofunc2) && (func!=nofunc)
-    y = zeros(Tv,nspec)
-    ResEvaluator(fwrap,y,geom,nspec,isnontrivial)
+    isnontrivial = (func != nofunc2) && (func != nofunc)
+    y = zeros(Tv, nspec)
+    ResEvaluator(fwrap, y, geom, nspec, isnontrivial)
 end
 
 """
@@ -380,8 +362,8 @@ $(TYPEDSIGNATURES)
 
 Call function in evaluator, store result in predefined memory.
 """
-function evaluate!(e::ResEvaluator,u)
-    e.isnontrivial ? e.fwrap(e.y,u) : nothing
+function evaluate!(e::ResEvaluator, u)
+    e.isnontrivial ? e.fwrap(e.y, u) : nothing
     nothing
 end
 
@@ -402,7 +384,6 @@ Retrieve evaluation result
 """
 res(e::ResEvaluator) = e.y
 
-
 """
     $(TYPEDEF)
 
@@ -411,21 +392,21 @@ an provides  a common interface to different function formats (with data, withou
 
 $(TYPEDFIELDS)
 """
-struct  ResJacEvaluator{Tv<:Number,Func<:Function,Cfg,Res,G} <: AbstractEvaluator
+struct ResJacEvaluator{Tv <: Number, Func <: Function, Cfg, Res, G} <: AbstractEvaluator
     """ wrapper function in Format ready for Differential equations"""
     fwrap::Func
     """ ForwardDiff.JacobianConfig """
     config::Cfg
     """ DiffResults.JacobianResult"""
-    result::Res 
+    result::Res
     """ pre-allocated result """
     y::Vector{Tv}
     """ Geomtry object # geometry (node, edge...)"""
-    geom::G 
+    geom::G
     """ number of species """
     nspec::Int
     """ Is the  function not one of nofunc ot nofunc2 """
-    isnontrivial::Bool 
+    isnontrivial::Bool
 end
 
 """
@@ -438,36 +419,35 @@ Constructor for ResJEvaluator
 - `geom`: node, edge...
 - `nspec`: number of species
 """
-function ResJacEvaluator(physics,symb::Symbol,uproto::Vector{Tv},geom,nspec) where Tv
-
-    func=getproperty(physics,symb)
+function ResJacEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec) where {Tv}
+    func = getproperty(physics, symb)
 
     if isdata(physics.data)
-        fwrap=function(y, u)
-            y.=0
+        fwrap = function (y, u)
+            y .= 0
             ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-            func(rhs(geom,y),unknowns(geom,u),geom,physics.data)
+            func(rhs(geom, y), unknowns(geom, u), geom, physics.data)
             ## for ii in .. y[ii]=y[geom.speclist[ii]]
             nothing
         end
     else
-        fwrap=function(y, u)
-            y.=0
+        fwrap = function (y, u)
+            y .= 0
             ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-            func(rhs(geom,y),unknowns(geom,u),geom)
+            func(rhs(geom, y), unknowns(geom, u), geom)
             ## for ii in .. y[ii]=y[geom.speclist[ii]]
             nothing
         end
     end
-    
-    isnontrivial = (func!=nofunc2) && (func!=nofunc)
 
-    y = zeros(Tv,nspec)
-    u = zeros(Tv,length(uproto))
+    isnontrivial = (func != nofunc2) && (func != nofunc)
+
+    y = zeros(Tv, nspec)
+    u = zeros(Tv, length(uproto))
     jac = zeros(Tv, nspec, length(u))
-    result=DiffResults.DiffResult(u,jac)
-    config=ForwardDiff.JacobianConfig(fwrap, y,u, ForwardDiff.Chunk(u,length(u)))
-    ResJacEvaluator(fwrap,config,result,y,geom,nspec,isnontrivial)
+    result = DiffResults.DiffResult(u, jac)
+    config = ForwardDiff.JacobianConfig(fwrap, y, u, ForwardDiff.Chunk(u, length(u)))
+    ResJacEvaluator(fwrap, config, result, y, geom, nspec, isnontrivial)
 end
 
 """
@@ -475,8 +455,8 @@ $(TYPEDSIGNATURES)
 
 Call function in evaluator, store result and jacobian in predefined memory.
 """
-function evaluate!(e::ResJacEvaluator,u)
-    e.isnontrivial ? ForwardDiff.vector_mode_jacobian!(e.result,e.fwrap,e.y,u,e.config) : nothing
+function evaluate!(e::ResJacEvaluator, u)
+    e.isnontrivial ? ForwardDiff.vector_mode_jacobian!(e.result, e.fwrap, e.y, u, e.config) : nothing
     nothing
 end
 
@@ -494,7 +474,6 @@ Retrieve Jacobian
 """
 jac(e::ResJacEvaluator) = DiffResults.jacobian(e.result)
 
-
 """
 $(TYPEDSIGNATURES)
 
@@ -502,14 +481,9 @@ Does calling the evaluator giva nontrivial (nonzero) result?
 """
 isnontrivial(e::AbstractEvaluator) = e.isnontrivial
 
-
-
 ##########################################################
 
-
-
-
 # "Generate" a flux function
-function diffusion_flux(D::T) where T
-    (y,u,args...)-> y[1]=D(u[1,1]+u[1,2])*(u[1,1]-u[1,2])
+function diffusion_flux(D::T) where {T}
+    (y, u, args...) -> y[1] = D(u[1, 1] + u[1, 2]) * (u[1, 1] - u[1, 2])
 end

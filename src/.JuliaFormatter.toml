@@ -1,0 +1,4 @@
+style = "sciml"
+always_for_in = false
+separate_kwargs_with_semicolon = true
+margin = 132

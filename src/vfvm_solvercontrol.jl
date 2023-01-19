@@ -1,10 +1,10 @@
 ################################################
 
-if VERSION>v"1.8"
+if VERSION > v"1.8"
     # const  default_umfpack_pivot_tolerance=SparseArrays.UMFPACK.get_umfpack_control(Float64,Int64)[3+1]
-    const default_umfpack_pivot_tolerance=0.1
+    const default_umfpack_pivot_tolerance = 0.1
 else
-    const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
+    const default_umfpack_pivot_tolerance = SuiteSparse.UMFPACK.umf_ctrl[3 + 1]
 end
 
 """
@@ -20,7 +20,6 @@ starting with some inital value ``u_0``, where ``d_i`` is a damping parameter.
 $(TYPEDFIELDS)
 """
 @with_kw mutable struct SolverControl
-
     """
     Tolerance (in terms of norm of Newton update):  
     terminate if ``\\Delta u_i=||u_{i+1}-u_i||_\\infty <`` `tol_absolute`.
@@ -81,7 +80,7 @@ $(TYPEDFIELDS)
     Relative tolerance of iterative linear solver.
     """
     tol_linear::Float64 = 1.0e-4
-    max_iterations_linear::Int=20
+    max_iterations_linear::Int = 20
     """
     Factorization kind for linear sytems (see ExtendableSparse.jl).
     Possible values: 
@@ -92,20 +91,18 @@ $(TYPEDFIELDS)
     - :ilu0 : Zero-fillin ILU factorization preconditioner
     - :jacobi : Jacobi (Diagonal) preconditioner
     """
-    factorization::Union{Symbol,AbstractFactorization}=:lu
+    factorization::Union{Symbol, AbstractFactorization} = :lu
 
-    
     """
     Maximum number of iterations of linear solver
     """
-    max_linear_iterations::Int=100
+    max_linear_iterations::Int = 100
 
     """
     GMRES Krylov dimension for restart
     """
-    gmres_restart::Int=10
+    gmres_restart::Int = 10
 
-    
     """   
     Iterative solver if factorization is incomplete.
     Currently supported: 
@@ -116,12 +113,12 @@ $(TYPEDFIELDS)
     - :krylov_gmres : gmres method from Krylov.jl
 
     """
-    iteration::Symbol=:bicgstab
-    
+    iteration::Symbol = :bicgstab
+
     """
     Verbosity flag.
     """
-    verbose::Bool = false     
+    verbose::Bool = false
 
     """
     Handle exceptions during transient solver and parameter embedding. 
@@ -129,7 +126,7 @@ $(TYPEDFIELDS)
     and solution is retried.  
     """
     handle_exceptions::Bool = false
-    
+
     """
     Initial parameter step for embedding.
     """
@@ -139,7 +136,7 @@ $(TYPEDFIELDS)
     Maximal parameter step size.
     """
     Δp_max::Float64 = 1.0
-    
+
     """
     Minimal parameter step size.
     """
@@ -181,7 +178,7 @@ $(TYPEDFIELDS)
     Force first timestep.
     """
     force_first_step::Bool = false
-    
+
     """
     Edge parameter cutoff for rectangular triangles.
     """
@@ -190,7 +187,7 @@ $(TYPEDFIELDS)
     """
     Pivot tolerance for umfpack.
     """
-    umfpack_pivot_tolerance::Float64 =  default_umfpack_pivot_tolerance
+    umfpack_pivot_tolerance::Float64 = default_umfpack_pivot_tolerance
 
     """
     Store all steps of transient/embedding problem:
@@ -205,37 +202,35 @@ $(TYPEDFIELDS)
     """
     Record history
     """
-    log=false
+    log = false
 end
 
-function factorization(control;valuetype=Float64)
-    if isa(control.factorization,Symbol)
-        if control.factorization in  [:lu, :default]
-            if valuetype==Float64
-                ExtendableSparse.LUFactorization(;valuetype)
+function factorization(control; valuetype = Float64)
+    if isa(control.factorization, Symbol)
+        if control.factorization in [:lu, :default]
+            if valuetype == Float64
+                ExtendableSparse.LUFactorization(; valuetype)
             else
-                ExtendableSparse.SparspakLU(;valuetype)
+                ExtendableSparse.SparspakLU(; valuetype)
             end
         elseif control.factorization == :sparspak
-            ExtendableSparse.SparspakLU(;valuetype)
-        elseif  control.factorization == :pardiso
-            ExtendableSparse.PardisoLU(;valuetype)
-        elseif  control.factorization == :mklpardiso
-            ExtendableSparse.PardisoLU(;valuetype)
-        elseif  control.factorization == :ilu0
-            ExtendableSparse.ILU0Preconditioner(;valuetype)
-        elseif  control.factorization == :jacobi
-            ExtendableSparse.JacobiPreconditioner(;valuetype)
+            ExtendableSparse.SparspakLU(; valuetype)
+        elseif control.factorization == :pardiso
+            ExtendableSparse.PardisoLU(; valuetype)
+        elseif control.factorization == :mklpardiso
+            ExtendableSparse.PardisoLU(; valuetype)
+        elseif control.factorization == :ilu0
+            ExtendableSparse.ILU0Preconditioner(; valuetype)
+        elseif control.factorization == :jacobi
+            ExtendableSparse.JacobiPreconditioner(; valuetype)
         else
             error("factorization :$(control.factorization) not supported for $valuetype, see documenation of VoronoiFVM.SolverControl for options")
         end
-        
+
     else
         control.factorization
     end
 end
-
-
 
 """
 ````
@@ -245,12 +240,12 @@ timesteps!(control,Δt; grow=1.0)
 Modify control data such that the time steps are fixed to a
 geometric sequence such that Δt_new=Δt_old*grow
 """
-function fixed_timesteps!(control,Δt; grow=1.0)
-    control.Δt=Δt
-    control.Δt_max=Δt
-    control.Δt_min=Δt
-    control.Δt_grow=grow
-    control.Δu_opt=floatmax()
+function fixed_timesteps!(control, Δt; grow = 1.0)
+    control.Δt = Δt
+    control.Δt_max = Δt
+    control.Δt_min = Δt
+    control.Δt_grow = grow
+    control.Δu_opt = floatmax()
     control
 end
 
@@ -260,12 +255,9 @@ end
 #     end
 # end
 
-
 """
     NewtonControl
 
 Legacy name of SolverControl
 """
-const NewtonControl=SolverControl
-
-
+const NewtonControl = SolverControl

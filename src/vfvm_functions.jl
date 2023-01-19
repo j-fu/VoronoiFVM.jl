@@ -7,23 +7,22 @@ coefficients around 0.
 """
 
 function bernoulli_horner(x)
-    y=x/47_900_160
-    y=x*y
-    y=x*(-1/1_209_600+y)
-    y=x*y
-    y=x*(1/30_240+y)
-    y=x*y
-    y=x*(-1/720+y)
-    y=x*y
-    y=x*(1/12+y)
-    y=x*(-1/2+y)
-    y=1+y
+    y = x / 47_900_160
+    y = x * y
+    y = x * (-1 / 1_209_600 + y)
+    y = x * y
+    y = x * (1 / 30_240 + y)
+    y = x * y
+    y = x * (-1 / 720 + y)
+    y = x * y
+    y = x * (1 / 12 + y)
+    y = x * (-1 / 2 + y)
+    y = 1 + y
 end
 
-
 # Bernoulli thresholds optimized for Float64
-const bernoulli_small_threshold=0.25
-const bernoulli_large_threshold=40.0
+const bernoulli_small_threshold = 0.25
+const bernoulli_large_threshold = 40.0
 ##############################################################
 """
 $(SIGNATURES)
@@ -37,15 +36,15 @@ with Bernoulli from JuliaStats/Distributions.jl
 Returns a real number containing the result.
 """
 function fbernoulli(x)
-    if x<-bernoulli_large_threshold
+    if x < -bernoulli_large_threshold
         -x
-    elseif x>bernoulli_large_threshold
-	zero(x)
+    elseif x > bernoulli_large_threshold
+        zero(x)
     else
-        expx=exp(x)
-        expxm1=expx-1.0
-        if abs(expxm1)>bernoulli_small_threshold
-            x/expxm1
+        expx = exp(x)
+        expxm1 = expx - 1.0
+        if abs(expxm1) > bernoulli_small_threshold
+            x / expxm1
         else
             bernoulli_horner(x)
         end
@@ -53,7 +52,6 @@ function fbernoulli(x)
 end
 
 ##############################################################
-
 
 """ 
 $(SIGNATURES)
@@ -72,20 +70,20 @@ The error in comparison with the evaluation of the original expression
 with BigFloat is less than 1.0e-15
 """
 function fbernoulli_pm(x)
-    if x< -bernoulli_large_threshold
+    if x < -bernoulli_large_threshold
         return -x, zero(x)
-    elseif x>bernoulli_large_threshold
-	return zero(x),x
+    elseif x > bernoulli_large_threshold
+        return zero(x), x
     else
-        expx=exp(x)
-        expxm1=expx-1.0
-        if abs(expxm1)>bernoulli_small_threshold
-            bp=x/expxm1
-            bm=x/(1.0-1.0/expx)
-            return bp,bm
+        expx = exp(x)
+        expxm1 = expx - 1.0
+        if abs(expxm1) > bernoulli_small_threshold
+            bp = x / expxm1
+            bm = x / (1.0 - 1.0 / expx)
+            return bp, bm
         else
-            y=bernoulli_horner(x)
-            return y,x+y
+            y = bernoulli_horner(x)
+            return y, x + y
         end
     end
 end

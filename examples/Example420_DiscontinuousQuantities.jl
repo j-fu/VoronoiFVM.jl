@@ -14,85 +14,75 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
-
-function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
-    XX=collect(0:0.1:1)
-    xcoord=XX
-    for i=1:N-1
-        xcoord=glue(xcoord,XX.+i)
+function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
+    XX = collect(0:0.1:1)
+    xcoord = XX
+    for i = 1:(N - 1)
+        xcoord = glue(xcoord, XX .+ i)
     end
-    grid2=simplexgrid(xcoord)
-    for i=1:N
-        cellmask!(grid2,[i-1],[i],i)
+    grid2 = simplexgrid(xcoord)
+    for i = 1:N
+        cellmask!(grid2, [i - 1], [i], i)
     end
-    for i=1:N-1
-        bfacemask!(grid2,[i],[i],i+2)
-    end
-
-    params=zeros(2,num_cellregions(grid2))
-    for i=1:num_cellregions(grid2)
-        params[1,i]=i
-        params[2,i]=10*i
+    for i = 1:(N - 1)
+        bfacemask!(grid2, [i], [i], i + 2)
     end
 
+    params = zeros(2, num_cellregions(grid2))
+    for i = 1:num_cellregions(grid2)
+        params[1, i] = i
+        params[2, i] = 10 * i
+    end
 
-    system=VoronoiFVM.System(grid2,unknown_storage=unknown_storage)
+    system = VoronoiFVM.System(grid2; unknown_storage = unknown_storage)
 
     ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitely.
-    cspec=ContinuousQuantity(system,1:N;ispec=1,id=1)
+    cspec = ContinuousQuantity(system, 1:N; ispec = 1, id = 1)
 
     ## A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.
-    dspec=DiscontinuousQuantity(system,1:N; regionspec=[2+i%2 for i=1:N],id=2)
+    dspec = DiscontinuousQuantity(system, 1:N; regionspec = [2 + i % 2 for i = 1:N], id = 2)
 
     # check 1D array acces with quantities
     carrierList = [cspec dspec]
     numberCarriers = length(carrierList)
 
-    params2=zeros(1, numberCarriers)
+    params2 = zeros(1, numberCarriers)
 
     for icc ∈ carrierList
         params2[icc] = 2
     end
 
-    for i=1:numberCarriers
+    for i = 1:numberCarriers
         @assert params2[i] == 2
     end
 
-
-
     # check 2D array acces with quantities
-    for i=1:num_cellregions(grid2)
-        @assert params[cspec,i] == i
-        @assert params[dspec,i] == 10*i
+    for i = 1:num_cellregions(grid2)
+        @assert params[cspec, i] == i
+        @assert params[dspec, i] == 10 * i
     end
 
-    for i=1:num_cellregions(grid2)
-        params[cspec,i] = -i
-        params[dspec,i] = -10*i
+    for i = 1:num_cellregions(grid2)
+        params[cspec, i] = -i
+        params[dspec, i] = -10 * i
     end
 
-    for i=1:num_cellregions(grid2)
-        @assert params[1,i] == -i
-        @assert params[2,i] == -10*i
+    for i = 1:num_cellregions(grid2)
+        @assert params[1, i] == -i
+        @assert params[2, i] == -10 * i
     end
-
-
-
-
-
 
     ##For both quantities, we define simple diffusion fluxes:
 
-    function flux(f,u,edge)
-        f[dspec]=u[dspec,1]-u[dspec,2]
-        f[cspec]=u[cspec,1]-u[cspec,2]
+    function flux(f, u, edge)
+        f[dspec] = u[dspec, 1] - u[dspec, 2]
+        f[cspec] = u[cspec, 1] - u[cspec, 2]
     end
 
+    d1 = 1
+    q1 = 0.2
 
-    d1=1
-    q1=0.2
-
-    function breaction(f,u,bnode)
+    function breaction(f, u, bnode)
 
         # left outer boundary value for dspec
         if bnode.region == 1
@@ -100,46 +90,43 @@ function main(;N=5, Plotter=nothing,unknown_storage=:sparse)
         end
 
         ## Define a thin layer inteface condition for `dspec` and an interface source for `cspec`.
-        if bnode.region>2
-            react=(u[dspec,1]-u[dspec,2])/d1
-            f[dspec,1]= react
-            f[dspec,2]= -react
-            f[cspec]=-q1*u[cspec]
+        if bnode.region > 2
+            react = (u[dspec, 1] - u[dspec, 2]) / d1
+            f[dspec, 1] = react
+            f[dspec, 2] = -react
+            f[cspec] = -q1 * u[cspec]
         end
     end
 
-
-    physics!(system,VoronoiFVM.Physics(
-        flux=flux,
-        breaction=breaction
-    ))
-
+    physics!(system, VoronoiFVM.Physics(; flux = flux,
+                                        breaction = breaction))
 
     ## Set boundary conditions
-    boundary_dirichlet!(system,dspec,2,0.1)
-    boundary_dirichlet!(system,cspec,1,0.1)
-    boundary_dirichlet!(system,cspec,2,1.0)
-    subgrids=VoronoiFVM.subgrids(dspec,system)
+    boundary_dirichlet!(system, dspec, 2, 0.1)
+    boundary_dirichlet!(system, cspec, 1, 0.1)
+    boundary_dirichlet!(system, cspec, 2, 1.0)
+    subgrids = VoronoiFVM.subgrids(dspec, system)
 
+    U = solve(unknowns(system; inival = 0), system)
 
-    U=solve(unknowns(system,inival=0),system)
-
-    dvws=views(U,dspec,subgrids,system)
-    cvws=views(U,cspec,subgrids,system)
-    vis=GridVisualizer(resolution=(600,300),Plotter=Plotter)
+    dvws = views(U, dspec, subgrids, system)
+    cvws = views(U, cspec, subgrids, system)
+    vis = GridVisualizer(; resolution = (600, 300), Plotter = Plotter)
     for i in eachindex(dvws)
-        scalarplot!(vis,subgrids[i],dvws[i],flimits=(-0.5,1.5),clear=false,color=:red)
-        scalarplot!(vis,subgrids[i],cvws[i],flimits=(-0.5,1.5),clear=false,color=:green)
+        scalarplot!(vis, subgrids[i], dvws[i]; flimits = (-0.5, 1.5), clear = false,
+                    color = :red)
+        scalarplot!(vis, subgrids[i], cvws[i]; flimits = (-0.5, 1.5), clear = false,
+                    color = :green)
     end
     reveal(vis)
     I = integrate(system, system.physics.storage, U)
-    sum(I[dspec,:])+sum(I[cspec,:])
+    sum(I[dspec, :]) + sum(I[cspec, :])
 end
 
-
 function test()
-    testval=4.2
-    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
+    testval = 4.2
+    main(; unknown_storage = :sparse) ≈ testval &&
+        main(; unknown_storage = :dense) ≈ testval
 end
 
 end
