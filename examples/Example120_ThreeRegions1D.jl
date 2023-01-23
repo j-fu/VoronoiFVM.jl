@@ -114,7 +114,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     p = GridVisualizer(; Plotter = Plotter, layout = (1, 1))
     while time < tend
         time = time + tstep
-        VoronoiFVM.solve!(U, inival, sys; control = control, tstep = tstep)
+        solve!(U, inival, sys; control = control, tstep = tstep)
         inival .= U
         if verbose
             @printf("time=%g\n", time)

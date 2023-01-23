@@ -595,7 +595,7 @@ solve!(solution, inival, system;
 ````
 Mutating version of [`solve(inival,system)`](@ref)
 """
-function solve!(solution, # Solution
+function SciMLBase.solve!(solution, # Solution
                 inival,   # Initial value 
                 system::VoronoiFVM.AbstractSystem;     # Finite volume system
                 control = NewtonControl(),      # Newton solver control information
@@ -622,7 +622,7 @@ Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the
 Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
 value. Returns a solution array.
 """
-function solve(inival,   # Initial value 
+function SciMLBase.solve(inival,   # Initial value 
                system::AbstractSystem;     # Finite volume system
                control = NewtonControl(),      # Newton solver control information
                time = Inf,
@@ -643,7 +643,7 @@ end
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
 """
-function solve(inival,
+function SciMLBase.solve(inival,
                system::VoronoiFVM.AbstractSystem,
                lambdas;
                control = NewtonControl(),
@@ -793,7 +793,7 @@ module NoModule end
 
 #####################################################################
 """
-    VoronoiFVM.solve(system; kwargs...)
+    solve(system; kwargs...)
     
 Built-in solution method for [`VoronoiFVM.System`](@ref).  
 For using ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl), see
@@ -842,7 +842,7 @@ Keyword arguments:
   - `tstep`: time step
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
-function VoronoiFVM.solve(sys::VoronoiFVM.AbstractSystem; inival = 0, params = zeros(0), control = VoronoiFVM.NewtonControl(),
+function SciMLBase.solve(sys::VoronoiFVM.AbstractSystem; inival = 0, params = zeros(0), control = VoronoiFVM.NewtonControl(),
                           kwargs...)
     if isa(inival, Number)
         inival = unknowns(sys; inival = inival)

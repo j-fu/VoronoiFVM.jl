@@ -8,6 +8,7 @@ using Printf
 using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
+using SciMLBase
 
 using BandedMatrices
 # using MultidiagonalMatrices
