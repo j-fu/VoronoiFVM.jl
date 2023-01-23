@@ -56,9 +56,9 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
                   BandedMatrix{Tv}}
 
     """
-    Matrix factorization
+    Linear problem
     """
-    factorization::Union{Nothing, ExtendableSparse.AbstractFactorization{Tv, Tm}}
+    linear_cache::Union{Nothing,LinearSolve.LinearCache}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -255,7 +255,7 @@ function System(grid::ExtendableGrid;
     system.uhash = 0x0
     system.matrixtype = matrixtype
     system.allocs = -1000
-    system.factorization = nothing
+    system.linear_cache = nothing
     system.history = nothing
     system.num_parameters = nparams
 
@@ -761,7 +761,7 @@ function firstnodedof end
 
 Get last  degree of freedom associated with node.
 """
-function firstnodedof end
+function lastnodedof end
 
 """
     getspecies(system,idof)

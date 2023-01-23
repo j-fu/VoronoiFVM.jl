@@ -9,19 +9,15 @@ using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
 
-if VERSION <= v"1.8"
-    using SuiteSparse
-end
-
 using BandedMatrices
 # using MultidiagonalMatrices
 
+using LinearSolve
 using Parameters
 using Statistics
 
 using ForwardDiff
 using DiffResults
-using Krylov, IterativeSolvers
 using JLD2
 using RecursiveArrayTools
 

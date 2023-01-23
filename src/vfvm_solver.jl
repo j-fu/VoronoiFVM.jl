@@ -110,16 +110,12 @@ function _solve!(solution::AbstractMatrix{Tv}, # old time step solution resp. in
         residual = system.residual
         update = system.update
         _initialize!(solution, system; time, λ = embedparam, params)
-        if VERSION <= v"1.8"
-            SuiteSparse.UMFPACK.umf_ctrl[3 + 1] = control.umfpack_pivot_tolerance
-        end
 
-        if isnothing(system.factorization)
-            if isa(system.matrix, ExtendableSparseMatrix)
-                system.factorization = factorization(control; valuetype = Tv)
-            end
+        method_linear=control.method_linear
+        if isnothing(method_linear)
+            method_linear=UMFPACKFactorization()
         end
-
+        
         oldnorm = 1.0
         converged = false
         if control.verbose
@@ -145,109 +141,35 @@ function _solve!(solution::AbstractMatrix{Tv}, # old time step solution resp. in
                 end
             end
 
-            ## Linear system solution: mtx*update=residual
-            mtx = system.matrix
-            nliniter = 0
-
-            ## (re)factorize, if possible reusing old factorization data
-            if !isnothing(system.factorization) && nlu_reuse == 0
-                try
-                    factorize!(system.factorization, mtx)
-                catch err
-                    if (control.handle_exceptions)
-                        _print_error(err, stacktrace(catch_backtrace()))
-                        throw(FactorizationError())
-                    else
-                        rethrow(err)
-                    end
-                end
-                if control.log
-                    nlhistory.nlu += 1
-                end
-            end
-
-            ## Direct solution via LU solve:
-            if !isnothing(system.factorization) && issolver(system.factorization) && nlu_reuse == 0
-                try
-                    ldiv!(values(update), system.factorization, values(residual))
-                    if control.log
-                        nlhistory.nlin += 1
-                    end
-                catch err
-                    if (control.handle_exceptions)
-                        _print_error(err, stacktrace(catch_backtrace()))
-                        throw(FactorizationError())
-                    else
-                        rethrow(err)
-                    end
-                end
-
-                ## Iterative solution using factorization as preconditioner
-            elseif !isnothing(system.factorization) && !issolver(system.factorization) || nlu_reuse > 0
-                if control.iteration == :krylov_bicgstab
-                    (sol, history) = Krylov.bicgstab(mtx,
-                                                     values(residual);
-                                                     M = system.factorization,
-                                                     rtol = control.tol_linear,
-                                                     ldiv = true,
-                                                     itmax = control.max_iterations_linear,
-                                                     history = true)
-                    values(update) .= sol
-                elseif control.iteration == :krylov_gmres
-                    (sol, history) = Krylov.gmres(mtx,
-                                                  values(residual);
-                                                  M = system.factorization,
-                                                  rtol = control.tol_linear,
-                                                  ldiv = true,
-                                                  restart = true,
-                                                  itmax = control.max_iterations_linear,
-                                                  memory = control.gmres_restart,
-                                                  history = true)
-                    values(update) .= sol
-                elseif control.iteration == :krylov_cg
-                    (sol, history) = Krylov.cg(mtx,
-                                               values(residual);
-                                               M = system.factorization,
-                                               ldiv = true,
-                                               rtol = control.tol_linear,
-                                               itmax = control.max_iterations_linear,
-                                               history = true)
-                    values(update) .= sol
-                elseif control.iteration == :cg
-                    update .= zero(Tv)
-                    (sol, history) = IterativeSolvers.cg!(values(update),
-                                                          mtx,
-                                                          values(residual);
-                                                          Pl = system.factorization,
-                                                          reltol = control.tol_linear,
-                                                          maxiter = control.max_iterations_linear,
-                                                          log = true)
-                elseif control.iteration == :bicgstab
-                    update .= zero(Tv)
-                    (sol, history) = IterativeSolvers.bicgstabl!(values(update),
-                                                                 mtx,
-                                                                 values(residual),
-                                                                 1;
-                                                                 Pl = system.factorization,
-                                                                 reltol = control.tol_linear,
-                                                                 max_mv_products = control.max_iterations_linear,
-                                                                 log = true)
-                else
-                    error("wrong value of `iteration`, see documentation of SolverControl")
-                end
-
-                if control.iteration == :cg || control.iteration == :bicgstab
-                    nliniter = history.iters
-                else
-                    nliniter = history.niter
-                end
-                if control.log
-                    nlhistory.nlin += history.niter
-                end
+            if isnothing(system.linear_cache)
+                p=LinearProblem(sparse(system.matrix),values(residual))
+                system.linear_cache=init(p,method_linear)
             else
-                values(update) .= system.matrix \ values(residual)
+                system.linear_cache=LinearSolve.set_A(system.linear_cache,sparse(system.matrix))
+                system.linear_cache=LinearSolve.set_b(system.linear_cache,values(residual))
             end
 
+            #     try
+            #         factorize!(system.factorization, mtx)
+            #     catch err
+            #         if (control.handle_exceptions)
+            #             _print_error(err, stacktrace(catch_backtrace()))
+            #             throw(FactorizationError())
+            #         else
+            #             rethrow(err)
+            #         end
+            #     end
+            #     if control.log
+            #         nlhistory.nlu += 1
+            #     end
+            # end
+
+
+            
+            sol=LinearSolve.solve(system.linear_cache)
+            system.linear_cache=sol.cache
+            values(update).=sol.u
+            
             if control.max_lureuse > 0
                 nlu_reuse = (nlu_reuse + 1) % control.max_lureuse
             end

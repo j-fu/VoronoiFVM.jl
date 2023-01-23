@@ -1,11 +1,5 @@
 ################################################
 
-if VERSION > v"1.8"
-    # const  default_umfpack_pivot_tolerance=SparseArrays.UMFPACK.get_umfpack_control(Float64,Int64)[3+1]
-    const default_umfpack_pivot_tolerance = 0.1
-else
-    const default_umfpack_pivot_tolerance = SuiteSparse.UMFPACK.umf_ctrl[3 + 1]
-end
 
 """
 $(TYPEDEF)
@@ -77,44 +71,30 @@ $(TYPEDFIELDS)
     max_round::Int = 1000
 
     """
+    Solver kind for linear systems (see LinearSolve.jl).
+    """
+    method_linear::Union{Nothing,LinearSolve.SciMLLinearSolveAlgorithm} = nothing
+
+    """
     Relative tolerance of iterative linear solver.
     """
-    tol_linear::Float64 = 1.0e-4
-    max_iterations_linear::Int = 20
+    reltol_linear::Float64 = 1.0e-4
+
     """
-    Factorization kind for linear sytems (see ExtendableSparse.jl).
-    Possible values: 
-    - :lu, :default  : LU factorization from UMFPACK (for Float64) or Sparspak.jl
-    - :sparspak  : LU Factorization from Sparspak
-    - :pardiso  : LU Factorization from Pardiso.jl using Pardiso from pardiso.org. Install and `use` Pardiso.jl to use this option.
-    - :mklpardiso  : LU Factorization from Pardiso.jl using MKL Pardiso. Install and `use` Pardiso.jl to use this option.
-    - :ilu0 : Zero-fillin ILU factorization preconditioner
-    - :jacobi : Jacobi (Diagonal) preconditioner
+    Absolute tolerance of iterative linear solver.
     """
-    factorization::Union{Symbol, AbstractFactorization} = :lu
+    abstol_linear::Float64 = 1.0e-8
 
     """
     Maximum number of iterations of linear solver
     """
-    max_linear_iterations::Int = 100
+    maxiter_linear::Int = 100
 
     """
-    GMRES Krylov dimension for restart
+    Preconditioner for linear systems
     """
-    gmres_restart::Int = 10
-
-    """   
-    Iterative solver if factorization is incomplete.
-    Currently supported: 
-    - :bicgstab : bicgstabl method from IterativeSolvers.jl
-    - :cg : cg method from IterativeSolvers.jl
-    - :krylov_cg : cg method from Krylov.jl
-    - :krylov_bicgstab : bicgstab method from Krylov.jl
-    - :krylov_gmres : gmres method from Krylov.jl
-
-    """
-    iteration::Symbol = :bicgstab
-
+    precon_linear=Union{Symbol,Function}
+    
     """
     Verbosity flag.
     """
@@ -183,11 +163,6 @@ $(TYPEDFIELDS)
     Edge parameter cutoff for rectangular triangles.
     """
     edge_cutoff::Float64 = 0.0
-
-    """
-    Pivot tolerance for umfpack.
-    """
-    umfpack_pivot_tolerance::Float64 = default_umfpack_pivot_tolerance
 
     """
     Store all steps of transient/embedding problem:

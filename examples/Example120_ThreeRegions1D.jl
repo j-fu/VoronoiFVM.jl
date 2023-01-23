@@ -7,6 +7,7 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+using LinearSolve
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
               unknown_storage = :sparse, tend = 10, rely_on_corrections = false)
@@ -105,7 +106,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
-    control.factorization = :sparspak
+    control.method_linear = SparspakFactorization()
     tstep = 0.01
     time = 0.0
     istep = 0
@@ -113,7 +114,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     p = GridVisualizer(; Plotter = Plotter, layout = (1, 1))
     while time < tend
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
+        VoronoiFVM.solve!(U, inival, sys; control = control, tstep = tstep)
         inival .= U
         if verbose
             @printf("time=%g\n", time)
