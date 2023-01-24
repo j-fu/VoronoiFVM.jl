@@ -73,14 +73,15 @@ function testfunction(factory::TestFunctionFactory, bc0, bc1)
     eval_and_assemble(factory.tfsystem, u, u, f, Inf, Inf, 0.0, zeros(0))
 
     _initialize!(u, factory.tfsystem)
-    if isa(factory.tfsystem.matrix, ExtendableSparseMatrix)
-        fact = factorization(factory.control)
-        factorize!(fact, factory.tfsystem.matrix)
-        ldiv!(vec(u), fact, vec(f))
-    else
-        vec(u) .= factory.tfsystem.matrix \ vec(f)
+
+    method_linear = factory.control.method_linear
+    if isnothing(method_linear)
+        method_linear = UMFPACKFactorization()
     end
-    return vec(u)
+    
+    p=LinearProblem(factory.tfsystem.matrix,vec(f))
+    sol=solve(p,method_linear)
+    sol.u
 end
 
 ############################################################################

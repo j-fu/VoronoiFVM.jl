@@ -88,13 +88,13 @@ $(TYPEDFIELDS)
     """
     Maximum number of iterations of linear solver
     """
-    maxiter_linear::Int = 100
+    maxiters_linear::Int = 100
 
     """
     Preconditioner for linear systems
     """
-    precon_linear=Union{Symbol,Function}
-    
+    precon_linear::Union{Nothing,Symbol,Function} = nothing
+
     """
     Verbosity flag.
     """
@@ -178,33 +178,6 @@ $(TYPEDFIELDS)
     Record history
     """
     log = false
-end
-
-function factorization(control; valuetype = Float64)
-    if isa(control.factorization, Symbol)
-        if control.factorization in [:lu, :default]
-            if valuetype == Float64
-                ExtendableSparse.LUFactorization(; valuetype)
-            else
-                ExtendableSparse.SparspakLU(; valuetype)
-            end
-        elseif control.factorization == :sparspak
-            ExtendableSparse.SparspakLU(; valuetype)
-        elseif control.factorization == :pardiso
-            ExtendableSparse.PardisoLU(; valuetype)
-        elseif control.factorization == :mklpardiso
-            ExtendableSparse.PardisoLU(; valuetype)
-        elseif control.factorization == :ilu0
-            ExtendableSparse.ILU0Preconditioner(; valuetype)
-        elseif control.factorization == :jacobi
-            ExtendableSparse.JacobiPreconditioner(; valuetype)
-        else
-            error("factorization :$(control.factorization) not supported for $valuetype, see documenation of VoronoiFVM.SolverControl for options")
-        end
-
-    else
-        control.factorization
-    end
 end
 
 """

@@ -86,7 +86,7 @@ function main(n = 1)
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = false
-    control.tol_linear = 1.0e-5
+    control.reltol_linear = 1.0e-5
     control.max_lureuse = 10
 
     tstep = 0.1

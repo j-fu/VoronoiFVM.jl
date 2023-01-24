@@ -8,10 +8,11 @@ using VoronoiFVM
 using ExtendableGrids
 using ExtendableSparse
 using GridVisualize
+using LinearSolve
+using ILUZero
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
-              max_lureuse = 0,
-              factorization = LUFactorization(), iteration = :cg)
+              max_lureuse = 0, method_linear=nothing, precon_linear=nothing)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
@@ -43,10 +44,10 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
-    control.iteration = iteration
-    control.tol_linear = 1.0e-5
+    control.reltol_linear = 1.0e-5
     control.max_lureuse = max_lureuse
-    control.factorization = factorization
+    control.method_linear = method_linear
+    control.precon_linear = precon_linear
     tstep = 0.01
     time = 0.0
     u15 = 0
@@ -75,8 +76,8 @@ function test()
         main(; unknown_storage = :sparse, max_lureuse = 10) ≈ testval &&
         main(; unknown_storage = :dense, max_lureuse = 10) ≈ testval &&
         main(; unknown_storage = :sparse, max_lureuse = 0,
-             factorization = ILU0Preconditioner(), iteration = :cg) ≈ testval &&
+             method_linear=KrylovJL_CG(), precon_linear=ILUZero.ilu0) ≈ testval &&
         main(; unknown_storage = :dense, max_lureuse = 0,
-             factorization = ILU0Preconditioner(), iteration = :bicgstab) ≈ testval
+             method_linear=KrylovJL_CG(), precon_linear=ILUZero.ilu0) ≈ testval
 end
 end

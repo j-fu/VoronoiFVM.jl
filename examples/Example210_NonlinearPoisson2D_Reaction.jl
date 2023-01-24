@@ -54,8 +54,6 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
-    control.tol_linear = 1.0e-5
-    control.max_lureuse = 0
     tstep = 0.01
     time = 0.0
     istep = 0
