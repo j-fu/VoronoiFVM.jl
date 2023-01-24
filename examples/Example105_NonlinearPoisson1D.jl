@@ -77,14 +77,9 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 
     ## Create a solution array
     inival = unknowns(sys; inival = 0.5)
-    solution = unknowns(sys)
-
-    ## Create solver control info
-    control = VoronoiFVM.NewtonControl()
-    control.verbose = verbose
 
     ## Stationary solution of the problem
-    solve!(solution, inival, sys; control = control)
+    solution = solve(sys; inival, verbose)
 
     scalarplot(grid, solution[1, :]; title = "Nonlinear Poisson", Plotter = Plotter)
 

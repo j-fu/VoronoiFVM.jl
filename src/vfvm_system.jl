@@ -58,7 +58,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Linear problem
     """
-    linear_cache::Union{Nothing,LinearSolve.LinearCache}
+    linear_cache::Union{Nothing, LinearSolve.LinearCache}
 
     """
     Flag which says if the number of unknowns per node is constant

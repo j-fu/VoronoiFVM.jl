@@ -54,14 +54,13 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 
     inival = unknowns(sys)
     inival .= 0.0
-    U = unknowns(sys)
 
     eps = 1.0e-2
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
     control.reltol_linear = 1.0e-5
-    control.tol_relative = 1.0e-5
+    control.reltol = 1.0e-5
     control.max_lureuse = 0
     tstep = 0.01
     time = 0.0
@@ -70,7 +69,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     p = GridVisualizer(; Plotter = Plotter, layout = (3, 1))
     while time < 1
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
+        U = solve(sys; inival, control, tstep)
         inival .= U
         if verbose
             @printf("time=%g\n", time)

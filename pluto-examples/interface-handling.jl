@@ -5,22 +5,22 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
-begin 
-    ENV["LC_NUMERIC"]="C" # prevent pyplot from messing up string2float conversion
-	using Triangulate
-	using PlutoUI
-	using PyPlot
-	using Printf
-	using SimplexGridFactory
-	using GridVisualize
-	using ExtendableGrids
-	using VoronoiFVM
-	GridVisualize.default_plotter!(PyPlot)
-	PyPlot.svg(true)
+begin
+    ENV["LC_NUMERIC"] = "C" # prevent pyplot from messing up string2float conversion
+    using Triangulate
+    using PlutoUI
+    using PyPlot
+    using Printf
+    using SimplexGridFactory
+    using GridVisualize
+    using ExtendableGrids
+    using VoronoiFVM
+    GridVisualize.default_plotter!(PyPlot)
+    PyPlot.svg(true)
 end
 
 # ╔═╡ cc49b312-7e21-49aa-b42d-32c184919aa2
-TableOfContents(title="",depth=4,aside=false)
+TableOfContents(title = "", depth = 4, aside = false)
 
 # ╔═╡ b61dce01-f84f-4e46-be76-8561bf0dddaa
 md"""
@@ -42,43 +42,55 @@ Here we create such a domain using the Triangle mesh generator of J. Shewchuk vi
 
 # ╔═╡ b912c3ff-42aa-4484-8b84-f011c80382e9
 begin
-    Γ_1=1
-    Γ_2=2
-    Γ_12=3
-    Γ_N=4
-    Ω_1=1
-    Ω_2=2
+    Γ_1 = 1
+    Γ_2 = 2
+    Γ_12 = 3
+    Γ_N = 4
+    Ω_1 = 1
+    Ω_2 = 2
 end;
 
 # ╔═╡ 8b806c22-3f34-11eb-0e03-4d3fa6461629
-function tworegiongrid(;minangle=20)
-    triin=Triangulate.TriangulateIO()
-    triin.pointlist=Cdouble[-0.5 0.0 ;0.2 0.0; 1.5 0.0 ; 1.5  2.0 ; 0.8 2.0; -0.5 2.0]'
-    triin.segmentlist=Cint[1 2 ; 2 3 ; 3 4 ; 4 5 ; 5 6 ; 6 1 ; 2 5]'
-    triin.segmentmarkerlist=Cint[Γ_N, Γ_N, Γ_2, Γ_N, Γ_N, Γ_1, Γ_12]
-    angle=@sprintf("%.15f",minangle)
-    triin.regionlist=Cdouble[0.2 0.2 Ω_1 0.18;
-		             0.8 0.2 Ω_2 0.18]'
-    (triout, vorout)=triangulate("paAq$(angle)DQv", triin)	
+function tworegiongrid(; minangle = 20)
+    triin = Triangulate.TriangulateIO()
+    triin.pointlist = Cdouble[-0.5 0.0; 0.2 0.0; 1.5 0.0; 1.5 2.0; 0.8 2.0; -0.5 2.0]'
+    triin.segmentlist = Cint[1 2; 2 3; 3 4; 4 5; 5 6; 6 1; 2 5]'
+    triin.segmentmarkerlist = Cint[Γ_N, Γ_N, Γ_2, Γ_N, Γ_N, Γ_1, Γ_12]
+    angle = @sprintf("%.15f", minangle)
+    triin.regionlist = Cdouble[
+        0.2 0.2 Ω_1 0.18
+        0.8 0.2 Ω_2 0.18
+    ]'
+    (triout, vorout) = triangulate("paAq$(angle)DQv", triin)
 end
 
 # ╔═╡ 40795d22-6091-4498-bd07-f716fb07682e
 function plot_with_numbers(triout, vorout)
     PyPlot.clf()
-    Triangulate.plot_triangulateio(PyPlot,triout,voronoi=vorout)
-    PyPlot.scatter(triout.pointlist[1,:],triout.pointlist[2,:],color=:red,alpha=1)
-    dxy=[-0.03,0.01]
-    for ipoint=1:size(triout.pointlist,2)
-	PyPlot.text((dxy.+triout.pointlist[:,ipoint])...,"$(ipoint)",ha=:right,color=:red)
+    Triangulate.plot_triangulateio(PyPlot, triout, voronoi = vorout)
+    PyPlot.scatter(triout.pointlist[1, :], triout.pointlist[2, :], color = :red, alpha = 1)
+    dxy = [-0.03, 0.01]
+    for ipoint = 1:size(triout.pointlist, 2)
+        PyPlot.text(
+            (dxy .+ triout.pointlist[:, ipoint])...,
+            "$(ipoint)",
+            ha = :right,
+            color = :red,
+        )
     end
-    for ipoint=1:size(vorout.pointlist,2)
-	PyPlot.text((dxy.+vorout.pointlist[:,ipoint])...,"$(ipoint)",ha=:right,color=:green)		
+    for ipoint = 1:size(vorout.pointlist, 2)
+        PyPlot.text(
+            (dxy .+ vorout.pointlist[:, ipoint])...,
+            "$(ipoint)",
+            ha = :right,
+            color = :green,
+        )
     end
     PyPlot.gcf()
 end
 
 # ╔═╡ d55fdbfc-3f34-11eb-3f35-c3bcdb156288
-triout, vorout=tworegiongrid()
+triout, vorout = tworegiongrid()
 
 # ╔═╡ 36ef21e0-078c-4287-a0fe-f942cd14dc08
 plot_with_numbers(triout, vorout)
@@ -203,20 +215,22 @@ md"""
 """
 
 # ╔═╡ add94eb5-7859-474b-87fc-a4e4ab00e691
-heterogrid=simplexgrid(triout.pointlist, 
-	                  triout.trianglelist,
-	Int32.(triout.triangleattributelist[1,:]),
-	triout.segmentlist,
-	triout.segmentmarkerlist)
+heterogrid = simplexgrid(
+    triout.pointlist,
+    triout.trianglelist,
+    Int32.(triout.triangleattributelist[1, :]),
+    triout.segmentlist,
+    triout.segmentmarkerlist,
+)
 
 # ╔═╡ 427504f5-6c74-40d5-a4b9-9d2d7bd4f540
-ispec=1
+ispec = 1
 
 # ╔═╡ d908722f-a92d-49de-a3c2-aae33cc5a2e4
-D=[1,100]
+D = [1, 100]
 
 # ╔═╡ 6f108820-4d06-4fa3-b6ad-8f7454494670
-flux(y,u,edge)= y[ispec]=D[edge.region]*(u[ispec,1]-u[ispec,2])
+flux(y, u, edge) = y[ispec] = D[edge.region] * (u[ispec, 1] - u[ispec, 2])
 
 # ╔═╡ fca05141-71cb-4ecc-83b9-f50836dda100
 md"""
@@ -224,26 +238,26 @@ Here we apply the Robin and Neumann boundary condtions in a `breaction`
 """
 
 # ╔═╡ a8a69c7c-810a-4ea5-9a72-e0a2eea49782
-g=[0,1,0,0]
+g = [0, 1, 0, 0]
 
 # ╔═╡ bdc68399-19eb-48b5-ba69-5745a2541a17
-α=[100,100,0,0]
+α = [100, 100, 0, 0]
 
 # ╔═╡ ba273c41-f622-4f1a-9e1c-48b4143a6d43
-breaction(y,u,bnode)=y[ispec]=α[bnode.region]*u[ispec]-g[bnode.region]
+breaction(y, u, bnode) = y[ispec] = α[bnode.region] * u[ispec] - g[bnode.region]
 
 # ╔═╡ 92dadccc-44e9-49e5-ac94-a224dd8b61aa
 begin
-	heterophysics=VoronoiFVM.Physics(flux=flux,breaction=breaction)	 
-    heterosys=VoronoiFVM.System(heterogrid,heterophysics)
-	enable_species!(heterosys,ispec,[1,2])
+    heterophysics = VoronoiFVM.Physics(flux = flux, breaction = breaction)
+    heterosys = VoronoiFVM.System(heterogrid, heterophysics)
+    enable_species!(heterosys, ispec, [1, 2])
 end
 
 # ╔═╡ 40dc1b8d-9f11-4ae2-b566-793c3fea99fc
-solution=solve(unknowns(heterosys,inival=0),heterosys)
+solution = solve(unknowns(heterosys, inival = 0), heterosys)
 
 # ╔═╡ ead2425e-0109-4798-b79c-cbc8f76c1414
-scalarplot(heterogrid,solution[1,:],resolution=(300,300))
+scalarplot(heterogrid, solution[1, :], resolution = (300, 300))
 
 # ╔═╡ d5946f89-d8d7-4196-90a6-8e34723265c3
 md"""
@@ -274,11 +288,11 @@ The necessary parameters for the problem are defined here, likewise as the respe
 
 # ╔═╡ d7910827-238a-4b71-ad44-7ce43ff1c0db
 begin
-	dA_bulk       = 2.0
-	dB_bulk       = 2.0
-	dbB_interface = 5.0
-	k             = 6.0
-	c             = 1.0
+    dA_bulk = 2.0
+    dB_bulk = 2.0
+    dbB_interface = 5.0
+    k = 6.0
+    c = 1.0
 end
 
 # ╔═╡ 7b51cf5a-fa12-4756-a016-ed00cf90b1ba
@@ -291,36 +305,36 @@ We introduce the height of this thin layer by following variable as a variable f
 
 
 # ╔═╡ 3b429e0c-c07a-40df-ab0b-1f71d515ece3
-n          = 3
+n = 3
 
 # ╔═╡ c770801b-d8f8-4095-98ff-e546f661e141
 thin_layer = 0.1 # just set 0.01, then you see agreement
 
 # ╔═╡ 7d902e19-4ced-4685-ac5b-129ce101c9fe
 begin
-	function fluxA!(f, u, edge)
+    function fluxA!(f, u, edge)
         if edge.region == 3
-            f[1] =  (dA_bulk + dbB_interface) * (u[1,1] - u[1,2])
+            f[1] = (dA_bulk + dbB_interface) * (u[1, 1] - u[1, 2])
         else
-            f[1] = dA_bulk *  (u[1,1] - u[1,2])
+            f[1] = dA_bulk * (u[1, 1] - u[1, 2])
         end
     end
- 
+
     function fluxB!(f, u, edge)
-        f[1] =  dB_bulk *  (u[1,1] - u[1,2])
+        f[1] = dB_bulk * (u[1, 1] - u[1, 2])
     end
-         
-    function reaction!(f, u, node)      
-        f[1] = k *  u[1]
+
+    function reaction!(f, u, node)
+        f[1] = k * u[1]
     end
-         
+
     function source!(f, node)
         f[1] = c
     end
- 
+
     function bfluxB!(f, u, bedge)
         if bedge.region == 3
-            f[1] =  thin_layer *  dbB_interface *  (u[1,1] - u[1,2])
+            f[1] = thin_layer * dbB_interface * (u[1, 1] - u[1, 2])
         end
     end
 
@@ -331,63 +345,117 @@ end
 
 # ╔═╡ fd59fa72-bc40-41ef-bdac-485b171da03e
 begin
-    h_pdopingA         = 1.0
-	h_intrinsic1A      = 1.0/2
-	h_thinlayerA       = thin_layer
-	h_intrinsic2A      = 1.0/2 - thin_layer
-    h_ndopingA         = 1.0
-    h_totalA           = h_pdopingA + h_intrinsic1A + h_thinlayerA + h_intrinsic2A + h_ndopingA
-    lengthA            = 1.0 
+    h_pdopingA = 1.0
+    h_intrinsic1A = 1.0 / 2
+    h_thinlayerA = thin_layer
+    h_intrinsic2A = 1.0 / 2 - thin_layer
+    h_ndopingA = 1.0
+    h_totalA = h_pdopingA + h_intrinsic1A + h_thinlayerA + h_intrinsic2A + h_ndopingA
+    lengthA = 1.0
 
-    regionAcceptorA    = 1
-    regionIntrinsic1A  = 2
-    regionThinLayerA   = 3
-    regionIntrinsic2A  = 4
-    regionDonorA       = 5
-    regionsA           = [regionAcceptorA, regionIntrinsic1A, regionThinLayerA, regionIntrinsic2A, regionDonorA]
+    regionAcceptorA = 1
+    regionIntrinsic1A = 2
+    regionThinLayerA = 3
+    regionIntrinsic2A = 4
+    regionDonorA = 5
+    regionsA = [
+        regionAcceptorA,
+        regionIntrinsic1A,
+        regionThinLayerA,
+        regionIntrinsic2A,
+        regionDonorA,
+    ]
 
     # boundary region numbers
-    bregionAcceptorA   = 1
-    bregionDonorA      = 2
-    
-    coord_pA       = collect(range(0.0,                                    stop = h_pdopingA,                                          length = n))
-    coord_i_1A     = collect(range(h_pdopingA,                             stop = h_pdopingA+h_intrinsic1A,                            length = n))
-    coord_i_thinLA = collect(range(h_pdopingA+h_intrinsic1A,               stop = h_pdopingA+h_intrinsic1A+h_thinlayerA,               length = n))
-    coord_i_2A     = collect(range(h_pdopingA+h_intrinsic1A+h_thinlayerA,  stop = h_pdopingA+h_intrinsic1A+h_thinlayerA+h_intrinsic2A, length = n))
-    coord_nA       = collect(range(h_totalA-h_ndopingA,                    stop = h_totalA,                                            length = n))
+    bregionAcceptorA = 1
+    bregionDonorA = 2
 
-    coordA         = glue(coord_pA, coord_i_1A, tol=1.0e-30)
-    coordA         = glue(coordA,   coord_i_thinLA, tol=1.0e-30)
-    coordA         = glue(coordA,   coord_i_2A, tol=1.0e-30) 
-    coordA         = glue(coordA,   coord_nA, tol=1.0e-30)
-    coord_lengthA  = collect(range(0.0, stop = lengthA, length=3*n))
+    coord_pA = collect(range(0.0, stop = h_pdopingA, length = n))
+    coord_i_1A = collect(range(h_pdopingA, stop = h_pdopingA + h_intrinsic1A, length = n))
+    coord_i_thinLA = collect(
+        range(
+            h_pdopingA + h_intrinsic1A,
+            stop = h_pdopingA + h_intrinsic1A + h_thinlayerA,
+            length = n,
+        ),
+    )
+    coord_i_2A = collect(
+        range(
+            h_pdopingA + h_intrinsic1A + h_thinlayerA,
+            stop = h_pdopingA + h_intrinsic1A + h_thinlayerA + h_intrinsic2A,
+            length = n,
+        ),
+    )
+    coord_nA = collect(range(h_totalA - h_ndopingA, stop = h_totalA, length = n))
 
-    gridA          = simplexgrid(coordA, coord_lengthA)
+    coordA = glue(coord_pA, coord_i_1A, tol = 1.0e-30)
+    coordA = glue(coordA, coord_i_thinLA, tol = 1.0e-30)
+    coordA = glue(coordA, coord_i_2A, tol = 1.0e-30)
+    coordA = glue(coordA, coord_nA, tol = 1.0e-30)
+    coord_lengthA = collect(range(0.0, stop = lengthA, length = 3 * n))
+
+    gridA = simplexgrid(coordA, coord_lengthA)
     numberOfNodesA = size(gridA[Coordinates])[2]
- 
+
     println("number of nodes in grid A are: ", numberOfNodesA)
 
     # specify inner regions
-    cellmask!(gridA,[0.0, 0.0],                                  [h_pdopingA, lengthA],                                         regionAcceptorA,   tol=1.0e-30)
-    cellmask!(gridA,[h_pdopingA, 0.0],                           [h_pdopingA+h_intrinsic1A, lengthA],                           regionIntrinsic1A, tol=1.0e-30)
-    cellmask!(gridA,[h_pdopingA+h_intrinsic1A, 0.0],             [h_pdopingA+h_intrinsic1A+h_thinlayerA, lengthA],              regionThinLayerA,  tol=1.0e-30)
-    cellmask!(gridA,[h_pdopingA+h_intrinsic1A+h_thinlayerA, 0.0],[h_pdopingA+h_intrinsic1A+h_thinlayerA+h_intrinsic2A, lengthA],regionIntrinsic2A, tol=1.0e-30) 
-    cellmask!(gridA,[h_totalA-h_ndopingA, 0.0],                  [h_totalA, lengthA],                                           regionDonorA,      tol=1.0e-30)
- 
+    cellmask!(gridA, [0.0, 0.0], [h_pdopingA, lengthA], regionAcceptorA, tol = 1.0e-30)
+    cellmask!(
+        gridA,
+        [h_pdopingA, 0.0],
+        [h_pdopingA + h_intrinsic1A, lengthA],
+        regionIntrinsic1A,
+        tol = 1.0e-30,
+    )
+    cellmask!(
+        gridA,
+        [h_pdopingA + h_intrinsic1A, 0.0],
+        [h_pdopingA + h_intrinsic1A + h_thinlayerA, lengthA],
+        regionThinLayerA,
+        tol = 1.0e-30,
+    )
+    cellmask!(
+        gridA,
+        [h_pdopingA + h_intrinsic1A + h_thinlayerA, 0.0],
+        [h_pdopingA + h_intrinsic1A + h_thinlayerA + h_intrinsic2A, lengthA],
+        regionIntrinsic2A,
+        tol = 1.0e-30,
+    )
+    cellmask!(
+        gridA,
+        [h_totalA - h_ndopingA, 0.0],
+        [h_totalA, lengthA],
+        regionDonorA,
+        tol = 1.0e-30,
+    )
+
     # specifiy outer regions
     # metal interfaces
-    bfacemask!(gridA, [0.0, lengthA],  [h_pdopingA, lengthA], bregionAcceptorA, tol=1.0e-30) # BregionNumber = 1
-    bfacemask!(gridA, [h_totalA, 0.0], [h_totalA, lengthA],   bregionDonorA,    tol=1.0e-30) # BregionNumber = 2
+    bfacemask!(
+        gridA,
+        [0.0, lengthA],
+        [h_pdopingA, lengthA],
+        bregionAcceptorA,
+        tol = 1.0e-30,
+    ) # BregionNumber = 1
+    bfacemask!(gridA, [h_totalA, 0.0], [h_totalA, lengthA], bregionDonorA, tol = 1.0e-30) # BregionNumber = 2
 
-    bfacemask!(gridA, [h_pdopingA+1.0/2, 0.0], [h_pdopingA+1.0/2, lengthA], 3,  tol=1.0e-30)
+    bfacemask!(
+        gridA,
+        [h_pdopingA + 1.0 / 2, 0.0],
+        [h_pdopingA + 1.0 / 2, lengthA],
+        3,
+        tol = 1.0e-30,
+    )
 
     # no flux interfaces [xmin, ymin], [xmax, ymax]
     # @Jürgen: If not defining this, then one of these boundaries is set to 1??
-    bfacemask!(gridA, [0.0, 0.0],            [0.0, lengthA],      4,  tol=1.0e-30) 
-    bfacemask!(gridA, [h_pdopingA, lengthA], [h_totalA, lengthA], 4,  tol=1.0e-30) 
-    bfacemask!(gridA, [0.0, 0.0],            [h_totalA, 0.0],     4,  tol=1.0e-30) 
+    bfacemask!(gridA, [0.0, 0.0], [0.0, lengthA], 4, tol = 1.0e-30)
+    bfacemask!(gridA, [h_pdopingA, lengthA], [h_totalA, lengthA], 4, tol = 1.0e-30)
+    bfacemask!(gridA, [0.0, 0.0], [h_totalA, 0.0], 4, tol = 1.0e-30)
 
-    gridplot(gridA, Plotter=PyPlot, legend=:rt)
+    gridplot(gridA, Plotter = PyPlot, legend = :rt)
 end
 
 # ╔═╡ 0875ce0d-a22b-4e08-9b58-57673c986a67
@@ -398,57 +466,83 @@ md"""
 
 # ╔═╡ a9d85817-df56-48ea-8aee-f700dc6310c8
 begin
-	h_pdopingB       = 1.0
-    h_intrinsicB     = 1.0
-    h_ndopingB       = 1.0
-    h_totalB         = h_pdopingB + h_intrinsicB + h_ndopingB
-    lengthB          = 1.0
+    h_pdopingB = 1.0
+    h_intrinsicB = 1.0
+    h_ndopingB = 1.0
+    h_totalB = h_pdopingB + h_intrinsicB + h_ndopingB
+    lengthB = 1.0
 
     # region numbers
-    regionAcceptorB  = 1
+    regionAcceptorB = 1
     regionIntrinsicB = 2
-    regionDonorB     = 3
-    regionsB         = [regionAcceptorB, regionIntrinsicB, regionDonorB]
+    regionDonorB = 3
+    regionsB = [regionAcceptorB, regionIntrinsicB, regionDonorB]
 
     # boundary region numbers
     bregionAcceptorB = 1
-    bregionDonorB    = 2
+    bregionDonorB = 2
     binnerInterfaceB = 3
 
-    coord_pB         = collect(range(0.0,                       stop = h_pdopingB,                length = n))
-    coord_i1B        = collect(range(h_pdopingB,                stop = h_pdopingB+h_intrinsicB/2, length = n))
-    coord_i2B        = collect(range(h_pdopingB+h_intrinsicB/2, stop = h_pdopingB+h_intrinsicB,   length = n))
-    coord_nB         = collect(range(h_pdopingB+h_intrinsicB,   stop = h_totalB,                  length = n))
+    coord_pB = collect(range(0.0, stop = h_pdopingB, length = n))
+    coord_i1B = collect(range(h_pdopingB, stop = h_pdopingB + h_intrinsicB / 2, length = n))
+    coord_i2B = collect(
+        range(h_pdopingB + h_intrinsicB / 2, stop = h_pdopingB + h_intrinsicB, length = n),
+    )
+    coord_nB = collect(range(h_pdopingB + h_intrinsicB, stop = h_totalB, length = n))
 
-    coordB           = glue(coord_pB,  coord_i1B)
-    coordB           = glue(coordB, coord_i2B)
-    coordB           = glue(coordB,    coord_nB)
-    coord_lengthB    = collect(range(0.0, stop = lengthB, length=4*n))
+    coordB = glue(coord_pB, coord_i1B)
+    coordB = glue(coordB, coord_i2B)
+    coordB = glue(coordB, coord_nB)
+    coord_lengthB = collect(range(0.0, stop = lengthB, length = 4 * n))
 
-    gridB            = simplexgrid(coordB, coord_lengthB)
-    numberOfNodesB   = size(gridB[Coordinates])[2]
- 
+    gridB = simplexgrid(coordB, coord_lengthB)
+    numberOfNodesB = size(gridB[Coordinates])[2]
+
     println("number of nodes in grid B are: ", numberOfNodesB)
 
     # specify inner regions
-    cellmask!(gridB, [0.0, 0.0],                      [h_pdopingB, lengthB],              regionAcceptorB,  tol=1.0e-18)
-    cellmask!(gridB, [h_pdopingB, 0.0],               [h_pdopingB+h_intrinsicB, lengthB], regionIntrinsicB, tol=1.0e-18) 
-    cellmask!(gridB, [h_pdopingB+h_intrinsicB, 0.0], [h_totalB, lengthB],                regionDonorB,     tol=1.0e-18)
- 
+    cellmask!(gridB, [0.0, 0.0], [h_pdopingB, lengthB], regionAcceptorB, tol = 1.0e-18)
+    cellmask!(
+        gridB,
+        [h_pdopingB, 0.0],
+        [h_pdopingB + h_intrinsicB, lengthB],
+        regionIntrinsicB,
+        tol = 1.0e-18,
+    )
+    cellmask!(
+        gridB,
+        [h_pdopingB + h_intrinsicB, 0.0],
+        [h_totalB, lengthB],
+        regionDonorB,
+        tol = 1.0e-18,
+    )
+
     # specifiy outer regions
     # metal interfaces
-    bfacemask!(gridB, [0.0, lengthB],  [h_pdopingB, lengthB], bregionAcceptorB, tol=1.0e-30) 
-    bfacemask!(gridB, [h_totalB, 0.0], [h_totalB, lengthB],   bregionDonorB,    tol=1.0e-30) 
+    bfacemask!(
+        gridB,
+        [0.0, lengthB],
+        [h_pdopingB, lengthB],
+        bregionAcceptorB,
+        tol = 1.0e-30,
+    )
+    bfacemask!(gridB, [h_totalB, 0.0], [h_totalB, lengthB], bregionDonorB, tol = 1.0e-30)
 
-    bfacemask!(gridB, [h_pdopingB+h_intrinsicB/2, 0.0], [h_pdopingB+h_intrinsicB/2, lengthB], binnerInterfaceB,  tol=1.0e-30)
+    bfacemask!(
+        gridB,
+        [h_pdopingB + h_intrinsicB / 2, 0.0],
+        [h_pdopingB + h_intrinsicB / 2, lengthB],
+        binnerInterfaceB,
+        tol = 1.0e-30,
+    )
 
     # no flux interfaces [xmin, ymin], [xmax, ymax]
     # @Jürgen: If not defining this, then one of these boundaries is set to 1??
-    bfacemask!(gridB, [0.0, 0.0],            [0.0, lengthB],      4,  tol=1.0e-30) 
-    bfacemask!(gridB, [h_pdopingB, lengthB], [h_totalB, lengthB], 4,  tol=1.0e-30) 
-    bfacemask!(gridB, [0.0, 0.0],            [h_totalB, 0.0],     4,  tol=1.0e-30) 
+    bfacemask!(gridB, [0.0, 0.0], [0.0, lengthB], 4, tol = 1.0e-30)
+    bfacemask!(gridB, [h_pdopingB, lengthB], [h_totalB, lengthB], 4, tol = 1.0e-30)
+    bfacemask!(gridB, [0.0, 0.0], [h_totalB, 0.0], 4, tol = 1.0e-30)
 
-    gridplot(gridB, Plotter=PyPlot, legend=:rt)
+    gridplot(gridB, Plotter = PyPlot, legend = :rt)
 end
 
 # ╔═╡ b7a40324-dea5-4fd8-9d7a-1031dceee305
@@ -459,51 +553,97 @@ md"""
 
 # ╔═╡ 905fd6fe-4858-4d85-aeba-7e57439531f5
 begin
-	ispec_flux       = 1
- 
-    sysA = VoronoiFVM.System(gridA, VoronoiFVM.Physics(flux=fluxA!,  reaction=reaction!, source=source!, bflux=bfluxA!))
-    sysB = VoronoiFVM.System(gridB, VoronoiFVM.Physics(flux=fluxB!,  reaction=reaction!, source=source!, bflux=bfluxB!))
- 
+    ispec_flux = 1
+
+    sysA = VoronoiFVM.System(
+        gridA,
+        VoronoiFVM.Physics(
+            flux = fluxA!,
+            reaction = reaction!,
+            source = source!,
+            bflux = bfluxA!,
+        ),
+    )
+    sysB = VoronoiFVM.System(
+        gridB,
+        VoronoiFVM.Physics(
+            flux = fluxB!,
+            reaction = reaction!,
+            source = source!,
+            bflux = bfluxB!,
+        ),
+    )
+
     # enable species in all regions 
     enable_species!(sysA, ispec_flux, regionsA)
     enable_species!(sysB, ispec_flux, regionsB)
- 
+
     # boundary conditions
     boundary_dirichlet!(sysA, ispec_flux, bregionAcceptorA, 1.0)
-    boundary_dirichlet!(sysA, ispec_flux, bregionDonorA,    0.0)
+    boundary_dirichlet!(sysA, ispec_flux, bregionDonorA, 0.0)
     ####
     boundary_dirichlet!(sysB, ispec_flux, bregionAcceptorB, 1.0)
-    boundary_dirichlet!(sysB, ispec_flux, bregionDonorB,    0.0)
- 
-    inivalA  = unknowns(sysA);    inivalA .= 0.0;    solA     = unknowns(sysA)
-    inivalB  = unknowns(sysB);    inivalB .= 0.0;    solB     = unknowns(sysB)
- 
+    boundary_dirichlet!(sysB, ispec_flux, bregionDonorB, 0.0)
+
+    inivalA = unknowns(sysA)
+    inivalA .= 0.0
+    solA = unknowns(sysA)
+    inivalB = unknowns(sysB)
+    inivalB .= 0.0
+    solB = unknowns(sysB)
+
     ## Create solver control info
-    control   = VoronoiFVM.NewtonControl()
-    
+    control = VoronoiFVM.NewtonControl()
+
     ## Stationary solution of both problems
-    solve!(solA, inivalA, sysA, control=control)
-    solve!(solB, inivalB, sysB, control=control)
+    solve!(solA, inivalA, sysA, control = control)
+    solve!(solB, inivalB, sysB, control = control)
 end
 
 # ╔═╡ 80cfa231-23b1-48a3-a5ad-ee0e122da746
 begin
-	p2 = GridVisualizer(;Plotter=PyPlot, dim=2, layout=(1, 1), clear=false, resolution=(800, 500))
+    p2 = GridVisualizer(;
+        Plotter = PyPlot,
+        dim = 2,
+        layout = (1, 1),
+        clear = false,
+        resolution = (800, 500),
+    )
     # this is for variable transformation, since we consider right outer boundary and want to transform to x-axis.
-    function tran32!(a,b)
+    function tran32!(a, b)
         a[1] = b[2]
     end
 
     # note that if adjusting active_boundary to 3 or 4, then transform needs to be deleted.
-    bgridA      = subgrid(gridA, [3], boundary = true, transform = tran32!)
-    bgridB      = subgrid(gridB, [binnerInterfaceB], boundary = true, transform = tran32!)
+    bgridA = subgrid(gridA, [3], boundary = true, transform = tran32!)
+    bgridB = subgrid(gridB, [binnerInterfaceB], boundary = true, transform = tran32!)
 
     sol_boundA = view(solA[ispec, :], bgridA)
     sol_boundB = view(solB[ispec, :], bgridB)
 
 
-    scalarplot!(p2[1,1], bgridA, sol_boundA, show = true, clear=true, flimits=(0.1,0.4), cellwise = true, color=:green, label = "Problem A ")
-    scalarplot!(p2[1,1], bgridB, sol_boundB, show = true, clear=false, cellwise = true, color=:red, label = "Problem B ", legend=:lt)
+    scalarplot!(
+        p2[1, 1],
+        bgridA,
+        sol_boundA,
+        show = true,
+        clear = true,
+        flimits = (0.1, 0.4),
+        cellwise = true,
+        color = :green,
+        label = "Problem A ",
+    )
+    scalarplot!(
+        p2[1, 1],
+        bgridB,
+        sol_boundB,
+        show = true,
+        clear = false,
+        cellwise = true,
+        color = :red,
+        label = "Problem B ",
+        legend = :lt,
+    )
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001

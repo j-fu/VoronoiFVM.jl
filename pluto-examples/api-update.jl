@@ -7,7 +7,14 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local iv = try
+            Base.loaded_modules[Base.PkgId(
+                Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
+                "AbstractPlutoDingetjes",
+            )].Bonds.initial_value
+        catch
+            b -> missing
+        end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
@@ -25,18 +32,18 @@ Here we describe some updates for the API of `VoronoiFVM.jl`. These have been im
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-TableOfContents(;aside=false)
+TableOfContents(; aside = false)
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
-begin 
+begin
     if initialized
         using VoronoiFVM
         using ExtendableGrids
-	using Test
- 	using PlutoUI
-	using GridVisualize
-	using PlutoVista
-	GridVisualize.default_plotter!(PlutoVista)
+        using Test
+        using PlutoUI
+        using GridVisualize
+        using PlutoVista
+        GridVisualize.default_plotter!(PlutoVista)
     end
 end;
 
@@ -53,42 +60,46 @@ The `VoronoiFVM.Physics` struct almost never was used outside of the constructor
 """
 
 # ╔═╡ c59876bd-0cb1-4157-9ba4-bdbede151a44
-grid1=simplexgrid(0:0.1:1);
+grid1 = simplexgrid(0:0.1:1);
 
 # ╔═╡ 90bbf212-c6c8-44f0-8132-4a98f094750e
-function multispecies_flux(y,u,edge)
-    for i=1:edge.nspec
-        y[i]=u[i,1]-u[i,2]
+function multispecies_flux(y, u, edge)
+    for i = 1:edge.nspec
+        y[i] = u[i, 1] - u[i, 2]
     end
 end
 
 # ╔═╡ adff41d1-9398-4a66-9a8e-e03809973fa6
-function test_reaction(y,u,node)
-	y[1]=u[1]
-	y[2]=-u[1]
+function test_reaction(y, u, node)
+    y[1] = u[1]
+    y[2] = -u[1]
 end
 
 # ╔═╡ 5e6d83ab-65c7-4f33-b0a8-29cd5717b4d6
 begin
-   system1=VoronoiFVM.System(grid1,flux=multispecies_flux, 
-   reaction=test_reaction,species=[1,2])
-   boundary_dirichlet!(system1,species=1,region=1,value=1)
-   boundary_dirichlet!(system1,species=2,region=2,value=0)
+    system1 = VoronoiFVM.System(
+        grid1,
+        flux = multispecies_flux,
+        reaction = test_reaction,
+        species = [1, 2],
+    )
+    boundary_dirichlet!(system1, species = 1, region = 1, value = 1)
+    boundary_dirichlet!(system1, species = 2, region = 2, value = 0)
 end;
 
 # ╔═╡ f11c03a3-7899-42fd-a2da-a257715815dc
-sol1=solve(system1);
+sol1 = solve(system1);
 
 # ╔═╡ 2754d4c8-bbc1-4283-8156-c660c33cd62d
 let
-    vis=GridVisualizer(resolution=(500,300),legend=:rt)
-    scalarplot!(vis,grid1,sol1[1,:],color=:red,label="species1")
-    scalarplot!(vis,grid1,sol1[2,:],color=:green,label="species2",clear=false)
+    vis = GridVisualizer(resolution = (500, 300), legend = :rt)
+    scalarplot!(vis, grid1, sol1[1, :], color = :red, label = "species1")
+    scalarplot!(vis, grid1, sol1[2, :], color = :green, label = "species2", clear = false)
     reveal(vis)
 end
 
 # ╔═╡ fbd75cf1-64e4-4f07-b54f-f90626f3f6ba
-@test isapprox(sum(sol1),11.323894375033476, rtol=1.0e-14) 
+@test isapprox(sum(sol1), 11.323894375033476, rtol = 1.0e-14)
 
 # ╔═╡ b5f7e133-500d-4a27-8f78-11ff3582599c
 md"""
@@ -99,20 +110,26 @@ space and time dependent boundary conditions. One can specify them either in `br
 """
 
 # ╔═╡ ec188c81-3374-4eed-9b7e-e22350886df2
-function bcond2(y,u,bnode)
-    boundary_neumann!(y,u,bnode,species=1,region=1,value=sin(bnode.time))
-    boundary_dirichlet!(y,u,bnode,species=2,region=2,value=0)
-end; 
+function bcond2(y, u, bnode)
+    boundary_neumann!(y, u, bnode, species = 1, region = 1, value = sin(bnode.time))
+    boundary_dirichlet!(y, u, bnode, species = 2, region = 2, value = 0)
+end;
 
 # ╔═╡ c86e8a0f-299f-42ab-96f8-0cd62d50f196
-system2=VoronoiFVM.System(grid1,flux=multispecies_flux, 
-   reaction=test_reaction,species=[1,2],bcondition=bcond2,check_allocs=false);
+system2 = VoronoiFVM.System(
+    grid1,
+    flux = multispecies_flux,
+    reaction = test_reaction,
+    species = [1, 2],
+    bcondition = bcond2,
+    check_allocs = false,
+);
 
 # ╔═╡ b3d936fe-69ab-4013-b787-2f0b5410638a
-sol2=solve(system2, times=(0,10), Δt_max=0.01)
+sol2 = solve(system2, times = (0, 10), Δt_max = 0.01)
 
 # ╔═╡ 17749697-d5d8-4629-a625-e96590a5f0ac
-vis2=GridVisualizer(resolution=(500,300),limits=(-2,2),legend=:rt)
+vis2 = GridVisualizer(resolution = (500, 300), limits = (-2, 2), legend = :rt)
 
 # ╔═╡ 0c916da5-2d6e-42df-ac4b-4a062f931ccd
 md"""
@@ -121,14 +138,22 @@ time: $(@bind t2 Slider(0:0.01:10; default=5,show_value=true))
 
 # ╔═╡ 783618f8-2470-4c7c-afc1-9800586625c1
 let
-s=sol2(t2)
-scalarplot!(vis2,grid1,s[1,:],color=:red,label="species1")
-scalarplot!(vis2,grid1,s[2,:],color=:green,label="species2",clear=false,title="time=$(t2)")
-reveal(vis2)
+    s = sol2(t2)
+    scalarplot!(vis2, grid1, s[1, :], color = :red, label = "species1")
+    scalarplot!(
+        vis2,
+        grid1,
+        s[2, :],
+        color = :green,
+        label = "species2",
+        clear = false,
+        title = "time=$(t2)",
+    )
+    reveal(vis2)
 end
 
 # ╔═╡ 4cbea340-9c02-4e69-8f5e-62bf45312bdd
-@test isapprox(sum(sol2)/length(sol2),2.4908109508494247, rtol=1.0e-14) 
+@test isapprox(sum(sol2) / length(sol2), 2.4908109508494247, rtol = 1.0e-14)
 
 # ╔═╡ 1c18b5a0-cca6-46a1-bb9f-b3d65b8043c5
 md"""
@@ -142,20 +167,26 @@ This example also demonstrates position dependent boundary values.
 """
 
 # ╔═╡ a71086fa-4ec6-4842-a4e1-6a6b60441fc2
-function bcond3(y,u,bnode)
-	boundary_dirichlet!(y,u,bnode,region=4,value=bnode[2])
-	boundary_dirichlet!(y,u,bnode,region=2,value=-bnode[2])
+function bcond3(y, u, bnode)
+    boundary_dirichlet!(y, u, bnode, region = 4, value = bnode[2])
+    boundary_dirichlet!(y, u, bnode, region = 2, value = -bnode[2])
 end;
 
 # ╔═╡ a514231a-e465-4f05-ba4c-b20aa968d96f
-system3=VoronoiFVM.System(-1:0.1:1, -1:0.1:1, flux=multispecies_flux,bcondition=bcond3,species=1);
+system3 = VoronoiFVM.System(
+    -1:0.1:1,
+    -1:0.1:1,
+    flux = multispecies_flux,
+    bcondition = bcond3,
+    species = 1,
+);
 
 # ╔═╡ d55f615c-d586-4ef7-adf9-5faf052b75ac
-sol3=solve(system3);
+sol3 = solve(system3);
 
 
 # ╔═╡ c17e5104-4d3a-4d54-81c1-d7253245a8bb
-@test isapprox(sum(sol3), 0.0, atol=1.0e-14)
+@test isapprox(sum(sol3), 0.0, atol = 1.0e-14)
 
 # ╔═╡ 087ea16d-742e-4398-acf5-37248af1b5b4
 md"""
@@ -164,7 +195,7 @@ Instead of a grid, a system can be passed to `gridplot` and `scalarplot`.
 """
 
 # ╔═╡ 34d465a5-7cc5-4348-b9ba-6d9381bb3a87
-scalarplot(system3,sol3,resolution=(300,300),levels=10,colormap=:hot)
+scalarplot(system3, sol3, resolution = (300, 300), levels = 10, colormap = :hot)
 
 # ╔═╡ ac48f5bd-fd1e-4aa7-a2c9-90f0f427143c
 md"""
@@ -179,23 +210,35 @@ Another new keyword argument is `inival` which allows to pass an initial value w
 """
 
 # ╔═╡ 1e12afcf-cf46-4672-9434-44fa8af95ef7
-reaction4(y,u,bnode)= y[1]=-bnode[1]^2+u[1]^4;
+reaction4(y, u, bnode) = y[1] = -bnode[1]^2 + u[1]^4;
 
 # ╔═╡ 938ef63c-58c4-41a0-b3dd-4eb76987a4d7
-bc4(args...)=boundary_dirichlet!(args...,value=0);
+bc4(args...) = boundary_dirichlet!(args..., value = 0);
 
 # ╔═╡ fe424654-f070-46a9-850a-738b1d4aca8f
-system4=VoronoiFVM.System(-10:0.1:10,species=[1],
-	reaction=reaction4,flux=multispecies_flux,bcondition=bc4);
+system4 = VoronoiFVM.System(
+    -10:0.1:10,
+    species = [1],
+    reaction = reaction4,
+    flux = multispecies_flux,
+    bcondition = bc4,
+);
 
 # ╔═╡ 37fc8816-5ccd-436e-8335-ebb1218d8a35
-sol4=solve(system4,log=true,damp_initial=0.001,damp_growth=3);
+sol4 = solve(system4, log = true, damp_initial = 0.001, damp_growth = 3);
 
 # ╔═╡ 6a256a29-f15f-4d82-8e84-7ceacb786715
-scalarplot(system4,sol4,resolution=(500,300),xlabel="x",ylabel="u",title="solution")
+scalarplot(
+    system4,
+    sol4,
+    resolution = (500, 300),
+    xlabel = "x",
+    ylabel = "u",
+    title = "solution",
+)
 
 # ╔═╡ 5c2a3836-dc81-4950-88e5-7f603514b1c0
-@test isapprox(sum(sol4),418.58515700568535, rtol=1.0e-14)
+@test isapprox(sum(sol4), 418.58515700568535, rtol = 1.0e-14)
 
 # ╔═╡ fc0245fe-1bf2-45a3-aa7c-9cce8d7eef37
 html"""<hr><hr><hr>"""
@@ -214,25 +257,25 @@ Furthermore, the cell activates a development environment if the notebook is loa
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
     import Pkg as _Pkg
-    developing=false
-    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	_Pkg.activate(@__DIR__)
+    developing = false
+    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl"))
+        _Pkg.activate(@__DIR__)
         _Pkg.instantiate()
-	using Revise
-	developing=true
-        ENV["VORONOIFVM_CHECK_ALLOCS"]=false
+        using Revise
+        developing = true
+        ENV["VORONOIFVM_CHECK_ALLOCS"] = false
 
     end
-    initialized=true
+    initialized = true
 end;
 
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
 if developing
-    msg="Developing VoronoiFVM at  $(pathof(VoronoiFVM))"
+    msg = "Developing VoronoiFVM at  $(pathof(VoronoiFVM))"
     println(msg)
     md""" $(msg)"""
 else
-    msg="Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"
+    msg = "Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"
     println(msg)
     md""" $(msg)"""
 end

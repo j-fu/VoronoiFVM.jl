@@ -29,7 +29,7 @@ function main(; n = 11, nspec = 50, Plotter = nothing, unknown_storage = :dense)
         boundary_dirichlet!(sys, ispec, 1, 0)
         boundary_dirichlet!(sys, ispec, 2, 1)
     end
-    sol = solve(unknowns(sys; inival = 0), sys)
+    sol = solve(sys)
     norm(sol)
 end
 

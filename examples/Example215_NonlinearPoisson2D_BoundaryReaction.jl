@@ -39,7 +39,6 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     enable_species!(sys, 2, [1])
 
     inival = unknowns(sys)
-    U = unknowns(sys)
     inival[1, :] .= map((x, y) -> exp(-5.0 * ((x - 0.5)^2 + (y - 0.5)^2)), grid)
     inival[2, :] .= 0
 
@@ -47,7 +46,6 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     control.verbose = verbose
     control.reltol_linear = 1.0e-5
     control.max_lureuse = max_lureuse
-
 
     tstep = 0.01
     time = 0.0
@@ -57,7 +55,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1))
     while time < tend
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
+        U = solve(sys; inival, control, tstep)
         inival .= U
         if verbose
             @printf("time=%g\n", time)

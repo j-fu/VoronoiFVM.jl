@@ -66,7 +66,7 @@ function main(; n = 10, Plotter = nothing, D = 0.01, v = 1.0, tend = 100)
     control.Δt = 0.01 * h
     control.Δt_min = 0.01 * h
     control.Δt_max = 0.1 * tend
-    tsol = solve(inival, sys, [0, tend]; control = control)
+    tsol = solve(sys; inival, times = [0, tend], control)
 
     vis = GridVisualizer(; Plotter = Plotter)
     for i = 1:length(tsol.t)

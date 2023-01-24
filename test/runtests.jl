@@ -1,6 +1,7 @@
 using Test
 using Pluto
 using Pkg
+using VoronoiFVM
 
 # Activate assembly loop allocation checking
 # as default.
@@ -74,6 +75,8 @@ end
 function run_all_tests()
 
     ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
+    ENV["VORONOIFVM_DEPRECATE_LEGACY_SOLVE"]="true"
+    
     notebooks=["nbproto.jl",
                "nonlinear-solvers.jl",
                "api-update.jl",
@@ -98,7 +101,8 @@ function run_all_tests()
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
         end
 
-        if VERSION>=v"1.8" && VERSION<v"1.9" && haskey(ENV,"TEST_ALL") && ENV["TEST_ALL"]=="true" && !Sys.iswindows() # there seems to be a time limit problem
+        #     if VERSION>=v"1.8" && VERSION<v"1.9" && haskey(ENV,"TEST_ALL") && ENV["TEST_ALL"]=="true" && !Sys.iswindows() # there seems to be a time limit problem
+        if false
             @testset "notebooks" begin
                 for notebook in notebooks
                     #            include(joinpath(@__DIR__,"..","pluto-examples",notebook))

@@ -41,7 +41,6 @@ function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :
     tf1 = testfunction(factory, [2], [1])
     tf2 = testfunction(factory, [1], [2])
 
-    U = unknowns(sys)
     inival = unknowns(sys)
     inival[2, :] .= 0.1
     inival[1, :] .= 0.1
@@ -53,7 +52,7 @@ function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1))
     for xeps in [1.0, 0.1, 0.01]
         eps = [xeps, xeps]
-        solve!(U, inival, sys; control = control)
+        U = solve(sys; inival, control)
         I1 = integrate(sys, tf1, U)
         coord = coordinates(grid)
         inival .= U

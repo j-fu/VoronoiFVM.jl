@@ -1,12 +1,13 @@
 module test_legacy
 # Tests for keeping legacy API for versions <0.15
 
-
 using VoronoiFVM
 using Test
 using Printf
 using ExtendableGrids
 using GridVisualize
+
+VoronoiFVM.deprecate_legacy_solve!(true)
 
 function main101()
 

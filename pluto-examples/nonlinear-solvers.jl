@@ -7,14 +7,14 @@ using InteractiveUtils
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
     import Pkg as _Pkg
-    developing=false
-    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	_Pkg.activate(@__DIR__)
+    developing = false
+    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl"))
+        _Pkg.activate(@__DIR__)
         _Pkg.instantiate()
-	using Revise
-	developing=true
+        using Revise
+        developing = true
     end
-    initialized=true
+    initialized = true
 end;
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
@@ -23,11 +23,11 @@ begin
         using VoronoiFVM
         using ExtendableGrids
         using Test
- 	using PlutoUI
-	using LinearAlgebra
-	using GridVisualize
-	using PlutoVista
-	GridVisualize.default_plotter!(PlutoVista)
+        using PlutoUI
+        using LinearAlgebra
+        using GridVisualize
+        using PlutoVista
+        GridVisualize.default_plotter!(PlutoVista)
     end
 end;
 
@@ -42,7 +42,7 @@ Generally, nonlinear systems in this package  are solved using Newton's method. 
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-TableOfContents(;aside=false)
+TableOfContents(; aside = false)
 
 # ╔═╡ 9843b65c-6ca8-4ef8-a896-2c8cec4bff7c
 md"""
@@ -57,30 +57,27 @@ Define a nonlinear Poisson equation to have an example. Let ``Ω=(0,10)`` and de
 """
 
 # ╔═╡ a70b8d85-66aa-4da8-8157-dd0244e3e4f6
-X=0:0.001:1
+X = 0:0.001:1
 
 # ╔═╡ c8eda836-d719-4412-895e-c3a24fec21ec
-flux(y,u,edge)=y[1]=u[1,1]-u[1,2];
+flux(y, u, edge) = y[1] = u[1, 1] - u[1, 2];
 
 # ╔═╡ c09f5dfc-fc47-4952-8051-54731ec2b00b
-function reaction(y,u,node)
-	eplus=exp(u[1])
-	eminus=1/eplus
-	y[1]=eplus-eminus
+function reaction(y, u, node)
+    eplus = exp(u[1])
+    eminus = 1 / eplus
+    y[1] = eplus - eminus
 end
 
 # ╔═╡ eab04557-5084-4174-b275-b4d4399238e5
-function bc(y,u,node)
-	boundary_dirichlet!(y,u,node; region=1,value=100)
-	boundary_dirichlet!(y,u,node; region=2,value=0.0)
+function bc(y, u, node)
+    boundary_dirichlet!(y, u, node; region = 1, value = 100)
+    boundary_dirichlet!(y, u, node; region = 2, value = 0.0)
 end;
 
 # ╔═╡ 316112fd-6553-494a-8e4a-65b34829891d
-system=VoronoiFVM.System(X;
-						flux=flux,
-						reaction=reaction,
-						bcondition=bc,
-						species=1);
+system =
+    VoronoiFVM.System(X; flux = flux, reaction = reaction, bcondition = bc, species = 1);
 
 # ╔═╡ 42e54ff9-fc11-4a31-ba10-32f8d817d50c
 md"""
@@ -89,13 +86,19 @@ md"""
 
 # ╔═╡ 050ed807-1bca-4015-85f3-d7347ecb7e6b
 begin
-	sol=solve(system; log=true)
-	hist=history(system)
+    sol = solve(system; log = true)
+    hist = history(system)
 end;
 
 # ╔═╡ b9bb8020-5470-4964-818c-7f9b3bf2a8b4
-scalarplot(system,sol,resolution=(500,200),
-        xlabel="x",ylable="y", title="solution")
+scalarplot(
+    system,
+    sol,
+    resolution = (500, 200),
+    xlabel = "x",
+    ylable = "y",
+    title = "solution",
+)
 
 # ╔═╡ b3124c06-1f40-46f5-abee-9c2e8e538162
 md"""
@@ -109,11 +112,15 @@ The history can be plotted:
 """
 
 # ╔═╡ 20e925f3-43fa-4db1-a656-79cf9c1c3303
-plothistory(h)=scalarplot(1:length(h),h,resolution=(500,200),
-             yscale=:log,
-	        xlabel="step",
-            ylabel="||δu||_∞",
-            title= "Maximum norm of Newton update");
+plothistory(h) = scalarplot(
+    1:length(h),
+    h,
+    resolution = (500, 200),
+    yscale = :log,
+    xlabel = "step",
+    ylabel = "||δu||_∞",
+    title = "Maximum norm of Newton update",
+);
 
 # ╔═╡ ebdc2c82-f72e-4e35-a63f-4ba5154e294f
 plothistory(hist)
@@ -140,7 +147,7 @@ With default solver settings, for this particular problem, Newton's method needs
 """
 
 # ╔═╡ ccef0590-d5f8-4ee2-bb7a-d48ccfbd4d99
-check(sol)= isapprox(sum(sol),2554.7106586964906,rtol=1.0e-12)
+check(sol) = isapprox(sum(sol), 2554.7106586964906, rtol = 1.0e-12)
 
 # ╔═╡ c0432a54-85ec-4478-bd75-f5b43770a117
 @test check(sol)
@@ -157,8 +164,8 @@ Try to use a damped version of Newton method. The damping scheme is rather simpl
 
 # ╔═╡ d961d026-0b55-46c2-8555-8ef0763d8016
 begin
-  sol1=solve(system,log=true,inival=1,damp=0.15,damp_grow=1.5) 
-  hist1=history(system)
+    sol1 = solve(system, log = true, inival = 1, damp = 0.15, damp_grow = 1.5)
+    hist1 = history(system)
 end
 
 # ╔═╡ e66d20f0-4987-471b-82ee-0c56160f9b01
@@ -199,31 +206,37 @@ If the solution is unsuccessful, the parameter stepsize is halved and solution i
 """
 
 # ╔═╡ a71cbcd4-310e-47a8-94f9-1159995a7711
-function pbc(y,u,node)
-	boundary_dirichlet!(y,u,node; region=1,value=100*embedparam(node))
-	boundary_dirichlet!(y,u,node; region=2,value=0)
+function pbc(y, u, node)
+    boundary_dirichlet!(y, u, node; region = 1, value = 100 * embedparam(node))
+    boundary_dirichlet!(y, u, node; region = 2, value = 0)
 end;
 
 # ╔═╡ 89435c65-0520-4430-8727-9d013df6182d
-system2=VoronoiFVM.System(X;
-							flux=flux,
-							reaction= function(y,u,node) 
-								         reaction(y,u,node)
+system2 = VoronoiFVM.System(
+    X;
+    flux = flux,
+    reaction = function (y, u, node)
+        reaction(y, u, node)
 
-								y[1]=y[1]*embedparam(node)
-							          end,
-							bcondition=pbc,
-							species=1);
+        y[1] = y[1] * embedparam(node)
+    end,
+    bcondition = pbc,
+    species = 1,
+);
 
 # ╔═╡ cb382145-c4f1-4222-aed7-32fa1e3bd7e4
-begin sol2=solve(system2, inival=0,
-					log=true,
-					embed=(0,1),
-					Δp=0.1,
-	                max_lureuse=0,
-					Δp_grow=1.2,
-					Δu_opt=15)
-	history2=history(system2)
+begin
+    sol2 = solve(
+        system2,
+        inival = 0,
+        log = true,
+        embed = (0, 1),
+        Δp = 0.1,
+        max_lureuse = 0,
+        Δp_grow = 1.2,
+        Δu_opt = 15,
+    )
+    history2 = history(system2)
 end
 
 # ╔═╡ a0b2aaf5-f7b1-40eb-ac4e-9790a8bbf09d
@@ -272,10 +285,10 @@ Furthermore, the cell activates a development environment if the notebook is loa
 """
 
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
-if developing 
-	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
+if developing
+    md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
 else
-	md""" Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"""
+    md""" Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"""
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001

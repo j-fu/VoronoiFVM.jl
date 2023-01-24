@@ -71,7 +71,7 @@ function sedanflux!(f, u, edge, data)
 end
 
 function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
-              unknown_storage = :sparse, DiffEq = nothing)
+              unknown_storage = :sparse)
     h = 1.0 / convert(Float64, n)
     grid = VoronoiFVM.Grid(collect(0:h:1))
 
@@ -112,13 +112,8 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
         control.Δt_max = 0.1
         control.Δu_opt = 100
         control.damp_initial = 0.5
-        if isnothing(DiffEq)
-            tsol = solve(inival, sys, [0.0, 10]; control = control)
-        else # does not work yet...
-            tsol = solve(DiffEq, inival, sys, [0.0, 10];
-                         initializealg = DiffEq.NoInit(),
-                         dt = tstep)
-        end
+
+        tsol = solve(sys; inival, times = [0.0, 10], control = control)
         vis = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
         for log10t = -4:0.01:0
             time = 10^(log10t)
@@ -154,12 +149,10 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
             phi = 0.0
             while phi < phimax
                 sys.boundary_values[iphi, 1] = dir * phi
-                solve!(U, inival, sys; control = control)
-                inival .= U
+                U = solve(sys; inival = U, control)
                 Q = integrate(sys, physics.reaction, U)
                 sys.boundary_values[iphi, 1] = dir * phi + delta
-                solve!(U, inival, sys; control = control)
-                inival .= U
+                U = solve(sys; inival = U, control)
 
                 scalarplot!(vis[1, 1], grid, U[iphi, :]; label = "ϕ",
                             title = @sprintf("Δϕ=%.3g", phi), flimits = (-5, 5),

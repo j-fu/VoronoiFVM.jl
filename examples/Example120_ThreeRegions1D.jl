@@ -100,9 +100,8 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
 
-    inival = unknowns(sys)
     U = unknowns(sys)
-    inival .= 0
+    U .= 0
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
@@ -114,8 +113,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     p = GridVisualizer(; Plotter = Plotter, layout = (1, 1))
     while time < tend
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
-        inival .= U
+        U = solve(sys; inival = U, control, tstep)
         if verbose
             @printf("time=%g\n", time)
         end

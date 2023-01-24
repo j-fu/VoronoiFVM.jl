@@ -97,7 +97,7 @@ function calculate(grid, data, flux, verbose)
     control.verbose = verbose
 
     ## Stationary solution of the problem
-    solve!(solution, inival, sys; control = control)
+    solution = solve(sys; inival, verbose)
     return solution
 end
 

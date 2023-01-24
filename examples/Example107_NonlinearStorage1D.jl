@@ -79,7 +79,7 @@ function main(; n = 20, m = 2.0, Plotter = nothing, verbose = false,
     control.verbose = verbose
     control.Δu_opt = 0.1
     control.force_first_step = true
-    tsol = solve(inival, sys, [t0, tend]; control = control)
+    tsol = solve(sys; inival, times = [t0, tend], control)
 
     p = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
     for i = 1:length(tsol)

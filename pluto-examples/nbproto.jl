@@ -5,17 +5,17 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
-begin 
-	if initialized
-    using VoronoiFVM
-    using ExtendableGrids
-    using Test
- 	using PlutoUI
-	using GridVisualize
-	using PlutoVista
-	GridVisualize.default_plotter!(PlutoVista)
-	using Pkg
-	end
+begin
+    if initialized
+        using VoronoiFVM
+        using ExtendableGrids
+        using Test
+        using PlutoUI
+        using GridVisualize
+        using PlutoVista
+        GridVisualize.default_plotter!(PlutoVista)
+        using Pkg
+    end
 end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
@@ -24,10 +24,10 @@ md"""
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-TableOfContents(;aside=false)
+TableOfContents(; aside = false)
 
 # ╔═╡ c8eda836-d719-4412-895e-c3a24fec21ec
-scalarplot(sin.(0:0.1:10),size=(500,200))
+scalarplot(sin.(0:0.1:10), size = (500, 200))
 
 # ╔═╡ 3eef08af-f6ba-4874-82c0-65ff53e7f7da
 @test true
@@ -52,21 +52,21 @@ Furthermore, the cell activates a development environment if the notebook is loa
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
     import Pkg as _Pkg
-    developing=false
-    if  isfile(joinpath(@__DIR__,"..","src","VoronoiFVM.jl"))
-	_Pkg.activate(@__DIR__)
-    _Pkg.instantiate()
-	using Revise
-	developing=true
+    developing = false
+    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl"))
+        _Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
+        using Revise
+        developing = true
     end
-    initialized=true
+    initialized = true
 end;
 
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
-if developing 
-	md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
+if developing
+    md""" Developing VoronoiFVM at  $(pathof(VoronoiFVM))"""
 else
-	md""" Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"""
+    md""" Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"""
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001

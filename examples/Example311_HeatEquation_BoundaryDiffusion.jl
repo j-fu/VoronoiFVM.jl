@@ -80,9 +80,8 @@ function main(n = 1)
 
     bgrid2 = subgrid(grid, [breg]; boundary = true, transform = tran32!)
 
-    inival = unknowns(sys)
     U = unknowns(sys)
-    inival .= 0.5
+    U .= 0.5
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = false
@@ -95,12 +94,8 @@ function main(n = 1)
     T = 1.0
     while time < T
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
-        inival .= U
-        U_surf = view(U[2, :], bgrid2)
-
+        U = solve(sys; inival = U, control, tstep)
         tstep *= 1.0
-
         step += 1
     end
 

@@ -107,7 +107,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
     boundary_dirichlet!(system, cspec, 2, 1.0)
     subgrids = VoronoiFVM.subgrids(dspec, system)
 
-    U = solve(unknowns(system; inival = 0), system)
+    U = solve(system)
 
     dvws = views(U, dspec, subgrids, system)
     cvws = views(U, cspec, subgrids, system)

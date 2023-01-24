@@ -78,9 +78,9 @@ function testfunction(factory::TestFunctionFactory, bc0, bc1)
     if isnothing(method_linear)
         method_linear = UMFPACKFactorization()
     end
-    
-    p=LinearProblem(factory.tfsystem.matrix,vec(f))
-    sol=solve(p,method_linear)
+
+    p = LinearProblem(factory.tfsystem.matrix, vec(f))
+    sol = solve(p, method_linear)
     sol.u
 end
 

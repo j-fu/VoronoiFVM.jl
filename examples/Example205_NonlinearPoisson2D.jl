@@ -12,7 +12,7 @@ using LinearSolve
 using ILUZero
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
-              max_lureuse = 0, method_linear=nothing, precon_linear=nothing)
+              max_lureuse = 0, method_linear = nothing, precon_linear = nothing)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
@@ -39,7 +39,6 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     boundary_dirichlet!(sys, 1, 4, 0.1)
 
     inival = unknowns(sys)
-    U = unknowns(sys)
     inival .= 0.5
 
     control = VoronoiFVM.NewtonControl()
@@ -54,7 +53,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     p = GridVisualizer(; Plotter = Plotter)
     while time < 1.0
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
+        U = solve(sys; inival, control, tstep)
         u15 = U[15]
         inival .= U
 
@@ -76,8 +75,8 @@ function test()
         main(; unknown_storage = :sparse, max_lureuse = 10) ≈ testval &&
         main(; unknown_storage = :dense, max_lureuse = 10) ≈ testval &&
         main(; unknown_storage = :sparse, max_lureuse = 0,
-             method_linear=KrylovJL_CG(), precon_linear=ILUZero.ilu0) ≈ testval &&
+             method_linear = KrylovJL_CG(), precon_linear = ILUZero.ilu0) ≈ testval &&
         main(; unknown_storage = :dense, max_lureuse = 0,
-             method_linear=KrylovJL_CG(), precon_linear=ILUZero.ilu0) ≈ testval
+             method_linear = KrylovJL_CG(), precon_linear = ILUZero.ilu0) ≈ testval
 end
 end

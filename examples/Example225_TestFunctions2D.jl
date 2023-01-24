@@ -157,9 +157,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     enable_species!(system, 2, [1])
     boundary_dirichlet!(system, 2, 2, 0.0)
 
-    inival = unknowns(system; inival = 0.0)
-
-    sol = solve(inival, system)
+    sol = solve(system; inival = 0.0)
 
     vis = GridVisualizer(; Plotter = Plotter, layout = (1, 2), resolution = (600, 300),
                          fignumber = 1)
@@ -197,7 +195,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 
     control = fixed_timesteps!(VoronoiFVM.NewtonControl(), dt)
 
-    tsol = solve(inival, system, [t0, tend]; control = control)
+    tsol = solve(system; inival = 0.0, times = [t0, tend], control)
 
     vis1 = GridVisualizer(; Plotter = Plotter, layout = (1, 2), resolution = (600, 300),
                           fignumber = 4)

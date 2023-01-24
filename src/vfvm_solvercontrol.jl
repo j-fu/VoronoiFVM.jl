@@ -1,6 +1,5 @@
 ################################################
 
-
 """
 $(TYPEDEF)
 
@@ -18,13 +17,13 @@ $(TYPEDFIELDS)
     Tolerance (in terms of norm of Newton update):  
     terminate if ``\\Delta u_i=||u_{i+1}-u_i||_\\infty <`` `tol_absolute`.
     """
-    tol_absolute::Float64 = 1.0e-10
+    abstol::Float64 = 1.0e-10
 
     """
     Tolerance (relative to the size of the first update):
     terminate if ``\\Delta u_i/\\Delta u_1<`` `tol_relative`.
     """
-    tol_relative::Float64 = 1.0e-10
+    reltol::Float64 = 1.0e-10
 
     """
     Tolerance for roundoff error detection:
@@ -53,7 +52,7 @@ $(TYPEDFIELDS)
     """
     Maximum number of iterations.
     """
-    max_iterations::Int = 100
+    maxiters::Int = 100
 
     """
     Maximum number of reuses of lu factorization.
@@ -73,7 +72,7 @@ $(TYPEDFIELDS)
     """
     Solver kind for linear systems (see LinearSolve.jl).
     """
-    method_linear::Union{Nothing,LinearSolve.SciMLLinearSolveAlgorithm} = nothing
+    method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
     """
     Relative tolerance of iterative linear solver.
@@ -93,7 +92,7 @@ $(TYPEDFIELDS)
     """
     Preconditioner for linear systems
     """
-    precon_linear::Union{Nothing,Symbol,Function} = nothing
+    precon_linear::Union{Nothing, Symbol, Function} = nothing
 
     """
     Verbosity flag.
@@ -175,9 +174,35 @@ $(TYPEDFIELDS)
     in_memory::Bool = true
 
     """
-    Record history
+            Record history
     """
     log = false
+
+    tol_absolute::Union{Float64, Nothing} = nothing
+    tol_relative::Union{Float64, Nothing} = nothing
+    damp::Union{Float64, Nothing} = nothing
+    damp_grow::Union{Float64, Nothing} = nothing
+    max_iterations::Union{Float64, Nothing} = nothing
+    tol_linear::Union{Float64, Nothing} = nothing
+end
+
+const key_replacements = Dict(:tol_absolute => :abstol,
+                              :tol_relative => :reltol,
+                              :damp => :damp_initial,
+                              :damp_grow => :damp_growth,
+                              :max_iterations => :maxiters,
+                              :tol_linear => :reltol_linear)
+
+function fix_deprecations!(control)
+    # compatibility to names in SolverControl which cannot be deprecated.
+    for key ∈ keys(key_replacements)
+        value = getproperty(control, key)
+        if !isnothing(value)
+            @warn "deprecated SolverControl entry $(key). Please replace by $(key_replacements[key])."
+            setproperty!(control, key_replacements[key], value)
+            setproperty!(control, key, nothing)
+        end
+    end
 end
 
 """

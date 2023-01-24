@@ -31,9 +31,7 @@ function main(; Plotter = nothing, n = 5)
     enable_species!(sys, ispec, [1])
     boundary_dirichlet!(sys, ispec, 5, 0.0)
     boundary_dirichlet!(sys, ispec, 6, 0.0)
-    inival = unknowns(sys; inival = 0)
-    solution = unknowns(sys)
-    solve!(solution, inival, sys)
+    solution = solve(sys)
     scalarplot(grid, solution[1, :]; Plotter = Plotter)
     return solution[43]
 end

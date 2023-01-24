@@ -154,9 +154,8 @@ function main(; n = 10,
     boundary_dirichlet!(sys, iB, 2, 0.0)
 
     ## Initial values
-    inival = unknowns(sys)
-    inival .= 0.0
     U = unknowns(sys)
+    U .= 0.0
     idx = unknown_indices(U)
 
     tstep = 0.01
@@ -169,8 +168,7 @@ function main(; n = 10,
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1))
     while time < tend
         time = time + tstep
-        solve!(U, inival, sys; tstep = tstep, control = control)
-        inival .= U
+        U = solve(sys; inival = U, time, tstep, control)
         if verbose
             @printf("time=%g\n", time)
         end
