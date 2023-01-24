@@ -70,13 +70,20 @@ $(TYPEDFIELDS)
     max_round::Int = 1000
 
     """
+    Verbosity flag for nonliner and time iterations.
+    """
+    verbose::Bool = false
+
+    
+    """
     Solver kind for linear systems (see LinearSolve.jl).
     """
     method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
+
     """
-    Relative tolerance of iterative linear solver.
-    """
+        Relative tolerance of iterative linear solver.
+        """
     reltol_linear::Float64 = 1.0e-4
 
     """
@@ -95,9 +102,14 @@ $(TYPEDFIELDS)
     precon_linear::Union{Nothing, Symbol, Function} = nothing
 
     """
-    Verbosity flag.
+    Update preconditioner in each Newton step ?
     """
-    verbose::Bool = false
+    keepcurrent_linear::Bool = false
+
+    """
+    Verbosity flag linear solvers
+    """
+    verbose_linear::Bool = false
 
     """
     Handle exceptions during transient solver and parameter embedding. 
@@ -174,7 +186,7 @@ $(TYPEDFIELDS)
     in_memory::Bool = true
 
     """
-            Record history
+       Record history
     """
     log = false
 

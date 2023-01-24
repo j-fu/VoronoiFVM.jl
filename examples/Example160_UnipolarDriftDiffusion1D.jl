@@ -29,6 +29,7 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+using LinearSolve
 
 mutable struct Data
     eps::Float64
@@ -113,7 +114,7 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
         control.Δu_opt = 100
         control.damp_initial = 0.5
 
-        tsol = solve(sys; inival, times = [0.0, 10], control = control)
+        tsol = solve(sys; method_linear=UMFPACKFactorization(), inival, times = [0.0, 10], control = control)
         vis = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
         for log10t = -4:0.01:0
             time = 10^(log10t)
