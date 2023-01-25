@@ -602,7 +602,7 @@ function _solve_timestep!(
         oldnorm = 1.0
         converged = false
         if control.verbose
-            @printf("    Start Newton iteration\n")
+            @printf("Newton: #it(lin) |update|  cont3tion |round|  #round\n")
         end
         nlu_reuse = 0
         nround = 0
@@ -673,13 +673,13 @@ function _solve_timestep!(
             end
             if control.verbose
                 if control.reltol_linear < 1.0
-                    itstring = @sprintf("it=% 3d(% 2d)", ii, nlhistory.nlin)
+                    itstring = @sprintf("Newton: % 3d(% 3d)", ii, nlhistory.nlin)
                 else
                     itstring = @sprintf("it=% 3d", ii)
                 end
                 if control.max_round > 0
                     @printf(
-                        "    %s du=%.3e cont=%.3e dnorm=%.3e %d\n",
+                        "%s %.3e %.3e %.3e % 2d\n",
                         itstring,
                         norm,
                         norm / oldnorm,
@@ -687,7 +687,7 @@ function _solve_timestep!(
                         nround
                     )
                 else
-                    @printf("    %s du=%.3e cont=%.3e\n", itstring, norm, norm / oldnorm)
+                    @printf("%s %.3e %.3e\n", itstring, norm, norm / oldnorm)
                 end
             end
             if ii > 1 && norm / oldnorm > 1.0 / control.tol_mono
@@ -719,7 +719,7 @@ function _solve_timestep!(
         @warn "Allocations in assembly loop: cells: $(ncalloc÷ii), bfaces: $(nballoc÷ii)"
     end
     if control.verbose
-        println("    Newton iteration successful in $(round(t,sigdigits=5)) seconds")
+        println("Newton: success in $(round(t,sigdigits=5)) seconds")
     end
     system.history = nlhistory
 end
