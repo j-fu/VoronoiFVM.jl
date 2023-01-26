@@ -65,8 +65,8 @@ function sedanflux!(f, u, edge, data)
     ic = data.ic
     iphi = data.iphi
     f[iphi] = data.eps * (u[iphi, 1] - u[iphi, 2])
-    mu1 = -log(1 - u[ic, 1])
-    mu2 = -log(1 - u[ic, 2])
+    mu1 = -log1p(- u[ic, 1])
+    mu2 = -log1p(- u[ic, 2])
     bp, bm = fbernoulli_pm(data.z * 2 * (u[iphi, 1] - u[iphi, 2]) + (mu1 - mu2))
     f[ic] = bm * u[ic, 1] - bp * u[ic, 2]
 end
