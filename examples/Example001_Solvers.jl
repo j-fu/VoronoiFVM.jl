@@ -11,7 +11,6 @@ using ILUZero
 using LinearAlgebra
 
 
-
 function main(; n = 10, Plotter = nothing, kwargs...)
 
     h = 1.0 / convert(Float64, n)
@@ -72,9 +71,8 @@ function main(; n = 10, Plotter = nothing, kwargs...)
     @info "Sparspak:"
     spk_sol = solve(sys; inival = 0.5, method_linear = SparspakFactorization(), kwargs...)
 
-    @info "Krylov:"
-
-    kry_sol = solve(
+    @info "Krylov-ilu0:"
+    kryil0_sol = solve(
         sys;
         inival = 0.5,
         method_linear = KrylovJL_BICGSTAB(),
@@ -82,9 +80,8 @@ function main(; n = 10, Plotter = nothing, kwargs...)
         kwargs...,
     )
 
-
-    @info "Krylov2:"
-    kry2_sol = solve(
+    @info "Krylov - delayed factorization:"
+    krydel_sol = solve(
         sys;
         inival = 0.5,
         method_linear = KrylovJL_BICGSTAB(),
@@ -92,8 +89,21 @@ function main(; n = 10, Plotter = nothing, kwargs...)
         kwargs...,
     )
 
-    klu_sol ≈ umf_sol && spk_sol ≈ umf_sol
-    norm(kry_sol - umf_sol, Inf)
+    @info "Krylov - jacobi:"
+    kryjac_sol = solve(
+        sys;
+        inival = 0.5,
+        method_linear = KrylovJL_BICGSTAB(),
+        precon_linear = A->Diagonal(diag(A)),
+        keepcurrent_linear=true,
+        kwargs...,
+    )
+
+    norm(spk_sol-umf_sol, Inf) <1.0e-7 
+    norm(klu_sol-umf_sol, Inf) <1.0e-7 
+    norm(kryil0_sol-umf_sol, Inf) <1.0e-7 
+    norm(krydel_sol-umf_sol, Inf) <1.0e-7 
+    norm(kryjac_sol - umf_sol, Inf) <1.0e-7
 end
 
 function test()

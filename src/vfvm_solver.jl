@@ -514,11 +514,8 @@ end
 
 
 function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
-    Pl = LinearSolve.Identity()
     if isnothing(system.linear_cache)
-        if isa(control.precon_linear, Function)
-            Pl = control.precon_linear(A)
-        end
+        Pl = control.precon_linear(A)
         p = LinearProblem(A, b)
         system.linear_cache = init(
             p,
@@ -532,7 +529,7 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
     else
         system.linear_cache = LinearSolve.set_A(system.linear_cache, A)
         system.linear_cache = LinearSolve.set_b(system.linear_cache, b)
-        if isa(control.precon_linear, Function) && control.keepcurrent_linear
+        if control.keepcurrent_linear
             Pl = control.precon_linear(A)
             system.linear_cache =
                 LinearSolve.set_prec(system.linear_cache, Pl, LinearSolve.Identity())

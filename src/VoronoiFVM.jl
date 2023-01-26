@@ -14,6 +14,7 @@ using BandedMatrices
 # using MultidiagonalMatrices
 
 using LinearSolve
+using LinearSolve: Identity
 using Parameters
 using Statistics
 
@@ -74,6 +75,8 @@ export check_allocs!
 export physics!
 export history, history_summary, history_details
 export evaluate_residual_and_jacobian
+export edgelength
+export viewK, viewL, data
 
 include("vfvm_formfactors.jl")
 export meas, project
@@ -83,8 +86,9 @@ export time, region, embedparam, parameters
 
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
-export edgelength
-export viewK, viewL, data
+export Identity
+
+
 
 include("vfvm_solver.jl")
 export evolve!

@@ -98,9 +98,12 @@ $(TYPEDFIELDS)
     maxiters_linear::Int = 100
 
     """
-    Preconditioner for linear systems
+    Constructor for preconditioner for linear systems.
+    This should work like a function `precon_linear(A)` which
+    returns a preconditioner object.
     """
-    precon_linear::Union{Nothing,Symbol,Function} = nothing
+    precon_linear::Union{Type,Function} = A->Identity()
+
 
     """
     Update preconditioner in each Newton step ?
