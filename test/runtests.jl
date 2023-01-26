@@ -3,10 +3,6 @@ using Pluto
 using Pkg
 using VoronoiFVM
 
-# Activate assembly loop allocation checking
-# as default.
-ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
-
 
 modname(fname)=splitext(basename(fname))[1]
 
@@ -74,8 +70,6 @@ end
 
 function run_all_tests()
 
-    ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
-    ENV["VORONOIFVM_DEPRECATE_LEGACY_SOLVE"]="true"
     
     notebooks=["nbproto.jl",
                "nonlinear-solvers.jl",
@@ -87,6 +81,9 @@ function run_all_tests()
     @time begin
         @testset "basictest" begin
             run_tests_from_directory(@__DIR__,"test_")
+        end
+        @testset "Development Examples" begin
+            run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example0")
         end
         @testset "1D Examples" begin
             run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example1")

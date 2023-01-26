@@ -3,7 +3,7 @@
 """
 $(TYPEDEF)
 
-Solver control parameters for time stepping, embedding, Newton method control.
+Solver control parameter for time stepping, embedding, Newton method control.
 All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref)
 
 Newton's method solves ``F(u)=0`` by the iterative procedure ``u_{i+1}=u_{i} - d_i F'(u_i)^{-1}F(u_i)``
@@ -55,30 +55,31 @@ $(TYPEDFIELDS)
     maxiters::Int = 100
 
     """
-    Maximum number of reuses of lu factorization.
-    It this value is 0, linear systems are solved by a sparse direct solver, 
-    and it's LU factorization is called in every Newton step.
-    Otherwise, a BICGstab iterative method is used for linear system solution with a 
-    LU factorization as preconditioner which is updated only every `max_lureuse` Newton step.
-    """
-    max_lureuse::Int = 0
-
-    """
     Maximum number of consecutive iterations within roundoff error tolerance
     The default effectively disables this criterion.
     """
     max_round::Int = 1000
 
     """
-    Verbosity flag for nonliner and time iterations.
+    Verbosity control. A collection of logging categories is given in a string composed of the
+    follwing letters:
+    -  a: allocation
+    -  d: deprecations
+    -  e: time/parameter evolution
+    -  l: linear solve
+    -  n: newton
+     Alternatively, a Bool value can be given, resulting in
+    - true: "neda"
+    - false: "da"
+    In the output, corresponding messages are marked e.g. via '[n]' (besides of '[l]')
     """
-    verbose::Bool = false
+    verbose::Union{Bool,String} = false
 
-    
+
     """
     Solver kind for linear systems (see LinearSolve.jl).
     """
-    method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
+    method_linear::Union{Nothing,LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
 
     """
@@ -99,17 +100,12 @@ $(TYPEDFIELDS)
     """
     Preconditioner for linear systems
     """
-    precon_linear::Union{Nothing, Symbol, Function} = nothing
+    precon_linear::Union{Nothing,Symbol,Function} = nothing
 
     """
     Update preconditioner in each Newton step ?
     """
     keepcurrent_linear::Bool = false
-
-    """
-    Verbosity flag linear solvers
-    """
-    verbose_linear::Bool = false
 
     """
     Handle exceptions during transient solver and parameter embedding. 
@@ -190,28 +186,47 @@ $(TYPEDFIELDS)
     """
     log = false
 
-    tol_absolute::Union{Float64, Nothing} = nothing
-    tol_relative::Union{Float64, Nothing} = nothing
-    damp::Union{Float64, Nothing} = nothing
-    damp_grow::Union{Float64, Nothing} = nothing
-    max_iterations::Union{Float64, Nothing} = nothing
-    tol_linear::Union{Float64, Nothing} = nothing
+    tol_absolute::Union{Float64,Nothing} = nothing
+    tol_relative::Union{Float64,Nothing} = nothing
+    damp::Union{Float64,Nothing} = nothing
+    damp_grow::Union{Float64,Nothing} = nothing
+    max_iterations::Union{Int,Nothing} = nothing
+    tol_linear::Union{Float64,Nothing} = nothing
+    max_lureuse::Union{Int,Nothing} = nothing
 end
 
-const key_replacements = Dict(:tol_absolute => :abstol,
-                              :tol_relative => :reltol,
-                              :damp => :damp_initial,
-                              :damp_grow => :damp_growth,
-                              :max_iterations => :maxiters,
-                              :tol_linear => :reltol_linear)
+
+doprint(s::String, a::Char) = contains(s, a)
+const true_verbosity = "neda"
+const false_verbosity = "da"
+doprint(b::Bool, a::Char) = b ? doprint(true_verbosity, a) : doprint(false_verbosity, a)
+doprint(c::SolverControl, a::Char) = doprint(c.verbose, a)
+
+const key_replacements = Dict(
+    :tol_absolute => :abstol,
+    :tol_relative => :reltol,
+    :damp => :damp_initial,
+    :damp_grow => :damp_growth,
+    :max_iterations => :maxiters,
+    :tol_linear => :reltol_linear,
+    :max_lureuse => nothing,
+)
 
 function fix_deprecations!(control)
     # compatibility to names in SolverControl which cannot be deprecated.
     for key ∈ keys(key_replacements)
         value = getproperty(control, key)
         if !isnothing(value)
-            @warn "deprecated SolverControl entry $(key). Please replace by $(key_replacements[key])."
-            setproperty!(control, key_replacements[key], value)
+            if !isnothing(key_replacements[key])
+                if doprint(control, 'd')
+                    @warn "[d]eprecated SolverControl entry '$(key)'. Please replace by '$(key_replacements[key])'."
+                end
+                setproperty!(control, key_replacements[key], value)
+            else
+                if doprint(control, 'd')
+                    @warn "[d]eprecated SolverControl entry '$(key)' will be ignored."
+                end
+            end
             setproperty!(control, key, nothing)
         end
     end

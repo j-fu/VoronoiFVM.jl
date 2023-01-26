@@ -7,7 +7,6 @@ using Printf
 using ExtendableGrids
 using GridVisualize
 
-VoronoiFVM.deprecate_legacy_solve!(true)
 
 function main101()
 

@@ -1,7 +1,8 @@
 ## Attempt on https://discourse.julialang.org/t/22-seconds-to-3-and-now-more-lets-fix-all-of-the-differentialequations-jl-universe-compile-times/66313
-
+using SnoopPrecompile
 @static if VERSION > v"1.7"
-    let
+    
+    SnoopPrecompile.@precompile_all_calls let
         function lin1()
             n = 5
             X = 0:(1.0 / n):1
@@ -22,7 +23,7 @@
             end
 
             sys = VoronoiFVM.System(grid; species = 1, flux = flux!, reaction = reaction!, breaction = bc!, check_allocs = false)
-            solution = solve(sys; verbose = false)
+            solution = solve(sys; verbose = "")
             return sum(solution)
         end
         lin1()

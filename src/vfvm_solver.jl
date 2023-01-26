@@ -1,7 +1,3 @@
-deprecate_legacy_solve =
-    haskey(ENV, "VORONOIFVM_DEPRECATE_LEGACY_SOLVE") ?
-    parse(Bool, ENV["VORONOIFVM_DEPRECATE_LEGACY_SOLVE"]) : false
-
 ##################################################################
 """
 $(SIGNATURES)
@@ -444,13 +440,15 @@ function eval_and_assemble(
     noallocs(m::AbstractMatrix) = false
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
+    neval = 1
     if !noallocs(system.matrix)
         ncalloc = 0
         nballoc = 0
+        neval = 0
     end
     _eval_and_assemble_generic_operator(system, U, F)
     _eval_and_assemble_inactive_species(system, U, UOld, F)
-    ncalloc, nballoc
+    ncalloc, nballoc, neval
 end
 
 """
@@ -527,7 +525,7 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
             method_linear;
             abstol = control.abstol_linear,
             reltol = control.reltol_linear,
-            verbose = control.verbose_linear,
+            verbose = doprint(control, 'l'),
             Pl,
             Pr = LinearSolve.Identity(),
         )
@@ -571,7 +569,7 @@ function _solve_timestep!(
     solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
     oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
     system::AbstractSystem{Tv,Tc,Ti,Tm}, # Finite volume system
-    control::NewtonControl,
+    control::SolverControl,
     time,
     tstep,
     embedparam,
@@ -601,8 +599,8 @@ function _solve_timestep!(
 
         oldnorm = 1.0
         converged = false
-        if control.verbose
-            @printf("Newton: #it(lin) |update|  cont3tion |round|  #round\n")
+        if doprint(control, 'n')
+            @printf("  [n]ewton: #it(lin) |update|  cont3tion |round|  #round\n")
         end
         nlu_reuse = 0
         nround = 0
@@ -611,12 +609,13 @@ function _solve_timestep!(
         rnorm = myrnorm(solution)
         ncalloc = 0
         nballoc = 0
-        ii = 1
+        neval = 0
+        niter = 1
 
-        while ii <= control.maxiters
+        while niter <= control.maxiters
             # Create Jacobi matrix and RHS for Newton iteration
             try
-                nca, nba = eval_and_assemble(
+                nca, nba, nev = eval_and_assemble(
                     system,
                     solution,
                     oldsol,
@@ -629,6 +628,7 @@ function _solve_timestep!(
                 )
                 ncalloc += nca
                 nballoc += nba
+                neval += nev
             catch err
                 if (control.handle_exceptions)
                     _print_error(err, stacktrace(catch_backtrace()))
@@ -671,11 +671,11 @@ function _solve_timestep!(
                 push!(nlhistory.l1normdiff, dnorm)
                 push!(nlhistory.updatenorm, norm)
             end
-            if control.verbose
+            if doprint(control, 'n')
                 if control.reltol_linear < 1.0
-                    itstring = @sprintf("Newton: % 3d(% 3d)", ii, nlhistory.nlin)
+                    itstring = @sprintf("  [n]ewton: % 3d(% 3d)", niter, nlhistory.nlin)
                 else
-                    itstring = @sprintf("it=% 3d", ii)
+                    itstring = @sprintf("it=% 3d", niter)
                 end
                 if control.max_round > 0
                     @printf(
@@ -690,7 +690,7 @@ function _solve_timestep!(
                     @printf("%s %.3e %.3e\n", itstring, norm, norm / oldnorm)
                 end
             end
-            if ii > 1 && norm / oldnorm > 1.0 / control.tol_mono
+            if niter > 1 && norm / oldnorm > 1.0 / control.tol_mono
                 converged = false
                 break
             end
@@ -706,20 +706,20 @@ function _solve_timestep!(
                 converged = true
                 break
             end
+            niter = niter + 1
         end
         if !converged
             throw(ConvergenceError())
         end
-        ii = ii + 1
     end
     if control.log
         nlhistory.time = t
     end
-    if ncalloc + nballoc > 0
-        @warn "Allocations in assembly loop: cells: $(ncalloc÷ii), bfaces: $(nballoc÷ii)"
+    if ncalloc + nballoc > 0 && doprint(control, 'a')
+        @warn "[a]llocations in assembly loop: cells: $(ncalloc÷neval), bfaces: $(nballoc÷neval)"
     end
-    if control.verbose
-        println("Newton: success in $(round(t,sigdigits=5)) seconds")
+    if doprint(control, 'n')
+        println("  [n]ewton: $(round(t,sigdigits=3)) seconds")
     end
     system.history = nlhistory
 end
@@ -729,7 +729,7 @@ end
 """
 ````
 solve!(solution, inival, system; 
-    control=NewtonControl(), 
+    control=SolverControl(), 
     tstep=Inf)
 ````
 Mutating version of [`solve(inival,system)`](@ref)
@@ -738,7 +738,7 @@ function SciMLBase.solve!(
     solution, # Solution
     inival,   # Initial value 
     system::VoronoiFVM.AbstractSystem;     # Finite volume system
-    control = NewtonControl(),      # Newton solver control information
+    control = SolverControl(),      # Newton solver control information
     time = Inf,
     tstep = Inf,                # Time step size. Inf means  stationary solution
     embedparam = 0.0,
@@ -746,8 +746,8 @@ function SciMLBase.solve!(
     called_from_API = false,
 )
     fix_deprecations!(control)
-    if !called_from_API && deprecate_legacy_solve
-        @warn "Please replace call to solve(inival,solution, system; kwargs...) by official API"
+    if !called_from_API && doprint(control, 'd')
+        @warn "[d]eprecated: solve(inival,solution, system; kwargs...)"
     end
     _solve_timestep!(
         solution,
@@ -766,7 +766,7 @@ end
 ################################################################
 """
 ````
-    solve(inival, system; control=NewtonControl(),params, tstep=Inf)
+    solve(inival, system; control=SolverControl(),params, tstep=Inf)
 ````
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
@@ -776,15 +776,15 @@ value. Returns a solution array.
 function SciMLBase.solve(
     inival,   # Initial value 
     system::AbstractSystem;     # Finite volume system
-    control = NewtonControl(),      # Newton solver control information
+    control = SolverControl(),      # Newton solver control information
     time = Inf,
     tstep = Inf,                # Time step size. Inf means  stationary solution
     params = zeros(0),
     called_from_API = false,
 )
     fix_deprecations!(control)
-    if !called_from_API && deprecate_legacy_solve
-        @warn "Please replace call to solve(inival,system; kwargs...) by official API"
+    if !called_from_API && doprint(control, 'd')
+        @warn "[d]eprecated: solve(inival,system; kwargs...)"
     end
 
     solve!(
@@ -814,7 +814,7 @@ function SciMLBase.solve(
     inival,
     system::VoronoiFVM.AbstractSystem,
     lambdas;
-    control = NewtonControl(),
+    control = SolverControl(),
     pre = function (sol, t) end,       # Function for preparing step
     post = function (sol, oldsol, t, Δt) end,      # Function for postprocessing successful step
     sample = function (sol, t) end,      # Function to be called for each t\in times[2:end]
@@ -826,8 +826,8 @@ function SciMLBase.solve(
     kwargs...,
 )
     fix_deprecations!(control)
-    if !called_from_API && deprecate_legacy_solve
-        @warn "Please replace call to solve(inival,system,times;kwargs...) by official API"
+    if !called_from_API && doprint(control, 'd')
+        @warn "[d]eprecated: solve(inival,system,times;kwargs...)"
     end
     λstr = "t"
     if !transient
@@ -841,7 +841,7 @@ function SciMLBase.solve(
     _initialize_dirichlet!(inival, system; time, λ = Float64(lambdas[1]), params)
     Δλ = Δλ_val(control, transient)
 
-    if !transient
+    t0 = @elapsed if !transient
         pre(solution, Float64(lambdas[1]))
         solution = solve!(
             solution,
@@ -866,12 +866,12 @@ function SciMLBase.solve(
 
     tsol = TransientSolution(Float64(lambdas[1]), solution; in_memory = control.in_memory)
 
-    if control.verbose
-        @printf("  Evolution: start\n")
+    if doprint(control, 'e')
+        println("[e]volution: start in $(extrema(lambdas))")
     end
 
     istep = 0
-    for i = 1:(length(lambdas)-1)
+    t1 = @elapsed for i = 1:(length(lambdas)-1)
         Δλ = max(Δλ, Δλ_min(control, transient))
         λstart = lambdas[i]
         λend = lambdas[i+1]
@@ -938,14 +938,22 @@ function SciMLBase.solve(
                             solved = true
                         end
                     end
-                    if control.verbose
-                        @printf("  Evolution: retry: Δ%s=%.3e\n", λstr, Δλ)
+                    if doprint(control, 'e')
+                        @printf("[e]volution:  Δu=%.3e => retry: Δ%s=%.3e\n", Δu, λstr, Δλ)
                     end
                 end
             end
             istep = istep + 1
-            if control.verbose
-                @printf("  Evolution: istep=%d λ=%.3e Δu=%.3e\n", istep, λ, Δu)
+            if doprint(control, 'e')
+                @printf(
+                    "[e]volution: step=%d %s=%.3e Δ%s=%.3e Δu=%.3e\n",
+                    istep,
+                    λstr,
+                    λ,
+                    λstr,
+                    Δλ,
+                    Δu
+                )
             end
             if control.log
                 push!(allhistory, system.history)
@@ -971,8 +979,9 @@ function SciMLBase.solve(
         end
         sample(solution, lambdas[i+1])
     end
-    if control.verbose
-        @printf("  Evolution: success\n")
+
+    if doprint(control, 'e')
+        println("[evolution]:  $(round(t0+t1,sigdigits=3)) seconds")
     end
 
     system.history = allhistory
@@ -996,12 +1005,6 @@ function evaluate_residual_and_jacobian(sys, u; t = 0.0, tstep = Inf, embed = 0.
 end
 
 module NoModule end
-"""
-    $(SIGNATURES)
-
-Define handling of legacy solve deprecations. In v0.19 this is set to false.
-"""
-deprecate_legacy_solve!(val) = global deprecate_legacy_solve = val
 
 #####################################################################
 """
@@ -1054,7 +1057,7 @@ function SciMLBase.solve(
     sys::VoronoiFVM.AbstractSystem;
     inival = 0,
     params = zeros(0),
-    control = VoronoiFVM.NewtonControl(),
+    control = VoronoiFVM.SolverControl(),
     time = 0.0,
     tstep = Inf,
     kwargs...,
@@ -1075,7 +1078,7 @@ function SciMLBase.solve(
 
     sys.linear_cache = nothing
 
-    if haskey(kwargs, :times)
+    if haskey(kwargs, :times) && !isnothing(kwargs[:times])
         solve(
             inival,
             sys,
@@ -1086,7 +1089,7 @@ function SciMLBase.solve(
             time = kwargs[:times][1],
             called_from_API = true,
         )
-    elseif haskey(kwargs, :embed)
+    elseif haskey(kwargs, :embed) && !isnothing(kwargs[:embed])
         solve(
             inival,
             sys,
