@@ -1,6 +1,18 @@
 # Changes
+## v0.19.0 Jan 30, 2023
+This is a breaking release. Implementations using default solver settings should continue to work (albeit possibly with deprecation and 
+allocation warnings). Really breaking is control of iterative linear solvers and allocation checks.
+
+- Make `solve` a method of `SciMLBase.solve` (and re-export it). Deprecate all `VoronoiFVM.solve` methods with signatures others than `solve(system; kwargs...). Updated examples accordingly.
+- Rely on `LinearSolve.jl` for linear system solution including control of iterative solvers.
+- New verbosity handling. `verbose` can now be a Bool or a String of flag characters, allowing for control of different output categories. I would love to do this via  logging, but there is still a [long way to go](https://github.com/JuliaLang/julia/issues/33418) IMHO 
+- Allocation check is active by default with warnings which can be muted by passing a `verbose` string without 'a'. This is now the only control in this respect. All `check_allocs` methods/kwargs, control via environment variables have been removed.
+- Deprecation warnings can be switched off by passing a `verbose` string without 'd'.
+- Improve iteration logging etc., allow for logging of linear iterations ('l' flag character)
+
+
 ## v0.18.8 - 0.18.10  Dec 11, 2022 - Jan 5, 2023
-- Internal restructuring: remove @create_physics_wrappers macro, reduce boilerplate in assembly, wrap repeating pattenrns
+- Internal restructuring: remove `@create_physics_wrappers` macro, reduce boilerplate in assembly, wrap repeating pattenrns
   into functions.  The price in the moment is a bit of a slowdown of assembly.
 - Fix parameter dependency handling (now we can get parameter derivative without solving in dual numbers; see
   the runh() example in Example430. However in the moment the advantatge is not very clear, so this  is

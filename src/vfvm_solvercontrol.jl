@@ -14,16 +14,38 @@ $(TYPEDFIELDS)
 """
 @with_kw mutable struct SolverControl
     """
+    Verbosity control. A collection of output categories is given in a string composed of the
+    follwing letters:
+    -  a: allocation warnings
+    -  d: deprecation warnings
+    -  e: time/parameter evolution log
+    -  n: newton solver log
+    -  l: linear solver log
+    Alternatively, a Bool value can be given, resulting in
+    - true: "neda"
+    - false: "da"
+    Switch off all output including deprecation warnings via `verbose=""`.
+    In the output, corresponding messages are marked e.g. via '[n]', `[a]` etc. (besides of '[l]')
+    """
+    verbose::Union{Bool,String} = false
+
+
+    """
     Tolerance (in terms of norm of Newton update):  
-    terminate if ``\\Delta u_i=||u_{i+1}-u_i||_\\infty <`` `tol_absolute`.
+    terminate if ``\\Delta u_i=||u_{i+1}-u_i||_\\infty <`` `abstol`.
     """
     abstol::Float64 = 1.0e-10
 
     """
     Tolerance (relative to the size of the first update):
-    terminate if ``\\Delta u_i/\\Delta u_1<`` `tol_relative`.
+    terminate if ``\\Delta u_i/\\Delta u_1<`` `reltol`.
     """
     reltol::Float64 = 1.0e-10
+
+    """
+    Maximum number of newton iterations.
+    """
+    maxiters::Int = 100
 
     """
     Tolerance for roundoff error detection:
@@ -49,10 +71,6 @@ $(TYPEDFIELDS)
     """
     damp_growth::Float64 = 1.2
 
-    """
-    Maximum number of iterations.
-    """
-    maxiters::Int = 100
 
     """
     Maximum number of consecutive iterations within roundoff error tolerance
@@ -60,31 +78,21 @@ $(TYPEDFIELDS)
     """
     max_round::Int = 1000
 
-    """
-    Verbosity control. A collection of logging categories is given in a string composed of the
-    follwing letters:
-    -  a: allocation
-    -  d: deprecations
-    -  e: time/parameter evolution
-    -  l: linear solve
-    -  n: newton
-     Alternatively, a Bool value can be given, resulting in
-    - true: "neda"
-    - false: "da"
-    In the output, corresponding messages are marked e.g. via '[n]' (besides of '[l]')
-    """
-    verbose::Union{Bool,String} = false
-
 
     """
-    Solver kind for linear systems (see LinearSolve.jl).
+    Solver method for linear systems (see LinearSolve.jl). If given `nothing`, as default
+    are chosen (for `Float64` calculations):
+    - 1D:  `KLUFactorization()`
+    - 2D:  `SparspakFactorization()`
+    - 3D:  `UMFPACKFactorization()`
+    `SparspakFactorization()` is the default choice for general number types.
+    Users should experiment with what works best for their problem.
     """
     method_linear::Union{Nothing,LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
-
     """
         Relative tolerance of iterative linear solver.
-        """
+    """
     reltol_linear::Float64 = 1.0e-4
 
     """
@@ -99,23 +107,15 @@ $(TYPEDFIELDS)
 
     """
     Constructor for preconditioner for linear systems.
-    This should work like a function `precon_linear(A)` which
-    returns a preconditioner object.
+    This should work as a function `precon_linear(A)` which
+    returns a preconditioner object in the sense of `LinearSolve.jl`
     """
     precon_linear::Union{Type,Function} = A->Identity()
-
 
     """
     Update preconditioner in each Newton step ?
     """
     keepcurrent_linear::Bool = false
-
-    """
-    Handle exceptions during transient solver and parameter embedding. 
-    If `true`, exceptions in Newton solves are catched, the embedding resp. time step is lowered, 
-    and solution is retried.  
-    """
-    handle_exceptions::Bool = false
 
     """
     Initial parameter step for embedding.
@@ -170,9 +170,13 @@ $(TYPEDFIELDS)
     force_first_step::Bool = false
 
     """
-    Edge parameter cutoff for rectangular triangles.
+    Handle exceptions during transient solver and parameter embedding. 
+    If `true`, exceptions in Newton solves are catched, the embedding resp. time step is lowered, 
+    and solution is retried.  
+
     """
-    edge_cutoff::Float64 = 0.0
+    handle_exceptions::Bool = false
+
 
     """
     Store all steps of transient/embedding problem:
@@ -189,6 +193,13 @@ $(TYPEDFIELDS)
     """
     log = false
 
+    """
+    Edge parameter cutoff for rectangular triangles.
+    """
+    edge_cutoff::Float64 = 0.0
+
+
+    
     tol_absolute::Union{Float64,Nothing} = nothing
     tol_relative::Union{Float64,Nothing} = nothing
     damp::Union{Float64,Nothing} = nothing

@@ -585,12 +585,16 @@ function _solve_timestep!(
 
         method_linear = control.method_linear
         if isnothing(method_linear)
-            if dim_grid(system.grid) == 1
-                method_linear = KLUFactorization()
-            elseif dim_grid(system.grid) == 2
+            if Tv!=Float64
                 method_linear = SparspakFactorization()
             else
-                method_linear = UMFPACKFactorization()
+                if dim_grid(system.grid) == 1
+                    method_linear = KLUFactorization()
+                elseif dim_grid(system.grid) == 2
+                    method_linear = SparspakFactorization()
+                else
+                    method_linear = UMFPACKFactorization()
+                end
             end
         end
 

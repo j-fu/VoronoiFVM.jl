@@ -1,3 +1,8 @@
+#=
+# 001: New linear solver API
+([source code](SOURCE_URL))
+=#
+
 module Example001_Solvers
 
 # under development
@@ -94,20 +99,19 @@ function main(; n = 10, Plotter = nothing, kwargs...)
         sys;
         inival = 0.5,
         method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = A->Diagonal(diag(A)),
-        keepcurrent_linear=true,
+        precon_linear = A -> Diagonal(diag(A)),
+        keepcurrent_linear = true,
         kwargs...,
     )
 
-    norm(spk_sol-umf_sol, Inf) <1.0e-7 
-    norm(klu_sol-umf_sol, Inf) <1.0e-7 
-    norm(kryil0_sol-umf_sol, Inf) <1.0e-7 
-    norm(krydel_sol-umf_sol, Inf) <1.0e-7 
-    norm(kryjac_sol - umf_sol, Inf) <1.0e-7
+    norm(spk_sol - umf_sol, Inf) < 1.0e-7 &&
+        norm(klu_sol - umf_sol, Inf) < 1.0e-7 &&
+        norm(kryil0_sol - umf_sol, Inf) < 1.0e-7 &&
+        norm(krydel_sol - umf_sol, Inf) < 1.0e-7 &&
+        norm(kryjac_sol - umf_sol, Inf) < 1.0e-7
 end
 
 function test()
     main()
-    true
 end
 end

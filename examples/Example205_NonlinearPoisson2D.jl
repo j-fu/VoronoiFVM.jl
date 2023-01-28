@@ -12,7 +12,7 @@ using LinearSolve
 using ILUZero
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
-              max_lureuse = 0, method_linear = nothing, precon_linear = nothing)
+              max_lureuse = 0, method_linear = nothing, precon_linear = A->LinearSolve.Identity())
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
