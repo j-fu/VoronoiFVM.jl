@@ -36,6 +36,7 @@ mutable struct Data
     z::Float64
     ic::Int32
     iphi::Int32
+    V::Float64
     Data() = new()
 end
 
@@ -65,10 +66,18 @@ function sedanflux!(f, u, edge, data)
     ic = data.ic
     iphi = data.iphi
     f[iphi] = data.eps * (u[iphi, 1] - u[iphi, 2])
-    mu1 = -log1p(- u[ic, 1])
-    mu2 = -log1p(- u[ic, 2])
+    mu1 = -log1p(-u[ic, 1])
+    mu2 = -log1p(-u[ic, 2])
     bp, bm = fbernoulli_pm(data.z * 2 * (u[iphi, 1] - u[iphi, 2]) + (mu1 - mu2))
     f[ic] = bm * u[ic, 1] - bp * u[ic, 2]
+end
+
+
+function bcondition!(f,u,bnode,data)
+    V=ramp(bnode.time,dt=(0,1.0e-2),du=(0,data.V))
+    boundary_dirichlet!(f,u,bnode, species=data.iphi, region=1, value=V)
+    boundary_dirichlet!(f,u,bnode, species=data.iphi, region=2, value=0)
+    boundary_dirichlet!(f,u,bnode, species=data.ic, region=2, value=0.5)
 end
 
 function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
@@ -81,42 +90,40 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
     data.z = -1
     data.iphi = 1
     data.ic = 2
-
+    data.V=5
     ic = data.ic
     iphi = data.iphi
 
     physics = VoronoiFVM.Physics(; data = data,
                                  flux = sedanflux!,
                                  reaction = reaction!,
+                                 breaction = bcondition!,
                                  storage = storage!)
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
 
-    enable_species!(sys, 1, [1])
-    enable_species!(sys, 2, [1])
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage,species=[1,2])
 
-    boundary_dirichlet!(sys, iphi, 1, 5.0)
-    boundary_dirichlet!(sys, iphi, 2, 0.0)
-    boundary_dirichlet!(sys, ic, 2, 0.5)
+
 
     inival = unknowns(sys)
-    @views inival[iphi, :] .= 2
+    @views inival[iphi, :] .= 0
     @views inival[ic, :] .= 0.5
 
     if !dlcap
         ## Create solver control info for constant time step size
-        tstep = 1.0e-3
+        tstep = 1.0e-4
         control = VoronoiFVM.NewtonControl()
         control.verbose = verbose
         control.Δt_min = tstep
         control.Δt = tstep
-        control.Δt_grow = 1.2
+        control.Δt_grow = 1.1
         control.Δt_max = 0.1
         control.Δu_opt = 100
         control.damp_initial = 0.5
 
         tsol = solve(sys; method_linear=UMFPACKFactorization(), inival, times = [0.0, 10], control = control)
+        
         vis = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
-        for log10t = -4:0.01:0
+        for log10t = -4:0.025:0
             time = 10^(log10t)
             sol = tsol(time)
             scalarplot!(vis[1, 1], grid, sol[iphi, :]; label = "ϕ",
@@ -149,11 +156,11 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
         for dir in [1, -1]
             phi = 0.0
             while phi < phimax
-                sys.boundary_values[iphi, 1] = dir * phi
-                U = solve(sys; inival = U, control)
+                data.V= dir * phi
+                U = solve(sys; inival = U, control, time=1.0)
                 Q = integrate(sys, physics.reaction, U)
-                sys.boundary_values[iphi, 1] = dir * phi + delta
-                U = solve(sys; inival = U, control)
+                data.V = dir * phi + delta
+                U = solve(sys; inival = U, control, time=1.0)
 
                 scalarplot!(vis[1, 1], grid, U[iphi, :]; label = "ϕ",
                             title = @sprintf("Δϕ=%.3g", phi), flimits = (-5, 5),
