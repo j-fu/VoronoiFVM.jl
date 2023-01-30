@@ -23,8 +23,6 @@ begin
         _Pkg.instantiate()
         using Revise
         developing = true
-        ENV["VORONOIFVM_CHECK_ALLOCS"] = false
-        
     end
     initialized = true
 end;
@@ -38,13 +36,16 @@ begin
         using PlutoUI
         using GridVisualize
         using PlutoVista
+		using LinearSolve
+		using ILUZero
+		using LinearAlgebra
         GridVisualize.default_plotter!(PlutoVista)
     end
 end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
 md"""
-# v0.14.0 API update 
+# API updates 
 """
 
 # ╔═╡ 3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
@@ -53,11 +54,276 @@ Here we describe some updates for the API of `VoronoiFVM.jl`. These have been im
 """
 
 # ╔═╡ 7a104243-d3b9-421a-b494-5607c494b106
-TableOfContents(; aside = false)
+TableOfContents(; aside = false,depth=5)
+
+# ╔═╡ a2f1e6ba-80b2-4902-9c5d-2806a7fb16f6
+md"""
+## v0.19
+"""
+
+# ╔═╡ 56976316-ca4f-4d5c-b303-026edd8751c2
+md"""
+This is a breaking release. Implementations using default solver settings should continue to work (albeit possibly with deprecation and 
+allocation warnings). Really breaking is control of iterative linear solvers and allocation checks.
+
+"""
+
+# ╔═╡ 740dd980-ca12-4f51-88b2-408930704952
+md"""
+### Solve now a method of SciMLBase.solve
+"""
+
+# ╔═╡ db216ebf-1869-4b0f-8dbd-2a8a244c3e4c
+md"""
+As a consequence, all VoronoiFVM.solve methods with signatures others than `solve(system; kwargs...)`  are now deprecated
+"""
+
+# ╔═╡ 9eae0139-379d-47ce-a8d2-932c68504317
+n=100
+
+# ╔═╡ 8a31ed03-9cd8-4532-9fb9-8c060f777693
+begin
+	h = 1.0 / convert(Float64, n)
+    const eps = 1.0e-2
+    function reaction(f, u, node)
+        f[1] = u[1]^2
+    end
+
+    function flux(f, u, edge)
+        f[1] = eps * (u[1, 1]^2 - u[1, 2]^2)
+    end
+
+    function source(f, node)
+        x1 = node[1] - 0.5
+        x2 = node[2] - 0.5
+        f[1] = exp(-20.0 * (x1^2 + x2^2))
+    end
+
+    function storage(f, u, node)
+        f[1] = u[1]
+    end
+
+    function bcondition(f, u, node)
+        boundary_dirichlet!(
+            f,
+            u,
+            node,
+            species = 1,
+            region = 2,
+            value = ramp(node.time, dt = (0, 0.1), du = (0, 1)),
+        )
+        boundary_dirichlet!(
+            f,
+            u,
+            node,
+            species = 1,
+            region = 4,
+            value = ramp(node.time, dt = (0, 0.1), du = (0, 1)),
+        )
+    end
+
+    sys0 =
+        VoronoiFVM.System(0.0:h:1.0,0.0:h:1.0; reaction, flux, source, storage, bcondition, species = [1])
+end
+
+# ╔═╡ 4279ae2e-a948-4358-9037-0c6895ecb809
+md"""
+Deprecated call:
+"""
+
+# ╔═╡ 58cf3e44-ee53-42f7-9132-eacfd900dc3a
+begin
+	inival=unknowns(sys0;inival=0.1)
+	sol00=unknowns(sys0)
+	solve!(sol00,inival,sys0)
+end
+
+# ╔═╡ b499a195-f06d-400f-9407-b07c3212c095
+md"""
+Replace this by:
+"""
+
+# ╔═╡ f660fc6e-0ab5-4fae-918f-39bf0c2153e5
+sol0=solve(sys0;inival=0.1)
+
+# ╔═╡ 13f284e8-4fe9-42ce-873a-c65febc7d7df
+md"""
+#### Docstring of solve
+"""
+
+# ╔═╡ c53cb54f-6099-4d09-9797-3da1f5428586
+(@doc solve).content[end]
+
+# ╔═╡ 2cebb072-bef1-4bce-9cbb-6b43b877b28b
+md"""
+#### Docstring of SolverControl
+"""
+
+# ╔═╡ 7b0f2021-a2fd-4bb2-a23a-432f61a38a07
+@doc SolverControl
+
+# ╔═╡ 182a9a9f-3f2c-4df3-abad-08488bb9fb33
+md"""
+### Rely on LinearSolve.jl for linear system solution
+"""
+
+# ╔═╡ 381c464e-a0cc-46ea-b0ba-089250c31555
+md"""
+This provides easy access to a large variety of linear solvers:
+"""
+
+# ╔═╡ ba4b8b92-617a-40b4-b3c9-1367067027fa
+md"""
+#### LU factorization from UMFPACK
+"""
+
+# ╔═╡ 00634dc4-e9c7-4165-a9ac-f3ffc8007e76
+umf_sol=solve(sys0; inival=0.1, method_linear=UMFPACKFactorization(),verbose=true)
+
+# ╔═╡ d6c88c3e-6b8a-45e9-9344-71f0de3fff51
+@test isapprox(umf_sol, sol0, atol=1.0e-7)
+
+# ╔═╡ cb2d42c4-8d5d-465c-9376-f568588ab453
+md"""
+#### LU factorization from Sparspak.jl
+"""
+
+# ╔═╡ 5908ae1d-b3b5-4681-a0b8-080f052af40f
+sppk_sol=solve(sys0; inival=0.1, method_linear=SparspakFactorization(),verbose=true)
+
+# ╔═╡ 22c3cecc-12d2-4f7d-8a53-894a5ea513f0
+@test isapprox(sppk_sol, sol0, atol=1.0e-7)
+
+# ╔═╡ 3107c644-5f43-4322-aad2-04a2ab0d576e
+md"""
+#### Iterative solvers
+"""
+
+# ╔═╡ 7e94ff44-4807-41b0-875d-526390903942
+md"""
+##### BICGstab from Krylov.jl with diagonal preconditioner 
+"""
+
+# ╔═╡ b70524fc-b8b1-4dee-b77d-e3f8d6d2837b
+krydiag_sol=solve(sys0; inival=0.1, 
+method_linear=KrylovJL_BICGSTAB(),
+precon_linear=A->Diagonal(diag(A)),verbose=true)
+
+# ╔═╡ d21d3236-b3d7-4cf8-ab9d-b0be44c9970b
+@test isapprox(krydiag_sol, sol0, atol=1.0e-6)
+
+# ╔═╡ f935061c-71db-4aaf-864b-bb566e68643e
+md"""
+##### BICGstab from Krylov.jl with delayed factorization preconditoner
+"""
+
+# ╔═╡ 4c7f8bbf-40c4-45b9-a62e-99ffaae30af1
+    krydel_sol = solve(
+        sys0;
+        inival = 0.1,
+        method_linear = KrylovJL_BICGSTAB(),
+        precon_linear = A -> VoronoiFVM.factorization(A, SparspakFactorization()),
+    verbose="nlad"
+	)
+
+
+# ╔═╡ 4fa1c608-19b2-4eaa-8c0a-5881b373807c
+@test isapprox(krydel_sol, sol0, atol=1.0e-6)
+
+# ╔═╡ 023ae612-6bef-4b0d-8d04-5c0461efbc18
+md"""
+##### BICGstab from Krylov.jl with ilu0 preconditioner from ILUZero.jl
+"""
+
+# ╔═╡ 6895cdf9-8291-47ce-bd1d-4c5beec594ea
+    kryilu0_sol = solve(
+        sys0;
+        inival = 0.5,
+        method_linear = KrylovJL_BICGSTAB(),
+        precon_linear = ILUZero.ilu0,
+        verbose=true
+    )
+
+# ╔═╡ d341f60e-191d-4cf9-9df9-fbe25c84a7da
+@test isapprox(kryilu0_sol, sol0, atol=1.0e-6)
+
+# ╔═╡ 3bca80f4-ec88-41e8-829a-278071442d41
+md"""
+### New verbosity handling
+"""
+
+# ╔═╡ c2c3088a-6c6e-492e-957b-c5d20fec4244
+md"""
+- `verbose` can now be a Bool or a String of flag characters, allowing for control of different output categories. I would love to do this via  logging, but there is still a [long way to go](https://github.com/JuliaLang/julia/issues/33418) IMHO 
+- Allocation check is active by default with warnings which can be muted by passing a `verbose` string without 'a'. This is now the only control in this respect. All `check_allocs` methods/kwargs, control via environment variables have been removed.
+- Deprecation warnings can be switched off by passing a `verbose` string without 'd'.
+- Improve iteration logging etc., allow for logging of linear iterations ('l' flag character)
+
+
+"""
+
+# ╔═╡ ba6b0e35-75ce-4540-861c-7654fd4dee63
+md"""
+The following example gives some information in this respect:
+"""
+
+# ╔═╡ d1440945-54ac-4c12-9f34-0db1c7dfac11
+D=0.1
+
+# ╔═╡ 2ff77259-7a81-4c54-a291-cbc20ee56c5d
+function xflux(f, u, edge)
+        f[1] = D * (u[1, 1]^2 - u[1, 2]^2)
+end
+
+# ╔═╡ b0a845d7-95d7-4212-9620-e1948698c596
+xsys=VoronoiFVM.System(0:0.001:1,flux=xflux,species=[1])
+
+# ╔═╡ 2a85a42c-1a79-425f-8887-71e2944cb0f3
+solve(xsys,inival=0.1,times=[0,1]);
+
+# ╔═╡ 1370a5dc-c434-423f-a0fa-b25f0f2878f9
+md"""
+If we find these warnings annoying, we can switch them off:
+"""
+
+# ╔═╡ 62f605a0-6d5c-4ce2-a131-9ab7b6188d23
+solve(xsys,inival=0.1,times=[0,1],verbose="");
+
+# ╔═╡ 2b58318c-8e21-4f9a-97df-ff4af50c94b2
+md"""
+Or we get some more logging:
+"""
+
+# ╔═╡ 05381762-d8f8-46d2-8eb2-68275458787a
+solve(xsys,inival=0.1,times=[0,1],verbose="en");
+
+# ╔═╡ f752f390-c98e-4832-b186-f484ebe5a4cb
+md"""
+But we can also look for the reasons of the allocations. Here, global values should be declared as constants.
+"""
+
+# ╔═╡ 0e8bbe4c-66d8-4545-8196-c7d8d9e30bfd
+const D1=0.1
+
+# ╔═╡ c40f1954-4fb7-48b2-ab4c-cdf6459b7383
+function xflux1(f, u, edge)
+        f[1] = D1* (u[1, 1]^2 - u[1, 2]^2)
+end
+
+# ╔═╡ cec5152b-0597-4ea4-8387-b08e1e4ffcde
+xsys1=VoronoiFVM.System(0:0.001:1,flux=xflux1,species=[1])
+
+# ╔═╡ 76c6ee48-8061-4ba0-b61e-0e6b68ad6435
+solve(xsys1,inival=0.1,times=[0,1]);
+
+# ╔═╡ d4ee4693-8ecd-4916-a722-79f54eb99d42
+md"""
+## v0.14
+"""
 
 # ╔═╡ 8a4f336c-2016-453e-9a9f-beac66533fc0
 md"""
-## `VoronoiFVM.System` constructor
+### `VoronoiFVM.System` constructor
 """
 
 # ╔═╡ 78e7c000-3a83-446a-b577-3a1809c664d2
@@ -134,7 +400,7 @@ system2 = VoronoiFVM.System(
 );
 
 # ╔═╡ b3d936fe-69ab-4013-b787-2f0b5410638a
-sol2 = solve(system2, times = (0, 10), Δt_max = 0.01)
+sol2 = solve(system2, times = (0, 10), Δt_max = 0.01);
 
 # ╔═╡ 17749697-d5d8-4629-a625-e96590a5f0ac
 vis2 = GridVisualizer(resolution = (500, 300), limits = (-2, 2), legend = :rt)
@@ -198,7 +464,7 @@ sol3 = solve(system3);
 
 # ╔═╡ 087ea16d-742e-4398-acf5-37248af1b5b4
 md"""
-## GridVisualize API extended to System
+### GridVisualize API extended to System
 Instead of a grid, a system can be passed to `gridplot` and `scalarplot`.
 """
 
@@ -207,7 +473,7 @@ scalarplot(system3, sol3, resolution = (300, 300), levels = 10, colormap = :hot)
 
 # ╔═╡ ac48f5bd-fd1e-4aa7-a2c9-90f0f427143c
 md"""
-## Parameters of `solve`
+### Parameters of `solve`
 """
 
 # ╔═╡ 69974c02-57e6-4eb5-acf4-b2d480fbd67d
@@ -253,7 +519,7 @@ html"""<hr><hr><hr>"""
 
 # ╔═╡ f50c6497-cba3-491a-bedd-5f94f88f76fb
 md"""
-# Appendix: Tests & Development
+## Appendix: Tests & Development
 """
 
 # ╔═╡ ad899a81-baab-4433-8b7f-1e5c3b18dae6
@@ -264,13 +530,9 @@ Furthermore, the cell activates a development environment if the notebook is loa
 
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
 if developing
-    msg = "Developing VoronoiFVM at  $(pathof(VoronoiFVM))"
-    println(msg)
-    md""" $(msg)"""
+    println("Developing VoronoiFVM at  $(pathof(VoronoiFVM))")
 else
-    msg = "Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"
-    println(msg)
-    md""" $(msg)"""
+    println("Loaded VoronoiFVM from  $(pathof(VoronoiFVM))")
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -278,6 +540,9 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
+ILUZero = "88f59080-6952-5380-9ea5-54057fb9a43f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 PlutoVista = "646e1f28-b900-46d7-9d87-d554eb38a413"
@@ -288,6 +553,8 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 [compat]
 ExtendableGrids = "~0.9.16"
 GridVisualize = "~0.6.3"
+ILUZero = "~0.2.0"
+LinearSolve = "~1.34.1"
 PlutoUI = "~0.7.49"
 PlutoVista = "~0.8.16"
 Revise = "~3.5.0"
@@ -300,7 +567,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "b2fdf58fb1ff3ec4b2b533acfed309e7d73c5ecc"
+project_hash = "ff64551fd0cf7d13f1b70fbefdc9cdb552b0e0ee"
 
 [[deps.AbstractAlgebra]]
 deps = ["GroupsCore", "InteractiveUtils", "LinearAlgebra", "MacroTools", "Markdown", "Random", "RandomExtensions", "SparseArrays", "Test"]
@@ -351,6 +618,12 @@ deps = ["LinearAlgebra", "SnoopPrecompile", "SparseArrays", "SuiteSparse"]
 git-tree-sha1 = "e5f08b5689b1aad068e01751889f2f615c7db36d"
 uuid = "30b0a656-2188-435a-8636-2ec0e6a096e2"
 version = "0.1.29"
+
+[[deps.ArrayInterfaceOffsetArrays]]
+deps = ["ArrayInterface", "OffsetArrays", "Static"]
+git-tree-sha1 = "3d1a9a01976971063b3930d1aed1d9c4af0817f8"
+uuid = "015c0d05-e682-4f19-8f0a-679ce4c54826"
+version = "0.1.7"
 
 [[deps.ArrayInterfaceStaticArrays]]
 deps = ["Adapt", "ArrayInterface", "ArrayInterfaceCore", "ArrayInterfaceStaticArraysCore", "LinearAlgebra", "Static", "StaticArrays"]
@@ -408,6 +681,18 @@ git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
 version = "0.1.7"
 
+[[deps.BitTwiddlingConvenienceFunctions]]
+deps = ["Static"]
+git-tree-sha1 = "0c5f81f47bbbcf4aea7b2959135713459170798b"
+uuid = "62783981-4cbd-42fc-bca8-16325de8dc4b"
+version = "0.1.5"
+
+[[deps.CPUSummary]]
+deps = ["CpuId", "IfElse", "Static"]
+git-tree-sha1 = "2c144ddb46b552f72d7eafe7cc2f50746e41ea21"
+uuid = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
+version = "0.2.2"
+
 [[deps.Calculus]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "f641eb0a4f00c343bbc32346e1217b86f3ce9dad"
@@ -425,6 +710,12 @@ deps = ["ChainRulesCore", "LinearAlgebra", "Test"]
 git-tree-sha1 = "844b061c104c408b24537482469400af6075aae4"
 uuid = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
 version = "0.1.5"
+
+[[deps.CloseOpenIntervals]]
+deps = ["ArrayInterface", "Static"]
+git-tree-sha1 = "d61300b9895f129f4bd684b2aff97cf319b6c493"
+uuid = "fb6a15b2-703c-40df-9091-08a04967cfa9"
+version = "0.1.11"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
@@ -510,6 +801,12 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "fb21ddd70a051d882a1686a5a550990bbe371a95"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 version = "1.4.1"
+
+[[deps.CpuId]]
+deps = ["Markdown"]
+git-tree-sha1 = "fcbb72b032692610bfbdb15018ac16a36cf2e406"
+uuid = "adafc99b-e345-5852-983c-f28acb93d879"
+version = "0.3.1"
 
 [[deps.DataAPI]]
 git-tree-sha1 = "e8119c1a33d267e16108be441a287a6981ba1630"
@@ -638,6 +935,12 @@ git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
 uuid = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
 version = "0.1.1"
 
+[[deps.FastLapackInterface]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "7fbaf9f73cd4c8561702ea9b16acf3f99d913fe4"
+uuid = "29a986be-02c6-4525-aec4-84b980013641"
+version = "1.2.8"
+
 [[deps.FileIO]]
 deps = ["Pkg", "Requires", "UUIDs"]
 git-tree-sha1 = "7be5f99f7d15578798f338f5433b6c432ea8037b"
@@ -751,6 +1054,12 @@ deps = ["Base64", "CodecZlib", "Dates", "IniFile", "Logging", "LoggingExtras", "
 git-tree-sha1 = "37e4657cd56b11abe3d10cd4a1ec5fbdb4180263"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "1.7.4"
+
+[[deps.HostCPUFeatures]]
+deps = ["BitTwiddlingConvenienceFunctions", "IfElse", "Libdl", "Static"]
+git-tree-sha1 = "734fd90dd2f920a2f1921d5388dcebe805b262dc"
+uuid = "3e5b6fbb-0976-4d2c-9146-d79de83f2fb0"
+version = "0.1.14"
 
 [[deps.HypergeometricFunctions]]
 deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions", "Test"]
@@ -868,11 +1177,23 @@ git-tree-sha1 = "72ab280d921e8a013a83e64709f66bc3e854b2ed"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
 version = "0.9.20"
 
+[[deps.KLU]]
+deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
+git-tree-sha1 = "764164ed65c30738750965d55652db9c94c59bfe"
+uuid = "ef3ab10e-7fda-4108-b977-705223b18434"
+version = "0.4.0"
+
 [[deps.Krylov]]
 deps = ["LinearAlgebra", "Printf", "SparseArrays"]
 git-tree-sha1 = "dd90aacbfb622f898a97c2a4411ac49101ebab8a"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
 version = "0.9.0"
+
+[[deps.KrylovKit]]
+deps = ["ChainRulesCore", "GPUArraysCore", "LinearAlgebra", "Printf"]
+git-tree-sha1 = "1a5e1d9941c783b0119897d29f2eb665d876ecf3"
+uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
+version = "0.6.0"
 
 [[deps.LaTeXStrings]]
 git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
@@ -895,6 +1216,12 @@ deps = ["Formatting", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdow
 git-tree-sha1 = "2422f47b34d4b127720a18f86fa7b1aa2e141f29"
 uuid = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
 version = "0.15.18"
+
+[[deps.LayoutPointers]]
+deps = ["ArrayInterface", "ArrayInterfaceOffsetArrays", "ArrayInterfaceStaticArrays", "LinearAlgebra", "ManualMemory", "SIMDTypes", "Static"]
+git-tree-sha1 = "0ad6f0c51ce004dadc24a28a0dfecfb568e52242"
+uuid = "10f19ff3-798f-405d-979b-55457f8fc047"
+version = "0.1.13"
 
 [[deps.LazilyInitializedFields]]
 git-tree-sha1 = "410fe4739a4b092f2ffe36fcb0dcc3ab12648ce1"
@@ -939,6 +1266,12 @@ version = "0.9.0"
 deps = ["Libdl", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
+[[deps.LinearSolve]]
+deps = ["ArrayInterfaceCore", "DocStringExtensions", "FastLapackInterface", "GPUArraysCore", "IterativeSolvers", "KLU", "Krylov", "KrylovKit", "LinearAlgebra", "Preferences", "RecursiveFactorization", "Reexport", "SciMLBase", "Setfield", "SnoopPrecompile", "SparseArrays", "Sparspak", "SuiteSparse", "UnPack"]
+git-tree-sha1 = "960da8a80f9882fb52a5a199e944d3b86f0d2b94"
+uuid = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
+version = "1.34.1"
+
 [[deps.LogExpFunctions]]
 deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
 git-tree-sha1 = "45b288af6956e67e621c5cbb2d75a261ab58300b"
@@ -953,6 +1286,12 @@ deps = ["Dates", "Logging"]
 git-tree-sha1 = "cedb76b37bc5a6c702ade66be44f831fa23c681e"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "1.0.0"
+
+[[deps.LoopVectorization]]
+deps = ["ArrayInterface", "ArrayInterfaceCore", "ArrayInterfaceOffsetArrays", "ArrayInterfaceStaticArrays", "CPUSummary", "ChainRulesCore", "CloseOpenIntervals", "DocStringExtensions", "ForwardDiff", "HostCPUFeatures", "IfElse", "LayoutPointers", "LinearAlgebra", "OffsetArrays", "PolyesterWeave", "SIMDDualNumbers", "SIMDTypes", "SLEEFPirates", "SnoopPrecompile", "SpecialFunctions", "Static", "ThreadingUtilities", "UnPack", "VectorizationBase"]
+git-tree-sha1 = "f127dff5c29692069c8ada8267864d252d417821"
+uuid = "bdcacae8-1622-11e9-2a5c-532679323890"
+version = "0.12.149"
 
 [[deps.LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
@@ -970,6 +1309,11 @@ deps = ["Markdown", "Random"]
 git-tree-sha1 = "42324d08725e200c23d4dfb549e0d5d89dede2d2"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 version = "0.5.10"
+
+[[deps.ManualMemory]]
+git-tree-sha1 = "bcaef4fc7a0cfe2cba636d84cda54b5e4e4ca3cd"
+uuid = "d125e4d3-2237-4719-b19c-fa641b8a4667"
+version = "0.1.8"
 
 [[deps.Markdown]]
 deps = ["Base64"]
@@ -1130,6 +1474,18 @@ git-tree-sha1 = "5af654ba1660641b3b80614a7be7eacae4c49875"
 uuid = "646e1f28-b900-46d7-9d87-d554eb38a413"
 version = "0.8.16"
 
+[[deps.Polyester]]
+deps = ["ArrayInterface", "BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "ManualMemory", "PolyesterWeave", "Requires", "Static", "StrideArraysCore", "ThreadingUtilities"]
+git-tree-sha1 = "e8e0fabcff4df8686c4267503887202a783d498e"
+uuid = "f517fe37-dbe3-4b94-8317-1923a5111588"
+version = "0.7.2"
+
+[[deps.PolyesterWeave]]
+deps = ["BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "Static", "ThreadingUtilities"]
+git-tree-sha1 = "240d7170f5ffdb285f9427b92333c3463bf65bf6"
+uuid = "1d0040c9-8b98-4ee7-8388-3f51789ca0ad"
+version = "0.2.1"
+
 [[deps.PreallocationTools]]
 deps = ["Adapt", "ArrayInterfaceCore", "ForwardDiff"]
 git-tree-sha1 = "758f3283aba57c53960c8e1900b4c724bf24ba74"
@@ -1189,6 +1545,12 @@ git-tree-sha1 = "f311e004143b4dc7c5492a2e9b9a1d945058fd8c"
 uuid = "731186ca-8d62-57ce-b412-fbd966d074cd"
 version = "2.36.0"
 
+[[deps.RecursiveFactorization]]
+deps = ["LinearAlgebra", "LoopVectorization", "Polyester", "SnoopPrecompile", "StrideArraysCore", "TriangularSolve"]
+git-tree-sha1 = "315b2c85818eea6ad1b6b84fd4ecb40cd4146665"
+uuid = "f2c3362d-daeb-58d1-803e-2bc74f2840b4"
+version = "0.2.17"
+
 [[deps.Reexport]]
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
@@ -1245,6 +1607,23 @@ version = "0.5.5"
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
+
+[[deps.SIMDDualNumbers]]
+deps = ["ForwardDiff", "IfElse", "SLEEFPirates", "VectorizationBase"]
+git-tree-sha1 = "dd4195d308df24f33fb10dde7c22103ba88887fa"
+uuid = "3cdde19b-5bb0-4aaf-8931-af3e248e098b"
+version = "0.1.1"
+
+[[deps.SIMDTypes]]
+git-tree-sha1 = "330289636fb8107c5f32088d2741e9fd7a061a5c"
+uuid = "94e857df-77ce-4151-89e5-788b33177be4"
+version = "0.1.0"
+
+[[deps.SLEEFPirates]]
+deps = ["IfElse", "Static", "VectorizationBase"]
+git-tree-sha1 = "cda0aece8080e992f6370491b08ef3909d1c04e7"
+uuid = "476501e8-09a2-5ece-8869-fb82de89a1fa"
+version = "0.6.38"
 
 [[deps.SciMLBase]]
 deps = ["ArrayInterfaceCore", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "Preferences", "RecipesBase", "RecursiveArrayTools", "RuntimeGeneratedFunctions", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
@@ -1364,6 +1743,12 @@ git-tree-sha1 = "ab6083f09b3e617e34a956b43e9d51b824206932"
 uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 version = "1.1.1"
 
+[[deps.StrideArraysCore]]
+deps = ["ArrayInterface", "CloseOpenIntervals", "IfElse", "LayoutPointers", "ManualMemory", "SIMDTypes", "Static", "ThreadingUtilities"]
+git-tree-sha1 = "45190b743cdc6f761da1e079bb15ff103a89069c"
+uuid = "7792a7ef-975c-4747-a70f-980b88e8d1da"
+version = "0.4.6"
+
 [[deps.StructArrays]]
 deps = ["Adapt", "DataAPI", "GPUArraysCore", "StaticArraysCore", "Tables"]
 git-tree-sha1 = "b03a3b745aa49b566f128977a7dd1be8711c5e71"
@@ -1373,6 +1758,11 @@ version = "0.6.14"
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
 uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
+
+[[deps.SuiteSparse_jll]]
+deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
+uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version = "5.10.1+0"
 
 [[deps.SymbolicIndexingInterface]]
 deps = ["DocStringExtensions"]
@@ -1429,6 +1819,12 @@ version = "0.2.3"
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
+[[deps.ThreadingUtilities]]
+deps = ["ManualMemory"]
+git-tree-sha1 = "c97f60dd4f2331e1a495527f80d242501d2f9865"
+uuid = "8290d209-cae3-49c0-8002-c8c24d57dab5"
+version = "0.5.1"
+
 [[deps.ThreadsX]]
 deps = ["ArgCheck", "BangBang", "ConstructionBase", "InitialValues", "MicroCollections", "Referenceables", "Setfield", "SplittablesBase", "Transducers"]
 git-tree-sha1 = "34e6bcf36b9ed5d56489600cf9f3c16843fa2aa2"
@@ -1459,6 +1855,12 @@ git-tree-sha1 = "8d0d7a3fe2f30d6a7f833a5f19f7c7a5b396eae6"
 uuid = "a2a6695c-b41b-5b7d-aed9-dbfdeacea5d7"
 version = "0.3.0"
 
+[[deps.TriangularSolve]]
+deps = ["CloseOpenIntervals", "IfElse", "LayoutPointers", "LinearAlgebra", "LoopVectorization", "Polyester", "Static", "VectorizationBase"]
+git-tree-sha1 = "31eedbc0b6d07c08a700e26d31298ac27ef330eb"
+uuid = "d5829a12-d9aa-46ab-831f-fb7c9ab06edf"
+version = "0.1.19"
+
 [[deps.Tricks]]
 git-tree-sha1 = "6bac775f2d42a611cdfcd1fb217ee719630c4175"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
@@ -1480,6 +1882,12 @@ version = "1.0.2"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[deps.VectorizationBase]]
+deps = ["ArrayInterface", "CPUSummary", "HostCPUFeatures", "IfElse", "LayoutPointers", "Libdl", "LinearAlgebra", "SIMDTypes", "Static"]
+git-tree-sha1 = "4c59c2df8d2676c4691a39fa70495a6db0c5d290"
+uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
+version = "0.21.58"
 
 [[deps.VertexSafeGraphs]]
 deps = ["Graphs"]
@@ -1535,8 +1943,57 @@ version = "17.4.0+0"
 # ╔═╡ Cell order:
 # ╟─4ed0c302-26e4-468a-a40d-0e6406f802d0
 # ╟─3e6b4ffa-7b33-4b94-9fd6-75b030d5a115
-# ╟─7a104243-d3b9-421a-b494-5607c494b106
+# ╠═7a104243-d3b9-421a-b494-5607c494b106
 # ╠═b285aca3-dee5-4b77-9276-537563e8643b
+# ╟─a2f1e6ba-80b2-4902-9c5d-2806a7fb16f6
+# ╟─56976316-ca4f-4d5c-b303-026edd8751c2
+# ╟─740dd980-ca12-4f51-88b2-408930704952
+# ╟─db216ebf-1869-4b0f-8dbd-2a8a244c3e4c
+# ╠═9eae0139-379d-47ce-a8d2-932c68504317
+# ╠═8a31ed03-9cd8-4532-9fb9-8c060f777693
+# ╟─4279ae2e-a948-4358-9037-0c6895ecb809
+# ╠═58cf3e44-ee53-42f7-9132-eacfd900dc3a
+# ╟─b499a195-f06d-400f-9407-b07c3212c095
+# ╠═f660fc6e-0ab5-4fae-918f-39bf0c2153e5
+# ╟─13f284e8-4fe9-42ce-873a-c65febc7d7df
+# ╟─c53cb54f-6099-4d09-9797-3da1f5428586
+# ╟─2cebb072-bef1-4bce-9cbb-6b43b877b28b
+# ╟─7b0f2021-a2fd-4bb2-a23a-432f61a38a07
+# ╟─182a9a9f-3f2c-4df3-abad-08488bb9fb33
+# ╟─381c464e-a0cc-46ea-b0ba-089250c31555
+# ╟─ba4b8b92-617a-40b4-b3c9-1367067027fa
+# ╠═00634dc4-e9c7-4165-a9ac-f3ffc8007e76
+# ╠═d6c88c3e-6b8a-45e9-9344-71f0de3fff51
+# ╟─cb2d42c4-8d5d-465c-9376-f568588ab453
+# ╠═5908ae1d-b3b5-4681-a0b8-080f052af40f
+# ╠═22c3cecc-12d2-4f7d-8a53-894a5ea513f0
+# ╟─3107c644-5f43-4322-aad2-04a2ab0d576e
+# ╟─7e94ff44-4807-41b0-875d-526390903942
+# ╠═b70524fc-b8b1-4dee-b77d-e3f8d6d2837b
+# ╠═d21d3236-b3d7-4cf8-ab9d-b0be44c9970b
+# ╟─f935061c-71db-4aaf-864b-bb566e68643e
+# ╠═4c7f8bbf-40c4-45b9-a62e-99ffaae30af1
+# ╠═4fa1c608-19b2-4eaa-8c0a-5881b373807c
+# ╟─023ae612-6bef-4b0d-8d04-5c0461efbc18
+# ╠═6895cdf9-8291-47ce-bd1d-4c5beec594ea
+# ╠═d341f60e-191d-4cf9-9df9-fbe25c84a7da
+# ╟─3bca80f4-ec88-41e8-829a-278071442d41
+# ╟─c2c3088a-6c6e-492e-957b-c5d20fec4244
+# ╟─ba6b0e35-75ce-4540-861c-7654fd4dee63
+# ╠═d1440945-54ac-4c12-9f34-0db1c7dfac11
+# ╠═2ff77259-7a81-4c54-a291-cbc20ee56c5d
+# ╠═b0a845d7-95d7-4212-9620-e1948698c596
+# ╠═2a85a42c-1a79-425f-8887-71e2944cb0f3
+# ╟─1370a5dc-c434-423f-a0fa-b25f0f2878f9
+# ╠═62f605a0-6d5c-4ce2-a131-9ab7b6188d23
+# ╟─2b58318c-8e21-4f9a-97df-ff4af50c94b2
+# ╠═05381762-d8f8-46d2-8eb2-68275458787a
+# ╟─f752f390-c98e-4832-b186-f484ebe5a4cb
+# ╠═0e8bbe4c-66d8-4545-8196-c7d8d9e30bfd
+# ╠═c40f1954-4fb7-48b2-ab4c-cdf6459b7383
+# ╠═cec5152b-0597-4ea4-8387-b08e1e4ffcde
+# ╠═76c6ee48-8061-4ba0-b61e-0e6b68ad6435
+# ╟─d4ee4693-8ecd-4916-a722-79f54eb99d42
 # ╟─8a4f336c-2016-453e-9a9f-beac66533fc0
 # ╟─78e7c000-3a83-446a-b577-3a1809c664d2
 # ╠═c59876bd-0cb1-4157-9ba4-bdbede151a44

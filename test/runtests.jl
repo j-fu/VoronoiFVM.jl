@@ -90,7 +90,6 @@ function run_all_tests()
                "problemcase.jl"
                ]
 
-
     @testset "basictest" begin
         run_tests_from_directory(@__DIR__,"test_")
     end
@@ -109,10 +108,8 @@ function run_all_tests()
     @testset "Misc Examples" begin
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
-    
 
     if VERSION>=v"1.8" && VERSION<v"1.9"
-        ENV["VORONOIFVM_CI"]="true"
         @testset "notebooks" begin
             for notebook in notebooks
                 @info "notebook $(notebook):"

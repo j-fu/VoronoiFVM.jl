@@ -30,8 +30,8 @@ function make_all(; with_examples = true, run_notebooks = true)
         # Run notebooks
         #
         notebooks = [
+            "API Updates" => "api-update.jl",
             "Nonlinear solver control" => "nonlinear-solvers.jl",
-            "0.14.0 API Update" => "api-update.jl",
             "Obtaining vector fields" => "flux-reconstruction.jl",
             "A case for caution" => "problemcase.jl",
         ]
