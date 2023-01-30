@@ -25,6 +25,7 @@ VoronoiFVM.System(X::AbstractVector; kwargs...)
 VoronoiFVM.System(X::AbstractVector,Y::AbstractVector; kwargs...)
 VoronoiFVM.System(X::AbstractVector,Y::AbstractVector,Z::AbstractVector; kwargs...)
 update_grid!
+physics!
 ```
 
 ## Adding species by species numbers
@@ -100,15 +101,6 @@ Remedy: rename e.g. `u=solve()` to `sol=solve()`
 
 
 ## Various tools
-
-```@docs
-physics!
-```
-
-```@docs
-check_allocs!
-```
-
 
 ```@docs
 num_dof

@@ -75,7 +75,7 @@ function make_all(; with_examples = true, run_notebooks = true)
                        this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
 
                        ```@raw html
-                       <iframe style="height:15000px" width="100%" src="../$(base).html"> </iframe>
+                       <iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
                        ```
                        """
             mdname = base * ".md"
