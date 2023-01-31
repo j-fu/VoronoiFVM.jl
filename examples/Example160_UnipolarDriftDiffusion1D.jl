@@ -110,14 +110,14 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
 
     if !dlcap
         ## Create solver control info for constant time step size
-        tstep = 1.0e-4
+        tstep = 1.0e-5
         control = VoronoiFVM.NewtonControl()
-        control.verbose = verbose
+        control.verbose = "en"
         control.Δt_min = tstep
         control.Δt = tstep
         control.Δt_grow = 1.1
         control.Δt_max = 0.1
-        control.Δu_opt = 100
+        control.Δu_opt = 0.1
         control.damp_initial = 0.5
 
         tsol = solve(sys; method_linear=UMFPACKFactorization(), inival, times = [0.0, 10], control = control)
