@@ -87,8 +87,6 @@ include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
 export Identity
 
-
-
 include("vfvm_solver.jl")
 export evolve!
 export embed!

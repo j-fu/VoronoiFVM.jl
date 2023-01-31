@@ -250,7 +250,6 @@ function System(grid::ExtendableGrid;
     system.history = nothing
     system.num_parameters = nparams
 
-
     physics!(system; kwargs...)
     enable_species!(system; species)
     return system
@@ -317,8 +316,6 @@ function physics!(system; kwargs...)
 
     physics!(system, Physics(; kwdict...))
 end
-
-
 
 ##################################################################
 

@@ -40,7 +40,6 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = showstruct(io, this)
 
-
 #
 # Dummy callbacks
 #
@@ -174,7 +173,6 @@ end
 
 isdata(::Nothing) = false
 isdata(::Any) = true
-
 
 """
 ````
