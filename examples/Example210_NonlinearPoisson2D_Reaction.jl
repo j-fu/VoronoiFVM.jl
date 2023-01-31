@@ -49,13 +49,10 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     enable_species!(sys, 2, [1])
 
     inival = unknowns(sys)
-    U = unknowns(sys)
     inival .= 0.0
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
-    control.tol_linear = 1.0e-5
-    control.max_lureuse = 0
     tstep = 0.01
     time = 0.0
     istep = 0
@@ -63,7 +60,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1))
     while time < 1
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
+        U = solve(sys; inival, control, tstep)
         inival .= U
         if verbose
             @printf("time=%g\n", time)

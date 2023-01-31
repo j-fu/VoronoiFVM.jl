@@ -52,16 +52,13 @@ function main(; nref = 0, Plotter = nothing, D = 0.01, v = 1.0, tend = 100, cin 
 
     boundary_dirichlet!(sys, ispec, 4, cin)
 
-    ## Create a solution array
-    inival = unknowns(sys; inival = 0)
-
     ## Transient solution of the problem
     control = VoronoiFVM.NewtonControl()
     control.Δt = 0.01 * 2.0^(-nref)
     control.Δt_min = 0.01 * 2.0^(-nref)
     control.Δt_max = 0.1 * tend
     control.force_first_step = true
-    tsol = solve(inival, sys, [0, tend]; control = control)
+    tsol = solve(sys; inival = 0, times = [0, tend], control = control)
 
     vis = GridVisualizer(; Plotter = Plotter)
     for i = 1:length(tsol.t)

@@ -10,6 +10,9 @@ VoronoiFVM.jl
 Solver for coupled nonlinear partial differential equations (elliptic-parabolic conservation laws) based on the Voronoi finite volume method.
 It uses automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) and [DiffResults.jl](https://github.com/JuliaDiff/DiffResults.jl) to evaluate user functions along with their jacobians and calculate derivatives of solutions with respect to their parameters.
 
+## Recent changes
+Please look up the list of recent [changes](https://j-fu.github.io/VoronoiFVM.jl/stable/changes) for some breaking changes
+
 ## Accompanying packages
 - [VoronoiFVMDiffEq.jl](https://github.com/j-fu/VoronoiFVMDiffEq.jl): Glue package for using VoronoiFVM with DifferentialEquations.jl
 - [ExtendableSparse.jl](https://github.com/j-fu/ExtendableSparse.jl): convenient and efficient sparse matrix assembly
@@ -28,6 +31,7 @@ It uses automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaD
 - [GridAP.jl](https://github.com/gridap/Gridap.jl) Grid-based approximation of partial differential equations in Julia
 - [Ferrite.jl](https://github.com/Ferrite-FEM/Ferrite.jl) Finite element toolbox for Julia
 - [FinEtools.jl](https://github.com/PetrKryslUCSD/FinEtools.jl)  Finite element tools for Julia
-## [Changes](https://j-fu.github.io/VoronoiFVM.jl/stable/changes)
+
+## Citation
 
 If you use this package in your work, please cite it according to [CITATION.bib](https://raw.githubusercontent.com/j-fu/VoronoiFVM.jl/master/CITATION.bib)

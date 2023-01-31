@@ -83,12 +83,10 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse)
     subgrids = VoronoiFVM.subgrids(dspec, sysQ)
 
     # solve
-    inivalQ = unknowns(sysQ)
-    inival = unknowns(sys)
     UQ = unknowns(sysQ)
     U = unknowns(sys)
-    inivalQ .= 0.0
-    inival .= 0.0
+    UQ .= 0.0
+    U .= 0.0
     biasval = range(0; stop = 2.0, length = 5)
 
     Icspec = zeros(length(biasval))
@@ -102,8 +100,7 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse)
             boundary_dirichlet!(sysQ, dspec, 2, Δu)
             boundary_dirichlet!(sysQ, cspec, 2, Δu)
 
-            solve!(UQ, inivalQ, sysQ)
-            inivalQ .= UQ
+            UQ = solve(sysQ; inival = UQ)
 
             ## get current
             factoryQ = TestFunctionFactory(sysQ)
@@ -120,8 +117,7 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse)
             # second problem
             boundary_dirichlet!(sys, icc, 2, Δu)
 
-            solve!(U, inival, sys)
-            inival .= U
+            U = solve(sys; inival = U)
 
             factory = TestFunctionFactory(sys)
             tf = testfunction(factory, [1], [2])
@@ -158,9 +154,6 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse)
 
         reveal(vis)
         sleep(0.2)
-
-        inival .= 0.0
-        inivalQ .= 0.0
     end # rate loop
 
     errorIV = norm(Idspec - Icspec, 2)

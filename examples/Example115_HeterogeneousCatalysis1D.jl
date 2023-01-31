@@ -156,7 +156,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     p = GridVisualizer(; Plotter = Plotter, layout = (3, 1))
 
     control = fixed_timesteps!(VoronoiFVM.NewtonControl(), tstep)
-    tsol = solve(inival, sys, [0, tend]; control = control)
+    tsol = solve(sys; inival, times = [0, tend], control)
 
     p = GridVisualizer(; Plotter = Plotter, layout = (3, 1), fast = true)
     for it = 1:length(tsol)

@@ -72,9 +72,8 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
     boundary_dirichlet!(sys, 1, 2, 0.0)
 
     ## Create a solution array
-    inival = unknowns(sys)
     U = unknowns(sys)
-    inival .= 0
+    U .= 0
 
     ## Create solver control info
     control = VoronoiFVM.NewtonControl()
@@ -90,7 +89,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
             ## Charge as boundary condition
             sys.boundary_values[1, 3] = q
         end
-        solve!(U, inival, sys; control = control)
+        U = solve(sys; inival = U, control)
 
         ## Plot data
 

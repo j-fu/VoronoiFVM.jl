@@ -40,8 +40,6 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = showstruct(io, this)
 
-isdata(::Nothing) = false
-isdata(::Any) = true
 
 #
 # Dummy callbacks
@@ -173,6 +171,11 @@ struct Physics{Flux <: Function,
 end
 
 ##########################################################
+
+isdata(::Nothing) = false
+isdata(::Any) = true
+
+
 """
 ````
 Physics(;num_species=0,

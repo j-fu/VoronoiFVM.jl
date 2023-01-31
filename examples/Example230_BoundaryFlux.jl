@@ -77,15 +77,8 @@ function main(; n = 2 * 10, # n musst be an even number
     # enable species in only region 
     enable_species!(sys_1D, ispec_1D, [bulk_1D])
 
-    inival_1D = unknowns(sys_1D)
-    inival_1D .= 0.0
-    sol_1D = unknowns(sys_1D)
-
-    ## Create solver control info
-    control = VoronoiFVM.NewtonControl()
-
     ## Stationary solution of both problems
-    solve!(sol_1D, inival_1D, sys_1D; control = control)
+    sol_1D = solve(sys_1D; inival = 0)
 
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1), clear = true,
                        resolution = (800, 500))
@@ -164,11 +157,7 @@ function main(; n = 2 * 10, # n musst be an even number
     enable_species!(sys_2D, ispec_2D, [bulk_2D])
     enable_boundary_species!(sys_2D, ispec_boundary, [active_boundary])
 
-    inival_2D = unknowns(sys_2D)
-    inival_2D .= 0.0
-    sol_2D = unknowns(sys_2D)
-
-    solve!(sol_2D, inival_2D, sys_2D; control = control)
+    sol_2D = solve(sys_2D; inival = 0)
 
     # this is for variable transformation, since we consider right outer boundary and want to transform to x-axis.
     function tran32!(a, b)

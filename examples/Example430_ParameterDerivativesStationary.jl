@@ -13,6 +13,7 @@ using GridVisualize
 using ExtendableSparse
 using ForwardDiff, DiffResults
 using SparseDiffTools, SparseArrays
+using ILUZero, LinearSolve
 
 """
     f(P)
@@ -45,7 +46,6 @@ function f(P; n = 10)
                             bcondition = bc!)
     tff = VoronoiFVM.TestFunctionFactory(sys)
     tfc = testfunction(tff, [1], [3])
-    inival = unknowns(sys)
     sol = solve(sys; inival = 0.5)
     [integrate(sys, tfc, sol)[1]]
 end
@@ -95,7 +95,7 @@ end
 
 Same as runf, but keep one system pass parameters via data.
 """
-function rung(; Plotter = nothing, iteration = :cg, factorization = :default, n = 10)
+function rung(; Plotter = nothing, method_linear = SparspakFactorization(), n = 10)
     X = collect(0:(1.0 / n):1)
     grid = VoronoiFVM.Grid(X, X)
 
@@ -116,7 +116,7 @@ function rung(; Plotter = nothing, iteration = :cg, factorization = :default, n 
             tfc = testfunction(tff, [1], [3])
         end
         data.p = P[1]
-        sol = solve(sys; inival = 0.5, factorization, iteration)
+        sol = solve(sys; inival = 0.5, method_linear, precon_linear = ILUZero.ilu0)
         [integrate(sys, tfc, sol)[1]]
     end
 
@@ -164,7 +164,7 @@ main assembly loop.
 This needs quite a bit of additional implementation + corresponding API and still lacks local assembly of the 
 measurement derivative (when using testfunction based calculation) when calculating current.
 """
-function runh(; Plotter = nothing, iteration = :cg, factorization = :default, n = 10)
+function runh(; Plotter = nothing, n = 10)
     X = collect(0:(1.0 / n):1)
     grid = VoronoiFVM.Grid(X, X)
 
@@ -189,7 +189,7 @@ function runh(; Plotter = nothing, iteration = :cg, factorization = :default, n 
 
     dp = 0.05
     P = 0.1:dp:2
-    U0 = solve(sys; inival = 0.5, factorization, iteration, params = [P[1]])
+    U0 = solve(sys; inival = 0.5, params = [P[1]])
 
     ndof = num_dof(sys)
     colptr = [i for i = 1:(ndof + 1)]
@@ -202,9 +202,10 @@ function runh(; Plotter = nothing, iteration = :cg, factorization = :default, n 
     DH = zeros(0)
     DHx = zeros(0)
     m = zeros(1)
+
     @time for p ∈ P
         params[1] = p
-        sol = solve(sys; inival = 0.5, factorization, iteration, params)
+        sol = solve(sys; inival = 0.5, params)
         mymeas!(m, sol)
         push!(H, m[1])
 
@@ -230,10 +231,10 @@ function test()
     xf = runf()
     xg = rung()
     xh = runh()
-    xg2 = rung(; factorization = :ilu0, iteration = :cg)
+    #    xg2 = rung(; factorization = :ilu0, iteration = :cg)
     xf ≈ testval &&
         xg ≈ testval &&
-        xg2 ≈ testval &&
+        #       xg2 ≈ testval &&
         xh ≈ testval
 end
 

@@ -58,9 +58,8 @@ function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :
     boundary_dirichlet!(sys, 2, 1, 1.0)
     boundary_dirichlet!(sys, 2, 2, 0.0)
 
-    inival = unknowns(sys)
     U = unknowns(sys)
-    inival .= 0
+    U .= 0
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
@@ -69,8 +68,7 @@ function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1))
     for xeps in [1.0, 0.5, 0.25, 0.1, 0.05, 0.025, 0.01]
         eps = [xeps, xeps]
-        solve!(U, inival, sys; control = control)
-        inival .= U
+        U = solve(sys; inival = U, control)
         scalarplot!(p[1, 1], grid, U[1, :]; clear = true, title = "U1, eps=$(xeps)")
         scalarplot!(p[2, 1], grid, U[2, :]; clear = true, title = "U2, eps=$(xeps)",
                     reveal = true)

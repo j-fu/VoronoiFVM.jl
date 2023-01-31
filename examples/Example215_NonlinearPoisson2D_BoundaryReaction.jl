@@ -10,8 +10,7 @@ using GridVisualize
 using ExtendableSparse
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
-              tend = 100, max_lureuse = 0,
-              factorization = LUFactorization())
+              tend = 100, max_lureuse = 0)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
@@ -40,15 +39,13 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     enable_species!(sys, 2, [1])
 
     inival = unknowns(sys)
-    U = unknowns(sys)
     inival[1, :] .= map((x, y) -> exp(-5.0 * ((x - 0.5)^2 + (y - 0.5)^2)), grid)
     inival[2, :] .= 0
 
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
-    control.tol_linear = 1.0e-5
+    control.reltol_linear = 1.0e-5
     control.max_lureuse = max_lureuse
-    control.factorization = factorization
 
     tstep = 0.01
     time = 0.0
@@ -58,7 +55,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1))
     while time < tend
         time = time + tstep
-        solve!(U, inival, sys; control = control, tstep = tstep)
+        U = solve(sys; inival, control, tstep)
         inival .= U
         if verbose
             @printf("time=%g\n", time)

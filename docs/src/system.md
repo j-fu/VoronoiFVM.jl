@@ -25,6 +25,7 @@ VoronoiFVM.System(X::AbstractVector; kwargs...)
 VoronoiFVM.System(X::AbstractVector,Y::AbstractVector; kwargs...)
 VoronoiFVM.System(X::AbstractVector,Y::AbstractVector,Z::AbstractVector; kwargs...)
 update_grid!
+physics!
 ```
 
 ## Adding species by species numbers
@@ -49,16 +50,57 @@ boundary_robin!(y,u,bnode;kwargs...)
 ramp
 ```
 
+## Allocation warnings
+
+The code checks for allocations in the assembly loop. 
+Care has been taken to ensure that allocations in the assembly loop don't emerge
+from VoronoiFVM.jl code.
+
+If allocations occur in the assembly  loop, they happen in the physics
+callbacks.  The corresponding warnings can bee switched off by passing
+a  verbosity strings  without  'a'  to the  solver.   If  no data  are
+allocated in the physics callbacks, these allocations are probably due to 
+type instabilities in physics callbacks, see the the discussion
+[here](../runexamples/#Performance-with-closures).  Type instabilities
+can be debugged via the `@time`  macro applied to expressions in a
+physics callback.
+
+The following  cases provide some ideas  where to look for  reasons of
+the problem and possible remedies:
+
+Case 1: a parameter changes its value, and Julia is not sure about the type.
+```julia
+eps=1.0
+
+flux(f,_u,edge)
+    u=unkowns(edge,_u)
+    f[1]=eps*(u[1,1]-[1,2])
+end
+... solve etc ...
+eps=2.0
+```
+Remedy: use a type annotation `eps::Float64=...` to signalize your intent to Julia.
+This behaviour is explained in the [Julia documentation](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured).
+
+
+
+Case 2: variables in the closure have the same name as a variable
+introduced in a callback.
+```julia
+flux(f,_u,edge)
+    u=unkowns(edge,_u)
+    f[1]=(u[1,1]-[1,2])
+end
+
+... create etc ...
+
+u=solve(...)
+```
+Remedy: rename e.g. `u=solve()` to `sol=solve()`
+
+
+
 ## Various tools
-
-```@docs
-physics!
-```
-
-```@docs
-check_allocs!
-```
-
 
 ```@docs
 num_dof

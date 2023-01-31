@@ -56,9 +56,9 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
                   BandedMatrix{Tv}}
 
     """
-    Matrix factorization
+    Linear problem
     """
-    factorization::Union{Nothing, ExtendableSparse.AbstractFactorization{Tv, Tm}}
+    linear_cache::Union{Nothing, LinearSolve.LinearCache}
 
     """
     Flag which says if the number of unknowns per node is constant
@@ -126,11 +126,6 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     uhash::UInt64
 
     """
-    Data for allocation check
-    """
-    allocs::Int
-
-    """
     History record for last solution process
     """
     history::Any
@@ -155,8 +150,6 @@ Type alias for system with sparse matrix based species management
 
 """
 const SparseSystem = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}, SparseSolutionArray{Tv, Ti}} where {Tv, Tc, Ti, Tm}
-
-default_check_allocs() = haskey(ENV, "VORONOIFVM_CHECK_ALLOCS") ? parse(Bool, ENV["VORONOIFVM_CHECK_ALLOCS"]) : false
 
 ##################################################################
 """
@@ -227,7 +220,6 @@ function System(grid::ExtendableGrid;
                 unknown_storage = :dense,
                 matrixindextype = Int64,
                 matrixtype = :sparse,
-                check_allocs = default_check_allocs(),
                 nparams = 0,
                 kwargs...)
     Tv = valuetype
@@ -254,12 +246,10 @@ function System(grid::ExtendableGrid;
     system.num_quantities = 0
     system.uhash = 0x0
     system.matrixtype = matrixtype
-    system.allocs = -1000
-    system.factorization = nothing
+    system.linear_cache = nothing
     system.history = nothing
     system.num_parameters = nparams
 
-    check_allocs!(system, check_allocs)
 
     physics!(system; kwargs...)
     enable_species!(system; species)
@@ -328,84 +318,7 @@ function physics!(system; kwargs...)
     physics!(system, Physics(; kwdict...))
 end
 
-###################################################################################################
-# Test if allocated is zero and if allocation check is enabled
-# However we need to be aware that @allocated reports allocations
-# during the compilation phase. So we need to wait for at least
-# one run of the system in order enact the checking.
-function _check_allocs(system, allocated)
-    if system.allocs >= 0 # we had a couple of runs before to bridge the compilation phase
-        system.allocs = allocated
-        return system.allocs == 0
-    elseif system.allocs > -100 # probably still in compiling phase
-        system.allocs = system.allocs + 1
-        return true
-    else
-        # otherwise, checking has been switched off.
-        return true
-    end
-end
 
-"""
-```
-check_allocs!(system,true_or_false)
-```
-
-Enable/disable checking for time-consuming allocations in the assembly loop. 
-By default,  this check  is switched off.  By setting  the environment
-variable `ENV["VORONOIFVM_CHECK_ALLOCS"]="true"`, this  default can be
-changed.
-
-Unless  the   matrix  pattern  changes,  there   shouldn't  occur  any
-allocations in this loop. The check  method is aware of matrix pattern
-changes. As a consequence, allocations in the assembly loop are mostly
-due to type instabilities in physics callbacks, see the the discussion
-[here](../runexamples/#Performance-with-closures).  Type instabilities
-can be debugged via the `@time`  macro applied to expressions in a
-physics callback.
-
-The following  cases provide some ideas  where to look for  reasons of
-the problem and possible remedies:
-
-Case 1: a parameter changes its value, and Julia is not sure about the type.
-```julia
-eps=1.0
-
-flux(f,_u,edge)
-    u=unkowns(edge,_u)
-    f[1]=eps*(u[1,1]-[1,2])
-end
-... solve etc ...
-eps=2.0
-```
-Remedy: use a type annotation `eps::Float64=...` to signalize your intent to Julia.
-This behaviour is explained in the [Julia documentation](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured).
-
-
-
-Case 2: variables in the closure have the same name as a variable
-introduced in a callback.
-```julia
-flux(f,_u,edge)
-    u=unkowns(edge,_u)
-    f[1]=(u[1,1]-[1,2])
-end
-
-... create etc ...
-
-u=solve(...)
-```
-Remedy: rename e.g. `u=solve()` to `sol=solve()`
-
-"""
-function check_allocs!(system::AbstractSystem, chk::Bool)
-    if chk
-        system.allocs = -2
-    else
-        system.allocs = -1000
-    end
-    system
-end
 
 ##################################################################
 
@@ -761,7 +674,7 @@ function firstnodedof end
 
 Get last  degree of freedom associated with node.
 """
-function firstnodedof end
+function lastnodedof end
 
 """
     getspecies(system,idof)
@@ -1429,8 +1342,8 @@ function System(grid::ExtendableGrid, physics::Physics;
                 indextype = index_type(grid),
                 unknown_storage = :dense,
                 matrixindextype = Int64,
-                check_allocs = default_check_allocs(), kwargs...)
-    system = System(grid; valuetype, indextype, unknown_storage, matrixindextype, check_allocs, kwargs...)
+                kwargs...)
+    system = System(grid; valuetype, indextype, unknown_storage, matrixindextype, kwargs...)
     physics!(system, physics)
 end
 

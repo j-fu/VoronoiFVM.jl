@@ -48,9 +48,8 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     system = VoronoiFVM.System(grid, physics)
     enable_species!(system, 1, [1])
     boundary_dirichlet!(system, 1, Γ_where_T_equal_0[1], 1.0)
-    inival = unknowns(system; inival = 0.0)
 
-    U = solve(inival, system)
+    U = solve(system; inival = 0)
 
     tf = TestFunctionFactory(system)
     T = testfunction(tf, Γ_where_T_equal_0, Γ_where_T_equal_1)

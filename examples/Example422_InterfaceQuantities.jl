@@ -167,10 +167,8 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
     ################################################################################
 
     ## Create a solution array
-    inival = unknowns(sys)
-    inival .= 0.0
     sol = unknowns(sys)
-
+    sol .= 0.0
     t0 = 1.0e-6
     ntsteps = 10
     tvalues = range(t0; stop = tend, length = ntsteps)
@@ -181,8 +179,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
 
         #println("Δt = ", t)
 
-        solve!(sol, inival, sys; tstep = Δt)
-        inival .= sol
+        sol = solve(sys; inival = sol, tstep = Δt)
     end # time loop
 
     ################################################################################
@@ -198,8 +195,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
 
         #println("Δu = ", Δu)
 
-        solve!(sol, inival, sys)
-        inival .= sol
+        sol = solve(sys; inival = sol)
 
         ## get current
         factory = TestFunctionFactory(sys)

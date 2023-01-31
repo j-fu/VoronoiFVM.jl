@@ -8,20 +8,17 @@ using Printf
 using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
-
-if VERSION <= v"1.8"
-    using SuiteSparse
-end
+using CommonSolve
 
 using BandedMatrices
 # using MultidiagonalMatrices
 
-using Parameters
+using LinearSolve
+using LinearSolve: Identity
 using Statistics
 
 using ForwardDiff
 using DiffResults
-using Krylov, IterativeSolvers
 using JLD2
 using RecursiveArrayTools
 
@@ -77,6 +74,8 @@ export check_allocs!
 export physics!
 export history, history_summary, history_details
 export evaluate_residual_and_jacobian
+export edgelength
+export viewK, viewL, data
 
 include("vfvm_formfactors.jl")
 export meas, project
@@ -86,8 +85,9 @@ export time, region, embedparam, parameters
 
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
-export edgelength
-export viewK, viewL, data
+export Identity
+
+
 
 include("vfvm_solver.jl")
 export evolve!

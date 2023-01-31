@@ -83,8 +83,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
     boundary_dirichlet!(sys, excited_spec, excited_bc, excited_bcval)
     boundary_dirichlet!(sys, excited_spec, meas_bc, 0.0)
 
-    inival = unknowns(sys; inival = 0.0)
-    steadystate = solve(inival, sys)
+    steadystate = solve(sys)
 
     function meas_stdy(meas, U)
         u = reshape(U, sys)
