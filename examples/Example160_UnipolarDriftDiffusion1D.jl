@@ -112,7 +112,7 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
         ## Create solver control info for constant time step size
         tstep = 1.0e-5
         control = VoronoiFVM.NewtonControl()
-        control.verbose = "en"
+        control.verbose = false
         control.Δt_min = tstep
         control.Δt = tstep
         control.Δt_grow = 1.1
@@ -144,7 +144,7 @@ function main(; n = 20, Plotter = nothing, dlcap = false, verbose = false,
         @views inival[ic, :] .= 0.5
         sys.boundary_values[iphi, 1] = 0
 
-        dphi = 1.0e-1
+        dphi = 1.0e-2
         phimax = 5
         delta = 1.0e-4
         vplus = zeros(0)
