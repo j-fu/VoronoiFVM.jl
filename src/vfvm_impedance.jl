@@ -210,7 +210,7 @@ $(SIGNATURES)
 
 Solve the impedance system for given frequency `ω`.
 """
-function SciMLBase.solve!(UZ::AbstractMatrix{Complex{Tv}}, impedance_system::ImpedanceSystem{Tv}, ω) where {Tv}
+function CommonSolve.solve!(UZ::AbstractMatrix{Complex{Tv}}, impedance_system::ImpedanceSystem{Tv}, ω) where {Tv}
     iω = ω * 1im
     matrix = impedance_system.matrix
     storderiv = impedance_system.storderiv

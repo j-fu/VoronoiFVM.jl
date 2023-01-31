@@ -12,7 +12,7 @@ starting with some inital value ``u_0``, where ``d_i`` is a damping parameter.
 
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct SolverControl
+Base.@kwdef mutable struct SolverControl
     """
     Verbosity control. A collection of output categories is given in a string composed of the
     follwing letters:

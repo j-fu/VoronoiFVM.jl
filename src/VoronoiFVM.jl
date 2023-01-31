@@ -8,14 +8,13 @@ using Printf
 using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
-using SciMLBase
+using CommonSolve
 
 using BandedMatrices
 # using MultidiagonalMatrices
 
 using LinearSolve
 using LinearSolve: Identity
-using Parameters
 using Statistics
 
 using ForwardDiff

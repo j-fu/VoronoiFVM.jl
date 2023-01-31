@@ -70,7 +70,7 @@ allocation warnings). Really breaking is control of iterative linear solvers and
 
 # ╔═╡ 740dd980-ca12-4f51-88b2-408930704952
 md"""
-### Solve now a method of SciMLBase.solve
+### Solve now a method of CommonSolve.solve
 """
 
 # ╔═╡ db216ebf-1869-4b0f-8dbd-2a8a244c3e4c

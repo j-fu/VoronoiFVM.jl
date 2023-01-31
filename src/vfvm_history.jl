@@ -7,7 +7,7 @@ See [`summary`](@ref) and [`details`](@ref) for other ways to extract informatio
 
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct NewtonSolverHistory <: AbstractVector{Float64}
+Base.@kwdef mutable struct NewtonSolverHistory <: AbstractVector{Float64}
     """ number of Jacobi matrix factorizations """
     nlu::Int = 0
 
@@ -70,7 +70,7 @@ See [`summary`](@ref) and [`details`](@ref) for other ways to extract informatio
 
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct TransientSolverHistory <: AbstractVector{NewtonSolverHistory}
+Base.@kwdef mutable struct TransientSolverHistory <: AbstractVector{NewtonSolverHistory}
     """ Histories of each implicit Euler Newton iteration """
     histories = Vector{NewtonSolverHistory}(undef, 0)
 

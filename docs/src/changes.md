@@ -3,19 +3,21 @@
 - remove all parts of the API which are marked as deprecated in v0.19.
 
 ## v0.19.0 Jan 31, 2023
-This is a breaking release. Implementations using default solver settings should continue to work (albeit possibly with deprecation and 
-allocation warnings). Really breaking is control of iterative linear solvers and allocation checks.
+This is a breaking release. Implementations using default solver settings should continue to work without modifications, 
+albeit possibly showing  deprecation and  allocation warnings. 
+Really breaking is control of iterative linear solvers and allocation checks.
 
 ### Breaking
-- Make `solve` a method of `SciMLBase.solve` (and re-export it). 
+- Make `solve` a method of `CommonSolve.solve` (and re-export it). 
 - Rely on `LinearSolve.jl` for linear system solution including control of iterative solvers.
 - New verbosity handling. `verbose` can now be a Bool or a String of flag characters, allowing for control of different output categories. I would love to do this via  logging, but there is still a [long way to go](https://github.com/JuliaLang/julia/issues/33418) IMHO 
-- Allocation check is active by default with warnings which can be muted by passing a `verbose` string without 'a'. This is now the only control in this respect. All `check_allocs` methods/kwargs, control via environment variables have been removed.
+- Allocation check is active by default with warnings instead of throwing an error. These warnings can be muted by passing a `verbose` string without 'a'. This is now the only control in this respect. All `check_allocs` methods/kwargs, control via environment variables have been removed.
 - Deprecation warnings can be switched off by passing a `verbose` string without 'd'.
 - Improve iteration logging etc., allow for logging of linear iterations ('l' flag character)
 
+
 ### Deprecations
-- Deprecated all `VoronoiFVM.solve` methods with signatures others than `solve(system; kwargs...). Updated examples accordingly.
+- Deprecated all `VoronoiFVM.solve` methods with signatures others than `solve(system; kwargs...)` which renders them incompatible to the philosophy of `CommonSolve. Updated examples accordingly.
 - Deprecated the following entries of SolverControl/solve kwargs: 
    `:tol_absolute` => `:abstol`,
     `:tol_relative` => `:reltol`,

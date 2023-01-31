@@ -57,7 +57,6 @@ function run_notebook_in_current_environment(notebookname)
     # Prevent Pluto from calling into registry update
     Pluto.PkgCompat._updated_registries_compat[]=true
 
-    @info "setup session:"
     session = Pluto.ServerSession();
     session.options.server.disable_writing_notebook_files=true
     session.options.server.show_file_system=false
@@ -67,7 +66,6 @@ function run_notebook_in_current_environment(notebookname)
     session.options.evaluation.workspace_use_distributed=false # this makes it fast
 
     wd=pwd()
-    @info "run notebook:"
     t= @elapsed notebook = Pluto.SessionActions.open(session, notebookname; run_async=false)
     @info "$(notebookname) executed in $(t) seconds"
     cd(wd)

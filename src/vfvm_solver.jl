@@ -735,7 +735,7 @@ solve!(solution, inival, system;
 ````
 Mutating version of [`solve(inival,system)`](@ref)
 """
-function SciMLBase.solve!(
+function VoronoiFVM.solve!(
     solution, # Solution
     inival,   # Initial value 
     system::VoronoiFVM.AbstractSystem;     # Finite volume system
@@ -774,7 +774,7 @@ Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the
 Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
 value. Returns a solution array.
 """
-function SciMLBase.solve(
+function CommonSolve.solve(
     inival,   # Initial value 
     system::AbstractSystem;     # Finite volume system
     control = SolverControl(),      # Newton solver control information
@@ -811,7 +811,7 @@ end
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
 """
-function SciMLBase.solve(
+function CommonSolve.solve(
     inival,
     system::VoronoiFVM.AbstractSystem,
     lambdas;
@@ -982,7 +982,7 @@ function SciMLBase.solve(
     end
 
     if doprint(control, 'e')
-        println("[evolution]:  $(round(t0+t1,sigdigits=3)) seconds")
+        println("[e]volution:  $(round(t0+t1,sigdigits=3)) seconds")
     end
 
     system.history = allhistory
@@ -1054,7 +1054,7 @@ Keyword arguments:
   - `tstep`: time step
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
-function SciMLBase.solve(
+function CommonSolve.solve(
     sys::VoronoiFVM.AbstractSystem;
     inival = 0,
     params = zeros(0),
