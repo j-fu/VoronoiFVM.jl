@@ -848,7 +848,7 @@ function CommonSolve.solve(
         if control.log
             push!(allhistory, system.history)
             push!(allhistory.times, lambdas[1])
-            Δu = control.delta(solution, oldsolution, lambdas[1], 0)
+            Δu = control.delta(system, solution, oldsolution, lambdas[1], 0)
             push!(allhistory.updates, Δu)
         end
         oldsolution .= solution
@@ -911,7 +911,7 @@ function CommonSolve.solve(
                     solved = false
                 end
                 if solved
-                    Δu = control.delta(solution, oldsolution, λ, Δλ)
+                    Δu = control.delta(system, solution, oldsolution, λ, Δλ)
                     if Δu > 2.0 * control.Δu_opt
                         solved = false
                     end
@@ -1034,7 +1034,7 @@ Keyword arguments:
   - `pre` (default: `(sol,t)->nothing` ):  invoked before each time step
   - `post`  (default:  `(sol,oldsol, t, Δt)->nothing` ):  invoked after each time step
   - `sample` (default:  `(sol,t)->nothing` ): invoked after timestep for all times in `times[2:end]`.
-  - `delta` (default:  `(u,v,t, Δt)->norm(sys,u-v,Inf)` ):  Value  used to control the time step size `Δu`
+  - `delta` (default:  `(system, u,v,t, Δt)->norm(sys,u-v,Inf)` ):  Value  used to control the time step size `Δu`
   If `control.handle_error` is true, if step solution  throws an error,
   stepsize  is lowered, and  step solution is called again with a smaller time value.
   If `control.Δt<control.Δt_min`, solution is aborted with error.

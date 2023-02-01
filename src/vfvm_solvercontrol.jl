@@ -222,7 +222,7 @@ Base.@kwdef mutable struct SolverControl
     """
     Time step error estimator
     """
-    delta::Function = (u, v, t, Δt) -> norm(system, u - v, Inf)
+    delta::Function = (system, u, v, t, Δt) -> norm(system, u - v, Inf)
 
     # deprecated entries
     tol_absolute::Union{Float64,Nothing} = nothing
