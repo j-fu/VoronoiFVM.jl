@@ -27,7 +27,7 @@ Base.@kwdef mutable struct SolverControl
     Switch off all output including deprecation warnings via `verbose=""`.
     In the output, corresponding messages are marked e.g. via '[n]', `[a]` etc. (besides of '[l]')
     """
-    verbose::Union{Bool, String} = false
+    verbose::Union{Bool,String} = false
 
     """
     Tolerance (in terms of norm of Newton update):  
@@ -77,6 +77,16 @@ Base.@kwdef mutable struct SolverControl
     max_round::Int = 1000
 
     """
+    Calculation of Newton update norm
+    """
+    unorm::Function = (u) -> LinearAlgebra.norm(values(u), Inf) # norm for update calculation
+
+    """
+    Functional for roundoff error calculation
+    """
+    rnorm::Function = (u) -> LinearAlgebra.norm(values(u), 1)
+
+    """
     Solver method for linear systems (see LinearSolve.jl). If given `nothing`, as default
     are chosen (for `Float64` calculations):
     - 1D:  `KLUFactorization()`
@@ -85,7 +95,7 @@ Base.@kwdef mutable struct SolverControl
     `SparspakFactorization()` is the default choice for general number types.
     Users should experiment with what works best for their problem.
     """
-    method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
+    method_linear::Union{Nothing,LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
     """
         Relative tolerance of iterative linear solver.
@@ -107,7 +117,7 @@ Base.@kwdef mutable struct SolverControl
     This should work as a function `precon_linear(A)` which
     returns a preconditioner object in the sense of `LinearSolve.jl`
     """
-    precon_linear::Union{Type, Function} = A -> Identity()
+    precon_linear::Union{Type,Function} = A -> Identity()
 
     """
     Update preconditioner in each Newton step ?
@@ -194,13 +204,36 @@ Base.@kwdef mutable struct SolverControl
     """
     edge_cutoff::Float64 = 0.0
 
-    tol_absolute::Union{Float64, Nothing} = nothing
-    tol_relative::Union{Float64, Nothing} = nothing
-    damp::Union{Float64, Nothing} = nothing
-    damp_grow::Union{Float64, Nothing} = nothing
-    max_iterations::Union{Int, Nothing} = nothing
-    tol_linear::Union{Float64, Nothing} = nothing
-    max_lureuse::Union{Int, Nothing} = nothing
+    """
+    Function `pre(sol,t)` called before time/embedding step
+    """
+    pre::Function = function (sol, t) end
+
+    """
+    Function `post(sol,oldsol,t,Δt)` called after successful time/embedding step
+    """
+    post::Function = function (sol, oldsol, t, Δt) end
+
+    """
+    Function `sample(sol,t)` to be called for each `t in times[2:end]`
+    """
+    sample::Function = function (sol, t) end
+
+    """
+    Time step error estimator
+    """
+    delta::Function = (u, v, t, Δt) -> norm(system, u - v, Inf)
+
+    # deprecated entries
+    tol_absolute::Union{Float64,Nothing} = nothing
+    tol_relative::Union{Float64,Nothing} = nothing
+    damp::Union{Float64,Nothing} = nothing
+    damp_grow::Union{Float64,Nothing} = nothing
+    max_iterations::Union{Int,Nothing} = nothing
+    tol_linear::Union{Float64,Nothing} = nothing
+    max_lureuse::Union{Int,Nothing} = nothing
+    mynorm::Union{Function,Nothing} = nothing
+    myrnorm::Union{Function,Nothing} = nothing
 end
 
 doprint(s::String, a::Char) = contains(s, a)
@@ -209,13 +242,17 @@ const false_verbosity = "da"
 doprint(b::Bool, a::Char) = b ? doprint(true_verbosity, a) : doprint(false_verbosity, a)
 doprint(c::SolverControl, a::Char) = doprint(c.verbose, a)
 
-const key_replacements = Dict(:tol_absolute => :abstol,
-                              :tol_relative => :reltol,
-                              :damp => :damp_initial,
-                              :damp_grow => :damp_growth,
-                              :max_iterations => :maxiters,
-                              :tol_linear => :reltol_linear,
-                              :max_lureuse => nothing)
+const key_replacements = Dict(
+    :tol_absolute => :abstol,
+    :tol_relative => :reltol,
+    :damp => :damp_initial,
+    :damp_grow => :damp_growth,
+    :max_iterations => :maxiters,
+    :tol_linear => :reltol_linear,
+    :mynorm => :unorm,
+    :myrnorm => :rnorm,
+    :max_lureuse => nothing,
+)
 
 function fix_deprecations!(control)
     # compatibility to names in SolverControl which cannot be deprecated.

@@ -35,6 +35,11 @@ function force_update_notebook_environment(notebook)
 
     @info "Force updating packages in $(notebook):"
 
+    tmp=mktempdir()
+    tmpjl=joinpath(tmp,"tmp.jl")
+
+    cp(joinpath(@__DIR__,notebook),tmpjl,force=true)
+
     # After this, notebook env + curent env are in sync
     Pluto.activate_notebook_environment(notebook)
 
@@ -51,6 +56,9 @@ function force_update_notebook_environment(notebook)
     # Sets compat to the current versions
     Pluto.update_notebook_environment(notebook)
     @info "Updating of  $(notebook) done\n"
+    sleep(1)
+
+    cp(tmpjl,joinpath(@__DIR__,notebook),force=true)
 
     # Re-activate the current environment
     Pkg.activate(thisproject)

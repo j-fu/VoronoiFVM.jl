@@ -98,6 +98,20 @@ tend = 100
 ε_fix = 1.0e-4
 
 
+# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
+@test sum(bt_n) ≈ 17.643110936180495
+
+# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
+@test sum(bt_1) ≈ 20.412099101959157
+
+# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
+@test sum(bt_f) ≈ 20.411131554885404
+
+# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
+@test sum(bt_ϕ) ≈ 20.4122562994476
+
+
+
 # ╔═╡ 5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 md"""
 Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
@@ -133,6 +147,18 @@ md"""
 ### Results
 """
 
+
+# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
+@test of_1 ≈ -0.013495959676585267
+
+# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
+@test of_n ≈ -0.00023622450350365264
+
+# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
+@test of_f ≈ -0.013466874615165499
+
+# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
+@test of_r ≈ -0.013495959676764535
 
 # ╔═╡ fcd066f1-bcd8-4479-a4e4-7b8c235336c4
 md"""
@@ -417,14 +443,8 @@ grid_n, sol_n, bt_n = trsolve(grid_2d(nref = nref), tend = tend);
 # ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
 sum(bt_n)
 
-# ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
-@test sum(bt_n) ≈ 17.643110936180495
-
 # ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
 grid_1, sol_1, bt_1 = trsolve(grid_1d(nref = nref), tend = tend);
-
-# ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
-@test sum(bt_1) ≈ 20.412099101959157
 
 # ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
 scalarplot(
@@ -440,9 +460,6 @@ scalarplot(
 # ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
 grid_f, sol_f, bt_f = trsolve(grid_2d(nref = nref, ε_fix = ε_fix), tend = tend);
 
-# ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
-@test sum(bt_f) ≈ 20.411131554885404
-
 # ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
 begin
     scalarplot!(vis_n, grid_n, sol_n(t)[ic, :], resolution = (210, 200), show = true),
@@ -451,11 +468,6 @@ end
 
 # ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
 grid_ϕ, sol_ϕ, bt_ϕ = trsolve(grid_2d(nref = nref), ϕ = [1.0e-3, 1], tend = tend);
-
-# ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
-@test sum(bt_ϕ) ≈ 20.4122562994476
-
-
 
 # ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
 begin
@@ -517,23 +529,14 @@ end
 # ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
 rdgrid_1, rdsol_1, of_1 = rdsolve(grid_1d(nref = nref));
 
-# ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
-@test of_1 ≈ -0.013495959676585267
-
 # ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
 scalarplot(rdgrid_1, rdsol_1, resolution = (300, 200))
 
 # ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
 rdgrid_n, rdsol_n, of_n = rdsolve(grid_2d(nref = nref));
 
-# ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
-@test of_n ≈ -0.00023622450350365264
-
 # ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
 rdgrid_f, rdsol_f, of_f = rdsolve(grid_2d(nref = nref, ε_fix = ε_fix));
-
-# ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
-@test of_f ≈ -0.013466874615165499
 
 # ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
 begin
@@ -543,9 +546,6 @@ end
 
 # ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
 rdgrid_r, rdsol_r, of_r = rdsolve(grid_2d(nref = nref), R = [0, 0.1]);
-
-# ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
-@test of_r ≈ -0.013495959676764535
 
 # ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
 md"""
