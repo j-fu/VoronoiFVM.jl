@@ -8,7 +8,7 @@ using GridVisualize
 using LinearSolve
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
-              unknown_storage = :sparse, tend = 10, rely_on_corrections = false,video=false)
+              unknown_storage = :sparse, tend = 10, rely_on_corrections = false)
     h = 3.0 / (n - 1)
     X = collect(0:h:3.0)
     grid = VoronoiFVM.Grid(X)
@@ -98,32 +98,44 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
 
+    U = unknowns(sys)
+    U .= 0
 
-    tsol=solve(sys; times=(0,tend), verbose, Δt=0.01, Δuopt=0.1)
-    if !isnothing(Plotter)
-        p = GridVisualizer(; Plotter = Plotter, layout = (1, 1),resolution=(600,600))
-        movie(p,file=&quot;video.mp4&quot;) do p
-            for time in 0:0.05:tend
-                U=tsol(time)
-                if verbose
-                    @printf(&quot;time=%g\n&quot;, time)
-                end
-
-                U1 = view(U[1, :], subgrid1)
-                U2 = view(U[2, :], subgrid2)
-                U3 = view(U[3, :], subgrid3)
-
-                scalarplot!(p[1, 1], subgrid1, U1; label = &quot;spec1&quot;, color = (0.5, 0, 0),
-                            xlimits = (0, 3), flimits = (0, 1e-3),
-                            title = @sprintf(&quot;three regions t=%.3g&quot;, time))
-                scalarplot!(p[1, 1], subgrid2, U2; label = &quot;spec2&quot;, color = (0.0, 0.5, 0),
-                            clear = false)
-                scalarplot!(p[1, 1], subgrid3, U3; label = &quot;spec3&quot;, color = (0.0, 0.0, 0.5),
-                            clear = false)
-                reveal(p)
-            end
+    control = VoronoiFVM.NewtonControl()
+    control.verbose = verbose
+    control.method_linear = SparspakFactorization()
+    tstep = 0.01
+    time = 0.0
+    istep = 0
+    testval = 0
+    p = GridVisualizer(; Plotter = Plotter, layout = (1, 1))
+    while time &lt; tend
+        time = time + tstep
+        U = solve(sys; inival = U, control, tstep)
+        if verbose
+            @printf(&quot;time=%g\n&quot;, time)
         end
-    end</code></pre><p>animate, record, play anim testval = tsol[2, 5,end] return testval</p><pre><code class="language-julia hljs">end
+        tstep *= 1.1
+        istep = istep + 1
+        testval = U[2, 5]
+
+        U1 = view(U[1, :], subgrid1)
+        U2 = view(U[2, :], subgrid2)
+        U3 = view(U[3, :], subgrid3)
+
+        scalarplot!(p[1, 1], subgrid1, U1; label = &quot;spec1&quot;, color = (0.5, 0, 0),
+                    xlimits = (0, 3), flimits = (0, 1e-3),
+                    title = @sprintf(&quot;three regions t=%.3g&quot;, time))
+        scalarplot!(p[1, 1], subgrid2, U2; label = &quot;spec2&quot;, color = (0.0, 0.5, 0),
+                    clear = false)
+        scalarplot!(p[1, 1], subgrid3, U3; label = &quot;spec3&quot;, color = (0.0, 0.0, 0.5),
+                    clear = false, show = true)
+        if Plotter != nothing
+            sleep(1.0e-2)
+        end
+    end
+    return testval
+end
 
 function test()
     testval = 0.0005967243505359461
@@ -133,4 +145,4 @@ function test()
         main(; unknown_storage = :dense, rely_on_corrections = true) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Friday 3 February 2023 12:32">Friday 3 February 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Friday 3 February 2023 14:09">Friday 3 February 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
