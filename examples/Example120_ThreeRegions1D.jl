@@ -10,7 +10,7 @@ using GridVisualize
 using LinearSolve
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
-              unknown_storage = :sparse, tend = 10, rely_on_corrections = false)
+              unknown_storage = :sparse, tend = 10, rely_on_corrections = false,video=false)
     h = 3.0 / (n - 1)
     X = collect(0:h:3.0)
     grid = VoronoiFVM.Grid(X)
@@ -100,43 +100,35 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
 
-    U = unknowns(sys)
-    U .= 0
 
-    control = VoronoiFVM.NewtonControl()
-    control.verbose = verbose
-    control.method_linear = SparspakFactorization()
-    tstep = 0.01
-    time = 0.0
-    istep = 0
-    testval = 0
-    p = GridVisualizer(; Plotter = Plotter, layout = (1, 1))
-    while time < tend
-        time = time + tstep
-        U = solve(sys; inival = U, control, tstep)
-        if verbose
-            @printf("time=%g\n", time)
-        end
-        tstep *= 1.1
-        istep = istep + 1
-        testval = U[2, 5]
-
-        U1 = view(U[1, :], subgrid1)
-        U2 = view(U[2, :], subgrid2)
-        U3 = view(U[3, :], subgrid3)
-
-        scalarplot!(p[1, 1], subgrid1, U1; label = "spec1", color = (0.5, 0, 0),
-                    xlimits = (0, 3), flimits = (0, 1e-3),
-                    title = @sprintf("three regions t=%.3g", time))
-        scalarplot!(p[1, 1], subgrid2, U2; label = "spec2", color = (0.0, 0.5, 0),
-                    clear = false)
-        scalarplot!(p[1, 1], subgrid3, U3; label = "spec3", color = (0.0, 0.0, 0.5),
-                    clear = false, show = true)
-        if Plotter != nothing
-            sleep(1.0e-2)
+    tsol=solve(sys; times=(0,tend), verbose, Δt=0.01, Δuopt=0.1)
+    if !isnothing(Plotter)
+        p = GridVisualizer(; Plotter = Plotter, layout = (1, 1),resolution=(600,600))
+        movie(p,file="video.mp4") do p
+            for time in 0:0.05:tend
+                U=tsol(time)
+                if verbose
+                    @printf("time=%g\n", time)
+                end
+                
+                U1 = view(U[1, :], subgrid1)
+                U2 = view(U[2, :], subgrid2)
+                U3 = view(U[3, :], subgrid3)
+                
+                scalarplot!(p[1, 1], subgrid1, U1; label = "spec1", color = (0.5, 0, 0),
+                            xlimits = (0, 3), flimits = (0, 1e-3),
+                            title = @sprintf("three regions t=%.3g", time))
+                scalarplot!(p[1, 1], subgrid2, U2; label = "spec2", color = (0.0, 0.5, 0),
+                            clear = false)
+                scalarplot!(p[1, 1], subgrid3, U3; label = "spec3", color = (0.0, 0.0, 0.5),
+                            clear = false)
+                reveal(p)
+            end
         end
     end
-    return testval
+    # animate, record, play anim 
+    # testval = tsol[2, 5,end]
+    # return testval
 end
 
 function test()
