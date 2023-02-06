@@ -14,18 +14,18 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
-begin
-    import Pkg as _Pkg
-    developing = false
-    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl"))
-        _Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-        using Revise
-        developing = true
-    end
-    initialized = true
-end;
+# ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
+md"""
+# Some problems with Voronoi FVM
+
+Draft. J. Fuhrmann, Oct. 29. 2021. Updated Dec 19, 2021.
+
+We discuss one of the critical cases for application the Voronoi finite volume method.
+We provide some practical fix and opine that the finite element method proably has the same problems.
+"""
+
+# ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
+TableOfContents(; aside = false)
 
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
 begin
@@ -39,19 +39,6 @@ begin
         default_plotter!(PlutoVista)
     end
 end;
-
-# ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
-md"""
-# Some problems with Voronoi FVM
-
-Draft. J. Fuhrmann, Oct. 29. 2021. Updated Dec 19, 2021.
-
-We discuss one of the critical cases for application the Voronoi finite volume method.
-We provide some practical fix and opine that the finite element method proably has the same problems.
-"""
-
-# ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
-TableOfContents(; aside = false)
 
 # ╔═╡ fae47c55-eef8-4428-bb5f-45824978753d
 md"""
@@ -81,6 +68,36 @@ md"""
 The domain is described by the following discretization grid:
 """
 
+# ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
+gridplot(grid_2d(), resolution = (400, 300))
+
+# ╔═╡ cc325b2c-6174-4b8d-8e39-202ac68b5705
+md"""
+In the center of the domain, we assume a layer with high permeability.
+
+As  boundary  conditions for the pressure ``p`` we choose  fixed pressure values at  the left
+and right boundaries of the  domain, triggering a constant pressure gradient throughout the domain.
+
+At the inlet of the high  permeability layer, we set ``c=1``, and at the
+outlet, we set ``c=0``.
+
+The high permeability layer has length `L`=$( L) and width `W`= $(W).
+
+We solve the time dependent problem on three types of  rectangular grids with the same
+resolution in   $x$ direction and different variants to to handle the  high permeability
+layer.
+
+
+- `grid_n` - a "naive" grid which just resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids
+- `grid_1` - a 1D grid  of the high permeability layer. With high permeability contrast, the solution of the 2D case at y=0 should conincide with the 1D solution
+- `grid_f` - a "fixed" 2D grid which resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids and "protection layers" of width `ε_fix`=$(ε_fix)  correcting the size of high permeability control volumes
+
+
+"""
+
+# ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
+gridplot(grid_2d(; ε_fix = 1.0e-1), resolution = (400, 300))
+
 # ╔═╡ cd013964-f329-4d2c-ae4b-305093f0ac56
 md"""
 ### Results
@@ -98,19 +115,49 @@ tend = 100
 ε_fix = 1.0e-4
 
 
+# ╔═╡ cd88123a-b042-43e2-99b9-ec925a8794ed
+grid_n, sol_n, bt_n = trsolve(grid_2d(nref = nref), tend = tend);
+
+# ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
+sum(bt_n)
+
 # ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
 @test sum(bt_n) ≈ 17.643110936180495
+
+# ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
+grid_1, sol_1, bt_1 = trsolve(grid_1d(nref = nref), tend = tend);
 
 # ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
 @test sum(bt_1) ≈ 20.412099101959157
 
+# ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
+grid_f, sol_f, bt_f = trsolve(grid_2d(nref = nref, ε_fix = ε_fix), tend = tend);
+
 # ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
 @test sum(bt_f) ≈ 20.411131554885404
+
+# ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
+grid_ϕ, sol_ϕ, bt_ϕ = trsolve(grid_2d(nref = nref), ϕ = [1.0e-3, 1], tend = tend);
 
 # ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
 @test sum(bt_ϕ) ≈ 20.4122562994476
 
 
+
+# ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
+begin
+    p1 = PlutoVistaPlot(
+        resolution = (500, 200),
+        xlabel = "t",
+        ylabel = "outflow",
+        legend = :rb,
+        title = "Breakthrough Curves",
+    )
+    plot!(p1, sol_n.t, bt_n, label = "naive grid")
+    plot!(p1, sol_1.t, bt_1, label = "1D grid", markertype = :x)
+    plot!(p1, sol_f.t, bt_f, label = "grid with fix", markertype = :circle)
+    plot!(p1, sol_ϕ.t, bt_ϕ, label = "modified ϕ", markertype = :cross)
+end
 
 # ╔═╡ 5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 md"""
@@ -124,10 +171,27 @@ begin
     (vis_n, vis_f)
 end
 
+# ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
+scalarplot(
+    grid_1,
+    sol_1(t)[ic, :],
+    levels = 0:0.2:1,
+    resolution = (500, 150),
+    xlabel = "x",
+    ylabel = "c",
+    title = "1D calculation, t=$t",
+)
+
 # ╔═╡ 98ae56dd-d42d-4a93-bb0b-5956b6e981a3
 md"""
 Time: $(@bind t Slider(1:tend/100:tend,show_value=true,default=tend*0.1))
 """
+
+# ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
+begin
+    scalarplot!(vis_n, grid_n, sol_n(t)[ic, :], resolution = (210, 200), show = true),
+    scalarplot!(vis_f, grid_f, sol_f(t)[ic, :], resolution = (210, 200), show = true)
+end
 
 # ╔═╡ 99c3b54b-d458-482e-8aa0-d2c2b51fdf25
 md"""
@@ -148,17 +212,47 @@ md"""
 """
 
 
+# ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
+rdgrid_1, rdsol_1, of_1 = rdsolve(grid_1d(nref = nref));
+
 # ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
 @test of_1 ≈ -0.013495959676585267
+
+# ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
+rdgrid_n, rdsol_n, of_n = rdsolve(grid_2d(nref = nref));
 
 # ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
 @test of_n ≈ -0.00023622450350365264
 
+# ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
+rdgrid_f, rdsol_f, of_f = rdsolve(grid_2d(nref = nref, ε_fix = ε_fix));
+
 # ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
 @test of_f ≈ -0.013466874615165499
 
+# ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
+rdgrid_r, rdsol_r, of_r = rdsolve(grid_2d(nref = nref), R = [0, 0.1]);
+
 # ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
 @test of_r ≈ -0.013495959676764535
+
+# ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
+md"""
+We measure the outflow at the outlet. As a result, we obtain:
+   - 1D case: $(of_1)
+   - 2D case, naive grid: $(of_n)
+   - 2D case, grid with "protective layer": $(of_f)
+   - 2D case, naive grid, "modified" R: $(of_r)
+"""
+
+# ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
+scalarplot(rdgrid_1, rdsol_1, resolution = (300, 200))
+
+# ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
+begin
+    scalarplot(rdgrid_n, rdsol_n, resolution = (210, 200)),
+    scalarplot(rdgrid_f, rdsol_f, resolution = (210, 200))
+end
 
 # ╔═╡ fcd066f1-bcd8-4479-a4e4-7b8c235336c4
 md"""
@@ -248,30 +342,6 @@ begin
     Wlow = 2 # width of adjacent low perm layers
 end;
 
-# ╔═╡ cc325b2c-6174-4b8d-8e39-202ac68b5705
-md"""
-In the center of the domain, we assume a layer with high permeability.
-
-As  boundary  conditions for the pressure ``p`` we choose  fixed pressure values at  the left
-and right boundaries of the  domain, triggering a constant pressure gradient throughout the domain.
-
-At the inlet of the high  permeability layer, we set ``c=1``, and at the
-outlet, we set ``c=0``.
-
-The high permeability layer has length `L`=$( L) and width `W`= $(W).
-
-We solve the time dependent problem on three types of  rectangular grids with the same
-resolution in   $x$ direction and different variants to to handle the  high permeability
-layer.
-
-
-- `grid_n` - a "naive" grid which just resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids
-- `grid_1` - a 1D grid  of the high permeability layer. With high permeability contrast, the solution of the 2D case at y=0 should conincide with the 1D solution
-- `grid_f` - a "fixed" 2D grid which resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids and "protection layers" of width `ε_fix`=$(ε_fix)  correcting the size of high permeability control volumes
-
-
-"""
-
 # ╔═╡ 47bc8e6a-e296-42c9-bfc5-967edfb0feb7
 md"""
 Boundary conditions:
@@ -312,12 +382,6 @@ function grid_2d(; nref = 0, ε_fix = 0.0)
     bfacemask!(grid, [0, -W / 2], [0, W / 2], Γ_in)
     bfacemask!(grid, [L, -W / 2], [L, W / 2], Γ_out)
 end
-
-# ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
-gridplot(grid_2d(), resolution = (400, 300))
-
-# ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
-gridplot(grid_2d(; ε_fix = 1.0e-1), resolution = (400, 300))
 
 # ╔═╡ c402f03c-746a-45b8-aaac-902a2f196094
 function grid_1d(; nref = 0)
@@ -437,53 +501,6 @@ function trsolve(
     grid, sol, bt
 end
 
-# ╔═╡ cd88123a-b042-43e2-99b9-ec925a8794ed
-grid_n, sol_n, bt_n = trsolve(grid_2d(nref = nref), tend = tend);
-
-# ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
-sum(bt_n)
-
-# ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
-grid_1, sol_1, bt_1 = trsolve(grid_1d(nref = nref), tend = tend);
-
-# ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
-scalarplot(
-    grid_1,
-    sol_1(t)[ic, :],
-    levels = 0:0.2:1,
-    resolution = (500, 150),
-    xlabel = "x",
-    ylabel = "c",
-    title = "1D calculation, t=$t",
-)
-
-# ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
-grid_f, sol_f, bt_f = trsolve(grid_2d(nref = nref, ε_fix = ε_fix), tend = tend);
-
-# ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
-begin
-    scalarplot!(vis_n, grid_n, sol_n(t)[ic, :], resolution = (210, 200), show = true),
-    scalarplot!(vis_f, grid_f, sol_f(t)[ic, :], resolution = (210, 200), show = true)
-end
-
-# ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
-grid_ϕ, sol_ϕ, bt_ϕ = trsolve(grid_2d(nref = nref), ϕ = [1.0e-3, 1], tend = tend);
-
-# ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
-begin
-    p1 = PlutoVistaPlot(
-        resolution = (500, 200),
-        xlabel = "t",
-        ylabel = "outflow",
-        legend = :rb,
-        title = "Breakthrough Curves",
-    )
-    plot!(p1, sol_n.t, bt_n, label = "naive grid")
-    plot!(p1, sol_1.t, bt_1, label = "1D grid", markertype = :x)
-    plot!(p1, sol_f.t, bt_f, label = "grid with fix", markertype = :circle)
-    plot!(p1, sol_ϕ.t, bt_ϕ, label = "modified ϕ", markertype = :cross)
-end
-
 # ╔═╡ 78d92b4a-bdb1-4117-ab9c-b422eac403b1
 md"""
 ### Reaction-Diffusion solver
@@ -526,36 +543,6 @@ function rdsolve(grid; D = [1.0e-12, 1.0], R = [1, 0.1])
 
 end
 
-# ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
-rdgrid_1, rdsol_1, of_1 = rdsolve(grid_1d(nref = nref));
-
-# ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
-scalarplot(rdgrid_1, rdsol_1, resolution = (300, 200))
-
-# ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
-rdgrid_n, rdsol_n, of_n = rdsolve(grid_2d(nref = nref));
-
-# ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
-rdgrid_f, rdsol_f, of_f = rdsolve(grid_2d(nref = nref, ε_fix = ε_fix));
-
-# ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
-begin
-    scalarplot(rdgrid_n, rdsol_n, resolution = (210, 200)),
-    scalarplot(rdgrid_f, rdsol_f, resolution = (210, 200))
-end
-
-# ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
-rdgrid_r, rdsol_r, of_r = rdsolve(grid_2d(nref = nref), R = [0, 0.1]);
-
-# ╔═╡ c08e86f6-b5c2-4762-af23-382b1b153f45
-md"""
-We measure the outflow at the outlet. As a result, we obtain:
-   - 1D case: $(of_1)
-   - 2D case, naive grid: $(of_n)
-   - 2D case, grid with "protective layer": $(of_f)
-   - 2D case, naive grid, "modified" R: $(of_r)
-"""
-
 # ╔═╡ 0cc1c511-f351-421f-991a-a27f26a8db4f
 html"<hr><hr><hr>"
 
@@ -570,6 +557,19 @@ This notebook is also run during the automatic unit tests.
 
 Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
 """
+
+# ╔═╡ b6b826a1-b52f-41d3-8feb-b6464f76352e
+begin
+    import Pkg as _Pkg
+    developing = false
+    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl"))
+        _Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
+        using Revise
+        developing = true
+    end
+    initialized = true
+end;
 
 # ╔═╡ 18d5cc77-e2de-4e14-a98d-a4a4b764b3b0
 if developing
@@ -592,11 +592,11 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 ExtendableGrids = "~0.9.16"
-GridVisualize = "~0.6.3"
+GridVisualize = "~1.0.1"
 PlutoUI = "~0.7.49"
-PlutoVista = "~0.8.16"
-Revise = "~3.5.0"
-VoronoiFVM = "~0.19.0"
+PlutoVista = "~0.8.18"
+Revise = "~3.5.1"
+VoronoiFVM = "~0.19.3"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -788,9 +788,9 @@ version = "0.3.0"
 
 [[deps.Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
-git-tree-sha1 = "00a2cccc7f098ff3b66806862d275ca3db9e6e5a"
+git-tree-sha1 = "61fdd77467a5c3ad071ef8277ac6bd6af7dd4c04"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.5.0"
+version = "4.6.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -893,9 +893,9 @@ version = "0.6.8"
 
 [[deps.DynamicPolynomials]]
 deps = ["DataStructures", "Future", "LinearAlgebra", "MultivariatePolynomials", "MutableArithmetics", "Pkg", "Reexport", "Test"]
-git-tree-sha1 = "d0fa82f39c2a5cdb3ee385ad52bc05c42cb4b9f0"
+git-tree-sha1 = "8b84876e31fa39479050e2d3395c4b3b210db8b0"
 uuid = "7c1d4256-1411-5781-91ec-d7bc3513ac07"
-version = "0.4.5"
+version = "0.4.6"
 
 [[deps.EarCut_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1034,15 +1034,15 @@ version = "1.7.4"
 
 [[deps.GridVisualize]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "ElasticArrays", "ExtendableGrids", "GeometryBasics", "GridVisualizeTools", "HypertextLiteral", "LinearAlgebra", "Observables", "OrderedCollections", "PkgVersion", "Printf", "StaticArrays"]
-git-tree-sha1 = "15c3d40efa9c581f16fd534b42171ac2f93f2cd0"
+git-tree-sha1 = "52d6cfe668e81a4620626ef2eb8b912192d3863a"
 uuid = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
-version = "0.6.3"
+version = "1.0.1"
 
 [[deps.GridVisualizeTools]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "StaticArraysCore"]
-git-tree-sha1 = "5964fd3e4080af45bfdbdaff75567759fd0367bd"
+git-tree-sha1 = "7c892c426f8d03a180366411566d0f6ac1790f6c"
 uuid = "5573ae12-3b76-41d9-b48c-81d0b6e61cc5"
-version = "0.2.1"
+version = "0.3.0"
 
 [[deps.Groebner]]
 deps = ["AbstractAlgebra", "Combinatorics", "Logging", "MultivariatePolynomials", "Primes", "Random"]
@@ -1175,9 +1175,9 @@ version = "0.21.3"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-git-tree-sha1 = "72ab280d921e8a013a83e64709f66bc3e854b2ed"
+git-tree-sha1 = "b289a36229c94e326282f36b3e24416a08dc7bd9"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.20"
+version = "0.9.21"
 
 [[deps.KLU]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -1230,6 +1230,12 @@ git-tree-sha1 = "410fe4739a4b092f2ffe36fcb0dcc3ab12648ce1"
 uuid = "0e77f7df-68c5-4e49-93ce-4cd80f5598bf"
 version = "1.2.1"
 
+[[deps.Lazy]]
+deps = ["MacroTools"]
+git-tree-sha1 = "1370f8202dac30758f3c345f9909b97f53d87d3f"
+uuid = "50d2b5c4-7a5e-59d5-8109-a42b560f39c0"
+version = "0.15.1"
+
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
@@ -1269,16 +1275,16 @@ deps = ["Libdl", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LinearSolve]]
-deps = ["ArrayInterfaceCore", "DocStringExtensions", "FastLapackInterface", "GPUArraysCore", "IterativeSolvers", "KLU", "Krylov", "KrylovKit", "LinearAlgebra", "Preferences", "RecursiveFactorization", "Reexport", "SciMLBase", "Setfield", "SnoopPrecompile", "SparseArrays", "Sparspak", "SuiteSparse", "UnPack"]
-git-tree-sha1 = "960da8a80f9882fb52a5a199e944d3b86f0d2b94"
+deps = ["ArrayInterfaceCore", "DocStringExtensions", "FastLapackInterface", "GPUArraysCore", "IterativeSolvers", "KLU", "Krylov", "KrylovKit", "LinearAlgebra", "Preferences", "RecursiveFactorization", "Reexport", "SciMLBase", "SciMLOperators", "Setfield", "SnoopPrecompile", "SparseArrays", "Sparspak", "SuiteSparse", "UnPack"]
+git-tree-sha1 = "ed97c2b4e46d02d4c866d3ccfae039a6c09568b1"
 uuid = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
-version = "1.34.1"
+version = "1.35.0"
 
 [[deps.LogExpFunctions]]
 deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
-git-tree-sha1 = "45b288af6956e67e621c5cbb2d75a261ab58300b"
+git-tree-sha1 = "680e733c3a0a9cea9e935c8c2184aea6a63fa0b5"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.3.20"
+version = "0.3.21"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -1290,10 +1296,10 @@ uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "1.0.0"
 
 [[deps.LoopVectorization]]
-deps = ["ArrayInterface", "ArrayInterfaceCore", "ArrayInterfaceOffsetArrays", "ArrayInterfaceStaticArrays", "CPUSummary", "ChainRulesCore", "CloseOpenIntervals", "DocStringExtensions", "ForwardDiff", "HostCPUFeatures", "IfElse", "LayoutPointers", "LinearAlgebra", "OffsetArrays", "PolyesterWeave", "SIMDDualNumbers", "SIMDTypes", "SLEEFPirates", "SnoopPrecompile", "SpecialFunctions", "Static", "ThreadingUtilities", "UnPack", "VectorizationBase"]
-git-tree-sha1 = "f127dff5c29692069c8ada8267864d252d417821"
+deps = ["ArrayInterface", "ArrayInterfaceCore", "ArrayInterfaceOffsetArrays", "ArrayInterfaceStaticArrays", "CPUSummary", "ChainRulesCore", "CloseOpenIntervals", "DocStringExtensions", "ForwardDiff", "HostCPUFeatures", "IfElse", "LayoutPointers", "LinearAlgebra", "OffsetArrays", "PolyesterWeave", "SIMDTypes", "SLEEFPirates", "SnoopPrecompile", "SpecialFunctions", "Static", "ThreadingUtilities", "UnPack", "VectorizationBase"]
+git-tree-sha1 = "9696a80c21a56b937e3fd89e972f8db5db3186e2"
 uuid = "bdcacae8-1622-11e9-2a5c-532679323890"
-version = "0.12.149"
+version = "0.12.150"
 
 [[deps.LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
@@ -1425,9 +1431,9 @@ version = "0.11.16"
 
 [[deps.Parsers]]
 deps = ["Dates", "SnoopPrecompile"]
-git-tree-sha1 = "8175fc2b118a3755113c8e68084dc1a9e63c61ee"
+git-tree-sha1 = "151d91d63d8d6c1a5789ecb7de51547e00480f1b"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.5.3"
+version = "2.5.4"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -1454,9 +1460,9 @@ version = "0.7.49"
 
 [[deps.PlutoVista]]
 deps = ["ColorSchemes", "Colors", "DocStringExtensions", "GridVisualizeTools", "HypertextLiteral", "Pluto", "UUIDs"]
-git-tree-sha1 = "5af654ba1660641b3b80614a7be7eacae4c49875"
+git-tree-sha1 = "5e1b11ca1bc28b3c2e61f4a0362b5abf3490cf1c"
 uuid = "646e1f28-b900-46d7-9d87-d554eb38a413"
-version = "0.8.16"
+version = "0.8.18"
 
 [[deps.Polyester]]
 deps = ["ArrayInterface", "BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "ManualMemory", "PolyesterWeave", "Requires", "Static", "StrideArraysCore", "ThreadingUtilities"]
@@ -1560,9 +1566,9 @@ version = "1.3.0"
 
 [[deps.Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
-git-tree-sha1 = "fd5dba2f01743555d8435f7c96437b29eae81a17"
+git-tree-sha1 = "90cb983381a9dc7d3dff5fb2d1ee52cd59877412"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.5.0"
+version = "3.5.1"
 
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
@@ -1586,12 +1592,6 @@ version = "0.5.5"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
-[[deps.SIMDDualNumbers]]
-deps = ["ForwardDiff", "IfElse", "SLEEFPirates", "VectorizationBase"]
-git-tree-sha1 = "dd4195d308df24f33fb10dde7c22103ba88887fa"
-uuid = "3cdde19b-5bb0-4aaf-8931-af3e248e098b"
-version = "0.1.1"
-
 [[deps.SIMDTypes]]
 git-tree-sha1 = "330289636fb8107c5f32088d2741e9fd7a061a5c"
 uuid = "94e857df-77ce-4151-89e5-788b33177be4"
@@ -1604,10 +1604,16 @@ uuid = "476501e8-09a2-5ece-8869-fb82de89a1fa"
 version = "0.6.38"
 
 [[deps.SciMLBase]]
-deps = ["ArrayInterfaceCore", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "Preferences", "RecipesBase", "RecursiveArrayTools", "RuntimeGeneratedFunctions", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
-git-tree-sha1 = "c4e3c4bb8544b2f0bc537baa44925b6b39a8c383"
+deps = ["ArrayInterfaceCore", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "Preferences", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
+git-tree-sha1 = "6ed5ee9542b0af60f58b37f7082af13b1950256b"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "1.81.1"
+version = "1.83.0"
+
+[[deps.SciMLOperators]]
+deps = ["ArrayInterfaceCore", "DocStringExtensions", "Lazy", "LinearAlgebra", "Setfield", "SparseArrays", "StaticArraysCore", "Tricks"]
+git-tree-sha1 = "60dc07c77bc831f97945ab1545a5e83252a85342"
+uuid = "c0aeaf25-5076-4817-a8d5-81caf7dfa961"
+version = "0.1.19"
 
 [[deps.Scratch]]
 deps = ["Dates"]
@@ -1666,9 +1672,9 @@ version = "1.30.0"
 
 [[deps.Sparspak]]
 deps = ["Libdl", "LinearAlgebra", "Logging", "OffsetArrays", "Printf", "SparseArrays", "Test"]
-git-tree-sha1 = "f9ca0222e4c0b7b1520298a0880e2f7101938831"
+git-tree-sha1 = "d844b30825ecfd478594d3d500ed8581e1bf03b8"
 uuid = "e56a9233-b9d6-4f03-8d0f-1825330902ac"
-version = "0.3.7"
+version = "0.3.8"
 
 [[deps.SpecialFunctions]]
 deps = ["ChainRulesCore", "IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
@@ -1744,9 +1750,9 @@ version = "0.2.1"
 
 [[deps.SymbolicUtils]]
 deps = ["AbstractTrees", "Bijections", "ChainRulesCore", "Combinatorics", "ConstructionBase", "DataStructures", "DocStringExtensions", "DynamicPolynomials", "IfElse", "LabelledArrays", "LinearAlgebra", "MultivariatePolynomials", "NaNMath", "Setfield", "SparseArrays", "SpecialFunctions", "StaticArrays", "TimerOutputs", "Unityper"]
-git-tree-sha1 = "348ad5af9c916b6e1641c74378fac8bb49236688"
+git-tree-sha1 = "ca0dbe8434ace322cea02fc8cce0dea8d5308e87"
 uuid = "d1185830-fcd6-423d-90d6-eec64667417b"
-version = "1.0.1"
+version = "1.0.3"
 
 [[deps.Symbolics]]
 deps = ["ArrayInterfaceCore", "ConstructionBase", "DataStructures", "DiffRules", "Distributions", "DocStringExtensions", "DomainSets", "Groebner", "IfElse", "LaTeXStrings", "LambertW", "Latexify", "Libdl", "LinearAlgebra", "MacroTools", "Markdown", "NaNMath", "RecipesBase", "Reexport", "Requires", "RuntimeGeneratedFunctions", "SciMLBase", "Setfield", "SparseArrays", "SpecialFunctions", "StaticArrays", "SymbolicUtils", "TreeViews"]
@@ -1858,9 +1864,9 @@ version = "0.2.0"
 
 [[deps.VoronoiFVM]]
 deps = ["BandedMatrices", "CommonSolve", "DiffResults", "DocStringExtensions", "ExtendableGrids", "ExtendableSparse", "ForwardDiff", "GridVisualize", "InteractiveUtils", "JLD2", "LinearAlgebra", "LinearSolve", "Printf", "Random", "RecursiveArrayTools", "SnoopPrecompile", "SparseArrays", "SparseDiffTools", "StaticArrays", "Statistics", "SuiteSparse", "Symbolics", "Test"]
-git-tree-sha1 = "39f1ffcca22b8c3357789d0f2dc63803f5299fb5"
+git-tree-sha1 = "eed07777f5b4ab286e75997ddbfc87443aebd432"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
-version = "0.19.0"
+version = "0.19.3"
 
 [[deps.WriteVTK]]
 deps = ["Base64", "CodecZlib", "FillArrays", "LightXML", "TranscodingStreams"]

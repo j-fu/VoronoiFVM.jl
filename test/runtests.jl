@@ -85,7 +85,8 @@ function run_all_tests()
                "nonlinear-solvers.jl",
                "api-update.jl",
                "flux-reconstruction.jl",
-               "problemcase.jl"
+               "problemcase.jl",
+               "interfaces1d.jl"
                ]
 
     @testset "basictest" begin

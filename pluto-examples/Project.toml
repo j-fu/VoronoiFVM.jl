@@ -2,6 +2,7 @@
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 ExtendableSparse = "95c220a8-a1cf-11e9-0c77-dbfce5f500b3"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
+HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 ILUZero = "88f59080-6952-5380-9ea5-54057fb9a43f"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"

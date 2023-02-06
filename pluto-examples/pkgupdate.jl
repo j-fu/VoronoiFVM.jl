@@ -15,6 +15,7 @@ notebooks = [
     "flux-reconstruction.jl",
     "problemcase.jl",
     "nonlinear-solvers.jl",
+    "interfaces1d.jl"
 ]
 
 

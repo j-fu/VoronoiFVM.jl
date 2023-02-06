@@ -33,6 +33,7 @@ function make_all(; with_examples = true, run_notebooks = true)
             "API Updates" => "api-update.jl",
             "Nonlinear solver control" => "nonlinear-solvers.jl",
             "Obtaining vector fields" => "flux-reconstruction.jl",
+            "Internal interfaces (1D)" => "interfaces1d.jl",
             "A case for caution" => "problemcase.jl",
         ]
 
