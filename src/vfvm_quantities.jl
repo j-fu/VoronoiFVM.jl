@@ -177,7 +177,7 @@ region where discontinuous quantity is defined.
 """
 function subgrids(quantity::DiscontinuousQuantity, sys)
     grid = sys.grid
-    subgrids = Vector{ExtendableGrid}(undef, 0)
+    subgrids = Vector{typeof(sys.grid)}(undef, 0)
     for ireg = 1:num_cellregions(grid)
         ispec = quantity.regionspec[ireg]
         if ispec > 0
@@ -194,7 +194,6 @@ Return the subgrid where interface quantity is defined.
 """
 function subgrids(quantity::InterfaceQuantity, sys)
     grid = sys.grid
-    bgrid = Vector{ExtendableGrid}(undef, 0)
     bgrid = subgrid(grid, quantity.bregspec; boundary = true)
 end
 
