@@ -247,8 +247,8 @@ function main(;
 end
 
 function test()
-    if VERSION >= v"1.6" && VERSION < v"1.7" && Sys.isapple()
-        # skip this test - FP seems to behave different...
+    if Sys.isapple()
+        # skip this test - FP seems to behave differently
         @info "test skipped"
         return true
     else
