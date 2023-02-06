@@ -522,7 +522,6 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
             reltol = control.reltol_linear,
             verbose = doprint(control, 'l'),
             Pl,
-            Pr = LinearSolve.Identity(),
         )
     else
         system.linear_cache = LinearSolve.set_A(system.linear_cache, A)
@@ -533,7 +532,7 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
                 LinearSolve.set_prec(system.linear_cache, Pl, LinearSolve.Identity())
         end
     end
-
+    
     try
         sol = LinearSolve.solve(system.linear_cache)
         system.linear_cache = sol.cache
