@@ -637,7 +637,7 @@ function _solve_timestep!(
                 nlhistory,
                 control,
                 method_linear,
-                sparse(system.matrix),
+                system.matrix,
                 values(residual),
             )
 
