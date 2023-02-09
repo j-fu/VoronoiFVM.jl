@@ -16,14 +16,14 @@ function g!(f, u, edge)
     f[1] = u[1, 1] - u[1, 2]
 end
 
-function main(; Plotter = nothing, n = 5)
+function main(; Plotter = nothing, n = 5, is_linear=true)
     nspecies = 1
     ispec = 1
     X = collect(0:(1.0 / n):1)
     grid = VoronoiFVM.Grid(X, X)
 
     physics = VoronoiFVM.Physics(; flux = g!)
-    sys = VoronoiFVM.System(grid, physics)
+    sys = VoronoiFVM.System(grid, physics, is_linear=is_linear)
     enable_species!(sys, ispec, [1])
     boundary_dirichlet!(sys, ispec, 1, 0.0)
     boundary_dirichlet!(sys, ispec, 3, 1.0)

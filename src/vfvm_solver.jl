@@ -532,7 +532,7 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
                 LinearSolve.set_prec(system.linear_cache, Pl, LinearSolve.Identity())
         end
     end
-    
+
     try
         sol = LinearSolve.solve(system.linear_cache)
         system.linear_cache = sol.cache
@@ -592,14 +592,18 @@ function _solve_timestep!(
 
         oldnorm = 1.0
         converged = false
-        if doprint(control, 'n')
-            @printf("  [n]ewton: #it(lin) |update|  cont3tion |round|  #round\n")
+        damp = 1.0
+        if !system.is_linear
+            if doprint(control, 'n')
+                println("  [n]ewton: #it(lin) |update|  cont3tion |round|  #round\n")
+            end
+            damp = control.damp_initial
+            rnorm = control.rnorm(solution)
         end
+
         nlu_reuse = 0
         nround = 0
-        damp = control.damp_initial
         tolx = 0.0
-        rnorm = control.rnorm(solution)
         ncalloc = 0
         nballoc = 0
         neval = 0
@@ -637,12 +641,17 @@ function _solve_timestep!(
                 nlhistory,
                 control,
                 method_linear,
-                system.matrix,
+                sparse(system.matrix),
                 values(residual),
             )
 
-            solval = values(solution)
-            solval .-= damp * values(update)
+            values(solution) .-= damp * values(update)
+
+            if system.is_linear
+                converged = true
+                break
+            end
+
             damp = min(damp * control.damp_growth, 1.0)
             norm = control.unorm(update)
             if tolx == 0.0
@@ -708,12 +717,21 @@ function _solve_timestep!(
     if control.log
         nlhistory.time = t
     end
+
     if ncalloc + nballoc > 0 && doprint(control, 'a')
         @warn "[a]llocations in assembly loop: cells: $(ncalloc÷neval), bfaces: $(nballoc÷neval)"
     end
-    if doprint(control, 'n')
+
+    if doprint(control, 'n') && !system.is_linear
         println("  [n]ewton: $(round(t,sigdigits=3)) seconds")
     end
+
+    if doprint(control, 'l') && system.is_linear
+        println(
+            "  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds",
+        )
+    end
+
     system.history = nlhistory
 end
 

@@ -111,6 +111,11 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     bfaceedgefactors::Array{Tv, 2}
 
     """
+    Is the system linear ?
+    """
+    is_linear::Bool
+    
+    """
     Sparse matrix for generic operator handling
     """
     generic_matrix::SparseMatrixCSC
@@ -177,6 +182,7 @@ Keyword arguments:
      - `:dense` :  solution vector is an  `nspecies` x `nnodes`  dense matrix
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 - `matrixindextype`: Integer type. Index type for sparse matrices created in the system.
+- `is_linear`: whether the system is linear or not. If it is linear, only one Newton step is used to solve it.
 
 Physics keyword arguments:
 - `flux`: Function.     Flux between neigboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
@@ -220,6 +226,7 @@ function System(grid::ExtendableGrid;
                 unknown_storage = :dense,
                 matrixindextype = Int64,
                 matrixtype = :sparse,
+                is_linear = false,
                 nparams = 0,
                 kwargs...)
     Tv = valuetype
@@ -249,7 +256,7 @@ function System(grid::ExtendableGrid;
     system.linear_cache = nothing
     system.history = nothing
     system.num_parameters = nparams
-
+    system.is_linear = is_linear
     physics!(system; kwargs...)
     enable_species!(system; species)
     return system
