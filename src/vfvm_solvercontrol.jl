@@ -115,7 +115,11 @@ Base.@kwdef mutable struct SolverControl
     """
     Constructor for preconditioner for linear systems.
     This should work as a function `precon_linear(A)` which
-    returns a preconditioner object in the sense of `LinearSolve.jl`
+    takes an AbstractSparseMatrixCSC (e.g. an ExtendableSparseMatrix)
+    and returns a preconditioner object in the sense of `LinearSolve.jl`, i.e. which
+    has an `ldiv!(u,A,v)` method. Useful examples:
+    - `ExtendableSparse.ILUZero`
+    - `ExtendableSparse.Jacobi`
     """
     precon_linear::Union{Type,Function} = A -> Identity()
 

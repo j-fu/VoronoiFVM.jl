@@ -498,7 +498,12 @@ mutable struct FactorizationPreconditioner{C}
     cache::C
 end
 
-function factorization(A, method)
+"""
+   factorize(A,method::LinearSolve.AbstractFactorization)
+
+Calculate an LU factorization of A using one of the methods available in LinearSolve.jl. 
+"""
+function LinearAlgebra.factorize(A, method::LinearSolve.AbstractFactorization)
     pr = LinearProblem(A, zeros(eltype(A), size(A, 1)))
     p = FactorizationPreconditioner(init(pr, method))
     p
@@ -641,7 +646,7 @@ function _solve_timestep!(
                 nlhistory,
                 control,
                 method_linear,
-                sparse(system.matrix),
+                system.matrix,
                 values(residual),
             )
 

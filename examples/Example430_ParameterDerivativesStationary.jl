@@ -116,7 +116,7 @@ function rung(; Plotter = nothing, method_linear = SparspakFactorization(), n = 
             tfc = testfunction(tff, [1], [3])
         end
         data.p = P[1]
-        sol = solve(sys; inival = 0.5, method_linear, precon_linear = ILUZero.ilu0)
+        sol = solve(sys; inival = 0.5, method_linear, precon_linear = ILUZeroPreconditioner)
         [integrate(sys, tfc, sol)[1]]
     end
 

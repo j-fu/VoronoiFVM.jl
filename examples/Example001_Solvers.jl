@@ -12,9 +12,8 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 using LinearSolve
-using ILUZero
+using ExtendableSparse
 using LinearAlgebra
-
 
 function main(; n = 10, Plotter = nothing, kwargs...)
 
@@ -81,7 +80,7 @@ function main(; n = 10, Plotter = nothing, kwargs...)
         sys;
         inival = 0.5,
         method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = ILUZero.ilu0,
+        precon_linear = ILUZeroPreconditioner,
         kwargs...,
     )
 
@@ -90,7 +89,7 @@ function main(; n = 10, Plotter = nothing, kwargs...)
         sys;
         inival = 0.5,
         method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = A -> VoronoiFVM.factorization(A, SparspakFactorization()),
+        precon_linear = A ->factorize(A, SparspakFactorization()),
         kwargs...,
     )
 
@@ -99,7 +98,7 @@ function main(; n = 10, Plotter = nothing, kwargs...)
         sys;
         inival = 0.5,
         method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = A -> Diagonal(diag(A)),
+        precon_linear = JacobiPreconditioner,
         keepcurrent_linear = true,
         kwargs...,
     )

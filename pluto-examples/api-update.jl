@@ -32,6 +32,7 @@ begin
     if initialized
         using VoronoiFVM
         using ExtendableGrids
+        using ExtendableSparse
         using Test
         using PlutoUI
         using GridVisualize
@@ -188,13 +189,14 @@ md"""
 
 # ╔═╡ 7e94ff44-4807-41b0-875d-526390903942
 md"""
-##### BICGstab from Krylov.jl with diagonal preconditioner 
+##### BICGstab from Krylov.jl with diagonal (Jacobi) preconditioner
+The Jacobi preconditioner is defined in ExtendableSparse.jl.
 """
 
 # ╔═╡ b70524fc-b8b1-4dee-b77d-e3f8d6d2837b
 krydiag_sol=solve(sys0; inival=0.1, 
 method_linear=KrylovJL_BICGSTAB(),
-precon_linear=A->Diagonal(diag(A)),verbose=true)
+precon_linear=JacobiPreconditioner,verbose=true)
 
 # ╔═╡ d21d3236-b3d7-4cf8-ab9d-b0be44c9970b
 @test isapprox(krydiag_sol, sol0, atol=1.0e-6)
@@ -209,7 +211,7 @@ md"""
         sys0;
         inival = 0.1,
         method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = A -> VoronoiFVM.factorization(A, SparspakFactorization()),
+        precon_linear = A -> factorize(A, SparspakFactorization()),
     verbose="nlad"
 	)
 
@@ -219,7 +221,9 @@ md"""
 
 # ╔═╡ 023ae612-6bef-4b0d-8d04-5c0461efbc18
 md"""
-##### BICGstab from Krylov.jl with ilu0 preconditioner from ILUZero.jl
+##### BICGstab from Krylov.jl with ilu0 preconditioner 
+`ILUZeroPreconditioner` is exported from ExtendableSparse and
+wraps the predonditioner defined in  ILUZero.jl .
 """
 
 # ╔═╡ 6895cdf9-8291-47ce-bd1d-4c5beec594ea
@@ -227,7 +231,7 @@ md"""
         sys0;
         inival = 0.5,
         method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = ILUZero.ilu0,
+        precon_linear = ILUZeroPreconditioner,
         verbose=true
     )
 

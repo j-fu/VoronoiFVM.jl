@@ -123,7 +123,7 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
             end
         end
     end
-    Mcsc = sparse(M)
+    Mcsc = SparseMatrixCSC(M)
     isdiag(Mcsc) ? Diagonal([Mcsc[i, i] for i = 1:ndof]) : Mcsc
 end
 

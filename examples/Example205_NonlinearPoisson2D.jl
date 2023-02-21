@@ -75,8 +75,8 @@ function test()
         main(; unknown_storage = :sparse, max_lureuse = 10) ≈ testval &&
         main(; unknown_storage = :dense, max_lureuse = 10) ≈ testval &&
         main(; unknown_storage = :sparse, max_lureuse = 0,
-             method_linear = KrylovJL_CG(), precon_linear = ILUZero.ilu0) ≈ testval &&
+             method_linear = KrylovJL_CG(), precon_linear = ILUZeroPreconditioner) ≈ testval &&
         main(; unknown_storage = :dense, max_lureuse = 0,
-             method_linear = KrylovJL_CG(), precon_linear = ILUZero.ilu0) ≈ testval
+             method_linear = KrylovJL_CG(), precon_linear = ILUZeroPreconditioner) ≈ testval
 end
 end
