@@ -181,6 +181,7 @@ function eval_and_assemble(
     stor_evaluator = ResJacEvaluator(physics, :storage, UK, node, nspecies)
     oldstor_evaluator = ResEvaluator(physics, :storage, UK, node, nspecies)
     flux_evaluator = ResJacEvaluator(physics, :flux, UKL, edge, nspecies)
+    erea_evaluator = ResJacEvaluator(physics, :edgereaction, UKL, edge, nspecies)
 
     bsrc_evaluator = ResEvaluator(physics, :bsource, UK, bnode, nspecies)
     brea_evaluator = ResJacEvaluator(physics, :breaction, UK, bnode, nspecies)
@@ -273,6 +274,34 @@ function eval_and_assemble(
             end
 
             assemble_res_jac(edge, system, asm_res, asm_jac, asm_param)
+            
+            if isnontrivial(erea_evaluator)
+                evaluate!(erea_evaluator, UKL)
+                res_erea = res(erea_evaluator)
+                jac_erea = jac(erea_evaluator)
+                
+                @inline function ereaasm_res(idofK, idofL, ispec)
+                    val = fac * res_erea[ispec]
+                    _add(F, idofK, val)
+                    _add(F, idofL, val)
+                end
+                
+                @inline function ereaasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
+                    _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], fac)
+                    _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], fac)
+                    _addnz(system.matrix, idofK, jdofL, -jac_erea[ispec, jspec+nspecies], fac)
+                    _addnz(system.matrix, idofL, jdofL, +jac_erea[ispec, jspec+nspecies], fac)
+                end
+                
+                @inline function ereaasm_param(idofK, idofL, ispec, iparam)
+                    jparam = 2 * nspecies + iparam
+                    dudp[iparam][ispec, idofK] += fac * jac_erea[ispec, jparam]
+                    dudp[iparam][ispec, idofL] += fac * jac_erea[ispec, jparam]
+                end
+                
+                assemble_res_jac(edge, system, ereaasm_res, ereaasm_jac, ereaasm_param)
+                
+            end
         end
     end
 
