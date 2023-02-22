@@ -1,12 +1,17 @@
 # # 206: 2D Joule heating
 # ([source code](SOURCE_URL))
-#
-## |------------------------------------------------------------------|
-## | Joule Heat System						   |
-## |	 - div (kappa  grad phi)   = 0				   |
-## | dt (cT)  - div (lambda grad T)   = kappa (grad phi) * (grad phi) |
-## |			     kappa = kappa0 exp(alpha (T-T0))	   |
-## |------------------------------------------------------------------|
+#=
+
+```math
+\begin{aligned}
+-\nabla \left\cdot (\kappa(T) \nabla \phi\right) &= 0\\
+\partial_t (cT) - \nabla\cdot \left(\lambda \nabla T\right) &= \kappa(T) |\nabla \phi|^2\\
+\kappa(T)&= \kappa_0 exp(\alpha(T-T0))
+\end{aligned}
+```
+The discretization uses the approach developed in
+A. Bradji, R. Herbin, [DOI 10.1093/imanum/drm030](https://doi.org/10.1093/imanum/drm030).
+=#
 
 
 module Example206_JouleHeat
@@ -22,7 +27,7 @@ using Triangulate
 
 function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = :sparse,     ythin=0.25)
 
-
+## Create grid
     b=SimplexGridBuilder(Generator=Triangulate)
     p00=point!(b,0,0)
     p30=point!(b,3,0)
@@ -43,7 +48,9 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
     facet!(b,p02,p00)
     
     grid=simplexgrid(b;maxvolume=0.01*4.0^(-nref))
-    
+
+
+    ## Describe problem
     iϕ::Int=1
     iT::Int=2
     κ0::Float64=1;
@@ -64,6 +71,8 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
     end
     
 
+    ## The convention in VoronoiFVM.jl is to have all terms depending on the solution
+    ## on the left hand side of the equation. That is why we have the minus sign here.
     function jouleheat!(y,u,edge)
         y[iT]= -κ(y[iT])*(u[iϕ,1]-u[iϕ,2])*(u[iϕ,1]-u[iϕ,2])
     end
