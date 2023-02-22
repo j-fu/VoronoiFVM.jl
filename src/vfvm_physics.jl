@@ -81,6 +81,7 @@ $(TYPEDFIELDS)
 """
 struct Physics{Flux <: Function,
                Reaction <: Function,
+               EdgeReaction <: Function,
                Storage <: Function,
                Source <: Function,
                BFlux <: Function,
@@ -91,9 +92,9 @@ struct Physics{Flux <: Function,
                GenericOperatorSparsity <: Function,
                Data} <: AbstractPhysics
     """
-    Flux between neigboring control volumes: `flux(f,_u,edge)` or `flux(f,_u,edge,data)`
+    Flux between neigboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
     should return in `f[i]` the flux of species i along the edge joining circumcenters
-    of neigboring control volumes. `u=unknowns(_u)` returns a 2D array such that for species i,
+    of neigboring control volumes.  u is a  2D array such that for species i,
     `u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
     """
     flux::Flux
@@ -113,6 +114,15 @@ struct Physics{Flux <: Function,
     the i-th unknown.
     """
     reaction::Reaction
+
+    """
+    Edge reaction term:  `edgereaction(f,u,edge)` or `edgereaction(f,u,edge,data)` 
+
+    It should return in `f[i]` the reaction term for the i-th equation. `u[i]` contains the value of
+    the i-th unknown.  u is a  2D array such that for species i,
+    `u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
+    """
+    edgereaction::EdgeReaction
 
     """
     Source term: `source(f,node)` or `source(f,node,data)`.
@@ -180,6 +190,7 @@ Physics(;num_species=0,
          data=nothing,
          flux,
          reaction,
+         edgereaction,
          storage,
          source,
          breaction,
@@ -195,6 +206,7 @@ function Physics(; num_species = 0,
                  data = nothing,
                  flux::Function = nofunc,
                  reaction::Function = nofunc,
+                 edgereaction::Function = nofunc,
                  storage::Function = default_storage,
                  source::Function = nosrc,
                  bflux::Function = nofunc,
@@ -207,6 +219,7 @@ function Physics(; num_species = 0,
     if !isdata(data)
         flux == nofunc ? flux = nofunc2 : true
         reaction == nofunc ? reaction = nofunc2 : true
+        edgereaction == nofunc ? edgereaction = nofunc2 : true
         storage == default_storage ? storage = default_storage2 : true
         source == nosrc ? source = nosrc2 : true
         bflux == nofunc ? bflux = nofunc2 : true
@@ -218,6 +231,7 @@ function Physics(; num_species = 0,
     return Physics(flux,
                    storage,
                    reaction,
+                   edgereaction,
                    source,
                    bflux,
                    breaction,
@@ -230,19 +244,19 @@ function Physics(; num_species = 0,
 end
 
 function Physics(physics::Physics, data)
-    @show "here"
-    Physics(physic.flux,
-            physic.storage,
-            physic.reaction,
-            physic.source,
-            physic.bflux,
-            physic.breaction,
-            physic.bsource,
-            physic.bstorage,
-            physic.generic,
-            physic.generic_sparsity,
+    Physics(physics.flux,
+            physics.storage,
+            physics.reaction,
+            physics.edgereaction,
+            physics.source,
+            physics.bflux,
+            physics.breaction,
+            physics.bsource,
+            physics.bstorage,
+            physics.generic,
+            physics.generic_sparsity,
             data,
-            physic.num_species)
+            physics.num_species)
 end
 
 """

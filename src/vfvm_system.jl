@@ -194,6 +194,8 @@ Physics keyword arguments:
 - `reaction`:  Function. Reaction term:  `reaction(f,u,node)` or `reaction(f,u,node,data)` 
     It should return in `f[i]` the reaction term for the i-th equation. `u[i]` contains the value of
     the i-th unknown.
+- `edgereaction`:  Function. Edge reeaction term:  `edgereaction(f,u,edge)` or `edgereaction(f,u,edge,data)` 
+    It should return in `f[i]` the reaction term for the i-th equation.  For species i,`u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
 - `source`:  Function. Source term: `source(f,node)` or `source(f,node,data)`.
     It should return the in `f[i]` the value of the source term for the i-th equation.
 - `bflux`:  Function. Flux between neighboring control volumes on the boundary

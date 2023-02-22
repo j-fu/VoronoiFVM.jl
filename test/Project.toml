@@ -16,6 +16,7 @@ SimplexGridFactory = "57bfcd06-606e-45d6-baf4-4ba06da0efd5"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 
 [extras]
 CPUSummary = "2a0fbf3d-bb9c-48f3-b0a9-814d99fd7ab9"
