@@ -120,6 +120,7 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
 
     src_eval = ResEvaluator(physics, :source, UK, node, nspecies + nparams)
     rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies + nparams)
+    erea_eval = ResEvaluator(physics, :edgereaction, UK, edge, nspecies + nparams)
     stor_eval = ResEvaluator(physics, :storage, UK, node, nspecies + nparams)
     storold_eval = ResEvaluator(physics, :storage, UKold, node, nspecies + nparams)
     flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies + nparams)
@@ -140,6 +141,17 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
                 integral[ispec] += system.celledgefactors[iedge, icell] * flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
             end
             assemble_res(edge, system, asm_res)
+
+            if isnontrivial(erea_eval)
+                evaluate!(erea_eval, UKL)
+                erea = res(erea_eval)
+
+                function easm_res(idofK, idofL, ispec)
+                    integral[ispec] += system.celledgefactors[iedge, icell] * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
+                end
+                assemble_res(edge, system, easm_res)
+                
+            end
         end
 
         for inode = 1:num_nodes(geom)
@@ -201,6 +213,7 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
 
     src_eval = ResEvaluator(physics, :source, UK, node, nspecies)
     rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies)
+    erea_eval = ResEvaluator(physics, :edgereaction, UK, node, nspecies)
     flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies)
 
     for icell = 1:num_cells(grid)
@@ -216,6 +229,19 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
                 integral[ispec] += system.celledgefactors[iedge, icell] * flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
             end
             assemble_res(edge, system, asm_res)
+
+            if isnontrivial(erea_eval)
+                evaluate!(erea_eval, UKL)
+                erea = res(erea_eval)
+
+                function easm_res(idofK, idofL, ispec)
+                    integral[ispec] += system.celledgefactors[iedge, icell] * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
+                end
+                assemble_res(edge, system, easm_res)
+                
+            end
+
+
         end
 
         for inode = 1:num_nodes(geom)

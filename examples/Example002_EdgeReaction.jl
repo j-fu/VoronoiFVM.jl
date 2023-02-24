@@ -12,14 +12,17 @@ using LinearAlgebra
 using SimplexGridFactory
 using Triangulate
 
-function main(; nref = 0, dim=2, Plotter = nothing, verbose = "and")
+function main(; nref = 0, dim=2, Plotter = nothing, verbose = "and", case=:compare_max)
 
 
 
     X=0:0.25*2.0^-nref:1
-    
+    i0::Int=0
+    i1::Int=0
     if dim==1
         grid=simplexgrid(X)
+        i0=1
+        i1=2
     elseif dim==2
         b=SimplexGridBuilder(Generator=Triangulate)
         p00=point!(b,0,0)
@@ -30,12 +33,19 @@ function main(; nref = 0, dim=2, Plotter = nothing, verbose = "and")
         
         facetregion!(b,1)
         facet!(b,p00,p10)
+        facetregion!(b,2)
         facet!(b,p10,p11)
+        facetregion!(b,3)
         facet!(b,p11,p01)
+        facetregion!(b,4)
         facet!(b,p01,p00)
         grid=simplexgrid(b;maxvolume=0.01*4.0^(-nref))
+        i0=1
+        i1=3
     elseif dim==3
         grid=simplexgrid(X,X,X)
+        i0=5
+        i1=6
     end
     
     
@@ -87,38 +97,82 @@ function main(; nref = 0, dim=2, Plotter = nothing, verbose = "and")
         y[1]=-(ϕK-ϕL)*(ϕK-ϕL)/2
     end
     
-    
-    function bcondition!(y,u,node)
-        boundary_dirichlet!(y,u,node,species=1,region=1, value=0)
-        boundary_dirichlet!(y,u,node,species=1,region=2, value=0)
-        boundary_dirichlet!(y,u,node,species=1,region=3, value=0)
-        boundary_dirichlet!(y,u,node,species=1,region=4, value=0)
-        boundary_dirichlet!(y,u,node,species=1,region=5, value=0)
-        boundary_dirichlet!(y,u,node,species=1,region=6, value=0)
+    if case==:compare_max
+        
+        function bcondition!(y,u,node)
+            boundary_dirichlet!(y,u,node,species=1,region=1, value=0)
+            boundary_dirichlet!(y,u,node,species=1,region=2, value=0)
+            boundary_dirichlet!(y,u,node,species=1,region=3, value=0)
+            boundary_dirichlet!(y,u,node,species=1,region=4, value=0)
+            boundary_dirichlet!(y,u,node,species=1,region=5, value=0)
+            boundary_dirichlet!(y,u,node,species=1,region=6, value=0)
+        end
+        
+        sys_noderea=VoronoiFVM.System(grid; bcondition=bcondition!, flux=flux!, reaction=reaction!, storage=storage!,species=[1], is_linear=true)
+        sys_edgerea=VoronoiFVM.System(grid; bcondition=bcondition!, flux=flux!, edgereaction=edgereaction!, storage=storage!,species=[1], is_linear=true)
+        sys_edgerea2=VoronoiFVM.System(grid; bcondition=bcondition!, flux=flux!, edgereaction=edgereaction2!, storage=storage!,species=[1], is_linear=true)
+        
+        sol_noderea=solve(sys_noderea;verbose)
+        sol_edgerea=solve(sys_edgerea;verbose)
+        sol_edgerea2=solve(sys_edgerea2;verbose)
+        
+        vis=GridVisualizer(;Plotter,layout=(2,2))
+        scalarplot!(vis[1,1],grid,sol_noderea[1,:],title="node reaction",colormap=:hot)
+        scalarplot!(vis[2,1],grid,sol_edgerea[1,:],title="edgerea1",colormap=:hot)
+        scalarplot!(vis[1,2],grid,sol_edgerea2[1,:],title="edgerea2",colormap=:hot)
+
+        reveal(vis)
+        return maximum.([sol_noderea,sol_edgerea,sol_edgerea2])
     end
     
-    sys_noderea=VoronoiFVM.System(grid; bcondition=bcondition!, flux=flux!, reaction=reaction!, storage=storage!,species=[1], is_linear=true)
-    sys_edgerea=VoronoiFVM.System(grid; bcondition=bcondition!, flux=flux!, edgereaction=edgereaction!, storage=storage!,species=[1], is_linear=true)
-    sys_edgerea2=VoronoiFVM.System(grid; bcondition=bcondition!, flux=flux!, edgereaction=edgereaction2!, storage=storage!,species=[1], is_linear=true)
-
-    sol_noderea=solve(sys_noderea;verbose)
-    sol_edgerea=solve(sys_edgerea;verbose)
-    sol_edgerea2=solve(sys_edgerea2;verbose)
-
-    vis=GridVisualizer(;Plotter,layout=(2,2))
-    scalarplot!(vis[1,1],grid,sol_noderea[1,:],title="node reaction",colormap=:hot)
-    scalarplot!(vis[2,1],grid,sol_edgerea[1,:],title="edgerea1",colormap=:hot)
-    scalarplot!(vis[1,2],grid,sol_edgerea2[1,:],title="edgerea2",colormap=:hot)
-
-    reveal(vis)
-
-    # These must be equal up to rounding
-    maximum.([sol_noderea,sol_edgerea,sol_edgerea2])
+    if case==:compare_flux
+        function bcondition2!(y,u,node)
+            boundary_dirichlet!(y,u,node,species=1,region=i1, value=0)
+        end
+        
+        
+        sys2_noderea=VoronoiFVM.System(grid; bcondition=bcondition2!, flux=flux!, reaction=reaction!, storage=storage!,species=[1], is_linear=true)
+        sys2_edgerea=VoronoiFVM.System(grid; bcondition=bcondition2!, flux=flux!, edgereaction=edgereaction!, storage=storage!,species=[1], is_linear=true)
+        sys2_edgerea2=VoronoiFVM.System(grid; bcondition=bcondition2!, flux=flux!, edgereaction=edgereaction2!, storage=storage!,species=[1], is_linear=true)
+        
+        sol2_noderea=solve(sys2_noderea;verbose)
+        sol2_edgerea=solve(sys2_edgerea;verbose)
+        sol2_edgerea2=solve(sys2_edgerea2;verbose)
+        
+        tfac2_noderea=TestFunctionFactory(sys2_noderea)
+        tfc2_noderea=testfunction(tfac2_noderea,[i0],[i1])
+        
+        tfac2_edgerea=TestFunctionFactory(sys2_edgerea)
+        tfc2_edgerea=testfunction(tfac2_edgerea,[i0],[i1])
+        
+        tfac2_edgerea2=TestFunctionFactory(sys2_edgerea2)
+        tfc2_edgerea2=testfunction(tfac2_edgerea2,[i0],[i1])
+        
+        vis=GridVisualizer(;Plotter,layout=(2,2))
+        scalarplot!(vis[1,1],grid,sol2_noderea[1,:],title="node reaction",colormap=:hot)
+        scalarplot!(vis[2,1],grid,sol2_edgerea[1,:],title="edgerea1",colormap=:hot)
+        scalarplot!(vis[1,2],grid,sol2_edgerea2[1,:],title="edgerea2",colormap=:hot)
+        reveal(vis)
+        
+        I_noderea=integrate(sys2_noderea,tfc2_noderea,sol2_noderea)
+        I_edgerea=integrate(sys2_edgerea,tfc2_edgerea,sol2_edgerea)
+        I_edgerea2=integrate(sys2_edgerea2,tfc2_edgerea2,sol2_edgerea2)
+        
+       return I_noderea,I_edgerea, I_edgerea2
+    end
 end
 
 function test()
-    result=main()
-    isapprox(result[1],result[2],atol=1.0e-6) &&
-        isapprox(result[1],result[3],atol=1.0e-3)
+    res=fill(false,3)
+    for dim in 1:3
+        result_max=main(case=:compare_max)
+        result_flux=main(case=:compare_flux)
+        res[dim]=isapprox(result_max[1],result_max[2],atol=1.0e-6) &&
+            isapprox(result_max[1],result_max[3],atol=1.0e-3) &&
+            isapprox(result_flux[1],result_flux[2],atol=1.0e-10) &&
+            isapprox(result_flux[1],result_flux[3],atol=1.0e-10)
+    end
+    all(a->a,res)
 end
+
 end
