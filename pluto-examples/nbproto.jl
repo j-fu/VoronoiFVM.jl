@@ -85,7 +85,7 @@ GridVisualize = "~1.0.2"
 PlutoUI = "~0.7.50"
 PlutoVista = "~0.8.23"
 Revise = "~3.5.1"
-VoronoiFVM = "~0.19.5"
+VoronoiFVM = "~1.0.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -404,9 +404,9 @@ version = "0.9.17"
 
 [[deps.ExtendableSparse]]
 deps = ["DocStringExtensions", "ILUZero", "LinearAlgebra", "Printf", "Requires", "SparseArrays", "Sparspak", "SuiteSparse", "Test"]
-git-tree-sha1 = "075dfc8c0049b676a6af6ce2d7e9e84f56371808"
+git-tree-sha1 = "bbb16c582df45544612cd703fe1b8179339ccd2b"
 uuid = "95c220a8-a1cf-11e9-0c77-dbfce5f500b3"
-version = "0.9.6"
+version = "1.0.1"
 
 [[deps.Extents]]
 git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
@@ -1149,9 +1149,9 @@ version = "0.3.9"
 
 [[deps.SpecialFunctions]]
 deps = ["ChainRulesCore", "IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
-git-tree-sha1 = "d75bda01f8c31ebb72df80a46c88b25d1c79c56d"
+git-tree-sha1 = "ef28127915f4229c971eb43f3fc075dd3fe91880"
 uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "2.1.7"
+version = "2.2.0"
 
 [[deps.Static]]
 deps = ["IfElse"]
@@ -1341,9 +1341,9 @@ version = "0.2.0"
 
 [[deps.VoronoiFVM]]
 deps = ["BandedMatrices", "CommonSolve", "DiffResults", "DocStringExtensions", "ExtendableGrids", "ExtendableSparse", "ForwardDiff", "GridVisualize", "InteractiveUtils", "JLD2", "LinearAlgebra", "LinearSolve", "Printf", "Random", "RecursiveArrayTools", "SnoopPrecompile", "SparseArrays", "SparseDiffTools", "StaticArrays", "Statistics", "SuiteSparse", "Symbolics", "Test"]
-git-tree-sha1 = "8e4b60a100eb3bc1cd6e3931e7841e97d15728b5"
+git-tree-sha1 = "22a9a54429eb9445426bae97d8dff3615b86fc8d"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
-version = "0.19.5"
+version = "1.0.0"
 
 [[deps.WriteVTK]]
 deps = ["Base64", "CodecZlib", "FillArrays", "LightXML", "TranscodingStreams"]
