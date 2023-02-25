@@ -471,7 +471,7 @@ $(TYPEDSIGNATURES)
 Call function in evaluator, store result and jacobian in predefined memory.
 """
 function evaluate!(e::ResJacEvaluator, u)
-    e.isnontrivial ? ForwardDiff.vector_mode_jacobian!(e.result, e.fwrap, e.y, u, e.config) : nothing
+    e.isnontrivial ? ForwardDiff.jacobian!(e.result, e.fwrap, e.y, u, e.config) : nothing
     nothing
 end
 
