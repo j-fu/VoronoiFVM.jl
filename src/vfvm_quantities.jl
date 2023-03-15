@@ -19,7 +19,7 @@ struct ContinuousQuantity{Ti} <: AbstractQuantity{Ti}
     Species number representing the quantity
     """
     ispec::Ti
-
+    
     """
     Quantity identifier allowing to use the quantity as index
     in parameter fields
@@ -358,21 +358,24 @@ Base.setindex!(f::BNodeRHS, v, q::DiscontinuousQuantity, j) = @inbounds f[q[f.ge
 """
     M[q,i]
 
-Access columns  `M` using id of quantity `q`
+Access columns  `M` using id of quantity `q`.
+This is meant for nspecies x  nregions matrices e.g. defining parameters.
 """
 Base.getindex(m::AbstractMatrix, q::AbstractQuantity, j) = m[q.id, j]
 
 """
     M[q,i]
 
-Set element of `M` using id of quantity `q`
+Set element of `M` using id of quantity `q`.
+This is meant for nspecies x  nregions matrices  e.g. defining parameters.
 """
 Base.setindex!(m::AbstractMatrix, v, q::AbstractQuantity, j) = m[q.id, j] = v
 
 """
     A[q]
 
-Access columns  of Array `A` using id of quantity `q`
+Access columns  of vectors `A` using id of quantity `q`.
+This is meant for vectors indexed by species.
 """
 Base.getindex(A::AbstractArray, q::AbstractQuantity) = A[q.id]
 
@@ -380,6 +383,7 @@ Base.getindex(A::AbstractArray, q::AbstractQuantity) = A[q.id]
     A[q]
 
 Set element of `A` using id of quantity `q`
+This is meant for vectors indexed by species.
 """
 Base.setindex!(A::AbstractArray, v, q::AbstractQuantity) = A[q.id] = v
 
@@ -388,3 +392,5 @@ Base.getindex(I::SolutionIntegral, dspec::DiscontinuousQuantity, ireg) = I[dspec
 function Base.getindex(I::SolutionIntegral, dspec::DiscontinuousQuantity, ::Colon)
     [I[dspec.regionspec[ireg], ireg] for ireg = 1:size(I, 2)]
 end
+
+
