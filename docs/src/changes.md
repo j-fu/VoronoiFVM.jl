@@ -1,6 +1,12 @@
 # Changes
-## v1.0.0 (planned soon-ish)
-- remove all parts of the API which are marked as deprecated in v0.19.
+## v1.2.0 March 17, 2023
+- Initialiazation of quantities, create unknowns using Base.map
+
+## v1.1.0 Feb 22, 2023
+- Edge reactions, Joule heating
+
+## v1.0.0 Feb 22, 2023
+- full LinearSolve compatibility
 
 ## v0.19.0 Jan 31, 2023
 This is a breaking release. Implementations using default solver settings should continue to work without modifications, 
