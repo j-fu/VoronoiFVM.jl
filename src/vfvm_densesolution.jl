@@ -30,4 +30,6 @@ Add residual value into global degree of freedom
 """
 _add(U::DenseSolutionArray{Tv}, idof, val) where {Tv} = U[CartesianIndices(U)[idof]] += val
 
+_set(U::DenseSolutionArray{Tv}, idof, val) where {Tv} = U[CartesianIndices(U)[idof]] = val
+
 ##################################################################
