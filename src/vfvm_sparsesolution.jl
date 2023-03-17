@@ -147,3 +147,6 @@ $(TYPEDSIGNATURES)
 Add residual value into global degree of freedom
 """
 _add(U::SparseSolutionArray, idof, val) = U.node_dof.nzval[idof] += val
+
+
+_set(U::SparseSolutionArray, idof, val) = U.node_dof.nzval[idof] = val

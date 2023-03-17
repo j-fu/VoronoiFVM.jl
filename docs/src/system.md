@@ -105,6 +105,8 @@ Remedy: rename e.g. `u=solve()` to `sol=solve()`
 ```@docs
 num_dof
 unknowns(system::VoronoiFVM.AbstractSystem; kwargs...)
+Base.map
+Base.map!
 VoronoiFVM.isunknownsof
 Base.reshape
 LinearAlgebra.norm(system::VoronoiFVM.AbstractSystem, u,p)
