@@ -76,16 +76,3 @@ end
 ttype_annotated(10) # hide
 ttype_annotated(10)
 ```
-
-VoronoiFVM provides a mechanism to check for this situation with the
-[`check_allocs!`](@ref) method. After creating a system, set
-```julia
-check_allocs!(system,true)
-```
-and allocations inner assembly loops will throw an error.
-
-To set this behavior as default for all systems you create, invoke 
-```julia
-ENV["VORONOIFVM_CHECK_ALLOCS"]="true"
-```
-before using `VoronoiFVM`, e.g. put it  into your `startup.jl`

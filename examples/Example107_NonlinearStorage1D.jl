@@ -19,75 +19,75 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function barenblatt(x,t,m)
-    tx=t^(-1.0/(m+1.0))
-    xx=x*tx
-    xx=xx*xx
-    xx=1- xx*(m-1)/(2.0*m*(m+1));
-    if xx<0.0
-        xx=0.0
+function barenblatt(x, t, m)
+    tx = t^(-1.0 / (m + 1.0))
+    xx = x * tx
+    xx = xx * xx
+    xx = 1 - xx * (m - 1) / (2.0 * m * (m + 1))
+    if xx < 0.0
+        xx = 0.0
     end
-    return tx*xx^(1.0/(m-1.0))
+    return tx * xx^(1.0 / (m - 1.0))
 end
 
+function main(; n = 20, m = 2.0, Plotter = nothing, verbose = false,
+              unknown_storage = :sparse, tend = 0.01, tstep = 0.0001)
 
-function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse,tend=0.01,tstep=0.0001)
-    
     ## Create a one-dimensional discretization
-    h=1.0/convert(Float64,n/2)
-    X=collect(-1:h:1)
-    grid=VoronoiFVM.Grid(X)
+    h = 1.0 / convert(Float64, n / 2)
+    X = collect(-1:h:1)
+    grid = VoronoiFVM.Grid(X)
 
     ## Flux function which describes the flux
     ## between neigboring control volumes
-    function flux!(f,u,edge)
-        f[1]=u[1,1]-u[1,2]
+    function flux!(f, u, edge)
+        f[1] = u[1, 1] - u[1, 2]
     end
 
-    ϵ=1.0e-10
+    ϵ = 1.0e-10
 
     ## Storage term
     ## This needs to be regularized as its derivative
     ## at 0 is infinity
-    function storage!(f,u,node)
-        f[1]=(ϵ+u[1])^(1.0/m)
+    function storage!(f, u, node)
+        f[1] = (ϵ + u[1])^(1.0 / m)
     end
-    
+
     ## Create a physics structure
-    physics=VoronoiFVM.Physics(
-        flux=flux!,
-        storage=storage!)
-    
-    
+    physics = VoronoiFVM.Physics(; flux = flux!,
+                                 storage = storage!)
+
     ## Create a finite volume system - either
     ## in the dense or  the sparse version.
     ## The difference is in the way the solution object
     ## is stored - as dense or as sparse matrix
-    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
 
     ## Add species 1 to region 1
-    enable_species!(sys,1,[1])
-    
+    enable_species!(sys, 1, [1])
+
     ## Create a solution array
-    inival=unknowns(sys)
-    solution=unknowns(sys)
-    t0=0.001
+    inival = unknowns(sys)
+    solution = unknowns(sys)
+    t0 = 0.001
 
     ## Broadcast the initial value
-    inival[1,:].=map(x->barenblatt(x,t0,m)^m,X)
+    inival[1, :] .= map(x -> barenblatt(x, t0, m)^m, X)
 
     ## Create solver control info
-    control=VoronoiFVM.NewtonControl()
-    control.verbose=verbose
-    control.Δu_opt=0.1
-    control.force_first_step=true
-    tsol=solve(inival,sys,[t0,tend],control=control)
+    control = VoronoiFVM.NewtonControl()
+    control.verbose = verbose
+    control.Δu_opt = 0.1
+    control.force_first_step = true
+    tsol = solve(sys; inival, times = [t0, tend], control)
 
-    p=GridVisualizer(Plotter=Plotter,layout=(1,1),fast=true)
-    for i=1:length(tsol)
-        time=tsol.t[i]
-        scalarplot!(p[1,1],grid,tsol[1,:,i],title=@sprintf("t=%.3g",time),color=:red,label="numerical")
-        scalarplot!(p[1,1],grid,map(x->barenblatt(x,time,m)^m,grid),clear=false,color=:green,label="exact")
+    p = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
+    for i = 1:length(tsol)
+        time = tsol.t[i]
+        scalarplot!(p[1, 1], grid, tsol[1, :, i]; title = @sprintf("t=%.3g", time),
+                    color = :red, label = "numerical")
+        scalarplot!(p[1, 1], grid, map(x -> barenblatt(x, time, m)^m, grid); clear = false,
+                    color = :green, label = "exact")
         reveal(p)
         sleep(1.0e-2)
     end
@@ -95,11 +95,10 @@ function main(;n=20,m=2.0,Plotter=nothing,verbose=false, unknown_storage=:sparse
     return sum(tsol[end])
 end
 
-
 function test()
-    testval=175.20261258406686
-    main(unknown_storage=:sparse) ≈ testval && main(unknown_storage=:dense) ≈ testval
+    testval = 175.20261258406686
+    main(; unknown_storage = :sparse) ≈ testval &&
+        main(; unknown_storage = :dense) ≈ testval
 end
 
-end 
-
+end

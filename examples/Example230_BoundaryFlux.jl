@@ -29,82 +29,82 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-
-function main(;n = 2 * 10, # n musst be an even number
+function main(; n = 2 * 10, # n musst be an even number
               d1 = 5.0, db = 5.0, # prefactors (before diffusive part)
-              kmax = 2.0, cmax = 3.0, 
+              kmax = 2.0, cmax = 3.0,
               Plotter = nothing,
-              unknown_storage=:sparse)
+              unknown_storage = :sparse)
 
     ###########################################################################
     ######################          1D problem           ######################
     ###########################################################################
 
-    ispec_1D       = 1
-    bulk_1D        = 1
+    ispec_1D = 1
+    bulk_1D = 1
 
-    X              = range(0.0, stop = 1.0, length = n)
-    length_x       = length(X)
-    length_x_half  = Int(length_x/2)
+    X = range(0.0; stop = 1.0, length = n)
+    length_x = length(X)
+    length_x_half = Int(length_x / 2)
 
-    grid_1D        = simplexgrid(X)
+    grid_1D = simplexgrid(X)
 
-    k1             = zeros(length_x);       c1 = zeros(length_x);
+    k1 = zeros(length_x)
+    c1 = zeros(length_x)
 
-    k1[ 1:length_x_half ] .= kmax;  k1[ length_x_half+1:length_x ] .= 0.0  # prefactor before reactive part
-    c1[ 1:length_x_half ] .= 0.0;   c1[ length_x_half+1:length_x ] .= cmax # source term
+    k1[1:length_x_half] .= kmax
+    k1[(length_x_half + 1):length_x] .= 0.0  # prefactor before reactive part
+    c1[1:length_x_half] .= 0.0
+    c1[(length_x_half + 1):length_x] .= cmax # source term
 
     #### discretization functions ####
 
-    function flux!(f,u,edge)
-        f[1] = d1 *  (u[1,1] - u[1,2])
+    function flux!(f, u, edge)
+        f[1] = d1 * (u[1, 1] - u[1, 2])
     end
-    
-    function reaction!(f, u, node)      
-        f[1] = k1[node.index] *  u[1]
+
+    function reaction!(f, u, node)
+        f[1] = k1[node.index] * u[1]
     end
-    
+
     function source!(f, node::VoronoiFVM.Node)
         f[1] = c1[node.index]
     end
 
-    sys_1D = VoronoiFVM.System(grid_1D, VoronoiFVM.Physics(flux  = flux!,  reaction  = reaction!, source = source!) )
+    sys_1D = VoronoiFVM.System(grid_1D,
+                               VoronoiFVM.Physics(; flux = flux!, reaction = reaction!,
+                                                  source = source!))
 
     # enable species in only region 
     enable_species!(sys_1D, ispec_1D, [bulk_1D])
 
-    inival_1D  = unknowns(sys_1D);    inival_1D .= 0.0
-    sol_1D     = unknowns(sys_1D)
-
-    ## Create solver control info
-    control   = VoronoiFVM.NewtonControl()
-    
     ## Stationary solution of both problems
-    solve!(sol_1D, inival_1D, sys_1D, control = control)
+    sol_1D = solve(sys_1D; inival = 0)
 
-    p = GridVisualizer(;Plotter = Plotter, layout = (2,1), clear = true, resolution = (800,500))
+    p = GridVisualizer(; Plotter = Plotter, layout = (2, 1), clear = true,
+                       resolution = (800, 500))
 
-    scalarplot!(p[1,1], grid_1D, sol_1D[1,:], show = true, title ="1D calculation (d1 = $d1, kmax = $kmax, cmax = $cmax)")
+    scalarplot!(p[1, 1], grid_1D, sol_1D[1, :]; show = true,
+                title = "1D calculation (d1 = $d1, kmax = $kmax, cmax = $cmax)")
 
     ###########################################################################
     ######################          2D problem           ######################
     ###########################################################################
-    
-    grid_2D         = simplexgrid(X, X)
 
-    ispec_2D        = 1
-    ispec_boundary  = 2
-    bulk_2D         = 1
+    grid_2D = simplexgrid(X, X)
+
+    ispec_2D = 1
+    ispec_boundary = 2
+    bulk_2D = 1
     active_boundary = 2
 
     # parameters for the bulk problem
-    d2              = 1.0
-    k2              = 1.0
-    c2              = 1.0
+    d2 = 1.0
+    k2 = 1.0
+    c2 = 1.0
 
     #### discretization functions for bulk species ####
-    function flux2D!(f,u,edge)  
-        f[ispec_2D] = d2 *  (u[ispec_2D, 1] - u[ispec_2D, 2])
+    function flux2D!(f, u, edge)
+        f[ispec_2D] = d2 * (u[ispec_2D, 1] - u[ispec_2D, 2])
     end
 
     function reaction2D!(f, u, node)
@@ -116,74 +116,69 @@ function main(;n = 2 * 10, # n musst be an even number
     end
 
     #### discretization functions for boundary species at active boundary ####
-    function bflux!(f,u,bedge)
+    function bflux!(f, u, bedge)
         if bedge.region == active_boundary
             f[ispec_boundary] = db * (u[ispec_boundary, 1] - u[ispec_boundary, 2])
         end
     end
-    
+
     function breaction!(f, u, bnode)
-
         if bnode.region == active_boundary
+            if bnode.coord[2, bnode.index] <= 0.5
+                kb = kmax
+            else
+                kb = 0.0
+            end
 
-             if bnode.coord[2, bnode.index] <= 0.5
-                 kb = kmax
-             else 
-                 kb = 0.0
-             end
-
-            f[ispec_boundary] = kb *  u[ispec_boundary] 
+            f[ispec_boundary] = kb * u[ispec_boundary]
         end
     end
 
     function bsource!(f, bnode)
         if bnode.region == active_boundary
-
             if bnode.coord[2, bnode.index] <= 0.5
                 cb = 0.0
-            else 
+            else
                 cb = cmax
             end
 
             f[ispec_boundary] = cb
         end
     end
-    
-    sys_2D    = VoronoiFVM.System(grid_2D, VoronoiFVM.Physics(flux = flux2D!, reaction = reaction2D!, source = source2D!,
-                                                              bflux = bflux!, breaction = breaction!, bsource = bsource!),
-                                  unknown_storage=unknown_storage)
+
+    sys_2D = VoronoiFVM.System(grid_2D,
+                               VoronoiFVM.Physics(; flux = flux2D!, reaction = reaction2D!,
+                                                  source = source2D!,
+                                                  bflux = bflux!, breaction = breaction!,
+                                                  bsource = bsource!);
+                               unknown_storage = unknown_storage)
 
     # enable species in only region 
-    enable_species!(         sys_2D, ispec_2D,       [bulk_2D]        )
+    enable_species!(sys_2D, ispec_2D, [bulk_2D])
     enable_boundary_species!(sys_2D, ispec_boundary, [active_boundary])
 
-    inival_2D  = unknowns(sys_2D);        inival_2D .= 0.0
-    sol_2D     = unknowns(sys_2D)
-    
-    solve!(sol_2D, inival_2D, sys_2D, control = control)
+    sol_2D = solve(sys_2D; inival = 0)
 
     # this is for variable transformation, since we consider right outer boundary and want to transform to x-axis.
-    function tran32!(a,b)
+    function tran32!(a, b)
         a[1] = b[2]
     end
 
     # note that if adjusting active_boundary to 3 or 4, then transform needs to be deleted.
-    bgrid_2D  = subgrid(grid_2D, [active_boundary], boundary = true, transform = tran32!)
+    bgrid_2D = subgrid(grid_2D, [active_boundary]; boundary = true, transform = tran32!)
     sol_bound = view(sol_2D[ispec_boundary, :], bgrid_2D)
 
-    scalarplot!(p[2,1], bgrid_2D, sol_bound, show = true, cellwise = true, title = "Active boundary in 2D (db = $db, kb = $kmax, cb = $cmax)")
-    
-    errorsol = VoronoiFVM.norm(sys_1D, sol_bound - sol_1D', 2)
-    
-    return errorsol
+    scalarplot!(p[2, 1], bgrid_2D, sol_bound; show = true, cellwise = true,
+                title = "Active boundary in 2D (db = $db, kb = $kmax, cb = $cmax)")
 
+    errorsol = VoronoiFVM.norm(sys_1D, sol_bound - sol_1D', 2)
+
+    return errorsol
 end # main
 
 function test()
-    main(unknown_storage=:dense)<1.0e-14 &&
-    main(unknown_storage=:sparse)<1.0e-14
+    main(; unknown_storage = :dense) < 1.0e-14 &&
+        main(; unknown_storage = :sparse) < 1.0e-14
 end
 
-
 end # module
-

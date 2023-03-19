@@ -60,39 +60,38 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
-function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:sparse)
-    
-    h=1.0/convert(Float64,n)
-    X=collect(0.0:h:1.0)
-    N=length(X)
-    
-    grid=VoronoiFVM.Grid(X)
-    ## By default, \Gamma_1 at X[1] and \Gamma_2 is at X[end]
-    
-    ## Species numbers
-    iA=1
-    iB=2
-    iC=3
+function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
+              unknown_storage = :sparse)
+    h = 1.0 / convert(Float64, n)
+    X = collect(0.0:h:1.0)
+    N = length(X)
 
+    grid = VoronoiFVM.Grid(X)
+    ## By default, \Gamma_1 at X[1] and \Gamma_2 is at X[end]
+
+    ## Species numbers
+    iA = 1
+    iB = 2
+    iC = 3
 
     ## Diffusion flux for species A and B
-    D_A=1.0
-    D_B=1.0e-2
-    function flux!(f,u,edge)
-        f[iA]=D_A*(u[iA,1]-u[iA,2])
-        f[iB]=D_B*(u[iB,1]-u[iB,2])
+    D_A = 1.0
+    D_B = 1.0e-2
+    function flux!(f, u, edge)
+        f[iA] = D_A * (u[iA, 1] - u[iA, 2])
+        f[iB] = D_B * (u[iB, 1] - u[iB, 2])
     end
 
     ## Storage term of species A and B
-    function storage!(f,u,node)
-        f[iA]=u[iA]
-        f[iB]=u[iB]
+    function storage!(f, u, node)
+        f[iA] = u[iA]
+        f[iB] = u[iB]
     end
 
     ## Source term for species a around 0.5
-    function source!(f,node)
-        x1=node[1]-0.5
-        f[iA]=exp(-100*x1^2)
+    function source!(f, node)
+        x1 = node[1] - 0.5
+        f[iA] = exp(-100 * x1^2)
     end
 
     ## Reaction constants (p = + , m = -)
@@ -100,81 +99,82 @@ function main(;n=10,Plotter=nothing,verbose=false,tend=1, unknown_storage=:spars
     ## More over, A reacts faster than to C than C to B
     ## leading to "catalyst poisoning", i.e. C taking up most of the
     ## available catalyst sites 
-    kp_AC=100.0
-    km_AC=1.0
+    kp_AC = 100.0
+    km_AC = 1.0
 
-    kp_BC=0.1
-    km_BC=1.0
+    kp_BC = 0.1
+    km_BC = 1.0
 
-    S=0.01
-    
-    R_AC(u_A, u_C)=kp_AC*u_A*(1-u_C) - km_AC*u_C
-    R_BC(u_B, u_C)=kp_BC*u_B*(1-u_C) - km_BC*u_C
-    
-    function breaction!(f,u,node)
-        if  node.region==1
-            f[iA]=S*R_AC(u[iA], u[iC])
-            f[iB]=S*R_BC(u[iB], u[iC])
-            f[iC]=-R_BC(u[iB], u[iC])-R_AC(u[iA], u[iC])
+    S = 0.01
+
+    R_AC(u_A, u_C) = kp_AC * u_A * (1 - u_C) - km_AC * u_C
+    R_BC(u_B, u_C) = kp_BC * u_B * (1 - u_C) - km_BC * u_C
+
+    function breaction!(f, u, node)
+        if node.region == 1
+            f[iA] = S * R_AC(u[iA], u[iC])
+            f[iB] = S * R_BC(u[iB], u[iC])
+            f[iC] = -R_BC(u[iB], u[iC]) - R_AC(u[iA], u[iC])
         end
     end
 
     ## This is for the term \partial_t u_C at the boundary
-    function bstorage!(f,u,node)
-        if  node.region==1
-            f[iC]=u[iC]
+    function bstorage!(f, u, node)
+        if node.region == 1
+            f[iC] = u[iC]
         end
     end
-    
-    physics=VoronoiFVM.Physics(
-        breaction=breaction!,
-        bstorage=bstorage!,
-        flux=flux!,
-        storage=storage!,
-        source=source!
-    )
-    
-    sys=VoronoiFVM.System(grid,physics,unknown_storage=unknown_storage)
+
+    physics = VoronoiFVM.Physics(; breaction = breaction!,
+                                 bstorage = bstorage!,
+                                 flux = flux!,
+                                 storage = storage!,
+                                 source = source!)
+
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
 
     ## Enable species in bulk resp
-    enable_species!(sys,iA,[1])
-    enable_species!(sys,iB,[1])
+    enable_species!(sys, iA, [1])
+    enable_species!(sys, iB, [1])
 
     ## Enable surface species
-    enable_boundary_species!(sys,iC,[1])
-    
+    enable_boundary_species!(sys, iC, [1])
+
     ## Set Dirichlet bc for species B on \Gamma_2
-    boundary_dirichlet!(sys,iB,2,0.0)
+    boundary_dirichlet!(sys, iB, 2, 0.0)
 
     ## Initial values
-    inival=unknowns(sys)
-    inival.=0.0
-    U=unknowns(sys)
+    inival = unknowns(sys)
+    inival .= 0.0
+    U = unknowns(sys)
 
-    tstep=0.01
-    time=0.0
+    tstep = 0.01
+    time = 0.0
 
     ## Data to store surface concentration vs time
 
-    p=GridVisualizer(Plotter=Plotter,layout=(3,1))
+    p = GridVisualizer(; Plotter = Plotter, layout = (3, 1))
 
-    control=fixed_timesteps!(VoronoiFVM.NewtonControl(),tstep)
-    tsol=solve(inival,sys,[0,tend],control=control)
+    control = fixed_timesteps!(VoronoiFVM.NewtonControl(), tstep)
+    tsol = solve(sys; inival, times = [0, tend], control)
 
-    p=GridVisualizer(Plotter=Plotter,layout=(3,1),fast=true)
-    for it=1:length(tsol)
-        time=tsol.t[it]
-        scalarplot!(p[1,1],grid,tsol[iA,:,it],clear=true,title=@sprintf("[A]: (%.3f,%.3f)",extrema(tsol[iA,:,it])...))
-        scalarplot!(p[2,1],grid,tsol[iB,:,it],clear=true,title=@sprintf("[B]: (%.3f,%.3f)",extrema(tsol[iB,:,it])...))
-        scalarplot!(p[3,1],tsol.t[1:it],tsol[iC,1,1:it],title=@sprintf("[C]"),clear=true,show=true)
+    p = GridVisualizer(; Plotter = Plotter, layout = (3, 1), fast = true)
+    for it = 1:length(tsol)
+        time = tsol.t[it]
+        scalarplot!(p[1, 1], grid, tsol[iA, :, it]; clear = true,
+                    title = @sprintf("[A]: (%.3f,%.3f)", extrema(tsol[iA, :, it])...))
+        scalarplot!(p[2, 1], grid, tsol[iB, :, it]; clear = true,
+                    title = @sprintf("[B]: (%.3f,%.3f)", extrema(tsol[iB, :, it])...))
+        scalarplot!(p[3, 1], tsol.t[1:it], tsol[iC, 1, 1:it]; title = @sprintf("[C]"),
+                    clear = true, show = true)
     end
 
-    return tsol[iC,1,end]
+    return tsol[iC, 1, end]
 end
 
 function test()
-    testval=0.87544440641274
-    isapprox(main(unknown_storage=:sparse),testval,rtol=1.0e-12)&&
-    isapprox(main(unknown_storage=:dense),testval,rtol=1.0e-12)
+    testval = 0.87544440641274
+    isapprox(main(; unknown_storage = :sparse), testval; rtol = 1.0e-12) &&
+        isapprox(main(; unknown_storage = :dense), testval; rtol = 1.0e-12)
 end
 end

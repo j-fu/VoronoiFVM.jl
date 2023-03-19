@@ -1,16 +1,9 @@
 ################################################
 
-if VERSION>v"1.8"
-    # const  default_umfpack_pivot_tolerance=SparseArrays.UMFPACK.get_umfpack_control(Float64,Int64)[3+1]
-    const default_umfpack_pivot_tolerance=0.1
-else
-    const default_umfpack_pivot_tolerance=SuiteSparse.UMFPACK.umf_ctrl[3+1]
-end
-
 """
 $(TYPEDEF)
 
-Solver control parameters for time stepping, embedding, Newton method control.
+Solver control parameter for time stepping, embedding, Newton method control.
 All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref)
 
 Newton's method solves ``F(u)=0`` by the iterative procedure ``u_{i+1}=u_{i} - d_i F'(u_i)^{-1}F(u_i)``
@@ -19,19 +12,39 @@ starting with some inital value ``u_0``, where ``d_i`` is a damping parameter.
 
 $(TYPEDFIELDS)
 """
-@with_kw mutable struct SolverControl
+Base.@kwdef mutable struct SolverControl
+    """
+    Verbosity control. A collection of output categories is given in a string composed of the
+    follwing letters:
+    -  a: allocation warnings
+    -  d: deprecation warnings
+    -  e: time/parameter evolution log
+    -  n: newton solver log
+    -  l: linear solver log
+    Alternatively, a Bool value can be given, resulting in
+    - true: "neda"
+    - false: "da"
+    Switch off all output including deprecation warnings via `verbose=""`.
+    In the output, corresponding messages are marked e.g. via '[n]', `[a]` etc. (besides of '[l]')
+    """
+    verbose::Union{Bool,String} = false
 
     """
     Tolerance (in terms of norm of Newton update):  
-    terminate if ``\\Delta u_i=||u_{i+1}-u_i||_\\infty <`` `tol_absolute`.
+    terminate if ``\\Delta u_i=||u_{i+1}-u_i||_\\infty <`` `abstol`.
     """
-    tol_absolute::Float64 = 1.0e-10
+    abstol::Float64 = 1.0e-10
 
     """
     Tolerance (relative to the size of the first update):
-    terminate if ``\\Delta u_i/\\Delta u_1<`` `tol_relative`.
+    terminate if ``\\Delta u_i/\\Delta u_1<`` `reltol`.
     """
-    tol_relative::Float64 = 1.0e-10
+    reltol::Float64 = 1.0e-10
+
+    """
+    Maximum number of newton iterations.
+    """
+    maxiters::Int = 100
 
     """
     Tolerance for roundoff error detection:
@@ -58,78 +71,63 @@ $(TYPEDFIELDS)
     damp_growth::Float64 = 1.2
 
     """
-    Maximum number of iterations.
-    """
-    max_iterations::Int = 100
-
-    """
-    Maximum number of reuses of lu factorization.
-    It this value is 0, linear systems are solved by a sparse direct solver, 
-    and it's LU factorization is called in every Newton step.
-    Otherwise, a BICGstab iterative method is used for linear system solution with a 
-    LU factorization as preconditioner which is updated only every `max_lureuse` Newton step.
-    """
-    max_lureuse::Int = 0
-
-    """
     Maximum number of consecutive iterations within roundoff error tolerance
     The default effectively disables this criterion.
     """
     max_round::Int = 1000
 
     """
-    Relative tolerance of iterative linear solver.
+    Calculation of Newton update norm
     """
-    tol_linear::Float64 = 1.0e-4
-    max_iterations_linear::Int=20
-    """
-    Factorization kind for linear sytems (see ExtendableSparse.jl).
-    Possible values: 
-    - :lu, :default  : LU factorization from UMFPACK (for Float64) or Sparspak.jl
-    - :sparspak  : LU Factorization from Sparspak
-    - :pardiso  : LU Factorization from Pardiso.jl using Pardiso from pardiso.org. Install and `use` Pardiso.jl to use this option.
-    - :mklpardiso  : LU Factorization from Pardiso.jl using MKL Pardiso. Install and `use` Pardiso.jl to use this option.
-    - :ilu0 : Zero-fillin ILU factorization preconditioner
-    - :jacobi : Jacobi (Diagonal) preconditioner
-    """
-    factorization::Union{Symbol,AbstractFactorization}=:lu
+    unorm::Function = (u) -> LinearAlgebra.norm(values(u), Inf) # norm for update calculation
 
-    
+    """
+    Functional for roundoff error calculation
+    """
+    rnorm::Function = (u) -> LinearAlgebra.norm(values(u), 1)
+
+    """
+    Solver method for linear systems (see LinearSolve.jl). If given `nothing`, as default
+    are chosen (for `Float64` calculations):
+    - 1D:  `KLUFactorization()`
+    - 2D:  `SparspakFactorization()`
+    - 3D:  `UMFPACKFactorization()`
+    `SparspakFactorization()` is the default choice for general number types.
+    Users should experiment with what works best for their problem.
+    """
+    method_linear::Union{Nothing,LinearSolve.SciMLLinearSolveAlgorithm} = nothing
+
+    """
+        Relative tolerance of iterative linear solver.
+    """
+    reltol_linear::Float64 = 1.0e-4
+
+    """
+    Absolute tolerance of iterative linear solver.
+    """
+    abstol_linear::Float64 = 1.0e-8
+
     """
     Maximum number of iterations of linear solver
     """
-    max_linear_iterations::Int=100
+    maxiters_linear::Int = 100
 
     """
-    GMRES Krylov dimension for restart
+    Constructor for preconditioner for linear systems.
+    This should work as a function `precon_linear(A)` which
+    takes an AbstractSparseMatrixCSC (e.g. an ExtendableSparseMatrix)
+    and returns a preconditioner object in the sense of `LinearSolve.jl`, i.e. which
+    has an `ldiv!(u,A,v)` method. Useful examples:
+    - `ExtendableSparse.ILUZero`
+    - `ExtendableSparse.Jacobi`
     """
-    gmres_restart::Int=10
-
-    
-    """   
-    Iterative solver if factorization is incomplete.
-    Currently supported: 
-    - :bicgstab : bicgstabl method from IterativeSolvers.jl
-    - :cg : cg method from IterativeSolvers.jl
-    - :krylov_cg : cg method from Krylov.jl
-    - :krylov_bicgstab : bicgstab method from Krylov.jl
-    - :krylov_gmres : gmres method from Krylov.jl
+    precon_linear::Union{Type,Function} = A -> Identity()
 
     """
-    iteration::Symbol=:bicgstab
-    
+    Update preconditioner in each Newton step ?
     """
-    Verbosity flag.
-    """
-    verbose::Bool = false     
+    keepcurrent_linear::Bool = false
 
-    """
-    Handle exceptions during transient solver and parameter embedding. 
-    If `true`, exceptions in Newton solves are catched, the embedding resp. time step is lowered, 
-    and solution is retried.  
-    """
-    handle_exceptions::Bool = false
-    
     """
     Initial parameter step for embedding.
     """
@@ -139,7 +137,7 @@ $(TYPEDFIELDS)
     Maximal parameter step size.
     """
     Δp_max::Float64 = 1.0
-    
+
     """
     Minimal parameter step size.
     """
@@ -181,16 +179,14 @@ $(TYPEDFIELDS)
     Force first timestep.
     """
     force_first_step::Bool = false
-    
-    """
-    Edge parameter cutoff for rectangular triangles.
-    """
-    edge_cutoff::Float64 = 0.0
 
     """
-    Pivot tolerance for umfpack.
+    Handle exceptions during transient solver and parameter embedding. 
+    If `true`, exceptions in Newton solves are catched, the embedding resp. time step is lowered, 
+    and solution is retried.  
+
     """
-    umfpack_pivot_tolerance::Float64 =  default_umfpack_pivot_tolerance
+    handle_exceptions::Bool = false
 
     """
     Store all steps of transient/embedding problem:
@@ -203,39 +199,84 @@ $(TYPEDFIELDS)
     in_memory::Bool = true
 
     """
-    Record history
+       Record history
     """
-    log=false
+    log = false
+
+    """
+    Edge parameter cutoff for rectangular triangles.
+    """
+    edge_cutoff::Float64 = 0.0
+
+    """
+    Function `pre(sol,t)` called before time/embedding step
+    """
+    pre::Function = function (sol, t) end
+
+    """
+    Function `post(sol,oldsol,t,Δt)` called after successful time/embedding step
+    """
+    post::Function = function (sol, oldsol, t, Δt) end
+
+    """
+    Function `sample(sol,t)` to be called for each `t in times[2:end]`
+    """
+    sample::Function = function (sol, t) end
+
+    """
+    Time step error estimator
+    """
+    delta::Function = (system, u, v, t, Δt) -> norm(system, u - v, Inf)
+
+    # deprecated entries
+    tol_absolute::Union{Float64,Nothing} = nothing
+    tol_relative::Union{Float64,Nothing} = nothing
+    damp::Union{Float64,Nothing} = nothing
+    damp_grow::Union{Float64,Nothing} = nothing
+    max_iterations::Union{Int,Nothing} = nothing
+    tol_linear::Union{Float64,Nothing} = nothing
+    max_lureuse::Union{Int,Nothing} = nothing
+    mynorm::Union{Function,Nothing} = nothing
+    myrnorm::Union{Function,Nothing} = nothing
 end
 
-function factorization(control;valuetype=Float64)
-    if isa(control.factorization,Symbol)
-        if control.factorization in  [:lu, :default]
-            if valuetype==Float64
-                ExtendableSparse.LUFactorization(;valuetype)
+doprint(s::String, a::Char) = contains(s, a)
+const true_verbosity = "neda"
+const false_verbosity = "da"
+doprint(b::Bool, a::Char) = b ? doprint(true_verbosity, a) : doprint(false_verbosity, a)
+doprint(c::SolverControl, a::Char) = doprint(c.verbose, a)
+
+const key_replacements = Dict(
+    :tol_absolute => :abstol,
+    :tol_relative => :reltol,
+    :damp => :damp_initial,
+    :damp_grow => :damp_growth,
+    :max_iterations => :maxiters,
+    :tol_linear => :reltol_linear,
+    :mynorm => :unorm,
+    :myrnorm => :rnorm,
+    :max_lureuse => nothing,
+)
+
+function fix_deprecations!(control)
+    # compatibility to names in SolverControl which cannot be deprecated.
+    for key ∈ keys(key_replacements)
+        value = getproperty(control, key)
+        if !isnothing(value)
+            if !isnothing(key_replacements[key])
+                if doprint(control, 'd')
+                    @warn "[d]eprecated SolverControl entry '$(key)'. Please replace by '$(key_replacements[key])'."
+                end
+                setproperty!(control, key_replacements[key], value)
             else
-                ExtendableSparse.SparspakLU(;valuetype)
+                if doprint(control, 'd')
+                    @warn "[d]eprecated SolverControl entry '$(key)' will be ignored."
+                end
             end
-        elseif control.factorization == :sparspak
-            ExtendableSparse.SparspakLU(;valuetype)
-        elseif  control.factorization == :pardiso
-            ExtendableSparse.PardisoLU(;valuetype)
-        elseif  control.factorization == :mklpardiso
-            ExtendableSparse.PardisoLU(;valuetype)
-        elseif  control.factorization == :ilu0
-            ExtendableSparse.ILU0Preconditioner(;valuetype)
-        elseif  control.factorization == :jacobi
-            ExtendableSparse.JacobiPreconditioner(;valuetype)
-        else
-            error("factorization :$(control.factorization) not supported for $valuetype, see documenation of VoronoiFVM.SolverControl for options")
+            setproperty!(control, key, nothing)
         end
-        
-    else
-        control.factorization
     end
 end
-
-
 
 """
 ````
@@ -245,12 +286,12 @@ timesteps!(control,Δt; grow=1.0)
 Modify control data such that the time steps are fixed to a
 geometric sequence such that Δt_new=Δt_old*grow
 """
-function fixed_timesteps!(control,Δt; grow=1.0)
-    control.Δt=Δt
-    control.Δt_max=Δt
-    control.Δt_min=Δt
-    control.Δt_grow=grow
-    control.Δu_opt=floatmax()
+function fixed_timesteps!(control, Δt; grow = 1.0)
+    control.Δt = Δt
+    control.Δt_max = Δt
+    control.Δt_min = Δt
+    control.Δt_grow = grow
+    control.Δu_opt = floatmax()
     control
 end
 
@@ -260,12 +301,9 @@ end
 #     end
 # end
 
-
 """
     NewtonControl
 
 Legacy name of SolverControl
 """
-const NewtonControl=SolverControl
-
-
+const NewtonControl = SolverControl
