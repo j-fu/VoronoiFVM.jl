@@ -149,27 +149,40 @@ checklum(n,T)=checklum0(Val{n},T)
 end
 
 function test()
+    println("***1")
     checklum(10,Float64)
+    println("***2")
     checklum(10,Dual64)
+    println("***3")
 
 
     n4=@allocated checklum(10,Dual64)
     @test n4==0
+
+    println("***4")
+
     n2=@allocated checklum(10,Float64)
     @test n2==0
     
+    println("***5")
 
 
     @static if VERSION>v"1.8"
+        println("***6")
 
 
         checklux(10,Float64)
+        println("***7")
         checklux(10,Dual64)
-        
+        println("***8")
+
         n1=@allocated checklux(10,Float64)
         @test n1==0
+                println("***9")
+
         n3=@allocated checklux(10,Dual64)
         @test n3==0
+                println("***10")
         
         checklurx(10,Float64)
         checklurm(10,Float64)
