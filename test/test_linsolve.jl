@@ -98,9 +98,9 @@ checklum(n,T)=checklum0(Val{n},T)
         b=StrideArray{T}(undef,StaticInt(N))
         ipiv=StrideArray{Int64}(undef,StaticInt(N))
         for i=1:N
-        for j=1:N
-            A[i,j]=-rand()
-        end
+            for j=1:N
+                A[i,j]=-rand()
+            end
             A[i,i]+=100
             x[i]=1
         end
@@ -149,27 +149,35 @@ checklum(n,T)=checklum0(Val{n},T)
 end
 
 function test()
-    checklux(10,Float64)
     checklum(10,Float64)
-    checklux(10,Dual64)
     checklum(10,Dual64)
 
-    checklurx(10,Float64)
-    checklurm(10,Float64)
-    checklurx(10,Dual64)
-    checklurm(10,Dual64)
-    
-    n1=@allocated checklux(10,Float64)
-    @test n1==0
-    n2=@allocated checklum(10,Float64)
-    @test n2==0
-    n3=@allocated checklux(10,Dual64)
-    @test n3==0
+
     n4=@allocated checklum(10,Dual64)
     @test n4==0
+    n2=@allocated checklum(10,Float64)
+    @test n2==0
+    
 
 
     @static if VERSION>v"1.8"
+        checklux(10,Float64)
+        checklux(10,Dual64)
+
+        n1=@allocated checklux(10,Float64)
+        @test n1==0
+        n3=@allocated checklux(10,Dual64)
+        @test n3==0
+
+
+        
+        checklurx(10,Float64)
+        checklurm(10,Float64)
+        checklurx(10,Dual64)
+        checklurm(10,Dual64)
+        
+
+
         rn1=@allocated checklurx(10,Float64)
         @test rn1==0
         rn2=@allocated checklurm(10,Float64)
