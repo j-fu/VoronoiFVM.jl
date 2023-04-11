@@ -147,12 +147,16 @@ Non-allocating, non-pivoting inplace solution of square linear system of equatio
 using [Doolittle's method](https://en.wikipedia.org/wiki/LU_decomposition#Doolittle_algorithm).
 
 After solution, `A` will contain the LU factorization, and `b` the result.
+
+A pivoting version is available with Julia v1.9.
 """
 function inplace_linsolve!(A,b)
     doolittle_ludecomp!(A)
     doolittle_lusolve!(A,b)
 end
 
+
+@static if VERSION > v"1.8"
 """
 $(SIGNATURES)
 
@@ -165,4 +169,7 @@ After solution, `A` will contain the LU factorization, and `b` the result.
 function inplace_linsolve!(A,b, ipiv)
     ldiv!(b, RecursiveFactorization.lu!(A,ipiv,Val(true), Val(false) ),b)
 end
+
+end
+
 
