@@ -152,6 +152,11 @@ function test()
     checklum(10,Float64)
     checklux(10,Dual64)
     checklum(10,Dual64)
+
+    checklurx(10,Float64)
+    checklurm(10,Float64)
+    checklurx(10,Dual64)
+    checklurm(10,Dual64)
     
     n1=@allocated checklux(10,Float64)
     @test n1==0
