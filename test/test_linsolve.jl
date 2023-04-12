@@ -167,7 +167,7 @@ function test()
     println("***5")
 
 
-    @static if VERSION>v"1.8"
+    if VERSION>v"1.8"
         println("***6")
 
 
