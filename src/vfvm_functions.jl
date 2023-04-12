@@ -156,7 +156,7 @@ function inplace_linsolve!(A,b)
 end
 
 
-@static if VERSION > v"1.8"
+@static if !(VERSION < v"1.9")
 """
 $(SIGNATURES)
 
