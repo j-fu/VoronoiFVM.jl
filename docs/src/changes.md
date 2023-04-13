@@ -1,4 +1,8 @@
 # Changes
+## v1.3.0 April 13, 2023
+- inplace_linsolve! for dense linear system solution in flux functions
+- Mixture flow example 510
+
 ## v1.2.0 March 17, 2023
 - Initialiazation of quantities, create unknowns using Base.map
 
