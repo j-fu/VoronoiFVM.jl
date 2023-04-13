@@ -156,20 +156,21 @@ function inplace_linsolve!(A,b)
 end
 
 
-@static if VERSION >=v"1.9-rc0"
 """
 $(SIGNATURES)
 
 Non-allocating, pivoting, inplace solution of square linear system of equations `A*x=b`
-using LU factorization from RecursiveFactorizations.jl
+using LU factorization from RecursiveFactorizations.jl.  
 
 After solution, `A` will contain the LU factorization, and `b` the result.
 `ipiv` must be an Int64 vector of the same lenght as `b`.
+
+
+!!! info
+    Needs Julia v1.9 or later
 """
 function inplace_linsolve!(A,b, ipiv)
     ldiv!(b, RecursiveFactorization.lu!(A,ipiv,Val(true), Val(false) ),b)
-end
-
 end
 
 

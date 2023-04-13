@@ -65,35 +65,35 @@ function make_all(; with_examples = true, run_notebooks = true)
                 Export_output_dir = joinpath(notebook_html_dir),
                 Export_offer_binder = false,
             )
+            
+            # generate frame markdown for each notebook
+            for notebook in notebookjl
+                base = split(notebook, ".")[1]
+                mdstring = """
+                           ##### [$(base).jl](@id $(base))
+                           [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
+                                       this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
+    
+                           ```@raw html
+                           <iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
+                           ```
+                           """
+                mdname = base * ".md"
+                push!(notebookmd, joinpath("nbhtml", mdname))
+                io = open(joinpath(notebook_html_dir, mdname), "w")
+                write(io, mdstring)
+                close(io)
+            end
+            
+            notebooks = first.(notebooks) .=> notebookmd
+            pushfirst!(notebooks, "About the notebooks" => "notebooks.md")
         end
 
-        # generate frame markdown for each notebook
-        for notebook in notebookjl
-            base = split(notebook, ".")[1]
-            mdstring = """
-                       ##### [$(base).jl](@id $(base))
-                       [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
-                       this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
-
-                       ```@raw html
-                       <iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
-                       ```
-                       """
-            mdname = base * ".md"
-            push!(notebookmd, joinpath("nbhtml", mdname))
-            io = open(joinpath(notebook_html_dir, mdname), "w")
-            write(io, mdstring)
-            close(io)
-        end
-
-        notebooks = first.(notebooks) .=> notebookmd
-        pushfirst!(notebooks, "About the notebooks" => "notebooks.md")
-
-
+        
         #
         # Generate Markdown pages from examples
         #
-
+        
         for example_source in readdir(example_jl_dir)
             base, ext = splitext(example_source)
             if ext == ".jl"
@@ -153,4 +153,4 @@ function make_all(; with_examples = true, run_notebooks = true)
 end
 
 make_all(with_examples = true, run_notebooks = true)
-#make_all(with_examples=false,run_notebooks=false)
+#make_all(with_examples=true,run_notebooks=false)

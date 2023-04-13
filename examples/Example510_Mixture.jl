@@ -1,13 +1,53 @@
 # # 510: Mixture
 # ([source code](SOURCE_URL))
-#
-# Test mixture diffusion flux. The problem is here that in the flux function we need to
-# solve a linear system of equations wich calculates the fluxes from the gradients.#
-# To do so without (heap) allocations can be achieved using StrideArrays, together with the
-# possibility to have static (compile time) information about the size of the local
-# arrays to be allocated.
-#
+#=
 
+
+Test mixture diffusion flux. The problem is here that in the flux function we need to
+solve a linear system of equations wich calculates the fluxes from the gradients.#
+To do so without (heap) allocations can be achieved using StrideArrays, together with the
+possibility to have static (compile time) information about the size of the local
+arrays to be allocated.
+
+
+``u_i`` are the species partial pressures, ``\vec N_i`` are the species fluxes.
+``D_i^K`` are the Knudsen diffusion coefficients, and ``D^B_{ij}`` are the binary diffusion coefficients.
+```math
+  -\nabla \cdot \vec N_i =0 \quad (i=1\dots n)\\
+  \frac{\vec N_i}{D^K_i} + \sum_{j\neq i}\frac{u_j \vec N_i - u_i \vec N_j}{D^B_{ij}} = -\vec \nabla u_i \quad (i=1\dots n)
+```
+From this representation, we can derive the matrix ``M=(m_{ij})`` whith
+```math
+m_{ii}= \frac{1}{D^K_i} + \sum_{j\neq i} \frac{u_j}{D_ij}\\
+m_{ij}= -\sum_{j\neq i} \frac{u_i}{D_ij}
+```
+such that 
+```math
+	M\begin{pmatrix}
+\vec N_1\\
+\vdots\\
+\vec N_n
+\end{pmatrix}
+=
+\begin{pmatrix}
+\vec \nabla u_1\\
+\vdots\\
+\vec \nabla u_n
+\end{pmatrix}
+```
+In the two point flux finite volume discretization, this results into a corresponding linear system which calculates the discrete edge fluxes from the discrete gradients. 
+Here we demonstrate how to implement this in a fast, (heap) allocation free way.
+
+
+For this purpose, intermediate arrays need to be allocated on the stack with via StrideArrays.jl.
+They need to have the same element type as the unknowns passed to the flux function
+(which could be Float64 or some dual number). 
+Size information must be static, e.g. a global constant, or, as demonstrated here, a type parameter.
+Broadcasting should be avoided. As documented in  StrideArrays.jl, use
+`@gc_preserve` when passing a `StrideArray` as a function parameter.
+
+
+=#
 
 module Example510_Mixture
 
@@ -29,15 +69,9 @@ end
 
 nspec(::MyData{NSpec}) where NSpec = NSpec
 
-nspec(data::Any)=data.nspec
-
-# Rules for work with StrideArrays
-# - no broadcasting
-# - use @gc_preserve when passing to some function
 function flux(f, u, edge, data)
 
     T=eltype(u)
-    #        @time begin
     M=StrideArray{T}(undef,StaticInt(nspec(data)),StaticInt(nspec(data)))
     au=StrideArray{T}(undef,StaticInt(nspec(data)))
     du=StrideArray{T}(undef,StaticInt(nspec(data)))
@@ -104,10 +138,8 @@ function main(; n = 10, nspec=5, dim=2, Plotter = nothing, verbose = false, unkn
         f.=u
     end
 
-    #data=(;diribc,nspec,DBinary,DKnudsen)
+
     data=MyData{nspec}(DBinary,DKnudsen,diribc)
-    #data=XData(nspec,DBinary,DKnudsen,diribc)
-    
     sys = VoronoiFVM.System(grid; flux,storage,bcondition,species=1:nspec, data)
     u=solve(sys)
     norm(u)
