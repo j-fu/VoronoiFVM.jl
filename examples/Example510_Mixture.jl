@@ -57,7 +57,13 @@ function flux(f, u, edge, data)
             end
         end
     end
-    @gc_preserve inplace_linsolve!(M,du,ipiv)
+    
+    if VERSION>=v"1.9-rc0"
+        @gc_preserve inplace_linsolve!(M,du,ipiv)
+    else
+        @gc_preserve inplace_linsolve!(M,du)
+    end
+    
     for ispec=1:nspec(data)
         f[ispec]=du[ispec]
     end    

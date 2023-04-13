@@ -64,7 +64,7 @@ end
 
 checklum(n,T)=checklum0(Val{n},T)
 
-@static if !(VERSION<v"1.9")
+@static if VERSION>=v"1.9-rc0"
     function checklurm0(::Type{Val{N}}, ::Type{T}) where {N,T}
         A=MMatrix{N,N,Float64}(undef)
 	x=MVector{N,Float64}(undef)
@@ -149,41 +149,26 @@ checklum(n,T)=checklum0(Val{n},T)
 end
 
 function test()
-    println("***1")
     checklum(10,Float64)
-    println("***2")
     checklum(10,Dual64)
-    println("***3")
-
 
     n4=@allocated checklum(10,Dual64)
     @test n4==0
 
-    println("***4")
-
     n2=@allocated checklum(10,Float64)
     @test n2==0
     
-    println("***5")
 
     checklux(10,Float64)
-    println("***7")
     checklux(10,Dual64)
-    println("***8")
     
     n1=@allocated checklux(10,Float64)
     @test n1==0
-    println("***9")
     
     n3=@allocated checklux(10,Dual64)
     @test n3==0
-    println("***10")
     
-    
-    if !(VERSION<v"1.9")
-        println("***11")
-
-
+    if VERSION>=v"1.9-rc0"
         
         checklurx(10,Float64)
         checklurm(10,Float64)
