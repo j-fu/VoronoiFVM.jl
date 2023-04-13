@@ -114,7 +114,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     Is the system linear ?
     """
     is_linear::Bool
-    
+
     """
     Sparse matrix for generic operator handling
     """
@@ -1237,7 +1237,7 @@ $(SIGNATURES)
 Create a solution vector for system.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-unknowns(system::AbstractSystem{Tv}; inival = undef, inifunc=nothing) where {Tv} = unknowns(Tv, system; inival, inifunc)
+unknowns(system::AbstractSystem{Tv}; inival = undef, inifunc = nothing) where {Tv} = unknowns(Tv, system; inival, inifunc)
 
 """
 $(SIGNATURES)
@@ -1245,32 +1245,30 @@ $(SIGNATURES)
 Create a solution vector for system with elements of type `Tu`.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu, system; inival = undef, inifunc=nothing) end
+function unknowns(Tu, system; inival = undef, inifunc = nothing) end
 
-function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc=nothing)
+function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = nothing)
     a0 = Array{Tu}(undef, num_dof(system))
     if inival != undef
         fill!(a0, inival)
     end
-    u=SparseSolutionArray(SparseMatrixCSC(system.node_dof.m,
-                                          system.node_dof.n,
-                                          system.node_dof.colptr,
-                                          system.node_dof.rowval,
-                                          a0))
-    isa(inifunc,Function) && map!(inifunc,u,system)
+    u = SparseSolutionArray(SparseMatrixCSC(system.node_dof.m,
+                                            system.node_dof.n,
+                                            system.node_dof.colptr,
+                                            system.node_dof.rowval,
+                                            a0))
+    isa(inifunc, Function) && map!(inifunc, u, system)
     u
 end
 
-
-function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc=nothing)
+function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
     a = Array{Tu}(undef, size(system.node_dof)...)
     if inival != undef
         fill!(a, inival)
     end
-    isa(inifunc,Function) && map!(inifunc,a,system)
+    isa(inifunc, Function) && map!(inifunc, a, system)
     return a
 end
-
 
 """
 $(SIGNATURES)
@@ -1278,25 +1276,30 @@ $(SIGNATURES)
 Create a solution vector for system using the callback `inifunc` which has the same
 signature as a source term.
 """
-Base.map(inifunc::TF,sys::System{Tv,Tc,Ti,Tm,TSpecMat,TSolArray})  where {Tv,Tc,Ti,Tm,TSpecMat,TSolArray,TF<:Function} = unknowns(sys;inifunc)
+function Base.map(inifunc::TF,
+                  sys::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF <: Function}
+    unknowns(sys; inifunc)
+end
 
 """
 $(SIGNATURES)
 
 Create a solution vector for system using a constant initial value
 """
-Base.map(inival::TI,sys::System{Tv,Tc,Ti,Tm,TSpecMat,TSolArray})  where {Tv,Tc,Ti,Tm,TSpecMat,TSolArray,TI<:Number} = unknowns(sys;inival)
+function Base.map(inival::TI,
+                  sys::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TI <: Number}
+    unknowns(sys; inival)
+end
 
 """
 $(SIGNATURES)
 
 Map `inifunc` onto solution array `U`
 """
-function  Base.map!(inifunc::TF,
-                    U::AbstractMatrix{Tu},
-                    system::System{Tv,Tc,Ti,Tm,TSpecMat,TSolArray},
-                    ) where {Tu,Tv,Tc,Ti,Tm,TSpecMat,TSolArray,TF}
-    isunknownsof(U,system) || error("U is not unknowns of system")
+function Base.map!(inifunc::TF,
+                   U::AbstractMatrix{Tu},
+                   system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tu, Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF}
+    isunknownsof(U, system) || error("U is not unknowns of system")
     grid = system.grid
     node = Node(system, 0, 0, Tv[])
     nspecies::Int = num_species(system)
@@ -1304,27 +1307,26 @@ function  Base.map!(inifunc::TF,
     ncells = num_cells(grid)
     geom = grid[CellGeometries][1]
     nn::Int = num_nodes(geom)
-    UK = Array{Tu,1}(undef, nspecies)
-    
+    UK = Array{Tu, 1}(undef, nspecies)
+
     for icell = 1:ncells
         ireg = cellregions[icell]
         for inode = 1:nn
             _fill!(node, inode, icell)
-            @views UK.=U[:,node.index]
-            inifunc(unknowns(node,UK),node)
+            @views UK .= U[:, node.index]
+            inifunc(unknowns(node, UK), node)
             K = node.index
             ireg = node.region
             for idof = firstnodedof(system, K):lastnodedof(system, K)
                 ispec = getspecies(system, idof)
                 if isregionspecies(system, ispec, ireg)
-                    _set(U,idof,UK[ispec])
+                    _set(U, idof, UK[ispec])
                 end
             end
         end
     end
     U
 end
-
 
 """
 $(SIGNATURES)

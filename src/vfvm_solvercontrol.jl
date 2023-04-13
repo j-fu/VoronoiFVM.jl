@@ -27,7 +27,7 @@ Base.@kwdef mutable struct SolverControl
     Switch off all output including deprecation warnings via `verbose=""`.
     In the output, corresponding messages are marked e.g. via '[n]', `[a]` etc. (besides of '[l]')
     """
-    verbose::Union{Bool,String} = false
+    verbose::Union{Bool, String} = false
 
     """
     Tolerance (in terms of norm of Newton update):  
@@ -95,7 +95,7 @@ Base.@kwdef mutable struct SolverControl
     `SparspakFactorization()` is the default choice for general number types.
     Users should experiment with what works best for their problem.
     """
-    method_linear::Union{Nothing,LinearSolve.SciMLLinearSolveAlgorithm} = nothing
+    method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
     """
         Relative tolerance of iterative linear solver.
@@ -121,7 +121,7 @@ Base.@kwdef mutable struct SolverControl
     - `ExtendableSparse.ILUZero`
     - `ExtendableSparse.Jacobi`
     """
-    precon_linear::Union{Type,Function} = A -> Identity()
+    precon_linear::Union{Type, Function} = A -> Identity()
 
     """
     Update preconditioner in each Newton step ?
@@ -229,15 +229,15 @@ Base.@kwdef mutable struct SolverControl
     delta::Function = (system, u, v, t, Δt) -> norm(system, u - v, Inf)
 
     # deprecated entries
-    tol_absolute::Union{Float64,Nothing} = nothing
-    tol_relative::Union{Float64,Nothing} = nothing
-    damp::Union{Float64,Nothing} = nothing
-    damp_grow::Union{Float64,Nothing} = nothing
-    max_iterations::Union{Int,Nothing} = nothing
-    tol_linear::Union{Float64,Nothing} = nothing
-    max_lureuse::Union{Int,Nothing} = nothing
-    mynorm::Union{Function,Nothing} = nothing
-    myrnorm::Union{Function,Nothing} = nothing
+    tol_absolute::Union{Float64, Nothing} = nothing
+    tol_relative::Union{Float64, Nothing} = nothing
+    damp::Union{Float64, Nothing} = nothing
+    damp_grow::Union{Float64, Nothing} = nothing
+    max_iterations::Union{Int, Nothing} = nothing
+    tol_linear::Union{Float64, Nothing} = nothing
+    max_lureuse::Union{Int, Nothing} = nothing
+    mynorm::Union{Function, Nothing} = nothing
+    myrnorm::Union{Function, Nothing} = nothing
 end
 
 doprint(s::String, a::Char) = contains(s, a)
@@ -246,17 +246,15 @@ const false_verbosity = "da"
 doprint(b::Bool, a::Char) = b ? doprint(true_verbosity, a) : doprint(false_verbosity, a)
 doprint(c::SolverControl, a::Char) = doprint(c.verbose, a)
 
-const key_replacements = Dict(
-    :tol_absolute => :abstol,
-    :tol_relative => :reltol,
-    :damp => :damp_initial,
-    :damp_grow => :damp_growth,
-    :max_iterations => :maxiters,
-    :tol_linear => :reltol_linear,
-    :mynorm => :unorm,
-    :myrnorm => :rnorm,
-    :max_lureuse => nothing,
-)
+const key_replacements = Dict(:tol_absolute => :abstol,
+                              :tol_relative => :reltol,
+                              :damp => :damp_initial,
+                              :damp_grow => :damp_growth,
+                              :max_iterations => :maxiters,
+                              :tol_linear => :reltol_linear,
+                              :mynorm => :unorm,
+                              :myrnorm => :rnorm,
+                              :max_lureuse => nothing)
 
 function fix_deprecations!(control)
     # compatibility to names in SolverControl which cannot be deprecated.

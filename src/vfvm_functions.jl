@@ -88,7 +88,6 @@ function fbernoulli_pm(x)
     end
 end
 
-
 """
 $(SIGNATURES)
 
@@ -96,17 +95,17 @@ Non-pivoting inplace LU factorization using Doolittle's method.
 Adapted from https://en.wikipedia.org/wiki/LU_decomposition#MATLAB_code_example.
 """
 function doolittle_ludecomp!(LU)
-    n = size(LU,1)
+    n = size(LU, 1)
     for i = 1:n
         for j = 1:(i - 1)
             for k = 1:(j - 1)
-               LU[i,j]-=LU[i,k]*LU[k,j]
+                LU[i, j] -= LU[i, k] * LU[k, j]
             end
-            LU[i,j]/=LU[j,j]
+            LU[i, j] /= LU[j, j]
         end
         for j = i:n
-             for k = 1:(i - 1)
-                LU[i,j]-=LU[i,k]*LU[k,j]
+            for k = 1:(i - 1)
+                LU[i, j] -= LU[i, k] * LU[k, j]
             end
         end
     end
@@ -120,25 +119,24 @@ Non-pivoting inplace  upper and lower triangular solve of matrix
 factorized with `doolittle_ludecomp!`.
 Adapted from https://en.wikipedia.org/wiki/LU_decomposition#MATLAB_code_example.
 """
-function doolittle_lusolve!(LU,b)
+function doolittle_lusolve!(LU, b)
     n = length(b)
     # LU= L+U-I
     # find solution of Ly = b and store it in b
     for i = 1:n
-        for k = 1:i-1
-            b[i] -= LU[i,k]*b[k]
+        for k = 1:(i - 1)
+            b[i] -= LU[i, k] * b[k]
         end
     end
     # find solution of Ux = b and store it in b
     for i = n:-1:1
         for k = (i + 1):n
-            b[i] -= LU[i,k]*b[k]
+            b[i] -= LU[i, k] * b[k]
         end
-        b[i]/=LU[i, i]
-    end    
+        b[i] /= LU[i, i]
+    end
     b
 end
-
 
 """
 $(SIGNATURES)
@@ -150,11 +148,10 @@ After solution, `A` will contain the LU factorization, and `b` the result.
 
 A pivoting version is available with Julia v1.9.
 """
-function inplace_linsolve!(A,b)
+function inplace_linsolve!(A, b)
     doolittle_ludecomp!(A)
-    doolittle_lusolve!(A,b)
+    doolittle_lusolve!(A, b)
 end
-
 
 """
 $(SIGNATURES)
@@ -169,8 +166,6 @@ After solution, `A` will contain the LU factorization, and `b` the result.
 !!! info
     Needs Julia v1.9 or later
 """
-function inplace_linsolve!(A,b, ipiv)
-    ldiv!(b, RecursiveFactorization.lu!(A,ipiv,Val(true), Val(false) ),b)
+function inplace_linsolve!(A, b, ipiv)
+    ldiv!(b, RecursiveFactorization.lu!(A, ipiv, Val(true), Val(false)), b)
 end
-
-

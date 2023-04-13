@@ -150,7 +150,6 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
                     integral[ispec] += system.celledgefactors[iedge, icell] * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
                 end
                 assemble_res(edge, system, easm_res)
-                
             end
         end
 
@@ -238,10 +237,7 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
                     integral[ispec] += system.celledgefactors[iedge, icell] * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
                 end
                 assemble_res(edge, system, easm_res)
-                
             end
-
-
         end
 
         for inode = 1:num_nodes(geom)
