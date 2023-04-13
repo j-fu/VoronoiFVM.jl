@@ -16,7 +16,6 @@ using ExtendableSparse
 using LinearAlgebra
 
 function main(; n = 10, Plotter = nothing, kwargs...)
-
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
@@ -44,26 +43,22 @@ function main(; n = 10, Plotter = nothing, kwargs...)
     end
 
     function bcondition(f, u, node)
-        boundary_dirichlet!(
-            f,
-            u,
-            node,
-            species = 1,
-            region = 2,
-            value = ramp(node.time, dt = (0, 0.1), du = (0, 1)),
-        )
-        boundary_dirichlet!(
-            f,
-            u,
-            node,
-            species = 1,
-            region = 4,
-            value = ramp(node.time, dt = (0, 0.1), du = (0, 1)),
-        )
+        boundary_dirichlet!(f,
+                            u,
+                            node;
+                            species = 1,
+                            region = 2,
+                            value = ramp(node.time; dt = (0, 0.1), du = (0, 1)))
+        boundary_dirichlet!(f,
+                            u,
+                            node;
+                            species = 1,
+                            region = 4,
+                            value = ramp(node.time; dt = (0, 0.1), du = (0, 1)))
     end
 
-    sys =
-        VoronoiFVM.System(grid; reaction, flux, source, storage, bcondition, species = [1])
+    sys = VoronoiFVM.System(grid; reaction, flux, source, storage, bcondition,
+                            species = [1])
 
     @info "KLU:"
 
@@ -76,32 +71,26 @@ function main(; n = 10, Plotter = nothing, kwargs...)
     spk_sol = solve(sys; inival = 0.5, method_linear = SparspakFactorization(), kwargs...)
 
     @info "Krylov-ilu0:"
-    kryil0_sol = solve(
-        sys;
-        inival = 0.5,
-        method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = ILUZeroPreconditioner,
-        kwargs...,
-    )
+    kryil0_sol = solve(sys;
+                       inival = 0.5,
+                       method_linear = KrylovJL_BICGSTAB(),
+                       precon_linear = ILUZeroPreconditioner,
+                       kwargs...)
 
     @info "Krylov - delayed factorization:"
-    krydel_sol = solve(
-        sys;
-        inival = 0.5,
-        method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = A ->factorize(A, SparspakFactorization()),
-        kwargs...,
-    )
+    krydel_sol = solve(sys;
+                       inival = 0.5,
+                       method_linear = KrylovJL_BICGSTAB(),
+                       precon_linear = A -> factorize(A, SparspakFactorization()),
+                       kwargs...)
 
     @info "Krylov - jacobi:"
-    kryjac_sol = solve(
-        sys;
-        inival = 0.5,
-        method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = JacobiPreconditioner,
-        keepcurrent_linear = true,
-        kwargs...,
-    )
+    kryjac_sol = solve(sys;
+                       inival = 0.5,
+                       method_linear = KrylovJL_BICGSTAB(),
+                       precon_linear = JacobiPreconditioner,
+                       keepcurrent_linear = true,
+                       kwargs...)
 
     norm(spk_sol - umf_sol, Inf) < 1.0e-7 &&
         norm(klu_sol - umf_sol, Inf) < 1.0e-7 &&

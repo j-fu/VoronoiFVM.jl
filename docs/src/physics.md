@@ -16,7 +16,9 @@ Pages = ["vfvm_geometryitems.jl"]
 ```
 
 ## Special functions
-```@autodocs
-Modules = [VoronoiFVM]
-Pages = ["vfvm_functions.jl"]
+```@docs
+fbernoulli
+fbernoulli_pm
+inplace_linsolve!(A,b)
+inplace_linsolve!(A,b,ipiv)
 ```

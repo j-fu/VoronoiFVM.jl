@@ -9,11 +9,9 @@ const value = ForwardDiff.value
 
 # These are needed to enable iterative solvers to work with dual numbers
 Base.Float64(x::ForwardDiff.Dual) = value(x)
-function Random.rand(
-    rng::AbstractRNG,
-    ::Random.SamplerType{ForwardDiff.Dual{T,V,N}},
-) where {T,V,N}
-    ForwardDiff.Dual{T,V,N}(rand(rng, V))
+function Random.rand(rng::AbstractRNG,
+                     ::Random.SamplerType{ForwardDiff.Dual{T, V, N}}) where {T, V, N}
+    ForwardDiff.Dual{T, V, N}(rand(rng, V))
 end
 
 """
@@ -77,7 +75,7 @@ function _print_error(err, st)
         else
             print(line[1:35])
             print(" ... ")
-            println(line[(L-35):L])
+            println(line[(L - 35):L])
         end
     end
     if length(st) > nlines
@@ -86,7 +84,7 @@ function _print_error(err, st)
     println()
 end
 
-function zero!(m::ExtendableSparseMatrix{Tv,Ti}) where {Tv,Ti}
+function zero!(m::ExtendableSparseMatrix{Tv, Ti}) where {Tv, Ti}
     nzv = nonzeros(m)
     nzv .= zero(Tv)
 end
@@ -102,17 +100,15 @@ Main assembly method.
 Evaluate solution with result in right hand side F and 
 assemble Jacobi matrix into system.matrix.
 """
-function eval_and_assemble(
-    system::System{Tv,Tc,Ti,Tm,TSpecMat,TSolArray},
-    U::AbstractMatrix{Tv}, # Actual solution iteration
-    UOld::AbstractMatrix{Tv}, # Old timestep solution
-    F::AbstractMatrix{Tv},# Right hand side
-    time,
-    tstep,# time step size. Inf means stationary solution
-    λ,
-    params::AbstractVector;
-    edge_cutoff = 0.0,
-) where {Tv,Tc,Ti,Tm,TSpecMat,TSolArray}
+function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
+                           U::AbstractMatrix{Tv}, # Actual solution iteration
+                           UOld::AbstractMatrix{Tv}, # Old timestep solution
+                           F::AbstractMatrix{Tv},# Right hand side
+                           time,
+                           tstep,# time step size. Inf means stationary solution
+                           λ,
+                           params::AbstractVector;
+                           edge_cutoff = 0.0) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray}
     _complete!(system) # needed here as well for test function system which does not use newton
 
     grid = system.grid
@@ -124,10 +120,10 @@ function eval_and_assemble(
 
     nspecies::Int = num_species(system)
 
-    cellnodefactors::Array{Tv,2} = system.cellnodefactors
-    celledgefactors::Array{Tv,2} = system.celledgefactors
-    bfacenodefactors::Array{Tv,2} = system.bfacenodefactors
-    bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors
+    cellnodefactors::Array{Tv, 2} = system.cellnodefactors
+    celledgefactors::Array{Tv, 2} = system.celledgefactors
+    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
+    bfaceedgefactors::Array{Tv, 2} = system.bfaceedgefactors
 
     # Reset matrix + rhs
     zero!(system.matrix)
@@ -141,15 +137,15 @@ function eval_and_assemble(
     end
 
     # Arrays for gathering solution data
-    UK = Array{Tv,1}(undef, nspecies + nparams)
-    UKOld = Array{Tv,1}(undef, nspecies + nparams)
-    UKL = Array{Tv,1}(undef, 2 * nspecies + nparams)
+    UK = Array{Tv, 1}(undef, nspecies + nparams)
+    UKOld = Array{Tv, 1}(undef, nspecies + nparams)
+    UKL = Array{Tv, 1}(undef, 2 * nspecies + nparams)
 
     @assert length(params) == nparams
     if nparams > 0
-        UK[(nspecies+1):end] .= params
-        UKOld[(nspecies+1):end] .= params
-        UKL[(2*nspecies+1):end] .= params
+        UK[(nspecies + 1):end] .= params
+        UKOld[(nspecies + 1):end] .= params
+        UKL[(2 * nspecies + 1):end] .= params
     end
 
     # Inverse of timestep
@@ -158,8 +154,8 @@ function eval_and_assemble(
     # case of stationary problems.
     tstepinv = 1.0 / tstep
 
-    boundary_factors::Array{Tv,2} = system.boundary_factors
-    boundary_values::Array{Tv,2} = system.boundary_values
+    boundary_factors::Array{Tv, 2} = system.boundary_factors
+    boundary_values::Array{Tv, 2} = system.boundary_values
     bfaceregions::Vector{Ti} = grid[BFaceRegions]
     cellregions::Vector{Ti} = grid[CellRegions]
 
@@ -212,30 +208,23 @@ function eval_and_assemble(
             oldstor = res(oldstor_evaluator)
 
             @inline function asm_res(idof, ispec)
-                _add(
-                    F,
-                    idof,
-                    fac * (
-                        res_react[ispec] - src[ispec] +
-                        (res_stor[ispec] - oldstor[ispec]) * tstepinv
-                    ),
-                )
+                _add(F,
+                     idof,
+                     fac * (res_react[ispec] - src[ispec] +
+                            (res_stor[ispec] - oldstor[ispec]) * tstepinv))
             end
 
             @inline function asm_jac(idof, jdof, ispec, jspec)
-                _addnz(
-                    system.matrix,
-                    idof,
-                    jdof,
-                    jac_react[ispec, jspec] + jac_stor[ispec, jspec] * tstepinv,
-                    fac,
-                )
+                _addnz(system.matrix,
+                       idof,
+                       jdof,
+                       jac_react[ispec, jspec] + jac_stor[ispec, jspec] * tstepinv,
+                       fac)
             end
 
             @inline function asm_param(idof, ispec, iparam)
                 jparam = nspecies + iparam
-                dudp[iparam][ispec, idof] +=
-                    (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) * fac
+                dudp[iparam][ispec, idof] += (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) * fac
             end
 
             assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
@@ -248,7 +237,7 @@ function eval_and_assemble(
 
             #Set up argument for fluxwrap
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
-            @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
+            @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
 
             evaluate!(flux_evaluator, UKL)
             res_flux = res(flux_evaluator)
@@ -263,8 +252,8 @@ function eval_and_assemble(
             @inline function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
                 _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], fac)
                 _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], fac)
-                _addnz(system.matrix, idofK, jdofL, +jac_flux[ispec, jspec+nspecies], fac)
-                _addnz(system.matrix, idofL, jdofL, -jac_flux[ispec, jspec+nspecies], fac)
+                _addnz(system.matrix, idofK, jdofL, +jac_flux[ispec, jspec + nspecies], fac)
+                _addnz(system.matrix, idofL, jdofL, -jac_flux[ispec, jspec + nspecies], fac)
             end
 
             @inline function asm_param(idofK, idofL, ispec, iparam)
@@ -274,33 +263,32 @@ function eval_and_assemble(
             end
 
             assemble_res_jac(edge, system, asm_res, asm_jac, asm_param)
-            
+
             if isnontrivial(erea_evaluator)
                 evaluate!(erea_evaluator, UKL)
                 res_erea = res(erea_evaluator)
                 jac_erea = jac(erea_evaluator)
-                
+
                 @inline function ereaasm_res(idofK, idofL, ispec)
                     val = fac * res_erea[ispec]
                     _add(F, idofK, val)
                     _add(F, idofL, val)
                 end
-                
+
                 @inline function ereaasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
                     _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], fac)
                     _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], fac)
-                    _addnz(system.matrix, idofK, jdofL, -jac_erea[ispec, jspec+nspecies], fac)
-                    _addnz(system.matrix, idofL, jdofL, +jac_erea[ispec, jspec+nspecies], fac)
+                    _addnz(system.matrix, idofK, jdofL, -jac_erea[ispec, jspec + nspecies], fac)
+                    _addnz(system.matrix, idofL, jdofL, +jac_erea[ispec, jspec + nspecies], fac)
                 end
-                
+
                 @inline function ereaasm_param(idofK, idofL, ispec, iparam)
                     jparam = 2 * nspecies + iparam
                     dudp[iparam][ispec, idofK] += fac * jac_erea[ispec, jparam]
                     dudp[iparam][ispec, idofL] += fac * jac_erea[ispec, jparam]
                 end
-                
+
                 assemble_res_jac(edge, system, ereaasm_res, ereaasm_jac, ereaasm_param)
-                
             end
         end
     end
@@ -347,9 +335,8 @@ function eval_and_assemble(
                             _addnz(system.matrix, idof, idof, boundary_factor, 1)
                         else
                             # Robin boundary condition
-                            F[ispec, K] +=
-                                bnode_factor *
-                                (boundary_factor * U[ispec, K] - boundary_value)
+                            F[ispec, K] += bnode_factor *
+                                           (boundary_factor * U[ispec, K] - boundary_value)
                             _addnz(system.matrix, idof, idof, boundary_factor, bnode_factor)
                         end
                     end
@@ -366,20 +353,15 @@ function eval_and_assemble(
             res_breact = res(brea_evaluator)
             jac_breact = jac(brea_evaluator)
 
-            asm_res1(idof, ispec) =
-                _add(F, idof, bnode_factor * (res_breact[ispec] - bsrc[ispec]))
+            asm_res1(idof, ispec) = _add(F, idof, bnode_factor * (res_breact[ispec] - bsrc[ispec]))
 
-            asm_jac1(idof, jdof, ispec, jspec) = _addnz(
-                system.matrix,
-                idof,
-                jdof,
-                jac_breact[ispec, jspec],
-                bnode_factor,
-            )
+            asm_jac1(idof, jdof, ispec, jspec) = _addnz(system.matrix,
+                                                        idof,
+                                                        jdof,
+                                                        jac_breact[ispec, jspec],
+                                                        bnode_factor)
 
-            asm_param1(idof, ispec, iparam) =
-                dudp[iparam][ispec, idof] +=
-                    jac_breact[ispec, nspecies+iparam] * bnode_factor
+            asm_param1(idof, ispec, iparam) = dudp[iparam][ispec, idof] += jac_breact[ispec, nspecies + iparam] * bnode_factor
 
             assemble_res_jac(bnode, system, asm_res1, asm_jac1, asm_param1)
 
@@ -392,25 +374,20 @@ function eval_and_assemble(
                 evaluate!(oldbstor_evaluator, UKOld)
                 oldbstor = res(oldbstor_evaluator)
 
-                asm_res2(idof, ispec) = _add(
-                    F,
-                    idof,
-                    bnode_factor * (res_bstor[ispec] - oldbstor[ispec]) * tstepinv,
-                )
+                asm_res2(idof, ispec) = _add(F,
+                                             idof,
+                                             bnode_factor * (res_bstor[ispec] - oldbstor[ispec]) * tstepinv)
 
                 function asm_jac2(idof, jdof, ispec, jspec)
-                    _addnz(
-                        system.matrix,
-                        idof,
-                        jdof,
-                        jac_bstor[ispec, jspec],
-                        bnode_factor * tstepinv,
-                    )
+                    _addnz(system.matrix,
+                           idof,
+                           jdof,
+                           jac_bstor[ispec, jspec],
+                           bnode_factor * tstepinv)
                 end
 
                 function asm_param2(idof, ispec, iparam)
-                    dudp[iparam][ispec, idof] +=
-                        jac_bstor[ispec, nspecies+iparam] * bnode_factor * tstepinv
+                    dudp[iparam][ispec, idof] += jac_bstor[ispec, nspecies + iparam] * bnode_factor * tstepinv
                 end
 
                 assemble_res_jac(bnode, system, asm_res2, asm_jac2, asm_param2)
@@ -426,7 +403,7 @@ function eval_and_assemble(
 
                 _fill!(bedge, ibedge, ibface)
                 @views UKL[1:nspecies] .= U[:, bedge.node[1]]
-                @views UKL[(nspecies+1):(2*nspecies)] .= U[:, bedge.node[2]]
+                @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, bedge.node[2]]
 
                 evaluate!(bflux_evaluator, UKL)
                 res_bflux = res(bflux_evaluator)
@@ -440,20 +417,16 @@ function eval_and_assemble(
                 function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
                     _addnz(system.matrix, idofK, jdofK, +jac_bflux[ispec, jspec], fac)
                     _addnz(system.matrix, idofL, jdofK, -jac_bflux[ispec, jspec], fac)
-                    _addnz(
-                        system.matrix,
-                        idofK,
-                        jdofL,
-                        +jac_bflux[ispec, jspec+nspecies],
-                        fac,
-                    )
-                    _addnz(
-                        system.matrix,
-                        idofL,
-                        jdofL,
-                        -jac_bflux[ispec, jspec+nspecies],
-                        fac,
-                    )
+                    _addnz(system.matrix,
+                           idofK,
+                           jdofL,
+                           +jac_bflux[ispec, jspec + nspecies],
+                           fac)
+                    _addnz(system.matrix,
+                           idofL,
+                           jdofL,
+                           -jac_bflux[ispec, jspec + nspecies],
+                           fac)
                 end
 
                 function asm_param(idofK, idofL, ispec, iparam)
@@ -493,17 +466,15 @@ function _eval_and_assemble_generic_operator(system::AbstractSystem, U, F)
     y = similar(vecF)
     generic_operator(y, vecU)
     vecF .+= y
-    forwarddiff_color_jacobian!(
-        system.generic_matrix,
-        generic_operator,
-        vecU;
-        colorvec = system.generic_matrix_colors,
-    )
+    forwarddiff_color_jacobian!(system.generic_matrix,
+                                generic_operator,
+                                vecU;
+                                colorvec = system.generic_matrix_colors)
     rowval = system.generic_matrix.rowval
     colptr = system.generic_matrix.colptr
     nzval = system.generic_matrix.nzval
-    for i = 1:(length(colptr)-1)
-        for j = colptr[i]:(colptr[i+1]-1)
+    for i = 1:(length(colptr) - 1)
+        for j = colptr[i]:(colptr[i + 1] - 1)
             updateindex!(system.matrix, +, nzval[j], rowval[j], i)
         end
     end
@@ -549,21 +520,18 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
     if isnothing(system.linear_cache)
         Pl = control.precon_linear(A)
         p = LinearProblem(A, b)
-        system.linear_cache = init(
-            p,
-            method_linear;
-            abstol = control.abstol_linear,
-            reltol = control.reltol_linear,
-            verbose = doprint(control, 'l'),
-            Pl,
-        )
+        system.linear_cache = init(p,
+                                   method_linear;
+                                   abstol = control.abstol_linear,
+                                   reltol = control.reltol_linear,
+                                   verbose = doprint(control, 'l'),
+                                   Pl)
     else
         system.linear_cache = LinearSolve.set_A(system.linear_cache, A)
         system.linear_cache = LinearSolve.set_b(system.linear_cache, b)
         if control.keepcurrent_linear
             Pl = control.precon_linear(A)
-            system.linear_cache =
-                LinearSolve.set_prec(system.linear_cache, Pl, LinearSolve.Identity())
+            system.linear_cache = LinearSolve.set_prec(system.linear_cache, Pl, LinearSolve.Identity())
         end
     end
 
@@ -590,17 +558,15 @@ $(SIGNATURES)
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve
 """
-function _solve_timestep!(
-    solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    system::AbstractSystem{Tv,Tc,Ti,Tm}, # Finite volume system
-    control::SolverControl,
-    time,
-    tstep,
-    embedparam,
-    params;
-    called_from_API = false,
-) where {Tv,Tc,Ti,Tm}
+function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
+                          oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
+                          system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
+                          control::SolverControl,
+                          time,
+                          tstep,
+                          embedparam,
+                          params;
+                          called_from_API = false) where {Tv, Tc, Ti, Tm}
     _complete!(system; create_newtonvectors = true)
     nlhistory = NewtonSolverHistory()
     t = @elapsed begin
@@ -646,17 +612,15 @@ function _solve_timestep!(
         while niter <= control.maxiters
             # Create Jacobi matrix and RHS for Newton iteration
             try
-                nca, nba, nev = eval_and_assemble(
-                    system,
-                    solution,
-                    oldsol,
-                    residual,
-                    time,
-                    tstep,
-                    embedparam,
-                    params;
-                    edge_cutoff = control.edge_cutoff,
-                )
+                nca, nba, nev = eval_and_assemble(system,
+                                                  solution,
+                                                  oldsol,
+                                                  residual,
+                                                  time,
+                                                  tstep,
+                                                  embedparam,
+                                                  params;
+                                                  edge_cutoff = control.edge_cutoff)
                 ncalloc += nca
                 nballoc += nba
                 neval += nev
@@ -669,15 +633,13 @@ function _solve_timestep!(
                 end
             end
 
-            _solve_linear!(
-                values(update),
-                system,
-                nlhistory,
-                control,
-                method_linear,
-                system.matrix,
-                values(residual),
-            )
+            _solve_linear!(values(update),
+                           system,
+                           nlhistory,
+                           control,
+                           method_linear,
+                           system.matrix,
+                           values(residual))
 
             values(solution) .-= damp * values(update)
 
@@ -714,16 +676,14 @@ function _solve_timestep!(
                     itstring = @sprintf("it=% 3d", niter)
                 end
                 if control.max_round > 0
-                    @printf(
-                        "%s %.3e %.3e %.3e % 2d\n",
-                        itstring,
-                        norm,
-                        norm / oldnorm,
-                        dnorm,
-                        nround
-                    )
+                    @printf("%s %.3e %.3e %.3e % 2d\n",
+                            itstring,
+                            norm,
+                            norm/oldnorm,
+                            dnorm,
+                            nround)
                 else
-                    @printf("%s %.3e %.3e\n", itstring, norm, norm / oldnorm)
+                    @printf("%s %.3e %.3e\n", itstring, norm, norm/oldnorm)
                 end
             end
             if niter > 1 && norm / oldnorm > 1.0 / control.tol_mono
@@ -761,9 +721,7 @@ function _solve_timestep!(
     end
 
     if doprint(control, 'l') && system.is_linear
-        println(
-            "  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds",
-        )
+        println("  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds")
     end
 
     system.history = nlhistory
@@ -778,32 +736,28 @@ solve!(solution, inival, system;
 ````
 Mutating version of [`solve(inival,system)`](@ref)
 """
-function VoronoiFVM.solve!(
-    solution, # Solution
-    inival,   # Initial value 
-    system::VoronoiFVM.AbstractSystem;     # Finite volume system
-    control = SolverControl(),      # Newton solver control information
-    time = Inf,
-    tstep = Inf,                # Time step size. Inf means  stationary solution
-    embedparam = 0.0,
-    params = zeros(0),
-    called_from_API = false,
-)
+function VoronoiFVM.solve!(solution, # Solution
+                           inival,   # Initial value 
+                           system::VoronoiFVM.AbstractSystem;     # Finite volume system
+                           control = SolverControl(),      # Newton solver control information
+                           time = Inf,
+                           tstep = Inf,                # Time step size. Inf means  stationary solution
+                           embedparam = 0.0,
+                           params = zeros(0),
+                           called_from_API = false)
     fix_deprecations!(control)
     if !called_from_API && doprint(control, 'd')
         @warn "[d]eprecated: solve(inival,solution, system; kwargs...)"
     end
-    _solve_timestep!(
-        solution,
-        inival,
-        system,
-        control,
-        time,
-        tstep,
-        embedparam,
-        params;
-        called_from_API = true,
-    )
+    _solve_timestep!(solution,
+                     inival,
+                     system,
+                     control,
+                     time,
+                     tstep,
+                     embedparam,
+                     params;
+                     called_from_API = true)
     return solution
 end
 
@@ -817,30 +771,26 @@ Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the
 Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
 value. Returns a solution array.
 """
-function CommonSolve.solve(
-    inival,   # Initial value 
-    system::AbstractSystem;     # Finite volume system
-    control = SolverControl(),      # Newton solver control information
-    time = Inf,
-    tstep = Inf,                # Time step size. Inf means  stationary solution
-    params = zeros(0),
-    called_from_API = false,
-)
+function CommonSolve.solve(inival,   # Initial value 
+                           system::AbstractSystem;     # Finite volume system
+                           control = SolverControl(),      # Newton solver control information
+                           time = Inf,
+                           tstep = Inf,                # Time step size. Inf means  stationary solution
+                           params = zeros(0),
+                           called_from_API = false)
     fix_deprecations!(control)
     if !called_from_API && doprint(control, 'd')
         @warn "[d]eprecated: solve(inival,system; kwargs...)"
     end
 
-    solve!(
-        unknowns(system),
-        inival,
-        system;
-        control = control,
-        time = time,
-        tstep = tstep,
-        params = params,
-        called_from_API = true,
-    )
+    solve!(unknowns(system),
+           inival,
+           system;
+           control = control,
+           time = time,
+           tstep = tstep,
+           params = params,
+           called_from_API = true)
 end
 
 Δλ_val(control, transient) = transient ? control.Δt : control.Δp
@@ -854,17 +804,15 @@ end
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
 """
-function CommonSolve.solve(
-    inival,
-    system::VoronoiFVM.AbstractSystem,
-    lambdas;
-    control = SolverControl(),
-    transient = true, # choose between transient and stationary (embedding) case
-    time = 0.0,
-    params = zeros(0),
-    called_from_API = false,
-    kwargs...,
-)
+function CommonSolve.solve(inival,
+                           system::VoronoiFVM.AbstractSystem,
+                           lambdas;
+                           control = SolverControl(),
+                           transient = true, # choose between transient and stationary (embedding) case
+                           time = 0.0,
+                           params = zeros(0),
+                           called_from_API = false,
+                           kwargs...)
     fix_deprecations!(control)
     if !called_from_API && doprint(control, 'd')
         @warn "[d]eprecated: solve(inival,system,times;kwargs...)"
@@ -883,18 +831,16 @@ function CommonSolve.solve(
 
     t0 = @elapsed if !transient
         control.pre(solution, Float64(lambdas[1]))
-        solution = solve!(
-            solution,
-            oldsolution,
-            system;
-            called_from_API = true,
-            control = control,
-            time = time,
-            tstep = Inf,
-            embedparam = Float64(lambdas[1]),
-            params = params,
-            kwargs...,
-        )
+        solution = solve!(solution,
+                          oldsolution,
+                          system;
+                          called_from_API = true,
+                          control = control,
+                          time = time,
+                          tstep = Inf,
+                          embedparam = Float64(lambdas[1]),
+                          params = params,
+                          kwargs...)
         control.post(solution, oldsolution, lambdas[1], 0)
         if control.log
             push!(allhistory, system.history)
@@ -912,10 +858,10 @@ function CommonSolve.solve(
     end
 
     istep = 0
-    t1 = @elapsed for i = 1:(length(lambdas)-1)
+    t1 = @elapsed for i = 1:(length(lambdas) - 1)
         Δλ = max(Δλ, Δλ_min(control, transient))
         λstart = lambdas[i]
-        λend = lambdas[i+1]
+        λend = lambdas[i + 1]
         λ = Float64(λstart)
 
         while λ < λend
@@ -928,30 +874,26 @@ function CommonSolve.solve(
                     λ = λ0 + Δλ
                     control.pre(solution, λ)
                     if transient
-                        solution = solve!(
-                            solution,
-                            oldsolution,
-                            system;
-                            called_from_API = true,
-                            control = control,
-                            time = λ,
-                            tstep = Δλ,
-                            params = params,
-                            kwargs...,
-                        )
+                        solution = solve!(solution,
+                                          oldsolution,
+                                          system;
+                                          called_from_API = true,
+                                          control = control,
+                                          time = λ,
+                                          tstep = Δλ,
+                                          params = params,
+                                          kwargs...)
                     else
-                        solution = solve!(
-                            solution,
-                            oldsolution,
-                            system;
-                            called_from_API = true,
-                            control = control,
-                            time = time,
-                            tstep = Inf,
-                            embedparam = λ,
-                            params = params,
-                            kwargs...,
-                        )
+                        solution = solve!(solution,
+                                          oldsolution,
+                                          system;
+                                          called_from_API = true,
+                                          control = control,
+                                          time = time,
+                                          tstep = Inf,
+                                          embedparam = λ,
+                                          params = params,
+                                          kwargs...)
                     end
                 catch err
                     if (control.handle_exceptions)
@@ -972,11 +914,7 @@ function CommonSolve.solve(
                     Δλ = Δλ * 0.5
                     if Δλ < Δλ_min(control, transient)
                         if !(control.force_first_step && istep == 0)
-                            throw(
-                                EmbeddingError(
-                                    " Δ$(λstr)_min=$(Δλ_min(control,transient)) reached while Δu=$(Δu) >>  Δu_opt=$(control.Δu_opt) ",
-                                ),
-                            )
+                            throw(EmbeddingError(" Δ$(λstr)_min=$(Δλ_min(control,transient)) reached while Δu=$(Δu) >>  Δu_opt=$(control.Δu_opt) "))
                         else
                             solved = true
                         end
@@ -988,15 +926,13 @@ function CommonSolve.solve(
             end
             istep = istep + 1
             if doprint(control, 'e')
-                @printf(
-                    "[e]volution: step=%d %s=%.3e Δ%s=%.3e Δu=%.3e\n",
-                    istep,
-                    λstr,
-                    λ,
-                    λstr,
-                    Δλ,
-                    Δu
-                )
+                @printf("[e]volution: step=%d %s=%.3e Δ%s=%.3e Δu=%.3e\n",
+                        istep,
+                        λstr,
+                        λ,
+                        λstr,
+                        Δλ,
+                        Δu)
             end
             if control.log
                 push!(allhistory, system.history)
@@ -1009,18 +945,16 @@ function CommonSolve.solve(
             control.post(solution, oldsolution, λ, Δλ)
             oldsolution .= solution
             if λ < λend
-                Δλ = min(
-                    Δλ_max(control, transient),
-                    Δλ * Δλ_grow(control, transient),
-                    Δλ * control.Δu_opt / (Δu + 1.0e-14),
-                    λend - λ,
-                )
+                Δλ = min(Δλ_max(control, transient),
+                         Δλ * Δλ_grow(control, transient),
+                         Δλ * control.Δu_opt / (Δu + 1.0e-14),
+                         λend - λ)
             end
         end
         if !control.store_all
-            append!(tsol, lambdas[i+1], solution)
+            append!(tsol, lambdas[i + 1], solution)
         end
-        control.sample(solution, lambdas[i+1])
+        control.sample(solution, lambdas[i + 1])
     end
 
     if doprint(control, 'e')
@@ -1096,15 +1030,13 @@ Keyword arguments:
   - `tstep`: time step
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
-function CommonSolve.solve(
-    sys::VoronoiFVM.AbstractSystem;
-    inival = 0,
-    params = zeros(0),
-    control = VoronoiFVM.SolverControl(),
-    time = 0.0,
-    tstep = Inf,
-    kwargs...,
-)
+function CommonSolve.solve(sys::VoronoiFVM.AbstractSystem;
+                           inival = 0,
+                           params = zeros(0),
+                           control = VoronoiFVM.SolverControl(),
+                           time = 0.0,
+                           tstep = Inf,
+                           kwargs...)
     fix_deprecations!(control)
 
     if isa(inival, Number)
@@ -1124,27 +1056,23 @@ function CommonSolve.solve(
     sys.linear_cache = nothing
 
     if haskey(kwargs, :times) && !isnothing(kwargs[:times])
-        solve(
-            inival,
-            sys,
-            kwargs[:times];
-            control,
-            transient = true,
-            params,
-            time = kwargs[:times][1],
-            called_from_API = true,
-        )
+        solve(inival,
+              sys,
+              kwargs[:times];
+              control,
+              transient = true,
+              params,
+              time = kwargs[:times][1],
+              called_from_API = true)
     elseif haskey(kwargs, :embed) && !isnothing(kwargs[:embed])
-        solve(
-            inival,
-            sys,
-            kwargs[:embed];
-            called_from_API = true,
-            transient = false,
-            control,
-            params,
-            time,
-        )
+        solve(inival,
+              sys,
+              kwargs[:embed];
+              called_from_API = true,
+              transient = false,
+              control,
+              params,
+              time)
     else
         solve(inival, sys; called_from_API = true, control, params, time, tstep)
     end

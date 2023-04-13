@@ -19,7 +19,7 @@ struct ContinuousQuantity{Ti} <: AbstractQuantity{Ti}
     Species number representing the quantity
     """
     ispec::Ti
-    
+
     """
     Quantity identifier allowing to use the quantity as index
     in parameter fields
@@ -392,6 +392,3 @@ Base.getindex(I::SolutionIntegral, dspec::DiscontinuousQuantity, ireg) = I[dspec
 function Base.getindex(I::SolutionIntegral, dspec::DiscontinuousQuantity, ::Colon)
     [I[dspec.regionspec[ireg], ireg] for ireg = 1:size(I, 2)]
 end
-
-
-

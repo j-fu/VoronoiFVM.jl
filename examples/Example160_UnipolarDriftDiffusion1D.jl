@@ -72,21 +72,19 @@ function sedanflux!(f, u, edge, data)
     f[ic] = bm * u[ic, 1] - bp * u[ic, 2]
 end
 
-
 function bcondition!(f, u, bnode, data)
-    V = ramp(bnode.time, dt = (0, 1.0e-2), du = (0, data.V))
-    boundary_dirichlet!(f, u, bnode, species = data.iphi, region = 1, value = V)
-    boundary_dirichlet!(f, u, bnode, species = data.iphi, region = 2, value = 0)
-    boundary_dirichlet!(f, u, bnode, species = data.ic, region = 2, value = 0.5)
+    V = ramp(bnode.time; dt = (0, 1.0e-2), du = (0, data.V))
+    boundary_dirichlet!(f, u, bnode; species = data.iphi, region = 1, value = V)
+    boundary_dirichlet!(f, u, bnode; species = data.iphi, region = 2, value = 0)
+    boundary_dirichlet!(f, u, bnode; species = data.ic, region = 2, value = 0.5)
 end
 
 function main(;
-    n = 20,
-    Plotter = nothing,
-    dlcap = false,
-    verbose = false,
-    unknown_storage = :sparse,
-)
+              n = 20,
+              Plotter = nothing,
+              dlcap = false,
+              verbose = false,
+              unknown_storage = :sparse)
     h = 1.0 / convert(Float64, n)
     grid = VoronoiFVM.Grid(collect(0:h:1))
 
@@ -100,21 +98,16 @@ function main(;
     iphi = data.iphi
 
     physics = VoronoiFVM.Physics(;
-        data = data,
-        flux = sedanflux!,
-        reaction = reaction!,
-        breaction = bcondition!,
-        storage = storage!,
-    )
+                                 data = data,
+                                 flux = sedanflux!,
+                                 reaction = reaction!,
+                                 breaction = bcondition!,
+                                 storage = storage!)
 
-    sys = VoronoiFVM.System(
-        grid,
-        physics;
-        unknown_storage = unknown_storage,
-        species = [1, 2],
-    )
-
-
+    sys = VoronoiFVM.System(grid,
+                            physics;
+                            unknown_storage = unknown_storage,
+                            species = [1, 2])
 
     inival = unknowns(sys)
     @views inival[iphi, :] .= 0
@@ -132,36 +125,30 @@ function main(;
         control.Δu_opt = 0.1
         control.damp_initial = 0.5
 
-        tsol = solve(
-            sys;
-            method_linear = UMFPACKFactorization(),
-            inival,
-            times = [0.0, 10],
-            control = control,
-        )
+        tsol = solve(sys;
+                     method_linear = UMFPACKFactorization(),
+                     inival,
+                     times = [0.0, 10],
+                     control = control)
 
         vis = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
         for log10t = -4:0.025:0
             time = 10^(log10t)
             sol = tsol(time)
-            scalarplot!(
-                vis[1, 1],
-                grid,
-                sol[iphi, :];
-                label = "ϕ",
-                title = @sprintf("time=%.3g", time),
-                flimits = (0, 5),
-                color = :green,
-            )
-            scalarplot!(
-                vis[1, 1],
-                grid,
-                sol[ic, :];
-                label = "c",
-                flimits = (0, 5),
-                clear = false,
-                color = :red,
-            )
+            scalarplot!(vis[1, 1],
+                        grid,
+                        sol[iphi, :];
+                        label = "ϕ",
+                        title = @sprintf("time=%.3g", time),
+                        flimits = (0, 5),
+                        color = :green)
+            scalarplot!(vis[1, 1],
+                        grid,
+                        sol[ic, :];
+                        label = "c",
+                        flimits = (0, 5),
+                        clear = false,
+                        color = :red)
             reveal(vis)
         end
         return sum(tsol[end])
@@ -193,25 +180,21 @@ function main(;
                 data.V = dir * phi + delta
                 U = solve(sys; inival = U, control, time = 1.0)
 
-                scalarplot!(
-                    vis[1, 1],
-                    grid,
-                    U[iphi, :];
-                    label = "ϕ",
-                    title = @sprintf("Δϕ=%.3g", phi),
-                    flimits = (-5, 5),
-                    clear = true,
-                    color = :green,
-                )
-                scalarplot!(
-                    vis[1, 1],
-                    grid,
-                    U[ic, :];
-                    label = "c",
-                    flimits = (0, 5),
-                    clear = false,
-                    color = :red,
-                )
+                scalarplot!(vis[1, 1],
+                            grid,
+                            U[iphi, :];
+                            label = "ϕ",
+                            title = @sprintf("Δϕ=%.3g", phi),
+                            flimits = (-5, 5),
+                            clear = true,
+                            color = :green)
+                scalarplot!(vis[1, 1],
+                            grid,
+                            U[ic, :];
+                            label = "c",
+                            flimits = (0, 5),
+                            clear = false,
+                            color = :red)
 
                 Qdelta = integrate(sys, physics.reaction, U)
                 cdl = (Qdelta[iphi] - Q[iphi]) / delta
@@ -227,14 +210,12 @@ function main(;
                 v = vcat(reverse(vminus), vplus)
                 c = vcat(reverse(cdlminus), cdlplus)
                 if length(v) >= 2
-                    scalarplot!(
-                        vis[2, 1],
-                        v,
-                        c;
-                        color = :green,
-                        clear = false,
-                        title = "C_dl",
-                    )
+                    scalarplot!(vis[2, 1],
+                                v,
+                                c;
+                                color = :green,
+                                clear = false,
+                                title = "C_dl")
                 end
 
                 phi += dphi
@@ -252,26 +233,18 @@ function test()
         @info "test skipped"
         return true
     else
-        isapprox(
-                main(; unknown_storage = :sparse, dlcap = false),
-                18.721369939561963;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :sparse, dlcap = true),
-                0.010759276468375045;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :dense, dlcap = false),
-                18.721369939561963;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :dense, dlcap = true),
-                0.010759276468375045;
-                rtol = 1.0e-5,
-            )
+        isapprox(main(; unknown_storage = :sparse, dlcap = false),
+                 18.721369939561963;
+                 rtol = 1.0e-5) &&
+            isapprox(main(; unknown_storage = :sparse, dlcap = true),
+                     0.010759276468375045;
+                     rtol = 1.0e-5) &&
+            isapprox(main(; unknown_storage = :dense, dlcap = false),
+                     18.721369939561963;
+                     rtol = 1.0e-5) &&
+            isapprox(main(; unknown_storage = :dense, dlcap = true),
+                     0.010759276468375045;
+                     rtol = 1.0e-5)
     end
 end
 end

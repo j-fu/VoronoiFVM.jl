@@ -29,11 +29,13 @@ using StaticArrays
 using SparseDiffTools
 using Symbolics
 using Random
+using RecursiveFactorization
 
 include("vfvm_physics.jl")
 include("vfvm_functions.jl")
 export fbernoulli
 export fbernoulli_pm
+export inplace_linsolve!
 
 include("vfvm_densesolution.jl")
 include("vfvm_sparsesolution.jl")
