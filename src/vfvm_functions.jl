@@ -96,7 +96,7 @@ Adapted from https://en.wikipedia.org/wiki/LU_decomposition#MATLAB_code_example.
 """
 function doolittle_ludecomp!(LU)
     n = size(LU, 1)
-    for i = 1:n
+    @inbounds for i = 1:n
         for j = 1:(i - 1)
             for k = 1:(j - 1)
                 LU[i, j] -= LU[i, k] * LU[k, j]
@@ -123,13 +123,13 @@ function doolittle_lusolve!(LU, b)
     n = length(b)
     # LU= L+U-I
     # find solution of Ly = b and store it in b
-    for i = 1:n
+    @inbounds for i = 1:n
         for k = 1:(i - 1)
             b[i] -= LU[i, k] * b[k]
         end
     end
     # find solution of Ux = b and store it in b
-    for i = n:-1:1
+    @inbounds for i = n:-1:1
         for k = (i + 1):n
             b[i] -= LU[i, k] * b[k]
         end
@@ -149,8 +149,8 @@ After solution, `A` will contain the LU factorization, and `b` the result.
 A pivoting version is available with Julia v1.9.
 """
 function inplace_linsolve!(A, b)
-    doolittle_ludecomp!(A)
-    doolittle_lusolve!(A, b)
+    @inline doolittle_ludecomp!(A)
+    @inline doolittle_lusolve!(A, b)
 end
 
 """

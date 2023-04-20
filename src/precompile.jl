@@ -21,9 +21,9 @@ using SnoopPrecompile
                 boundary_dirichlet!(args...; region = 3, value = 1)
             end
 
-            sys = VoronoiFVM.System(grid; species = 1, flux = flux!, reaction = reaction!, breaction = bc!, check_allocs = false)
-            solution = solve(sys; verbose = "")
-            return sum(solution)
+            solve(VoronoiFVM.System(simplexgrid(X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X,X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!), verbose="")
         end
         lin1()
     end
