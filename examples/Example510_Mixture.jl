@@ -135,8 +135,9 @@ function flux_marray(f, u, edge, data)
     end
 
     ## Here, we also could use @gc_preserve.
-    ## With @inline one can avoid StrideArrays.jl
-    @inline inplace_linsolve!(M,du)
+    ## As this function is inlined one can avoid StrideArrays.jl
+    ## Starting with Julia 1.8 one also can use callsite @inline.
+    inplace_linsolve!(M,du)
 
     for ispec = 1:nspec(data)
         f[ispec] = du[ispec]
