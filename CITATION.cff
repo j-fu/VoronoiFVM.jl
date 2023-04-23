@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: "VoronoiFVM.jl - Finite volume solver for coupled nonlinear partial d
+ifferential equations"
+abstract: "Solution of nonlinear multiphysics partial differential equation systems using the Voronoi finite volume method"
+message: "If you use this software, please cite it using the  metadata from this file."
+type: software
+authors:
+  - given-names: Jürgen
+    family-names: Fuhrmann
+    email: juergen.fuhrmann@wias-berlin.de
+    affiliation: Weierstrass Institute Berlin
+    orcid: 'https://orcid.org/0000-0003-4432-2434'
+  - given-names: Dilara
+    family-names: Abdel
+  - given-names: Jan
+    family-names: Weidner
+  - given-names: Alexander
+    family-names: Seiler
+  - given-names: Patricio
+    family-names: Farrell
+  - given-names: Matthias
+    family-names: Liero
+identifiers:
+  - description: "This is the collection of archived snapshots of all versions of VoronoiFVM.jl"
+    type: doi
+    value: "10.5281/zenodo.3529808"
+license: MIT
+repository: "https://github.com/j-fu/VoronoiFVM.jl"
