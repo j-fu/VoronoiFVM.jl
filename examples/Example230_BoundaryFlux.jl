@@ -9,13 +9,13 @@ Testproblem A: Consider in $\Omega_1=(0,1)$
 ```math
 - d_1 \Delta u_1  + k_1 u_1 = c_1
 ```
-in  with homogeneous Neumann boundary conditons.
+in  with homogeneous Neumann boundary conditions.
 
 Testproblem B: Consider in $\Omega_2=(0,1) x (0, 1) $ 
 ```math
 - d_2 \Delta u_2  + k_2 u_2 = c_2
 ```
-in  with homogeneous Neumann boundary conditons
+in  with homogeneous Neumann boundary conditions
 and at the right boundary, i.e. $ {1} x (0, 1) $
 ```math
 - d_b \Delta v  + k_b v = c_b.

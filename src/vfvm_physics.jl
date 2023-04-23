@@ -92,9 +92,9 @@ struct Physics{Flux <: Function,
                GenericOperatorSparsity <: Function,
                Data} <: AbstractPhysics
     """
-    Flux between neigboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
+    Flux between neighboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
     should return in `f[i]` the flux of species i along the edge joining circumcenters
-    of neigboring control volumes.  u is a  2D array such that for species i,
+    of neighboring control volumes.  u is a  2D array such that for species i,
     `u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
     """
     flux::Flux
@@ -311,7 +311,7 @@ struct ResEvaluator{Tv <: Number, Func <: Function, G} <: AbstractEvaluator
     fwrap::Func
     """ pre-allocated result """
     y::Vector{Tv}
-    """ Geomtry object # geometry (node, edge...)"""
+    """ Geometry object # geometry (node, edge...)"""
     geom::G
     """ number of species """
     nspec::Int
@@ -326,7 +326,7 @@ end
 Constructor for ResEvaluator
 - `physics` Physics object
 - `symb`: symbol naming one of the functions in physics to be wrapped.
-- `uproto`: solution vector protoype,
+- `uproto`: solution vector prototype,
 - `geom`: node, edge...
 - `nspec`: number of species
 """
@@ -416,7 +416,7 @@ struct ResJacEvaluator{Tv <: Number, Func <: Function, Cfg, Res, G} <: AbstractE
     result::Res
     """ pre-allocated result """
     y::Vector{Tv}
-    """ Geomtry object # geometry (node, edge...)"""
+    """ Geometry object # geometry (node, edge...)"""
     geom::G
     """ number of species """
     nspec::Int
@@ -430,7 +430,7 @@ end
 Constructor for ResJEvaluator
 - `physics` Physics object
 - `symb`: symbol naming one of the functions in physics to be wrapped.
-- `uproto`: solution vector protoype,
+- `uproto`: solution vector prototype,
 - `geom`: node, edge...
 - `nspec`: number of species
 """

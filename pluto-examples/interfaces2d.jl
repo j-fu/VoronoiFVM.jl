@@ -125,7 +125,7 @@ Let ``u_i`` be solely defined on ``\Omega_i, i = 1, 2`` and satisfy
                      D_i\nabla u_i\cdot \vec n_i &=0,& \text{on}\quad Γ_N\cap \partial Ω_i.
 \end{aligned}
 ```
-This means, two seperate problems on ``\Omega_1, \Omega_2`` are considered. With the following interface conditions (in the sense of traces of functions) ``u_1, u_2`` are linked
+This means, two separate problems on ``\Omega_1, \Omega_2`` are considered. With the following interface conditions (in the sense of traces of functions) ``u_1, u_2`` are linked
 ```math
 \begin{aligned}
     u_1 &= u_2,  & \text{on} \quad  Γ_{12},\\
@@ -144,7 +144,7 @@ Let ``V=H^1(\Omega)`` and denote by ``v \in V`` a respective test function. Inte
 &  - \int_{Γ_{12}} \Bigl((D_1\nabla u_1)\cdot \vec n_1 + (D_2\nabla u_2 )\cdot \vec n_2 \Bigr)v dγ \quad ∀ v ∈ V
 \end{aligned}
 ```
-The integral over ``\Gamma_N`` vanishes due to the homogenous Neumann boundary conditions, the integral over ``Γ_{12}`` likewise vanishes due to the interface conditions. Inserting the interface conditions on ``\Gamma_i, i = 1, 2`` brings us the following weak formulation:
+The integral over ``\Gamma_N`` vanishes due to the homogeneous Neumann boundary conditions, the integral over ``Γ_{12}`` likewise vanishes due to the interface conditions. Inserting the interface conditions on ``\Gamma_i, i = 1, 2`` brings us the following weak formulation:
 
 
 Find ``u∈V`` such that
@@ -234,7 +234,7 @@ flux(y, u, edge) = y[ispec] = D[edge.region] * (u[ispec, 1] - u[ispec, 2])
 
 # ╔═╡ fca05141-71cb-4ecc-83b9-f50836dda100
 md"""
-Here we apply the Robin and Neumann boundary condtions in a `breaction`
+Here we apply the Robin and Neumann boundary conditions in a `breaction`
 """
 
 # ╔═╡ a8a69c7c-810a-4ea5-9a72-e0a2eea49782
@@ -430,7 +430,7 @@ begin
         tol = 1.0e-30,
     )
 
-    # specifiy outer regions
+    # specify outer regions
     # metal interfaces
     bfacemask!(
         gridA,
@@ -517,7 +517,7 @@ begin
         tol = 1.0e-18,
     )
 
-    # specifiy outer regions
+    # specify outer regions
     # metal interfaces
     bfacemask!(
         gridB,

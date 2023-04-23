@@ -95,7 +95,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     end
 
     ## Reaction constants (p = + , m = -)
-    ## Choosen to prefer path A-> C -> B
+    ## Chosen to prefer path A-> C -> B
     ## More over, A reacts faster than to C than C to B
     ## leading to "catalyst poisoning", i.e. C taking up most of the
     ## available catalyst sites 

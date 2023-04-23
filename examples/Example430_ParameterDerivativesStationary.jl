@@ -1,6 +1,6 @@
 #=
 
-# 430: Parameter Derviatives (stationary)
+# 430: Parameter Derivatives (stationary)
  ([source code](SOURCE_URL))
 
 Explore different ways to calculate sensitivities.

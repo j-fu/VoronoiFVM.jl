@@ -11,7 +11,7 @@ using LinearAlgebra
 
 
 # Flux function which describes the flux
-# between neigboring control volumes $\omega_k$ and $\omega_l$
+# between neighboring control volumes $\omega_k$ and $\omega_l$
 function flux!(f,u,edge)
     f[1]=u[1,1]-u[1,2]
 end

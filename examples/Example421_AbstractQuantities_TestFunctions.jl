@@ -52,7 +52,7 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse)
     end
 
     function breactionQ(f, u, bnode, data)
-        ## Define a thin layer inteface condition for `dspec`.
+        ## Define a thin layer interface condition for `dspec`.
         if bnode.region > 2
             react = (u[dspec, 1] - u[dspec, 2]) / data.rate
             f[dspec, 1] = react

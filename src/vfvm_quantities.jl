@@ -34,7 +34,7 @@ end
 Add continuous quantity to the regions listed in `regions`.
 
 Unless specified in `ispec`, the species number is generated
-automtically.
+automatically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
@@ -86,7 +86,7 @@ end
 Add interface quantity to the boundary regions given in `breg`.
 
 Unless specified in `ispec`, the species number is generated
-automtically.
+automatically.
 
 Unless specified by `id`, the quantity ID is generated automatically.
 """
@@ -110,7 +110,7 @@ end
 $(TYPEDEF)
 
 A discontinuous quantity is represented by different species
-in neigboring regions.
+in neighboring regions.
 
 $(TYPEDFIELDS)
 """

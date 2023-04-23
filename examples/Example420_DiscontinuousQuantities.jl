@@ -36,13 +36,13 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
 
     system = VoronoiFVM.System(grid2; unknown_storage = unknown_storage)
 
-    ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitely.
+    ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitly.
     cspec = ContinuousQuantity(system, 1:N; ispec = 1, id = 1)
 
     ## A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.
     dspec = DiscontinuousQuantity(system, 1:N; regionspec = [2 + i % 2 for i = 1:N], id = 2)
 
-    # check 1D array acces with quantities
+    # check 1D array access with quantities
     carrierList = [cspec dspec]
     numberCarriers = length(carrierList)
 
@@ -56,7 +56,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
         @assert params2[i] == 2
     end
 
-    # check 2D array acces with quantities
+    # check 2D array access with quantities
     for i = 1:num_cellregions(grid2)
         @assert params[cspec, i] == i
         @assert params[dspec, i] == 10 * i
@@ -89,7 +89,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
             f[dspec] = u[dspec] + 0.5
         end
 
-        ## Define a thin layer inteface condition for `dspec` and an interface source for `cspec`.
+        ## Define a thin layer interface condition for `dspec` and an interface source for `cspec`.
         if bnode.region > 2
             react = (u[dspec, 1] - u[dspec, 2]) / d1
             f[dspec, 1] = react

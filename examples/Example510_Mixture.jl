@@ -3,7 +3,7 @@
 #=
 
 Test mixture diffusion flux. The problem is here that in the flux function we need to
-solve a linear system of equations wich calculates the fluxes from the gradients.#
+solve a linear system of equations which calculates the fluxes from the gradients.#
 To do so without (heap) allocations can be achieved using StrideArrays, together with the
 possibility to have static (compile time) information about the size of the local
 arrays to be allocated.
@@ -14,7 +14,7 @@ arrays to be allocated.
   -\nabla \cdot \vec N_i =0 \quad (i=1\dots n)\\
   \frac{\vec N_i}{D^K_i} + \sum_{j\neq i}\frac{u_j \vec N_i - u_i \vec N_j}{D^B_{ij}} = -\vec \nabla u_i \quad (i=1\dots n)
 ```
-From this representation, we can derive the matrix ``M=(m_{ij})`` whith
+From this representation, we can derive the matrix ``M=(m_{ij})`` with
 ```math
 m_{ii}= \frac{1}{D^K_i} + \sum_{j\neq i} \frac{u_j}{D_ij}\\
 m_{ij}= -\sum_{j\neq i} \frac{u_i}{D_ij}

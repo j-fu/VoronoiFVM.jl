@@ -52,7 +52,7 @@ end
 """
 $(SIGNATURES)
     
-Create a similar unintialized sparse solution array
+Create a similar uninitialized sparse solution array
 """
 function Base.similar(this::SparseSolutionArray{Tv, Ti}) where {Tv, Ti}
     SparseSolutionArray{Tv, Ti}(SparseMatrixCSC(this.node_dof.m,

@@ -50,7 +50,7 @@ with exterior boundary conditions
 
 
 
-For the interior boundary (interface) conditons we set 
+For the interior boundary (interface) conditions we set 
 
 
 ``\nabla u_1|_{\Gamma_3}+f_1(u_1,u_2)=0``
@@ -326,7 +326,7 @@ md"""
 ### Interface recombination
 
 Here, we implement an annihilation reaction ``u_1 + u_2 \to \emptyset``
-Acoording to the mass action law, this is implemented via
+According to the mass action law, this is implemented via
 
 ``r(u_1,u_2)=k_r u_1 u_2``
 
@@ -458,7 +458,7 @@ system6 = VoronoiFVM.System(grid2)
 
 # ╔═╡ 673e9320-ea30-4831-ad85-ba7936293ee2
 md"""
-First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitely.
+First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitly.
 """
 
 # ╔═╡ f35f419a-94dd-4051-a533-4b1ec9a4c9ec

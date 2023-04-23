@@ -11,7 +11,7 @@ using VoronoiFVM, ExtendableGrids
 using GridVisualize
 
 ## Flux function which describes the flux
-## between neigboring control volumes
+## between neighboring control volumes
 function g!(f, u, edge)
     f[1] = u[1, 1] - u[1, 2]
 end

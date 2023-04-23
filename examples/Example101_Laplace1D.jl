@@ -32,7 +32,7 @@ For instance, we can choose 6 collocation points in $(0,1)$:
 From these, we create a discretization grid structure
 for working with the method.
 
-This implicitely creates a number of control volumes $\omega_k $ around each
+This implicitly creates a number of control volumes $\omega_k $ around each
 discretization point $x_k$: Let
 $\sigma_{k,k+1}=\frac{x_k+x_{k+1}}{2}$. Then $\omega_1=(\gamma_1,\sigma_{1,2})$,
 $\omega_k= (\sigma_{k-1,k}, \sigma_{k,k+1})$ for $k=2\dots n-1$, $\omega_{n}=(\sigma_{n-1,n},\gamma_2)$. 
@@ -95,7 +95,7 @@ function main()
     ispec = 1    ## Index of species we are working with
 
     ## Flux function which describes the flux
-    ## between neigboring control volumes
+    ## between neighboring control volumes
     function flux!(f, u, edge)
         f[1] = u[1, 1] - u[1, 2]
     end

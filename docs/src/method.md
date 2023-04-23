@@ -24,8 +24,8 @@ In order to make this construction possible, the triangulation must have the bou
    - The sum of triangle angles opposite to a given interior edge is less than $\pi$
    - Triangle angles opposite to boundary edges are less than $\frac\pi2$.
 
-As a consequence, there is a 1:1 incidence between triangulation nodes and Voronoi cells. Moreover, the angle between the interface between two neigboring  Voronoi cells and the edge between their corresponding nodes is $\frac\pi2$.  Therefore the edge direction is aligned with the normal direction with respect to the boundary of the Voronoi cell. This
-makes it easy to use these Voronoi cells as REVs aka control volumes aka finite volume cells and to derive a space discretization for a concervation law  based on very same balance rules used to derive this conservation law.
+As a consequence, there is a 1:1 incidence between triangulation nodes and Voronoi cells. Moreover, the angle between the interface between two neighboring  Voronoi cells and the edge between their corresponding nodes is $\frac\pi2$.  Therefore the edge direction is aligned with the normal direction with respect to the boundary of the Voronoi cell. This
+makes it easy to use these Voronoi cells as REVs aka control volumes aka finite volume cells and to derive a space discretization for a conservation law  based on very same balance rules used to derive this conservation law.
 
 ## The discretization approach
 
@@ -36,7 +36,7 @@ makes it easy to use these Voronoi cells as REVs aka control volumes aka finite 
 ```
 
 
-Given a continuity equation $\nabla\cdot \vec j=f$ in a domain $\Omega$, integrate it over a contol volume $\omega_k$ with associated node $\vec x_k$ and apply Gauss theorem:
+Given a continuity equation $\nabla\cdot \vec j=f$ in a domain $\Omega$, integrate it over a control volume $\omega_k$ with associated node $\vec x_k$ and apply Gauss theorem:
 ```math
 \begin{aligned}
 0&=\int_{\omega_k} (\nabla\cdot  \vec j -f )\ d\omega
@@ -133,7 +133,7 @@ Independent of space dimension, the method (with properly chosen flux functions)
 to preserve a number of physical quantities if they are present on the continuous level:
 - local and global mass conservation
 - positivity of solutions
-- maximum principle: in the absence of source and reaction terms, local extrema of the stationary solution are located at the domain boudaries, never in the interior. For transient problems, local extrema in the interior can only come from the initial value. 
+- maximum principle: in the absence of source and reaction terms, local extrema of the stationary solution are located at the domain boundaries, never in the interior. For transient problems, local extrema in the interior can only come from the initial value. 
 - Consistency to thermodynamics: entropy production etc.
 
 Many of these properties are hard to prove for finite element methods, in particular for the convection-diffusion case.
@@ -164,6 +164,6 @@ The entities describing the discrete system can be subdivided into two categorie
 
 
 The solution of the nonlinear systems of equations is performed by Newton's method combined with various direct and iterative linear solvers. The Jacobi matrices used in Newton's method are assembled from the constitutive functions
-whith the help of forward mode automatic differentiation implemented in  [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl).
+with the help of forward mode automatic differentiation implemented in  [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl).
 
 

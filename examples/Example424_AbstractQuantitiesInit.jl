@@ -21,7 +21,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
     cellmask!(grid, [1], [2], 2)
     system = VoronoiFVM.System(grid; unknown_storage = unknown_storage)
 
-    ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitely.
+    ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitly.
     cspec = ContinuousQuantity(system, 1:2)
 
     ## A discontinuous quantity can be introduced as well. by default, each reagion gets a new species number. This can be overwritten by the user.

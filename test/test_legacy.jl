@@ -11,7 +11,7 @@ using GridVisualize
 function main101()
 
     ## Flux function which describes the flux
-    ## between neigboring control volumes
+    ## between neighboring control volumes
     function g!(f,u,edge)
         f[1]=u[1,1]-u[1,2]
     end
@@ -202,7 +202,7 @@ function main105(;n=10,Plotter=nothing,verbose=false, unknown_storage=:sparse)
     ϵ=1.0e-3
 
     ## Flux function which describes the flux
-    ## between neigboring control volumes
+    ## between neighboring control volumes
     function flux!(f,u,edge)
         f[1]=ϵ*(u[1,1]-u[1,2])
     end

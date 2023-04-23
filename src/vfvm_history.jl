@@ -11,7 +11,7 @@ Base.@kwdef mutable struct NewtonSolverHistory <: AbstractVector{Float64}
     """ number of Jacobi matrix factorizations """
     nlu::Int = 0
 
-    """ number of linear interation steps / factorization solves"""
+    """ number of linear iteration steps / factorization solves"""
     nlin::Int = 0
 
     """ Elapsed time for solution """
