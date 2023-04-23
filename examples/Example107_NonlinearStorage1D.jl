@@ -39,7 +39,7 @@ function main(; n = 20, m = 2.0, Plotter = nothing, verbose = false,
     grid = VoronoiFVM.Grid(X)
 
     ## Flux function which describes the flux
-    ## between neigboring control volumes
+    ## between neighboring control volumes
     function flux!(f, u, edge)
         f[1] = u[1, 1] - u[1, 2]
     end

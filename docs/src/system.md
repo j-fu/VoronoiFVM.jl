@@ -37,8 +37,8 @@ enable_boundary_species!
 
 
 ## Handling boundary conditions
-Boundary conditions are handeled in the  `bcondition` callback passed to the system constructor.
-For being called in this callback, the following  functions are availabel
+Boundary conditions are handled in the  `bcondition` callback passed to the system constructor.
+For being called in this callback, the following  functions are available
 
 ```@docs
 boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
@@ -73,7 +73,7 @@ Case 1: a parameter changes its value, and Julia is not sure about the type.
 eps=1.0
 
 flux(f,_u,edge)
-    u=unkowns(edge,_u)
+    u=unknowns(edge,_u)
     f[1]=eps*(u[1,1]-[1,2])
 end
 ... solve etc ...
@@ -88,7 +88,7 @@ Case 2: variables in the closure have the same name as a variable
 introduced in a callback.
 ```julia
 flux(f,_u,edge)
-    u=unkowns(edge,_u)
+    u=unknowns(edge,_u)
     f[1]=(u[1,1]-[1,2])
 end
 

@@ -6,5 +6,5 @@ Like the example code, the notebook code is tested during CI.
 
 The notebooks use an [updated and simplified](@ref api-update) version of the VoronoiFVM API. 
 
-Plese note, that in the html version, interactive elements like sliders are disabled. Navigation via the table of contents does work, though.
+Please note, that in the html version, interactive elements like sliders are disabled. Navigation via the table of contents does work, though.
 

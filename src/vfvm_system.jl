@@ -71,7 +71,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     num_quantities::Ti
 
     """
-    Number of parameter the system depnds on.
+    Number of parameter the system depends on.
     """
     num_parameters::Ti
 
@@ -185,9 +185,9 @@ Keyword arguments:
 - `is_linear`: whether the system is linear or not. If it is linear, only one Newton step is used to solve it.
 
 Physics keyword arguments:
-- `flux`: Function.     Flux between neigboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
+- `flux`: Function.     Flux between neighboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
     should return in `f[i]` the flux of species i along the edge joining circumcenters
-    of neigboring control volumes.  For species i,`u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
+    of neighboring control volumes.  For species i,`u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
 - `storage`: Function.  Storage term (term under time derivative): `storage(f,u,node)` or `storage(f,u,node,data)` 
     It should return in `f[i]` the storage term for the i-th equation. `u[i]` contains the value of
     the i-th unknown.
@@ -206,7 +206,7 @@ Physics keyword arguments:
     It should return in `f[i]` the value of the source term for the i-th equation.
 - `bstorage`: Function.  Boundary storage term: `bstorage(f,u,node)` or `bstorage(f,u,node,data)` 
     Similar to storage, but restricted to the inner or outer boundaries.
-- `generic_operator`: Funtion.  Generic operator  `generic_operator(f,u,sys)`. 
+- `generic_operator`: Function.  Generic operator  `generic_operator(f,u,sys)`. 
     This operator acts on the full solution `u` of a system. Sparsity
     is detected automatically  unless `generic_operator_sparsity` is given.
 -  `generic_operator_sparsity`:  Function defining the sparsity structure of the generic operator.
@@ -215,7 +215,7 @@ Physics keyword arguments:
     need to be obtained
 -  `data`:  User data (parameters).
     This allows to pass various parameters to the callback functions. If `data` is given, all callback functions
-    should accept a last `data` argument. Otherwise, no data are passed explicitely, and constitutive callbacks can
+    should accept a last `data` argument. Otherwise, no data are passed explicitly, and constitutive callbacks can
     take parameters from the closure where the function is defined.
 
 -  `matrixtype`: :default, :sparse, :tridiagonal, :banded
@@ -329,7 +329,7 @@ end
 ##################################################################
 
 # Constant to be used as boundary condition factor 
-# to mark Dirichlet boundary conditons.    
+# to mark Dirichlet boundary conditions.    
 const Dirichlet = 1.0e30
 
 #################################################################
@@ -938,7 +938,7 @@ Set Dirichlet boundary condition for species ispec at boundary ibc:
 ``u_{ispec}=v`` on ``\\Gamma_{ibc}``
 
 !!! info  
-    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+    Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
 function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
     increase_num_species!(system, ispec)
@@ -954,7 +954,7 @@ Keyword argument version:
 - `value`: value
 
 !!! info  
-    Starting with version 0.14, it is preferable to define boundary condtions within the `bcondition` physics callback
+    Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
 function boundary_dirichlet!(system::AbstractSystem; species = 1, region = 1, value = 0)
     boundary_dirichlet!(system, species, region, value)
@@ -1012,7 +1012,7 @@ Set Neumann boundary condition for species ispec at boundary ibc:
 
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n=v`` on ``\\Gamma_{ibc}``
 !!! info  
-    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+    Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
 function boundary_neumann!(system::AbstractSystem, ispec, ibc, v)
     increase_num_species!(system, ispec)
@@ -1027,7 +1027,7 @@ Keyword argument version:
 - `region`: region number
 - `value`: value
 !!! info  
-    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+    Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
 boundary_neumann!(system::AbstractSystem; species = 0, region = 0, value = 0) = boundary_neumann!(system, species, region, value)
 
@@ -1058,7 +1058,7 @@ Set Robin boundary condition for species ispec at boundary ibc:
 ``\\mathrm{flux}_{ispec}\\cdot \\vec n + \\alpha u_{ispec}=v`` on ``\\Gamma_{ibc}``
 
 !!! info  
-    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+    Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
 function boundary_robin!(system::AbstractSystem, ispec, ibc, α, v)
     increase_num_species!(system, ispec)
@@ -1074,7 +1074,7 @@ Keyword argument version:
 - `factor`: factor
 - `value`: value
 !!! info  
-    Starting with version 0.14, it is preferable to define boundary condtitions within the `bcondition` physics callback
+    Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
 function boundary_robin!(system::AbstractSystem; species = 0, region = 0, factor = 0, value = 0)
     boundary_robin!(system, species, region, factor, value)

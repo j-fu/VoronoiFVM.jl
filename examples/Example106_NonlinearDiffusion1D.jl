@@ -8,7 +8,7 @@ Solve the nonlinear diffusion equation
 ```math
 \partial_t u -\Delta u^m = 0
 ```
-in $\Omega=(-1,1)$ with homogeneous Neumann boundary condtions using the implicit Euler method.
+in $\Omega=(-1,1)$ with homogeneous Neumann boundary conditions using the implicit Euler method.
 
 This equation is also called  "porous medium equation". 
 The Barenblatt solution is an exact solution of this problem which for m>1 has a finite support.
@@ -43,7 +43,7 @@ function main(; n = 20, m = 2, Plotter = nothing, verbose = false,
     grid = VoronoiFVM.Grid(X)
 
     ## Flux function which describes the flux
-    ## between neigboring control volumes
+    ## between neighboring control volumes
     function flux!(f, u, edge)
         f[1] = u[1, 1]^m - u[1, 2]^m
     end

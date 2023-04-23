@@ -90,7 +90,7 @@ function main(; n = 10,
     end
 
     ## Reaction constants (p = + , m = -)
-    ## Choosen to prefer path A-> B
+    ## Chosen to prefer path A-> B
     kp_AB = 1.0
     km_AB = 0.1
 

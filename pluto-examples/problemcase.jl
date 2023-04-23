@@ -21,7 +21,7 @@ md"""
 Draft. J. Fuhrmann, Oct. 29. 2021. Updated Dec 19, 2021.
 
 We discuss one of the critical cases for application the Voronoi finite volume method.
-We provide some practical fix and opine that the finite element method proably has the same problems.
+We provide some practical fix and opine that the finite element method probably has the same problems.
 """
 
 # ╔═╡ 556480e0-94f1-4e47-be9a-3e1e0e99555c
@@ -89,7 +89,7 @@ layer.
 
 
 - `grid_n` - a "naive" grid which just resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids
-- `grid_1` - a 1D grid  of the high permeability layer. With high permeability contrast, the solution of the 2D case at y=0 should conincide with the 1D solution
+- `grid_1` - a 1D grid  of the high permeability layer. With high permeability contrast, the solution of the 2D case at y=0 should coincide with the 1D solution
 - `grid_f` - a "fixed" 2D grid which resolves the permeability layer and the surrounding material with equally spaced (in y direction) grids and "protection layers" of width `ε_fix`=$(ε_fix)  correcting the size of high permeability control volumes
 
 
@@ -307,7 +307,7 @@ at the boundaries of the control volumes rather than along the edges of a underl
 
 #### Drawbacks of two point flux Voronoi methods based on simplicial meshes (as tested here):
 - Anisotropic diffusion is only correct with aligned meshes
-- Reliance on boundary conforming Delaunay property of the underyling mesh, thus narrowing the available meshing strategies
+- Reliance on boundary conforming Delaunay property of the underlying mesh, thus narrowing the available meshing strategies
 - The issue described  in the present notebook. However, in both cases discussed here, IMHO it might  "go  away"  depending on the correct physics.
   There should be more discussions with relevant application problems at hand.
 
@@ -315,7 +315,7 @@ at the boundaries of the control volumes rather than along the edges of a underl
 - Availability of P1 interpolant on simplices for visualization, interpolation, coupling etc.
 - Mesh generators tend to place interfaces at triangle edges.
 - Dirichlet BC can be applied exactly
-- There is a straighforward way to link interface processes with bulk processes, e.g. an adsorption reaction is easily described by a reaction term at the boundary which involves interface and bulk value available at the same mesh node.
+- There is a straightforward way to link interface processes with bulk processes, e.g. an adsorption reaction is easily described by a reaction term at the boundary which involves interface and bulk value available at the same mesh node.
 
 
 """

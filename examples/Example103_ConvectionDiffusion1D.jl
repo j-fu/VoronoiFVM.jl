@@ -8,7 +8,7 @@ Solve the equation
 ```math
 \partial_t u -\nabla ( D \nabla u - v u) = 0
 ```
-in $\Omega=(0,1)$ with homogeneous Neumann boundary conditon
+in $\Omega=(0,1)$ with homogeneous Neumann boundary condition
 at $x=0$ and outflow boundary condition at $x=1$.
 =#
 

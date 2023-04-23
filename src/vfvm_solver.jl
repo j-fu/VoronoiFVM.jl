@@ -40,14 +40,14 @@ struct ConvergenceError <: Exception end
 """
 $(TYPEDEF)
 
-Exception thrown if error occured during assembly (e.g. domain error)
+Exception thrown if error occurred during assembly (e.g. domain error)
 """
 struct AssemblyError <: Exception end
 
 """
 $(TYPEDEF)
 
-Exception thrown if error occured during factorization.
+Exception thrown if error occurred during factorization.
 """
 struct LinearSolverError <: Exception end
 
@@ -327,7 +327,7 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                             # Dirichlet is encoded in the boundary condition factor
                             # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
 
-                            # Add penalty*boundry_value to right hand side
+                            # Add penalty*boundary_value to right hand side
                             F[ispec, K] += boundary_factor * (U[ispec, K] - boundary_value)
 
                             # Add penalty to matrix main diagonal (without bnode factor, so penalty

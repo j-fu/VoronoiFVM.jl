@@ -45,7 +45,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
     cellmask!(grid, [0.0], [h1], region1)
     cellmask!(grid, [h1], [h1 + h2], region2)
 
-    # specifiy outer regions
+    # specify outer regions
     bfacemask!(grid, [0.0], [0.0], bregion1)
     bfacemask!(grid, [h_total], [h_total], bregion2)
 

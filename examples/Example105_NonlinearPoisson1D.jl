@@ -17,7 +17,7 @@ f(x)=
 ```
 
 This stationary problem is an example of a nonlinear Poisson equation or Poisson-Boltzmann equation.
-Such equation occur e.g. in simulations of electrochemical systems and semicondutor devices.
+Such equation occur e.g. in simulations of electrochemical systems and semiconductor devices.
 
 =#
 
@@ -37,7 +37,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     ϵ = 1.0e-3
 
     ## Flux function which describes the flux
-    ## between neigboring control volumes
+    ## between neighboring control volumes
     function flux!(f, u, edge)
         f[1] = ϵ * (u[1, 1] - u[1, 2])
     end

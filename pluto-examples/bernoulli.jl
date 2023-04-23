@@ -70,7 +70,7 @@ This implementation uses `B_taylor` if  `|exp(x)-1|<` $(VoronoiFVM.bernoulli_sma
 md"""
 ## Approximation for small x
 
-For small values of x, a Taylor approximation implementd using a Horner scheme is utilized, as the exponential expression runs into errors in the vicinity of zero and fails to evaluate at zero.. As as long as its error is large than that of the Taylor approximation calculated with the Taylor scheme, we should use the later one. 
+For small values of x, a Taylor approximation implemented using a Horner scheme is utilized, as the exponential expression runs into errors in the vicinity of zero and fails to evaluate at zero.. As as long as its error is large than that of the Taylor approximation calculated with the Taylor scheme, we should use the later one. 
 """
 
 # ╔═╡ 56ff3f5c-6fe9-4d44-a5ae-449c42efca62

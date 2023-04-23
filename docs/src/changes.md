@@ -4,7 +4,7 @@
 - Mixture flow example 510
 
 ## v1.2.0 March 17, 2023
-- Initialiazation of quantities, create unknowns using Base.map
+- Initialization of quantities, create unknowns using Base.map
 
 ## v1.1.0 Feb 22, 2023
 - Edge reactions, Joule heating
@@ -256,7 +256,7 @@ Introduce the notion of quantities which can be continuous or discontinuous at i
   - In the plot method, Plotter is now a keyword argument
   - `VoronoiFVM.Grid()` now returns a ExtendableGrids.ExtendableGrid, 
     in fact it is just an alias to [ExtendableGrids.simplexgrid](https://j-fu.github.io/ExtendableGrids.jl/stable/search/?q=simplexgrid)
-  - For using any methods on grids like cellmask! one nees to use `ExtendableGrids`
+  - For using any methods on grids like cellmask! one needs to use `ExtendableGrids`
   - Subgrids now are of the same type `ExtendableGrids`,  views are currently defined for vectors only.
   
 ## v0.7 Feb 28 2020
@@ -315,7 +315,7 @@ Updated dependency list (Triangulate ^0.4.0)
 - (Temporary) Copy of TriangleRaw as Triangle submodule. To be replaced by dependency on evisioned package
 ## v0.5.4 Dec 3 2019
 - Re-enabled ElasticArrays in grid structure (for the time being)
-- Added potkink example: this adds an inner boudary
+- Added potkink example: this adds an inner boundary
 ## v0.5.3 Dec 1 2019
 - triangle in optional submodule
 - Modified API for plotting
@@ -356,7 +356,7 @@ Updated dependency list (Triangulate ^0.4.0)
   to store degree of freedom information
     - Solution is a nnodes x nspecies sparse or dense matrix
     - The wonderful array interface of Julia still provides slicing
-      etc in oder to access  species without need to write
+      etc in order to access species without need to write
       any bulk_solution stuff or whatever when using the sparse variant
 - Re-export value() for debugging in physics functions
 - Test function handling for flux calculation

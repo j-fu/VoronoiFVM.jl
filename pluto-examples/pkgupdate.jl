@@ -41,7 +41,7 @@ function force_update_notebook_environment(notebook)
 
     cp(joinpath(@__DIR__,notebook),tmpjl,force=true)
 
-    # After this, notebook env + curent env are in sync
+    # After this, notebook env + current env are in sync
     Pluto.activate_notebook_environment(tmpjl)
 
     # Get list of current dependencies and their UUIDs:

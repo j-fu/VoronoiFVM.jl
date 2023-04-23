@@ -7,7 +7,7 @@ Solver control parameter for time stepping, embedding, Newton method control.
 All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref)
 
 Newton's method solves ``F(u)=0`` by the iterative procedure ``u_{i+1}=u_{i} - d_i F'(u_i)^{-1}F(u_i)``
-starting with some inital value ``u_0``, where ``d_i`` is a damping parameter.
+starting with some initial value ``u_0``, where ``d_i`` is a damping parameter.
 
 
 $(TYPEDFIELDS)
@@ -15,7 +15,7 @@ $(TYPEDFIELDS)
 Base.@kwdef mutable struct SolverControl
     """
     Verbosity control. A collection of output categories is given in a string composed of the
-    follwing letters:
+    following letters:
     -  a: allocation warnings
     -  d: deprecation warnings
     -  e: time/parameter evolution log
@@ -48,7 +48,7 @@ Base.@kwdef mutable struct SolverControl
 
     """
     Tolerance for roundoff error detection:
-    terminate if   ``|\\;||u_{i+1}||_1 - ||u_{i}||_1\\;|/ ||u_{i}||_1<`` `tol_round` occured `max_round` times in a row.
+    terminate if   ``|\\;||u_{i+1}||_1 - ||u_{i}||_1\\;|/ ||u_{i}||_1<`` `tol_round` occurred `max_round` times in a row.
     """
     tol_round::Float64 = 1.0e-10
 
@@ -182,7 +182,7 @@ Base.@kwdef mutable struct SolverControl
 
     """
     Handle exceptions during transient solver and parameter embedding. 
-    If `true`, exceptions in Newton solves are catched, the embedding resp. time step is lowered, 
+    If `true`, exceptions in Newton solves are caught, the embedding resp. time step is lowered, 
     and solution is retried.  
 
     """

@@ -13,7 +13,7 @@ Since the creation of these examples, the API has been [updated and simplified](
 Plotting is performed using the GridVisualize.jl package which interfaces PyPlot.jl,
 Plots.jl, Makie.jl.
 
-In order to run `ExampleXXX`, peform the following steps:
+In order to run `ExampleXXX`, perform the following steps:
 
 - Download the example file (e.g. via the source code link at the top)
 - Call Julia with  an Julia environment which contains `VoronoiFVM.jl`, `ExtendableGrids.jl`, `GridVisualize.jl` 
@@ -23,7 +23,7 @@ In order to run `ExampleXXX`, peform the following steps:
 
 Due to the encapsulation into modules, you can load as many examples as you like.
 
-If you want to modifiy the example, consider using `Revise.jl` and `includet`. 
+If you want to modify the example, consider using `Revise.jl` and `includet`. 
 
 
 ## Performance with  closures

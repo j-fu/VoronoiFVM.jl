@@ -81,7 +81,7 @@ and we approximate
 \end{aligned}
 ```
 
-where the sum runs over pairs of neigboring control volumes.
+where the sum runs over pairs of neighboring control volumes.
 
 The `integrate` method with a  test function parameter returns a value
 for each species, the sign convention assumes that species leaving the

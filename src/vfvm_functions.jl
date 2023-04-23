@@ -60,7 +60,7 @@ Bernoulli function ``B(x)=\\frac{x}{e^x-1}`` for exponentially
 fitted upwind, joint evaluation for positive and negative
 argument
 
-Usually, we need ``B(x), B(-x)`` togehter, 
+Usually, we need ``B(x), B(-x)`` together, 
 and it is cheaper to calculate them together.
 
 Returns two real numbers containing the result for argument
@@ -160,7 +160,7 @@ Non-allocating, pivoting, inplace solution of square linear system of equations 
 using LU factorization from RecursiveFactorizations.jl.  
 
 After solution, `A` will contain the LU factorization, and `b` the result.
-`ipiv` must be an Int64 vector of the same lenght as `b`.
+`ipiv` must be an Int64 vector of the same length as `b`.
 
 
 !!! info

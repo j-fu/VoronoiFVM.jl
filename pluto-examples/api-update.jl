@@ -203,7 +203,7 @@ precon_linear=JacobiPreconditioner,verbose=true)
 
 # ╔═╡ f935061c-71db-4aaf-864b-bb566e68643e
 md"""
-##### BICGstab from Krylov.jl with delayed factorization preconditoner
+##### BICGstab from Krylov.jl with delayed factorization preconditioner
 """
 
 # ╔═╡ 4c7f8bbf-40c4-45b9-a62e-99ffaae30af1
@@ -321,7 +321,7 @@ md"""
 md"""
 ### Implicit creation of physics
 
-The `VoronoiFVM.Physics` struct almost never was used outside of the constructor of `VoronoiFVM.System`. Now it is possible to specify the flux functions directly in the system constructor. By default, it is als possible to set a list of species which are attached to all interior and boundary regions of the grid.
+The `VoronoiFVM.Physics` struct almost never was used outside of the constructor of `VoronoiFVM.System`. Now it is possible to specify the flux functions directly in the system constructor. By default, it is also possible to set a list of species which are attached to all interior and boundary regions of the grid.
 """
 
 # ╔═╡ c59876bd-0cb1-4157-9ba4-bdbede151a44
@@ -371,7 +371,7 @@ md"""
 ### Boundary conditions as part of physics
 
 This makes the API more consistent and opens an easy possibility to have
-space and time dependent boundary conditions. One can specify them either in `breaction` or the synomymous `bcondition`.
+space and time dependent boundary conditions. One can specify them either in `breaction` or the synonymous `bcondition`.
 """
 
 # ╔═╡ ec188c81-3374-4eed-9b7e-e22350886df2
@@ -427,7 +427,7 @@ md"""
 
 # ╔═╡ 47280b56-e5ec-4345-b4a1-7c3c92536b2e
 md"""
-By passing data for grid creation (one  to thre abstract vectors) instead a grid, a tensor product grid is implicitely created.
+By passing data for grid creation (one to three abstract vectors) instead a grid, a tensor product grid is implicitly created.
 This example also demonstrates position dependent boundary values.
 """
 

@@ -70,7 +70,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
                                  flux = flux,
                                  storage = storage,
                                  reaction = reaction)
-    # Create discrete system and enabe species
+    # Create discrete system and enable species
     sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
 
     enable_species!(sys, excited_spec, [1])
@@ -122,7 +122,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
         # solve impedance system
         solve!(UZ, isys, ω)
 
-        # calculate aproximate solution
+        # calculate approximate solution
         # obtain measurement in frequency  domain
         IL = impedance(isys, ω, steadystate, dmeas_stdy, dmeas_tran)
 
