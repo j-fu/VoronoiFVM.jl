@@ -40,4 +40,4 @@ VoronoiFVM.jl and most of these packages are  part of the meta package [PDELib.j
 - [FiniteVolumeMethod.jl](https://github.com/DanielVandH/FiniteVolumeMethod.jl/) Finite volumes with [Donald boxes](https://danielvandh.github.io/FiniteVolumeMethod.jl/stable/figures/control_volume_example.png)
 ## Citation
 
-If you use this package in your work, please cite it according to [CITATION.bib](https://raw.githubusercontent.com/j-fu/VoronoiFVM.jl/master/CITATION.bib)
+If you use this package in your work, please cite it according to [CITATION.cff](https://raw.githubusercontent.com/j-fu/VoronoiFVM.jl/master/CITATION.cff)
