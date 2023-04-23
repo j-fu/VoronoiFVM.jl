@@ -20,9 +20,8 @@ authors:
     family-names: Farrell
   - given-names: Matthias
     family-names: Liero
-identifiers:
-  - description: "This is the collection of archived snapshots of all versions of VoronoiFVM.jl"
-    type: doi
-    value: "10.5281/zenodo.3529808"
+doi: "10.5281/zenodo.3529808"
 license: MIT
-repository: "https://github.com/j-fu/VoronoiFVM.jl"
+repository-code: "https://github.com/j-fu/VoronoiFVM.jl"
+
+
