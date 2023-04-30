@@ -556,7 +556,7 @@ end
 edgelength(edge::AbstractEdge) = meas(edge)
 
 function project(edge::Edge, vec)
-    vh = 0.0
+    vh = zero(eltype(vec))
     for i = 1:size(edge.coord)[1]
         vh += (edge.coord[i, edge.node[2]] - edge.coord[i, edge.node[1]]) * vec[i]
     end
