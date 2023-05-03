@@ -64,6 +64,8 @@ using Random
 using StrideArraysCore: @gc_preserve, StrideArray, StaticInt, PtrArray
 using LinearSolve,ExtendableSparse
 using StaticArrays
+using ExtendableSparse
+using ILUZero
 
 struct MyData{NSPec}
     DBinary::Symmetric{Float64, Matrix{Float64}}
@@ -154,21 +156,22 @@ function bcondition(f, u, node, data)
     end
 end
 
-function main(; n = 10, nspec = 5,
+function main(; n = 11, nspec = 5,
               dim = 2,
               Plotter = nothing,
               verbose = false,
               unknown_storage = :dense,
+              solver=:umfpack,
               flux=:flux_strided)
     
-    h = 1.0 / convert(Float64, n)
+    h = 1.0 / convert(Float64, n-1)
     X = collect(0.0:h:1.0)
     DBinary = Symmetric(fill(0.1, nspec, nspec))
     for ispec = 1:nspec
         DBinary[ispec, ispec] = 0
     end
 
-    DKnudsen = ones(nspec)
+    DKnudsen = fill(1.0,nspec)
 
     if dim == 1
         grid = VoronoiFVM.Grid(X)
@@ -186,13 +189,42 @@ function main(; n = 10, nspec = 5,
     end
 
     _flux= flux==:flux_strided ? flux_strided : flux_marray
-    
+
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
     sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data)
-    @time  u = solve(sys;
-                     method_linear = KrylovJL_BICGSTAB(),
-                     precon_linear = A -> factorize(A, UMFPACKFactorization())
-                     )
+
+
+
+    if solver==:umfpack0
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear=UMFPACKFactorization())
+    elseif solver==:umfpack
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = UMFPACKFactorization(),
+                         )
+    elseif solver==:ilu
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = ILUZeroPreconditioner()
+                         )
+    elseif solver==:bilu
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ILUZeroPreconditioner()),
+                         )
+    elseif solver==:bumfpack
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ExtendableSparse.LUFactorization())
+                         )
+    end
+
     norm(u)
 end
 
@@ -202,8 +234,9 @@ function test()
         main(; dim = 3) ≈ 57.1262582956693 &&
         main(; dim = 1, flux=:flux_marray) ≈ 5.193296208697211 &&
         main(; dim = 2, flux=:flux_marray) ≈ 17.224214949423878 &&
-        main(; dim = 3, flux=:flux_marray) ≈ 57.1262582956693
-    
-    
+        main(; dim = 3, flux=:flux_marray) ≈ 57.1262582956693 &&
+        all(map(solver-> main(; dim = 2, flux=:flux_marray,solver) ≈ 17.224214949423878,
+                [:umfpack0,:umfpack,:bumfpack,:ilu,:bilu]))
+
 end
 end

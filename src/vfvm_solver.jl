@@ -509,6 +509,15 @@ function LinearAlgebra.factorize(A, method::LinearSolve.AbstractFactorization)
     p
 end
 
+function (f::LinearSolve.AbstractFactorization)(A)
+    factorize(A,f)
+end
+
+function (f::ExtendableSparse.AbstractFactorization)(A) 
+    factorize!(f,A)
+end
+
+
 function LinearAlgebra.ldiv!(u, p::FactorizationPreconditioner, b)
     p.cache = LinearSolve.set_b(p.cache, b)
     sol = solve(p.cache)

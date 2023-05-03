@@ -63,6 +63,7 @@ abstract type AbstractSystem{Tv <: Number, Tc <: Number, Ti <: Integer, Tm <: In
 include("vfvm_geometryitems.jl")
 include("vfvm_system.jl")
 export unknowns
+export partitioning, Equationwise
 export enable_species!
 export enable_boundary_species!
 export enable_discontinuous_species!

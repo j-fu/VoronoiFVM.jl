@@ -121,7 +121,7 @@ Base.@kwdef mutable struct SolverControl
     - `ExtendableSparse.ILUZero`
     - `ExtendableSparse.Jacobi`
     """
-    precon_linear::Union{Type, Function} = A -> Identity()
+    precon_linear::Union{Type, Function, ExtendableSparse.AbstractFactorization, LinearSolve.AbstractFactorization} = A -> Identity()
 
     """
     Update preconditioner in each Newton step ?

@@ -21,7 +21,8 @@ function main(; n = 10, Plotter = nothing, kwargs...)
     Y = collect(0.0:h:1.0)
 
     grid = VoronoiFVM.Grid(X, Y)
-
+    nn=num_nodes(grid)
+    
     eps = 1.0e-2
 
     function reaction(f, u, node)
@@ -74,27 +75,44 @@ function main(; n = 10, Plotter = nothing, kwargs...)
     kryil0_sol = solve(sys;
                        inival = 0.5,
                        method_linear = KrylovJL_BICGSTAB(),
-                       precon_linear = ILUZeroPreconditioner,
+                       precon_linear = ILUZeroPreconditioner(),
+                       kwargs...)
+
+    @show [1:nn÷2, (nn÷2+1):nn]
+    @info "Krylov-block1"
+    kryb1_sol = solve(sys;
+                       inival = 0.5,
+                       method_linear = KrylovJL_BICGSTAB(),
+                       precon_linear = BlockPreconditioner(partitioning=[1:nn÷2, (nn÷2+1):nn],factorization=ILU0Preconditioner()),
+                       kwargs...)
+
+    @info "Krylov-block2"
+    kryb2_sol = solve(sys;
+                       inival = 0.5,
+                       method_linear = KrylovJL_BICGSTAB(),
+                       precon_linear = BlockPreconditioner(partitioning=[1:2:nn, 2:2:nn],factorization=UMFPACKFactorization()),
                        kwargs...)
 
     @info "Krylov - delayed factorization:"
     krydel_sol = solve(sys;
                        inival = 0.5,
                        method_linear = KrylovJL_BICGSTAB(),
-                       precon_linear = A -> factorize(A, SparspakFactorization()),
+                       precon_linear = SparspakFactorization(),
                        kwargs...)
 
     @info "Krylov - jacobi:"
     kryjac_sol = solve(sys;
                        inival = 0.5,
                        method_linear = KrylovJL_BICGSTAB(),
-                       precon_linear = JacobiPreconditioner,
+                       precon_linear = JacobiPreconditioner(),
                        keepcurrent_linear = true,
                        kwargs...)
 
     norm(spk_sol - umf_sol, Inf) < 1.0e-7 &&
         norm(klu_sol - umf_sol, Inf) < 1.0e-7 &&
         norm(kryil0_sol - umf_sol, Inf) < 1.0e-7 &&
+        norm(kryb1_sol - umf_sol, Inf) < 1.0e-7 &&
+        norm(kryb2_sol - umf_sol, Inf) < 1.0e-7 &&
         norm(krydel_sol - umf_sol, Inf) < 1.0e-7 &&
         norm(kryjac_sol - umf_sol, Inf) < 1.0e-7
 end

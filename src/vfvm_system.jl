@@ -1261,6 +1261,15 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     u
 end
 
+
+struct Equationwise end
+
+function partitioning(system::DenseSystem;mode=Equationwise())
+    len=length(system.node_dof)
+    nspec=size(system.node_dof,1)
+    [i:nspec:len for i=1:nspec]
+end
+
 function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
     a = Array{Tu}(undef, size(system.node_dof)...)
     if inival != undef

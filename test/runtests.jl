@@ -96,7 +96,7 @@ function run_all_tests()
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example0")
     end
     @testset "MultiD Examples" begin
-        run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example5")
+         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example5")
     end
     @testset "1D Examples" begin
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example1")
