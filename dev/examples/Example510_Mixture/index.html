@@ -23,6 +23,8 @@ using Random
 using StrideArraysCore: @gc_preserve, StrideArray, StaticInt, PtrArray
 using LinearSolve,ExtendableSparse
 using StaticArrays
+using ExtendableSparse
+using ILUZero
 
 struct MyData{NSPec}
     DBinary::Symmetric{Float64, Matrix{Float64}}
@@ -113,21 +115,22 @@ function bcondition(f, u, node, data)
     end
 end
 
-function main(; n = 10, nspec = 5,
+function main(; n = 11, nspec = 5,
               dim = 2,
               Plotter = nothing,
               verbose = false,
               unknown_storage = :dense,
+              solver=:umfpack,
               flux=:flux_strided)
 
-    h = 1.0 / convert(Float64, n)
+    h = 1.0 / convert(Float64, n-1)
     X = collect(0.0:h:1.0)
     DBinary = Symmetric(fill(0.1, nspec, nspec))
     for ispec = 1:nspec
         DBinary[ispec, ispec] = 0
     end
 
-    DKnudsen = ones(nspec)
+    DKnudsen = fill(1.0,nspec)
 
     if dim == 1
         grid = VoronoiFVM.Grid(X)
@@ -148,10 +151,39 @@ function main(; n = 10, nspec = 5,
 
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
     sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data)
-    @time  u = solve(sys;
-                     method_linear = KrylovJL_BICGSTAB(),
-                     precon_linear = A -&gt; factorize(A, UMFPACKFactorization())
-                     )
+
+
+
+    if solver==:umfpack0
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear=UMFPACKFactorization())
+    elseif solver==:umfpack
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = UMFPACKFactorization(),
+                         )
+    elseif solver==:ilu
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = ILUZeroPreconditioner()
+                         )
+    elseif solver==:bilu
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ILUZeroPreconditioner()),
+                         )
+    elseif solver==:bumfpack
+        @time  u = solve(sys;
+                         verbose,
+                         method_linear = KrylovJL_GMRES(),
+                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ExtendableSparse.LUFactorization())
+                         )
+    end
+
     norm(u)
 end
 
@@ -161,8 +193,9 @@ function test()
         main(; dim = 3) ≈ 57.1262582956693 &amp;&amp;
         main(; dim = 1, flux=:flux_marray) ≈ 5.193296208697211 &amp;&amp;
         main(; dim = 2, flux=:flux_marray) ≈ 17.224214949423878 &amp;&amp;
-        main(; dim = 3, flux=:flux_marray) ≈ 57.1262582956693
-
+        main(; dim = 3, flux=:flux_marray) ≈ 57.1262582956693 &amp;&amp;
+        all(map(solver-&gt; main(; dim = 2, flux=:flux_marray,solver) ≈ 17.224214949423878,
+                [:umfpack0,:umfpack,:bumfpack,:ilu,:bilu]))
 
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example430_ParameterDerivativesStationary/">« 430: Parameter Derivatives (stationary)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Sunday 30 April 2023 11:22">Sunday 30 April 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example430_ParameterDerivativesStationary/">« 430: Parameter Derivatives (stationary)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 3 May 2023 22:06">Wednesday 3 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
