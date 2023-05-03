@@ -1,4 +1,7 @@
 # Changes
+## v1.4.0 April 13, 2023
+- equation-block preconditioning support
+
 ## v1.3.0 April 13, 2023
 - inplace_linsolve! for dense linear system solution in flux functions
 - Mixture flow example 510
