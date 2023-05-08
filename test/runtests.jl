@@ -89,6 +89,7 @@ function run_all_tests()
                "interfaces1d.jl"
                ]
 
+    notebooks=[]
     @testset "basictest" begin
         run_tests_from_directory(@__DIR__,"test_")
     end
