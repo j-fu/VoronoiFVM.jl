@@ -649,7 +649,7 @@ update_grid!(system; grid=system.grid)
 Update grid (e.g. after rescaling of coordinates).
 """
 function update_grid!(system::AbstractSystem;grid=system.grid)
-    system.assembly_type==:cellwise ? update_grid_cellwise!(system,grid) : nothing
+    system.assembly_type==:cellwise ? update_grid_cellwise!(system,grid) :  update_grid_edgewise!(system,grid)
 end
 
 function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -699,12 +699,12 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     nbfaces = num_bfaces(grid)
     ncells = num_cells(grid)
 
+    celledges=grid[CellEdges]
     bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
     cnf=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_nodes(grid))
     cef=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_edges(grid))
 
-    celledges=grid[CellEdges]
     
     
     nn::Int = num_nodes(geom)
@@ -738,8 +738,7 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
         EdgeWiseAssemblyData(SparseMatrixCSC(cnf),SparseMatrixCSC(cef),bfacenodefactors,bfaceedgefactors)
     end
     
-   # system.assembly_data
-    edgewise_factors(csys)
+    system.assembly_data=edgewise_factors(csys)
 end
 
 
