@@ -528,6 +528,7 @@ end
 function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
     if isnothing(system.linear_cache)
         Pl = control.precon_linear(A)
+        nlhistory.nlu += 1
         p = LinearProblem(A, b)
         system.linear_cache = init(p,
                                    method_linear;
@@ -540,6 +541,7 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
         system.linear_cache = LinearSolve.set_b(system.linear_cache, b)
         if control.keepcurrent_linear
             Pl = control.precon_linear(A)
+            nlhistory.nlu += 1
             system.linear_cache = LinearSolve.set_prec(system.linear_cache, Pl, LinearSolve.Identity())
         end
     end
@@ -549,7 +551,6 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
         system.linear_cache = sol.cache
         u .= sol.u
         nliniter = sol.iters
-        nlhistory.nlu += 1
         nlhistory.nlin = sol.iters
     catch err
         if (control.handle_exceptions)
@@ -578,6 +579,8 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
                           called_from_API = false) where {Tv, Tc, Ti, Tm}
     _complete!(system; create_newtonvectors = true)
     nlhistory = NewtonSolverHistory()
+    tasm   = 0.0
+    tlinsolve = 0.0
     t = @elapsed begin
         solution .= oldsol
         residual = system.residual
@@ -617,11 +620,11 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
         nballoc = 0
         neval = 0
         niter = 1
-
+        
         while niter <= control.maxiters
             # Create Jacobi matrix and RHS for Newton iteration
             try
-                nca, nba, nev = eval_and_assemble(system,
+                tasm += @elapsed nca, nba, nev = eval_and_assemble(system,
                                                   solution,
                                                   oldsol,
                                                   residual,
@@ -642,7 +645,7 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
                 end
             end
 
-            _solve_linear!(values(update),
+             tlinsolve += @elapsed _solve_linear!(values(update),
                            system,
                            nlhistory,
                            control,
@@ -719,6 +722,8 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
     end
     if control.log
         nlhistory.time = t
+        nlhistory.tlinsolve = tlinsolve
+        nlhistory.tasm = tasm
     end
 
     if ncalloc + nballoc > 0 && doprint(control, 'a')
@@ -726,7 +731,7 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
     end
 
     if doprint(control, 'n') && !system.is_linear
-        println("  [n]ewton: $(round(t,sigdigits=3)) seconds")
+        println("  [n]ewton: $(round(t,sigdigits=3)) seconds asm: $(round(100*tasm/t,sigdigits=3))%, linsolve: $(round(100*tlinsolve/t,sigdigits=3))% ")
     end
 
     if doprint(control, 'l') && system.is_linear

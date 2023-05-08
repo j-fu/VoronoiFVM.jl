@@ -12,7 +12,7 @@ VoronoiFVM.solve(system::VoronoiFVM.AbstractSystem; kwargs...)
 ``` 
 
 ## [DifferentialEquations.jl solver](@id diffeq)
-This solver is in the process of being outsourced into a glue package.
+This solver has been being outsourced into the glue package VoronoiFVMDiffEq.jl.
 
 
 ## Built-in solver control
@@ -20,6 +20,18 @@ This solver is in the process of being outsourced into a glue package.
 SolverControl
 NewtonControl
 ```
+
+## Linear Solver strategies
+```@docs
+VoronoiFVM.SolverStrategies
+VoronoiFVM.SolverStrategies.direct_umfpack
+VoronoiFVM.SolverStrategies.gmres_umfpack
+VoronoiFVM.SolverStrategies.gmres_eqnblock_umfpack
+VoronoiFVM.SolverStrategies.gmres_iluzero
+VoronoiFVM.SolverStrategies.gmres_eqnblock_iluzero
+VoronoiFVM.SolverStrategies.gmres_pointblock_iluzero
+```
+
 
 ## Built-in solver history handling
 If `log` is set to true in `solve`, the history of newton iterations and  time/embedding

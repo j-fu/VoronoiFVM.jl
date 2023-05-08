@@ -56,6 +56,7 @@ module Example510_Mixture
 
 using Printf
 using VoronoiFVM
+using VoronoiFVM.SolverStrategies
 
 using ExtendableGrids
 using GridVisualize
@@ -65,7 +66,6 @@ using StrideArraysCore: @gc_preserve, StrideArray, StaticInt, PtrArray
 using LinearSolve,ExtendableSparse
 using StaticArrays
 using ExtendableSparse
-using ILUZero
 
 struct MyData{NSPec}
     DBinary::Symmetric{Float64, Matrix{Float64}}
@@ -161,8 +161,9 @@ function main(; n = 11, nspec = 5,
               Plotter = nothing,
               verbose = false,
               unknown_storage = :dense,
-              solver=:umfpack,
-              flux=:flux_strided)
+              flux=:flux_strided,
+              strategy=nothing
+              )
     
     h = 1.0 / convert(Float64, n-1)
     X = collect(0.0:h:1.0)
@@ -193,40 +194,16 @@ function main(; n = 11, nspec = 5,
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
     sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data)
 
-
-
-    if solver==:umfpack0
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear=UMFPACKFactorization())
-    elseif solver==:umfpack
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = UMFPACKFactorization(),
-                         )
-    elseif solver==:ilu
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = ILUZeroPreconditioner()
-                         )
-    elseif solver==:bilu
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ILUZeroPreconditioner()),
-                         )
-    elseif solver==:bumfpack
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ExtendableSparse.LUFactorization())
-                         )
-    end
-
+    @info "Strategy: $(typeof(strategy))"
+    control=SolverControl(strategy,sys)
+    @info control.method_linear
+    u=solve(sys;verbose,control ,log=true)
+    @info history_summary(sys)
+                                          
     norm(u)
 end
+
+
 
 function test()
     main(; dim = 1) ≈ 5.193296208697211 &&
@@ -235,8 +212,10 @@ function test()
         main(; dim = 1, flux=:flux_marray) ≈ 5.193296208697211 &&
         main(; dim = 2, flux=:flux_marray) ≈ 17.224214949423878 &&
         main(; dim = 3, flux=:flux_marray) ≈ 57.1262582956693 &&
-        all(map(solver-> main(; dim = 2, flux=:flux_marray,solver) ≈ 17.224214949423878,
-                [:umfpack0,:umfpack,:bumfpack,:ilu,:bilu]))
+        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy,verbose="na") ≈ 17.224214949423878,
+                [direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
+                 gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()
+                 ]))
 
 end
 end
