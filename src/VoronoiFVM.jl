@@ -10,6 +10,7 @@ using LinearAlgebra
 using SparseArrays
 using CommonSolve
 
+
 using BandedMatrices
 # using MultidiagonalMatrices
 
@@ -63,6 +64,7 @@ abstract type AbstractSystem{Tv <: Number, Tc <: Number, Ti <: Integer, Tm <: In
 include("vfvm_geometryitems.jl")
 include("vfvm_system.jl")
 export unknowns
+export num_species
 export partitioning, Equationwise
 export enable_species!
 export enable_boundary_species!
@@ -89,6 +91,8 @@ export time, region, embedparam, parameters
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
 export Identity
+export Strategies
+
 
 include("vfvm_solver.jl")
 export evolve!

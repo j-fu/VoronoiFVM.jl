@@ -1,14 +1,17 @@
 ################################################
 
 """
-$(TYPEDEF)
+    SolverControl
+    SolverControl(;kwargs...)
+    SolverControl(strategy, sys; kwargs...)
 
-Solver control parameter for time stepping, embedding, Newton method control.
+Solver control parameter for time stepping, embedding, Newton method and linear solver control.
 All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref)
 
 Newton's method solves ``F(u)=0`` by the iterative procedure ``u_{i+1}=u_{i} - d_i F'(u_i)^{-1}F(u_i)``
 starting with some initial value ``u_0``, where ``d_i`` is a damping parameter.
 
+Preset linear solver strategies are available from the submodule [`VoronoiFVM.SolverStrategies`](@ref).
 
 $(TYPEDFIELDS)
 """
@@ -278,7 +281,7 @@ end
 
 """
 ````
-timesteps!(control,Δt; grow=1.0)
+fixed_timesteps!(control,Δt; grow=1.0)
 ````
 
 Modify control data such that the time steps are fixed to a
@@ -305,3 +308,156 @@ end
 Legacy name of SolverControl
 """
 const NewtonControl = SolverControl
+
+
+
+abstract type AbstractStrategy end
+
+VoronoiFVM.SolverControl(::AbstractStrategy, sys; kwargs...) = SolverControl(;kwargs...)
+VoronoiFVM.SolverControl(::Nothing, sys; kwargs...) = SolverControl(;kwargs...)
+
+
+"""
+    VoronoiFVM.SolverStrategies
+
+This module contains a number of strategies which help to instantiate [`SolverControl`](@ref) objects
+with solution methods and preconditioners/factorizations. General usage is
+```
+    SolverControl(strategy,sys;kwargs...)
+```
+See below for currently implemented strategies.
+"""
+module SolverStrategies
+using VoronoiFVM
+using DocStringExtensions
+using LinearSolve
+using ExtendableSparse
+
+"""
+    $(TYPEDEF)
+
+Solve linear systems during Newton's method using the UMFPACK default sparse
+solver of Julia.
+"""
+struct direct_umfpack <: VoronoiFVM.AbstractStrategy end
+VoronoiFVM.SolverControl(::direct_umfpack, sys; kwargs...) =
+    SolverControl(; method_linear = UMFPACKFactorization(), kwargs...)
+
+"""
+    $(TYPEDEF)
+
+Solve linear systems during Newton's method using the GMRES iterative
+method from Krylov.jl using an LU factorization of the Jacobian of the intial value
+calculated with UMFPACK  as preconditioner.
+"""
+struct gmres_umfpack <: VoronoiFVM.AbstractStrategy end
+VoronoiFVM.SolverControl(::gmres_umfpack, sys; kwargs...) = SolverControl(;
+    method_linear = KrylovJL_GMRES(),
+    precon_linear = UMFPACKFactorization(),
+    kwargs...,
+)
+
+"""
+    $(TYPEDEF)
+
+Solve linear systems during Newton's method using the GMRES iterative
+method from Krylov.jl using an equation-block preconditioner 
+based on an LU factorization the equation blocks of the Jacobian of the initial value
+calculated with UMFPACK  as preconditioner.
+"""
+struct gmres_eqnblock_umfpack <: VoronoiFVM.AbstractStrategy end
+VoronoiFVM.SolverControl(::gmres_eqnblock_umfpack, sys; kwargs...) = SolverControl(;
+    method_linear = KrylovJL_GMRES(),
+    precon_linear = BlockPreconditioner(;
+        partitioning = partitioning(sys),
+        factorization = UMFPACKFactorization(),
+    ),
+        kwargs...,
+)
+
+
+"""
+    $(TYPEDEF)
+
+Solve linear systems during Newton's method using the GMRES iterative
+method from Krylov.jl using an zero-fillin inclomplete LU factorization of the Jacobian of the initial
+value calculated with ILUZero.jl.
+"""
+struct gmres_iluzero <: VoronoiFVM.AbstractStrategy end
+VoronoiFVM.SolverControl(::gmres_iluzero, sys; kwargs...) = SolverControl(;
+    method_linear = KrylovJL_GMRES(),
+    precon_linear = ILUZeroPreconditioner(),
+    kwargs...,
+)
+
+"""
+    $(TYPEDEF)
+
+Solve linear systems during Newton's method using the GMRES iterative
+method from Krylov.jl using an equation-block preconditioner 
+based on an incomplete LU factorization the equation blocks of the Jacobian of the initial value
+calculated with ILUZero.jl.
+"""
+struct gmres_eqnblock_iluzero <: VoronoiFVM.AbstractStrategy end
+VoronoiFVM.SolverControl(::gmres_eqnblock_iluzero, sys; kwargs...) = SolverControl(;
+    method_linear = KrylovJL_GMRES(),
+    precon_linear = BlockPreconditioner(;
+        partitioning = partitioning(sys),
+        factorization = ILUZeroPreconditioner(),
+                   ),
+        kwargs...
+           )
+
+
+"""
+    $(TYPEDEF)
+
+Solve linear systems during Newton's method using the GMRES iterative
+method from Krylov.jl using an point-block preconditioner 
+based on an incomplete LU factorization the  of the Jacobian of the initial value
+see as a pointwise block matrix, calculated with ILUZero.jl.
+"""
+struct gmres_pointblock_iluzero <: VoronoiFVM.AbstractStrategy end
+VoronoiFVM.SolverControl(::gmres_pointblock_iluzero, sys; kwargs...) = SolverControl(;
+    method_linear = KrylovJL_GMRES(),
+    precon_linear = PointBlockILUZeroPreconditioner(;
+        blocksize = num_species(sys),
+    ),
+        kwargs...,
+)
+
+# struct gmres_amg <: VoronoiFVM.AbstractStrategy end
+# SolverControl(::gmres_amg, sys; kwargs...) = SolverControl(;
+#     method_linear = KrylovJL_GMRES(),
+#     precon_linear = AMGPreconditioner(),
+#     kwargs...,
+# )
+
+# struct gmres_eqnblock_amg <: VoronoiFVM.AbstractStrategy end
+# SolverControl(::gmres_eqnblock_amg, sys; kwargs...) = SolverControl(;
+#     method_linear = KrylovJL_GMRES(),
+#     precon_linear = BlockPreconditioner(
+#         partitioning = partitioning(sys),
+#         factorization = AMGPreconditioner(),
+#         kwargs...,
+#     ),
+# )
+
+
+export direct_umfpack
+export gmres_umfpack
+export gmres_eqnblock_umfpack
+export gmres_iluzero
+export gmres_eqnblock_iluzero
+export gmres_pointblock_iluzero
+
+# export gmres_amg
+# export gmres_eqnblock_amg
+
+#= Idea:
+define all strategies here and export them.
+Add SolverControl methods in corresponding extensions.
+Probably do this only for 1.9 as this is less work.
+=#
+
+end

@@ -17,6 +17,12 @@ Base.@kwdef mutable struct NewtonSolverHistory <: AbstractVector{Float64}
     """ Elapsed time for solution """
     time::Float64 = 0.0
 
+    """ Elapsed time for assembly """
+    tasm::Float64 = 0.0
+
+    """ Elapsed time for linear solve """
+    tlinsolve::Float64 = 0.0
+    
     """ History of norms of ``||u_{i+1}-u_i||``"""
     updatenorm = zeros(0)
 
@@ -34,6 +40,8 @@ Return named tuple summarizing history.
 """
 function Base.summary(h::NewtonSolverHistory)
     (seconds = round(h.time; sigdigits = 3),
+     tasm = round(h.tasm; sigdigits = 3),
+     tlinsolve = round(h.tlinsolve, sigdigits = 3),
      iters = length(h.updatenorm),
      absnorm = round(h.updatenorm[end]; sigdigits = 3),
      relnorm = round(h.updatenorm[end] / h.updatenorm[1]; sigdigits = 3),
@@ -93,6 +101,8 @@ Return named tuple summarizing history.
 function Base.summary(hh::TransientSolverHistory)
     hx = view(hh, 2:length(hh))
     (seconds = round(sum(h -> h.time, hx); sigdigits = 3),
+     tasm = round(sum(h -> h.tasm, hx); sigdigits = 3),
+     tlinsolve = round(sum(h -> h.tlinsolve, hx); sigdigits = 3),
      steps = length(hh.histories),
      iters = sum(h -> length(h.updatenorm), hx),
      maxabsnorm = round(maximum(h -> h.updatenorm[end], hx); sigdigits = 3),
@@ -110,10 +120,10 @@ Return array of details of each solver step
 """
 function details(hh::TransientSolverHistory)
     a = []
-    for i = 2:length(hh)
+    for i = 1:length(hh)
         push!(a,
-              (t = round(hh.times[i]; sigdigits = 3), Δu = round(hh.updates[i]; sigdigits = 3), summary = sumup(hh[i]; eol = ""),
-               detail = detailed(hh[i])))
+              (t = round(hh.times[i]; sigdigits = 3), Δu = round(hh.updates[i]; sigdigits = 3), summary = summary(hh[i]),
+               detail = details(hh[i])))
     end
     a
 end

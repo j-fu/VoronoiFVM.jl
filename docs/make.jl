@@ -118,7 +118,7 @@ function make_all(; with_examples = true, run_notebooks = true)
 
     makedocs(
         sitename = "VoronoiFVM.jl",
-        modules = [VoronoiFVM],
+        modules = [VoronoiFVM,VoronoiFVM.SolverStrategies],
         checkdocs = :all,
         clean = false,
         doctest = true,
