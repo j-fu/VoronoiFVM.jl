@@ -1,3 +1,52 @@
+abstract type AbstractAssemblyData{Tv} end
+    
+struct CellWiseAssemblyData{Tv} <: AbstractAssemblyData{Tv}
+    """
+        Precomputed geometry factors for cell nodes
+    """
+    cellnodefactors::Array{Tv, 2}
+
+    """
+    Precomputed geometry factors for cell edges
+    """
+    celledgefactors::Array{Tv, 2}
+
+    """
+    Precomputed geometry factors for boundary nodes
+    """
+    bfacenodefactors::Array{Tv, 2}
+
+    """
+    Precomputed geometry factors for boundary edges
+    """
+    bfaceedgefactors::Array{Tv, 2}
+end
+
+struct EdgeWiseAssemblyData{Tv}<:AbstractAssemblyData{Tv}
+    """
+        Precomputed geometry factors for cell nodes
+    """
+    nodefactors::SparseMatrixCSC{Tv, Int}
+
+    """
+    Precomputed geometry factors for cell edges
+    """
+    edgefactors::SparseMatrixCSC{Tv, Int}
+
+    """
+    Precomputed geometry factors for boundary nodes
+    """
+    bfacenodefactors::Array{Tv, 2}
+
+
+    """
+    Precomputed geometry factors for boundary edges
+    """
+    bfaceedgefactors::Array{Tv, 2}
+
+end
+
+
 """
 $(TYPEDEF)
 
@@ -91,24 +140,14 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     residual::TSolArray
 
     """
-    Precomputed geometry factors for cell nodes
+    Precomputed form factors for assembly
     """
-    cellnodefactors::Array{Tv, 2}
+    assembly_data::AbstractAssemblyData{Tv}
 
     """
-    Precomputed geometry factors for cell edges
+    :edgewise or :cellwise
     """
-    celledgefactors::Array{Tv, 2}
-
-    """
-    Precomputed geometry factors for boundary nodes
-    """
-    bfacenodefactors::Array{Tv, 2}
-
-    """
-    Precomputed geometry factors for boundary edges
-    """
-    bfaceedgefactors::Array{Tv, 2}
+    assembly_type::Symbol
 
     """
     Is the system linear ?
@@ -225,6 +264,7 @@ function System(grid::ExtendableGrid;
                 valuetype = coord_type(grid),
                 indextype = index_type(grid),
                 species = Int[],
+                assembly = :cellwise,
                 unknown_storage = :dense,
                 matrixindextype = Int64,
                 matrixtype = :sparse,
@@ -252,6 +292,7 @@ function System(grid::ExtendableGrid;
     system.boundary_values = zeros(Tv, maxspec, num_bfaceregions(grid))
     system.boundary_factors = zeros(Tv, maxspec, num_bfaceregions(grid))
     system.species_homogeneous = false
+    system.assembly_type=assembly
     system.num_quantities = 0
     system.uhash = 0x0
     system.matrixtype = matrixtype
@@ -599,6 +640,7 @@ function generic_operator_sparsity!(system::AbstractSystem, sparsematrix::Sparse
     system.generic_matrix = sparsematrix
 end
 
+
 """
 ````
 update_grid!(system; grid=system.grid)
@@ -606,7 +648,46 @@ update_grid!(system; grid=system.grid)
 
 Update grid (e.g. after rescaling of coordinates).
 """
-function update_grid!(system::AbstractSystem{Tv, Tc, Ti, Tm}; grid = system.grid) where {Tv, Tc, Ti, Tm}
+function update_grid!(system::AbstractSystem;grid=system.grid)
+    system.assembly_type==:cellwise ? update_grid_cellwise!(system,grid) : nothing
+end
+
+function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
+    geom = grid[CellGeometries][1]
+    csys = grid[CoordinateSystem]
+    coord = grid[Coordinates]
+    cellnodes = grid[CellNodes]
+    bgeom = grid[BFaceGeometries][1]
+    bfacenodes = grid[BFaceNodes]
+    nbfaces = num_bfaces(grid)
+    ncells = num_cells(grid)
+
+    cellnodefactors = zeros(Tv, num_nodes(geom), ncells)
+    celledgefactors = zeros(Tv, num_edges(geom), ncells)
+    bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
+    bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
+
+
+    function cellwise_factors(csys::Type{T}) where {T}
+   
+        nalloc = @allocated for icell = 1:ncells
+            @views cellfactors!(geom, csys, coord, cellnodes, icell,
+                                cellnodefactors[:, icell], celledgefactors[:, icell])
+        end
+        nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
+
+        nalloc = @allocated for ibface = 1:nbfaces
+            @views bfacefactors!(bgeom, csys, coord, bfacenodes, ibface,
+                                 bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
+        end
+        nalloc > 0 && @warn "$nalloc allocations in bface factor calculation"
+        CellWiseAssemblyData(cellnodefactors, celledgefactors,bfacenodefactors,bfaceedgefactors)
+    end
+    
+    system.assembly_data=cellwise_factors(csys)
+end
+
+function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
     geom = grid[CellGeometries][1]
     csys = grid[CoordinateSystem]
     coord = grid[Coordinates]
@@ -614,29 +695,54 @@ function update_grid!(system::AbstractSystem{Tv, Tc, Ti, Tm}; grid = system.grid
     cellregions = grid[CellRegions]
     bgeom = grid[BFaceGeometries][1]
     bfacenodes = grid[BFaceNodes]
+    bfaceedges = grid[BFaceEdges]
     nbfaces = num_bfaces(grid)
     ncells = num_cells(grid)
 
-    system.cellnodefactors = zeros(Tv, num_nodes(geom), ncells)
-    system.celledgefactors = zeros(Tv, num_edges(geom), ncells)
-    system.bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
-    system.bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
+    bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
+    bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
+    cnf=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_nodes(grid))
+    cef=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_edges(grid))
 
-    function barrier(csys::Type{T}) where {T}
-        nalloc = @allocated for icell = 1:ncells
-            @views cellfactors!(geom, csys, coord, cellnodes, icell,
-                                system.cellnodefactors[:, icell], system.celledgefactors[:, icell])
+    celledges=grid[CellEdges]
+    
+    
+    nn::Int = num_nodes(geom)
+    ne::Int = num_edges(geom)
+    
+    
+    function edgewise_factors(csys::Type{T}) where {T}
+        cellnodefactors=zeros(Tv,nn)
+        celledgefactors=zeros(Tv,ne)
+            
+        for icell = 1:ncells
+           @views cellfactors!(geom, csys, coord, cellnodes, icell,cellnodefactors, celledgefactors)
+            ireg=cellregions[icell]
+            for inode=1:nn
+                cnf[ireg,cellnodes[inode,icell]]+=cellnodefactors[inode]
+            end
+            
+            for iedge=1:ne
+                cef[ireg,celledges[iedge,icell]]+=celledgefactors[iedge]
+            end
         end
-        nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
+
+
+#        nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
 
         nalloc = @allocated for ibface = 1:nbfaces
             @views bfacefactors!(bgeom, csys, coord, bfacenodes, ibface,
-                                 system.bfacenodefactors[:, ibface], system.bfaceedgefactors[:, ibface])
+                                 bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
         end
         nalloc > 0 && @warn "$nalloc allocations in bface factor calculation"
+        EdgeWiseAssemblyData(SparseMatrixCSC(cnf),SparseMatrixCSC(cef),bfacenodefactors,bfaceedgefactors)
     end
-    barrier(csys)
+    
+   # system.assembly_data
+    edgewise_factors(csys)
 end
+
+
 
 ################################################################################################
 # Degree of freedom handling

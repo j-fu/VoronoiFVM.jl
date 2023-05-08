@@ -23,6 +23,11 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
 
+    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
+    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
+
     if boundary
         bnode = BNode(system)
         bnodeparams = (bnode,)
@@ -50,7 +55,7 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
                 #     end                                                                                     
                 # end                                                                                         
 
-                asm_res(idof, ispec) = integral[ispec, bnode.region] += system.bfacenodefactors[inode, ibface] * res[ispec]
+                asm_res(idof, ispec) = integral[ispec, bnode.region] += bfacenodefactors[inode, ibface] * res[ispec]
                 assemble_res(bnode, system, asm_res)
             end
         end
@@ -80,7 +85,7 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
                 #         integral[ispec,node.region]+=system.cellnodefactors[inode,icell]*res[ispec]
                 #     end                                                                                            
                 # end
-                asm_res(idof, ispec) = integral[ispec, node.region] += system.cellnodefactors[inode, icell] * res[ispec]
+                asm_res(idof, ispec) = integral[ispec, node.region] += cellnodefactors[inode, icell] * res[ispec]
                 assemble_res(node, system, asm_res)
             end
         end
@@ -131,7 +136,12 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
     cellnodes = grid[CellNodes]
     physics = system.physics
     edge = Edge(system)
+    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
+    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
 
+    
     # !!! TODO Parameter handling here
     UKL = Array{Tu, 1}(undef, 2 * nspecies)
     flux_eval = ResEvaluator(system.physics, :flux, UKL, edge, nspecies)
@@ -143,7 +153,7 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
             _fill!(edge, iedge, icell)
             K = edge.node[1]
             L = edge.node[2]
-            fac = system.celledgefactors[iedge, icell]
+            fac = celledgefactors[iedge, icell]
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
             @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
             evaluate!(flux_eval, UKL)
@@ -166,7 +176,7 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
         end
 
         for inode = 1:num_nodes(geom)
-            nodevol[cellnodes[inode, icell]] += system.cellnodefactors[inode, icell]
+            nodevol[cellnodes[inode, icell]] += cellnodefactors[inode, icell]
         end
     end
     for inode = 1:nnodes

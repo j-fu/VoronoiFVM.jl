@@ -54,6 +54,10 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
     else
         params = zeros(0)
     end
+    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
+    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
 
     # Ensure that system.matrix contains the jacobian at U0
     # Moreover, here we use the fact that for large time step sizes,
@@ -125,7 +129,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
             # Sort it into storderiv matrix.
             K = node.index
             function asm_jac(idof, jdof, ispec, jspec)
-                updateindex!(storderiv, +, jac_stor[ispec, jspec] * system.cellnodefactors[inode, icell], idof, jdof)
+                updateindex!(storderiv, +, jac_stor[ispec, jspec] * cellnodefactors[inode, icell], idof, jdof)
             end
             assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
         end
@@ -143,7 +147,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
                 jac_bstor = jac(bstor_eval)
                 K = bnode.index
                 function asm_jac(idof, jdof, ispec, jspec)
-                    updateindex!(storderiv, +, jac_bstor[ispec, jspec] * system.bfacenodefactors[ibnode, ibface], idof, jdof)
+                    updateindex!(storderiv, +, jac_bstor[ispec, jspec] * bfacenodefactors[ibnode, ibface], idof, jdof)
                 end
                 assemble_res_jac(bnode, system, asm_res, asm_jac, asm_param)
             end
@@ -168,6 +172,11 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix,
     nspecies = num_species(system)
     F = impedance_system.F
 
+    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
+    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
+
     for ibface = 1:num_bfaces(grid)
         ibreg = bfaceregions[ibface]
         for ibnode = 1:num_nodes(bgeom)
@@ -187,7 +196,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix,
                         if fac == Dirichlet
                             F[ispec, bnode.index] += fac
                         else
-                            F[ispec, bnode.index] += fac * system.bfacenodefactors[ibnode, ibface]
+                            F[ispec, bnode.index] += fac * bfacenodefactors[ibnode, ibface]
                         end
                     end
                 end

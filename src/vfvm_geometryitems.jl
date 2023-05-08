@@ -149,6 +149,13 @@ Node(sys) = Node(sys, 0, 0, zeros(0))
     nothing
 end
 
+@inline function _xfill!(node::Node, iregion, inode)
+    node.region = iregion
+    node.index = inode
+    node.icell = 0
+    nothing
+end
+
 """
     $(TYPEDEF)
 
@@ -278,6 +285,7 @@ end
     end
 end
 
+
 struct BNodeUnknowns{Tval, Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
     val::Vector{Tval}
     nspec::Ti
@@ -404,6 +412,22 @@ end
     nothing
 end
 
+@inline function _xfill!(edge::Edge, iregion,iedge)
+    #  cellx==celledges, edgenodes==global_edgenodes
+    # If we work with projections of fluxes onto edges,
+    # we need to ensure that the edges are accessed with the
+    # same orientation without regard of the orientation induced
+    # by local cell numbering
+    edge.index = iedge
+    edge.node[1] = edge.edgenodes[1, edge.index]
+    edge.node[2] = edge.edgenodes[2, edge.index]
+    edge.region = iregion
+    edge.icell = 0
+    nothing
+end
+
+
+
 struct EdgeUnknowns{Tv, Tc, Tp, Ti} <: AbstractEdgeData{Tv}
     val::Vector{Tv}
     n1::Ti
@@ -511,6 +535,8 @@ end
 
     nothing
 end
+
+
 
 struct BEdgeUnknowns{Tv, Tc, Tp, Ti} <: AbstractEdgeData{Tv}
     val::Vector{Tv}
