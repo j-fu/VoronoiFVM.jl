@@ -12,7 +12,7 @@ using LinearSolve
 using ILUZero
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
-              max_lureuse = 0, method_linear = nothing,
+              max_lureuse = 0, method_linear = nothing, assembly=:cellwise,
               precon_linear = A -> LinearSolve.Identity())
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
@@ -33,7 +33,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
                                  end, storage = function (f, u, node)
                                      f[1] = u[1]
                                  end)
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage, assembly)
     enable_species!(sys, 1, [1])
 
     boundary_dirichlet!(sys, 1, 2, 0.1)

@@ -163,9 +163,6 @@ function eval_and_assemble(
     geom = grid[CellGeometries][1]
     bgeom = grid[BFaceGeometries][1]
 
-    nn::Int = num_nodes(geom)
-    ne::Int = num_edges(geom)
-
     has_legacy_bc = !iszero(boundary_factors) || !iszero(boundary_values)
 
     #
@@ -294,6 +291,10 @@ function eval_and_assemble(
 
 
     if system.assembly_type == :cellwise
+
+        nn = num_nodes(geom)
+        ne = num_edges(geom)
+
         cellnodefactors::Array{Tv,2} = system.assembly_data.cellnodefactors
         celledgefactors::Array{Tv,2} = system.assembly_data.celledgefactors
 
@@ -312,26 +313,27 @@ function eval_and_assemble(
             end
         end
     else
+
+        nn = num_nodes(grid)
+        ne = num_edges(grid)
+
         noderegionfactors = system.assembly_data.nodefactors
         noderegions = rowvals(noderegionfactors)
         nodefactors = nonzeros(noderegionfactors)
 
-        ncalloc = @allocated for inode = 1:nnodes
+        ncalloc = @allocated for inode = 1:nn
             for k in nzrange(noderegionfactors, inode)
-                ireg = noderegions(noderegionfactors, k)
-                _fill!(node, ireg, inode)
-                fac = nodefactoes(noderegionfactors, k)
-                asm_node(cellnodefactors[inode, icell])
+                _xfill!(node, noderegions[k], inode)
+                asm_node(node,nodefactors[k])
             end
         end
         edgeregionfactors = system.assembly_data.edgefactors
         edgeregions = rowvals(edgeregionfactors)
         edgefactors = nonzeros(edgeregionfactors)
-        for iedge = 1:nedges
+        for iedge = 1:ne
             for k in nzrange(edgeregionfactors, iedge)
-                ireg = edgeregions(edgeregionfactors, k)
-                _fill!(edge, ireg, iedge)
-                asm_edge(edgefactoes(edgeregionfactors, k))
+                _xfill!(edge, edgeregions[k], iedge)
+                asm_edge(edge,edgefactors[k])
             end
         end
     end
