@@ -162,7 +162,8 @@ function main(; n = 11, nspec = 5,
               verbose = false,
               unknown_storage = :dense,
               flux=:flux_strided,
-              strategy=nothing
+              strategy=nothing,
+              assembly=:cellwise
               )
     
     h = 1.0 / convert(Float64, n-1)
@@ -192,7 +193,7 @@ function main(; n = 11, nspec = 5,
     _flux= flux==:flux_strided ? flux_strided : flux_marray
 
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
-    sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data)
+    sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data, assembly)
 
     @info "Strategy: $(typeof(strategy))"
     control=SolverControl(strategy,sys)
