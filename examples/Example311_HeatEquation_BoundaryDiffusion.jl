@@ -21,7 +21,7 @@ using ExtendableGrids
           v(0)   = 0.5          on   {0} × Γ_1  
 """
 
-function main(n = 1)
+function main(n = 1; assembly=:edgewise)
     breg = 5 # boundary region number for surface diffusion
 
     hmin = 0.05 * 2.0^(-n + 1)
@@ -70,7 +70,7 @@ function main(n = 1)
                                      f[1] = u[1]
                                  end)
 
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = :sparse)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = :sparse, assembly)
     enable_species!(sys, 1, [1])
     enable_boundary_species!(sys, 2, [breg])
 
@@ -104,7 +104,7 @@ function main(n = 1)
 end
 
 function test()
-    isapprox(main(), 1463.3732804776039; rtol = 1.0e-12)
+    isapprox(main(), 1509.8109057757858; rtol = 1.0e-12)
 end
 
 end
