@@ -35,7 +35,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse,
+function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise,
               L = 1.0, R = 1.0, D = 1.0, C = 1.0,
               ω0 = 1.0e-3, ω1 = 5.0e1)
 
@@ -83,7 +83,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
                             reaction = reaction,
                             bcondition = bc,
                             nparams = 1,
-                            species = 1)
+                            species = 1,assembly=assembly)
 
     # Create test functions for current measurement
 
@@ -160,8 +160,11 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
 end
 
 function test()
-    tval = 57.92710286186797 + 23.163945443946027im
-    main(; unknown_storage = :dense) ≈ tval && main(; unknown_storage = :sparse) ≈ tval
+    testval = 57.92710286186797 + 23.163945443946027im
+    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
 end
 
 end

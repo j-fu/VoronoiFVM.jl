@@ -24,7 +24,7 @@ mutable struct Data
     Data() = new()
 end
 
-function main(; N = 3, Plotter = nothing, unknown_storage = :sparse)
+function main(; N = 3, Plotter = nothing, unknown_storage = :sparse, assembly=:edgewise)
     XX = collect(0:0.1:1)
     xcoord = XX
     for i = 1:(N - 1)
@@ -162,8 +162,11 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse)
 end
 
 function test()
-    main(; unknown_storage = :dense) ≈ 6.085802139465579e-7 &&
-        main(; unknown_storage = :sparse) ≈ 6.085802139465579e-7
+    testval=6.085802139465579e-7
+    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
 end
 
 end

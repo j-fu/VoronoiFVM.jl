@@ -516,8 +516,8 @@ function BEdge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Ve
     bedge.icell = 0
     bedge.coord = coordinates(sys.grid)
 
+    bedge.bfaceedges = sys.grid[BFaceEdges] # !!! another bug in ExtendableGrids
     bedge.bedgenodes = sys.grid[BEdgeNodes]
-    bedge.bfaceedges = sys.grid[BFaceEdges]
     bedge.bfaceregions = sys.grid[BFaceRegions]
     bedge.time = time
     bedge.embedparam = embedparam

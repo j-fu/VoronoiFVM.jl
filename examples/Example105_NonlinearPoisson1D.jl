@@ -27,7 +27,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse)
+function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise)
 
     ## Create a one-dimensional discretization
     h = 1.0 / convert(Float64, n)
@@ -66,7 +66,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     ## The difference is in the way the solution object
     ## is stored - as dense or as sparse matrix
 
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly=assembly)
 
     ## Add species 1 to region 1
     enable_species!(sys, 1, [1])
@@ -88,8 +88,10 @@ end
 
 function test()
     testval = 1.5247901344230088
-    main(; unknown_storage = :sparse) ≈ testval &&
-        main(; unknown_storage = :dense) ≈ testval
+    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
 end
 
 end

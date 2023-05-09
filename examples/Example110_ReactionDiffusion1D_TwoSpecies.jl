@@ -22,7 +22,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :sparse)
+function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise)
     h = 1 / n
     grid = VoronoiFVM.Grid(collect(0:h:1))
 
@@ -80,7 +80,10 @@ end
 
 function test()
     testval = 0.7117546972922056
-    main(; unknown_storage = :sparse) ≈ testval &&
-        main(; unknown_storage = :dense) ≈ testval
+
+    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
 end
 end

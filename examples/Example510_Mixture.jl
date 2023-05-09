@@ -207,16 +207,27 @@ end
 
 
 function test()
-    main(; dim = 1) ≈ 5.193296208697211 &&
-        main(; dim = 2) ≈ 17.224214949423878 &&
-        main(; dim = 3) ≈ 57.1262582956693 &&
-        main(; dim = 1, flux=:flux_marray) ≈ 5.193296208697211 &&
-        main(; dim = 2, flux=:flux_marray) ≈ 17.224214949423878 &&
-        main(; dim = 3, flux=:flux_marray) ≈ 57.1262582956693 &&
-        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy,verbose="na") ≈ 17.224214949423878,
+    res1=  main(; dim = 1, assembly=:edgewise) ≈ 5.193296208697211 &&
+        main(; dim = 2, assembly=:edgewise) ≈ 17.224214949423878 &&
+        main(; dim = 3, assembly=:edgewise) ≈ 57.1262582956693 &&
+        main(; dim = 1, flux=:flux_marray, assembly=:edgewise) ≈ 5.193296208697211 &&
+        main(; dim = 2, flux=:flux_marray, assembly=:edgewise) ≈ 17.224214949423878 &&
+        main(; dim = 3, flux=:flux_marray, assembly=:edgewise) ≈ 57.1262582956693 &&
+        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,
                 [direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
                  gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()
                  ]))
 
+    res2= main(; dim = 1, assembly=:cellwise) ≈ 5.193296208697211 &&
+        main(; dim = 2, assembly=:cellwise) ≈ 17.224214949423878 &&
+        main(; dim = 3, assembly=:cellwise) ≈ 57.1262582956693 &&
+        main(; dim = 1, flux=:flux_marray, assembly=:cellwise) ≈ 5.193296208697211 &&
+        main(; dim = 2, flux=:flux_marray, assembly=:cellwise) ≈ 17.224214949423878 &&
+        main(; dim = 3, flux=:flux_marray, assembly=:cellwise) ≈ 57.1262582956693 &&
+        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,
+                [direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
+                 gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()
+                 ]))
+    res1 && res2
 end
 end

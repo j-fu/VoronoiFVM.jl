@@ -163,10 +163,6 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
     cellnodes = grid[CellNodes]
     physics = system.physics
     edge = Edge(system)
-    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
-    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
 
     
     # !!! TODO Parameter handling here
@@ -175,37 +171,66 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
 
     geom = grid[CellGeometries][1]
 
-    for icell = 1:num_cells(grid)
-        for iedge = 1:num_edges(geom)
-            _fill!(edge, iedge, icell)
-            K = edge.node[1]
-            L = edge.node[2]
-            fac = celledgefactors[iedge, icell]
-            @views UKL[1:nspecies] .= U[:, edge.node[1]]
-            @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
-            evaluate!(flux_eval, UKL)
-            edgeflux = res(flux_eval)
-
-            # !!! asm_res                                                                              
-            # for ispec=1:nspecies                                                                       
-            #     if isdof(system, ispec,K) && isdof(system, ispec,L)                                    
-            #         @views nodeflux[:,ispec,K].+=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,K]) 
-            #         @views nodeflux[:,ispec,L].-=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,L]) 
-            #     end
-            # end
-
-            function asm_res(idofK, idfoL, ispec)
-                @views nodeflux[:, ispec, K] .+= fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, K])
-                @views nodeflux[:, ispec, L] .-= fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, L])
-            end
-
-            assemble_res(edge, system, asm_res)
+    @inline function asm_edge(edge,fac)
+        K = edge.node[1]
+        L = edge.node[2]
+        @views UKL[1:nspecies] .= U[:, edge.node[1]]
+        @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
+        evaluate!(flux_eval, UKL)
+        edgeflux = res(flux_eval)
+        
+        # !!! asm_res                                                                              
+        # for ispec=1:nspecies                                                                       
+        #     if isdof(system, ispec,K) && isdof(system, ispec,L)                                    
+        #         @views nodeflux[:,ispec,K].+=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,K]) 
+        #         @views nodeflux[:,ispec,L].-=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,L]) 
+        #     end
+        # end
+        
+        function asm_res(idofK, idfoL, ispec)
+            @views nodeflux[:, ispec, K] .+= fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, K])
+            @views nodeflux[:, ispec, L] .-= fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, L])
         end
+        
+        assemble_res(edge, system, asm_res)
+    end
+    
+    if system.assembly_type==:cellwise
+        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+        for icell = 1:num_cells(grid)
 
-        for inode = 1:num_nodes(geom)
-            nodevol[cellnodes[inode, icell]] += cellnodefactors[inode, icell]
+            for iedge = 1:num_edges(geom)
+                _fill!(edge, iedge, icell)
+                asm_edge(edge,celledgefactors[iedge, icell])
+            end
+            
+            for inode = 1:num_nodes(geom)
+                nodevol[cellnodes[inode, icell]] += cellnodefactors[inode, icell]
+            end
+        end
+    else
+        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
+        noderegions::Array{Int,1} = rowvals(noderegionfactors)
+        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
+        
+        for inode = 1:num_nodes(grid)
+            for k in nzrange(noderegionfactors, inode)
+                nodevol[inode] += nodefactors[k]
+            end
+        end
+        
+        edgeregionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.edgefactors
+        edgeregions::Array{Int,1}  = rowvals(edgeregionfactors)
+        edgefactors::Array{Tv,1} = nonzeros(edgeregionfactors)
+        for iedge = 1:num_edges(grid)
+            for k in nzrange(edgeregionfactors, iedge)
+                _xfill!(edge, edgeregions[k], iedge)
+                asm_edge(edge,edgefactors[k])
+            end
         end
     end
+
     for inode = 1:nnodes
         @views nodeflux[:, :, inode] /= nodevol[inode]
     end

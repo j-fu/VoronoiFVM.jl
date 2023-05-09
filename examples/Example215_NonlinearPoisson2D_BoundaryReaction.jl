@@ -9,7 +9,7 @@ using ExtendableGrids
 using GridVisualize
 using ExtendableSparse
 
-function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
+function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise,
               tend = 100, max_lureuse = 0)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
@@ -34,7 +34,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
                                      f[2] = u[2]
                                  end)
 
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly=assembly)
     enable_species!(sys, 1, [1])
     enable_species!(sys, 2, [1])
 
@@ -77,7 +77,8 @@ end
 
 function test()
     testval = 0.2760603343272377
-    main(; unknown_storage = :sparse) ≈ testval &&
-        main(; unknown_storage = :dense) ≈ testval
+    main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
+        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
+        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
 end
 end

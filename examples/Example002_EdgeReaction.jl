@@ -12,7 +12,7 @@ using LinearAlgebra
 using SimplexGridFactory
 using Triangulate
 
-function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :compare_max)
+function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :compare_max, assembly=:edgewise)
     X = 0:(0.25 * 2.0^-nref):1
     i0::Int = 0
     i1::Int = 0
@@ -105,13 +105,13 @@ function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :c
 
         sys_noderea = VoronoiFVM.System(grid; bcondition = bcondition!, flux = flux!,
                                         reaction = reaction!, storage = storage!,
-                                        species = [1], is_linear = true)
+                                        species = [1], is_linear = true, assembly)
         sys_edgerea = VoronoiFVM.System(grid; bcondition = bcondition!, flux = flux!,
                                         edgereaction = edgereaction!, storage = storage!,
-                                        species = [1], is_linear = true)
+                                        species = [1], is_linear = true, assembly)
         sys_edgerea2 = VoronoiFVM.System(grid; bcondition = bcondition!, flux = flux!,
                                          edgereaction = edgereaction2!, storage = storage!,
-                                         species = [1], is_linear = true)
+                                         species = [1], is_linear = true, assembly)
 
         sol_noderea = solve(sys_noderea; verbose)
         sol_edgerea = solve(sys_edgerea; verbose)
@@ -176,14 +176,27 @@ end
 function test()
     res = fill(false, 3)
     for dim = 1:3
-        result_max = main(; case = :compare_max)
-        result_flux = main(; case = :compare_flux)
+        result_max = main(; case = :compare_max, assembly=:cellwise)
+        result_flux = main(; case = :compare_flux, assembly=:cellwise)
         res[dim] = isapprox(result_max[1], result_max[2]; atol = 1.0e-6) &&
                    isapprox(result_max[1], result_max[3]; atol = 1.0e-3) &&
                    isapprox(result_flux[1], result_flux[2]; atol = 1.0e-10) &&
                    isapprox(result_flux[1], result_flux[3]; atol = 1.0e-10)
     end
-    all(a -> a, res)
+    res1=all(a -> a, res)
+
+    res = fill(false, 3)
+    for dim = 1:3
+        result_max = main(; case = :compare_max, assembly=:edgwise)
+        result_flux = main(; case = :compare_flux, assembly=:edgwise)
+        res[dim] = isapprox(result_max[1], result_max[2]; atol = 1.0e-6) &&
+                   isapprox(result_max[1], result_max[3]; atol = 1.0e-3) &&
+                   isapprox(result_flux[1], result_flux[2]; atol = 1.0e-10) &&
+                   isapprox(result_flux[1], result_flux[3]; atol = 1.0e-10)
+    end
+    res2=all(a -> a, res)
+
+    res1&&res2
 end
 
 end

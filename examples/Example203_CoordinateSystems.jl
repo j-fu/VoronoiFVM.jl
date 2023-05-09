@@ -36,13 +36,13 @@ on disk of radius r2, exact solution is `(r_2^2-r^2)/4`.
 
 In this case, the discretization appears to be exact.
 """
-function maindisk(; nref = 0, r2 = 5.0, Plotter = nothing)
+function maindisk(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     h = 0.1 * 2.0^(-nref)
     R = collect(0:h:r2)
     grid = VoronoiFVM.Grid(R)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 1.0
-    sys = VoronoiFVM.System(grid; source, flux, species = [1])
+    sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
     exact = symlapdisk.(coordinates(grid)[1, :], r2)
@@ -58,14 +58,21 @@ on disk of radius r2, exact solution is `(r_2^2-r^2)/4`.
 
 In this case, the discretization appears to be exact.
 """
-function maincylinder(; nref = 0, r2 = 5.0, z1 = 0.0, z2 = 1.0, Plotter = nothing)
+function maincylinder(;
+    nref = 0,
+    r2 = 5.0,
+    z1 = 0.0,
+    z2 = 1.0,
+    Plotter = nothing,
+    assembly = :edgewise,
+)
     h = 0.1 * 2.0^(-nref)
     R = collect(0:h:r2)
     Z = collect(z1:h:z2)
     grid = VoronoiFVM.Grid(R, Z)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 1.0
-    sys = VoronoiFVM.System(grid; source, flux, species = [1])
+    sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
     exact = symlapdisk.(coordinates(grid)[1, :], r2)
@@ -87,13 +94,13 @@ symlapring(r, r1, r2) = (log(r) - log(r2)) / (log(r1) - log(r2))
 of Dirichlet problem `-Δu=0` on ring between radii r1 and r2, 
 with boundary value 1 at r1 and 0 at r2. Test of quadratic convergence.
 """
-function mainring(; nref = 0, r1 = 1.0, r2 = 5.0, Plotter = nothing)
+function mainring(; nref = 0, r1 = 1.0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
     grid = VoronoiFVM.Grid(R)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 0.0
-    sys = VoronoiFVM.System(grid; source, flux, species = [1])
+    sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 1, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -108,15 +115,22 @@ end
 of Dirichlet problem `-Δu=0` on cylindershell between radii r1 and r2, 
 with boundary value 1 at r1 and 0 at r2. Test of quadratic convergence.
 """
-function maincylindershell(; nref = 0, r1 = 1.0, r2 = 5.0, z1 = 0.0, z2 = 1.0,
-                           Plotter = nothing)
+function maincylindershell(;
+    nref = 0,
+    r1 = 1.0,
+    r2 = 5.0,
+    z1 = 0.0,
+    z2 = 1.0,
+    Plotter = nothing,
+    assembly = :edgewise,
+)
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
     Z = collect(z1:h:z2)
     grid = VoronoiFVM.Grid(R, Z)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 0.0
-    sys = VoronoiFVM.System(grid; source, flux, species = [1])
+    sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 4, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -140,13 +154,13 @@ on sphere of radius r2, exact solution is `(r_2^2-r^2)/4`.
 
 In this case, the discretization appears to be exact.
 """
-function mainsphere(; nref = 0, r2 = 5.0, Plotter = nothing)
+function mainsphere(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     h = 0.1 * 2.0^(-nref)
     R = collect(0:h:r2)
     grid = VoronoiFVM.Grid(R)
     spherical_symmetric!(grid)
     source(f, node) = f[1] = 1.0
-    sys = VoronoiFVM.System(grid; source, flux, species = [1])
+    sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
     exact = symlapsphere.(coordinates(grid)[1, :], r2)
@@ -168,13 +182,19 @@ symlapsphereshell(r, r1, r2) = (r2 * r1 / r - r1) / (r2 - r1)
 of Dirichlet problem `-Δu=0` on sphereshell between radii r1 and r2, 
 with boundary value 1 at r1 and 0 at r2. Test of quadratic convergence.
 """
-function mainsphereshell(; nref = 0, r1 = 1.0, r2 = 5.0, Plotter = nothing)
+function mainsphereshell(;
+    nref = 0,
+    r1 = 1.0,
+    r2 = 5.0,
+    Plotter = nothing,
+    assembly = :edgewise,
+)
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
     grid = VoronoiFVM.Grid(R)
     spherical_symmetric!(grid)
     source(f, node) = f[1] = 0.0
-    sys = VoronoiFVM.System(grid; source, flux, species = [1])
+    sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 1, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -187,8 +207,18 @@ end
 # Called by unit test
 #
 function test()
-    maindisk() && mainring() && maincylinder() && maincylindershell() && mainsphere() &&
-        mainsphereshell()
+    maindisk(assembly = :edgewise) &&
+        mainring(assembly = :edgewise) &&
+        maincylinder(assembly = :edgewise) &&
+        maincylindershell(assembly = :edgewise) &&
+        mainsphere(assembly = :edgewise) &&
+        mainsphereshell(assembly = :edgewise) &&
+        maindisk(assembly = :cellwise) &&
+        mainring(assembly = :cellwise) &&
+        maincylinder(assembly = :cellwise) &&
+        maincylindershell(assembly = :cellwise) &&
+        mainsphere(assembly = :cellwise) &&
+        mainsphereshell(assembly = :cellwise)
 end
 
 end

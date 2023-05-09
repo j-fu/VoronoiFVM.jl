@@ -54,10 +54,6 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
     else
         params = zeros(0)
     end
-    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
-    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
 
     # Ensure that system.matrix contains the jacobian at U0
     # Moreover, here we use the fact that for large time step sizes,
@@ -117,23 +113,43 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
     asm_param(idof, ispec, iparam) = nothing
 
     # Interior cell loop for building up storage derivative
-    for icell = 1:num_cells(grid)
-        for inode = 1:num_nodes(geom)
-            _fill!(node, inode, icell)
-            @views UK[1:nspecies] = U0[:, node.index]
-
-            # Evaluate & differentiate storage term at U0
-            evaluate!(stor_eval, UK)
-            jac_stor = jac(stor_eval)
-
-            # Sort it into storderiv matrix.
-            K = node.index
-            function asm_jac(idof, jdof, ispec, jspec)
-                updateindex!(storderiv, +, jac_stor[ispec, jspec] * cellnodefactors[inode, icell], idof, jdof)
+    # Evaluate & differentiate storage term at U0
+    @inline function asm_node(node,fac)
+        evaluate!(stor_eval, UK)
+        jac_stor = jac(stor_eval)
+        
+        # Sort it into storderiv matrix.
+        K = node.index
+        function asm_jac(idof, jdof, ispec, jspec)
+                updateindex!(storderiv, +, jac_stor[ispec, jspec] * fac, idof, jdof)
+        end
+        assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
+    end
+    
+    if system.assembly_type==:cellwise
+        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+        for icell = 1:num_cells(grid)
+            for inode = 1:num_nodes(geom)
+                _fill!(node, inode, icell)
+                asm_node(node,cellnodefactors[inode, icell])
             end
-            assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
+        end
+    else
+        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
+        noderegions::Array{Int,1} = rowvals(noderegionfactors)
+        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
+        
+        for inode = 1:num_nodes(grid)
+            for k in nzrange(noderegionfactors, inode)
+                _xfill!(node, noderegions[k], inode)
+                asm_node(node,nodefactors[k])
+            end
         end
     end
+
+
+    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
+
 
     # Boundary face loop for building up storage derivative
     # and right hand side contribution from boundary condition
@@ -172,10 +188,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix,
     nspecies = num_species(system)
     F = impedance_system.F
 
-    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
     bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
 
     for ibface = 1:num_bfaces(grid)
         ibreg = bfaceregions[ibface]

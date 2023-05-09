@@ -18,7 +18,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; nref = 0, Plotter = nothing, D = 0.01, v = 1.0, tend = 100, cin = 1.0)
+function main(; nref = 0, Plotter = nothing, D = 0.01, v = 1.0, tend = 100, cin = 1.0, assembly=:edgewise)
     H = 1.0
     L = 5.0
     grid = simplexgrid(range(0, L; length = 20 * 2^nref),
@@ -47,7 +47,7 @@ function main(; nref = 0, Plotter = nothing, D = 0.01, v = 1.0, tend = 100, cin 
 
     ispec = 1
     physics = VoronoiFVM.Physics(; flux = flux!, breaction = outflow!)
-    sys = VoronoiFVM.DenseSystem(grid, physics)
+    sys = VoronoiFVM.System(grid, physics; assembly=assembly)
     enable_species!(sys, ispec, [1])
 
     boundary_dirichlet!(sys, ispec, 4, cin)
@@ -69,8 +69,10 @@ function main(; nref = 0, Plotter = nothing, D = 0.01, v = 1.0, tend = 100, cin 
 end
 
 function test()
-    tsol = main()
-    all(tsol[end] .≈ 1)
+    tsol1 = main(;assembly=:edgewise)
+    tsol2 = main(;assembly=:cellwise)
+    all(tsol1[end] .≈ 1)&&
+    all(tsol1[end] .≈ 1)
 end
 
 end

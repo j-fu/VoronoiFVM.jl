@@ -264,7 +264,7 @@ function System(grid::ExtendableGrid;
                 valuetype = coord_type(grid),
                 indextype = index_type(grid),
                 species = Int[],
-                assembly = :cellwise,
+                assembly = :edgewise,
                 unknown_storage = :dense,
                 matrixindextype = Int64,
                 matrixtype = :sparse,
@@ -662,6 +662,7 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     nbfaces = num_bfaces(grid)
     ncells = num_cells(grid)
 
+    
     cellnodefactors = zeros(Tv, num_nodes(geom), ncells)
     celledgefactors = zeros(Tv, num_edges(geom), ncells)
     bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
@@ -700,7 +701,7 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     ncells = num_cells(grid)
 
     celledges=grid[CellEdges]
-    grid[EdgeNodes] # !!!workaround for bug in extendablegrids
+    grid[EdgeNodes] # !!!workaround for bug in extendablegrids: sets num_edges right.
     bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
     cnf=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_nodes(grid))

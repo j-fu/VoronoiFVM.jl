@@ -24,7 +24,7 @@ using LinearAlgebra
 using SimplexGridFactory
 using Triangulate
 
-function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = :sparse,
+function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = :sparse, assembly=:edgewise,
               ythin = 0.25)
 
     ## Create grid
@@ -87,7 +87,7 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
 
     sys = VoronoiFVM.System(grid; bcondition = bcondition!, flux = flux!,
                             edgereaction = jouleheat!, storage = storage!,
-                            species = [iϕ, iT])
+                            species = [iϕ, iT],assembly=assembly)
 
     sol = solve(sys; verbose)
 
@@ -100,6 +100,7 @@ end
 
 function test()
     testval = 24.639120035942938
-    main() ≈ testval
+    main(assembly=:edgewise) ≈ testval &&
+        main(assembly=:cellwise) ≈ testval
 end
 end

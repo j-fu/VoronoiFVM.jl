@@ -1,6 +1,6 @@
 ## Attempt on https://discourse.julialang.org/t/22-seconds-to-3-and-now-more-lets-fix-all-of-the-differentialequations-jl-universe-compile-times/66313
 using PrecompileTools
-@static if false #VERSION > v"1.7"
+@static if VERSION > v"1.7"
     PrecompileTools.@compile_workload let
         function lin1()
             n = 5
@@ -21,9 +21,12 @@ using PrecompileTools
                 boundary_dirichlet!(args...; region = 3, value = 1)
             end
 
-            solve(VoronoiFVM.System(simplexgrid(X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!), verbose="")
-            solve(VoronoiFVM.System(simplexgrid(X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!), verbose="")
-            solve(VoronoiFVM.System(simplexgrid(X,X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!, assembly=:cellwise), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!, assembly=:cellwise), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X,X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!, assembly=:cellwise), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!, assembly=:edgewise), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!, assembly=:edgewise), verbose="")
+            solve(VoronoiFVM.System(simplexgrid(X,X,X); species = 1, flux = flux!, reaction = reaction!, breaction = bc!, assembly=:edgewise), verbose="")
         end
         lin1()
     end

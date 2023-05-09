@@ -104,7 +104,9 @@ function main(n = 1; assembly=:edgewise)
 end
 
 function test()
-    isapprox(main(), 1509.8109057757858; rtol = 1.0e-12)
+    testval=1509.8109057757858
+    isapprox(main(assembly=:edgewise), testval; rtol = 1.0e-12) &&
+    isapprox(main(assembly=:cellwise), testval; rtol = 1.0e-12)
 end
 
 end
