@@ -118,12 +118,6 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
         UKL[(2 * nspecies + 1):end] .= params
     end
 
-    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
-    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
-
-    
     src_eval = ResEvaluator(physics, :source, UK, node, nspecies + nparams)
     rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies + nparams)
     erea_eval = ResEvaluator(physics, :edgereaction, UK, edge, nspecies + nparams)
@@ -133,10 +127,28 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
 
     geom = grid[CellGeometries][1]
 
-    for icell = 1:num_cells(grid)
-        for iedge = 1:num_edges(geom)
-            _fill!(edge, iedge, icell)
-
+    @inline function asm_node(node,fac)
+        for ispec = 1:nspecies
+            UK[ispec] = U[ispec, node.index]
+            UKold[ispec] = Uold[ispec, node.index]
+        end
+        
+        evaluate!(rea_eval, UK)
+        rea = res(rea_eval)
+        evaluate!(stor_eval, UK)
+        stor = res(stor_eval)
+        evaluate!(storold_eval, UKold)
+        storold = res(storold_eval)
+        evaluate!(src_eval)
+        src = res(src_eval)
+        
+        function asm_res(idof, ispec)
+            integral[ispec] += fac *
+                (rea[ispec] - src[ispec] + (stor[ispec] - storold[ispec]) * tstepinv) * tf[node.index]
+        end
+        assemble_res(node, system, asm_res)
+    end
+    @inline function asm_edge(edge,fac)
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
             @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
 
@@ -144,7 +156,7 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
             flux = res(flux_eval)
 
             function asm_res(idofK, idofL, ispec)
-                integral[ispec] += celledgefactors[iedge, icell] * flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
+                integral[ispec] += fac*flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
             end
             assemble_res(edge, system, asm_res)
 
@@ -153,33 +165,48 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
                 erea = res(erea_eval)
 
                 function easm_res(idofK, idofL, ispec)
-                    integral[ispec] += celledgefactors[iedge, icell] * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
+                    integral[ispec] += fac* erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
                 end
                 assemble_res(edge, system, easm_res)
             end
+    end
+
+    if system.assembly_type==:cellwise
+        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+        for icell = 1:num_cells(grid)
+
+            for inode = 1:num_nodes(geom)
+                _fill!(node, inode, icell)
+                asm_node(node,cellnodefactors[inode, icell])
+            end
+            
+            for iedge = 1:num_edges(geom)
+                _fill!(edge, iedge, icell)
+                asm_edge(edge,celledgefactors[iedge, icell])
+            end
+            
         end
-
-        for inode = 1:num_nodes(geom)
-            _fill!(node, inode, icell)
-            for ispec = 1:nspecies
-                UK[ispec] = U[ispec, node.index]
-                UKold[ispec] = Uold[ispec, node.index]
+    else
+        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
+        noderegions::Array{Int,1} = rowvals(noderegionfactors)
+        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
+        
+        for inode = 1:num_nodes(grid)
+            for k in nzrange(noderegionfactors, inode)
+            _xfill!(node, noderegions[k], inode)
+                asm_node(node,nodefactors[k])
             end
-
-            evaluate!(rea_eval, UK)
-            rea = res(rea_eval)
-            evaluate!(stor_eval, UK)
-            stor = res(stor_eval)
-            evaluate!(storold_eval, UKold)
-            storold = res(storold_eval)
-            evaluate!(src_eval)
-            src = res(src_eval)
-
-            function asm_res(idof, ispec)
-                integral[ispec] += cellnodefactors[inode, icell] *
-                                   (rea[ispec] - src[ispec] + (stor[ispec] - storold[ispec]) * tstepinv) * tf[node.index]
+        end
+        
+        edgeregionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.edgefactors
+        edgeregions::Array{Int,1}  = rowvals(edgeregionfactors)
+        edgefactors::Array{Tv,1} = nonzeros(edgeregionfactors)
+        for iedge = 1:num_edges(grid)
+            for k in nzrange(edgeregionfactors, iedge)
+                _xfill!(edge, edgeregions[k], iedge)
+                asm_edge(edge,edgefactors[k])
             end
-            assemble_res(node, system, asm_res)
         end
     end
     return integral
@@ -216,8 +243,6 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     UK = Array{Tu, 1}(undef, nspecies)
     geom = grid[CellGeometries][1]
 
-    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
     bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
     bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
 
@@ -227,35 +252,8 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     erea_eval = ResEvaluator(physics, :edgereaction, UK, node, nspecies)
     flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies)
 
-    for icell = 1:num_cells(grid)
-        for iedge = 1:num_edges(geom)
-            _fill!(edge, iedge, icell)
-
-            @views UKL[1:nspecies] .= U[:, edge.node[1]]
-            @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
-            evaluate!(flux_eval, UKL)
-            flux = res(flux_eval)
-
-            function asm_res(idofK, idofL, ispec)
-                integral[ispec] += celledgefactors[iedge, icell] * flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
-            end
-            assemble_res(edge, system, asm_res)
-
-            if isnontrivial(erea_eval)
-                evaluate!(erea_eval, UKL)
-                erea = res(erea_eval)
-
-                function easm_res(idofK, idofL, ispec)
-                    integral[ispec] += celledgefactors[iedge, icell] * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
-                end
-                assemble_res(edge, system, easm_res)
-            end
-        end
-
-        for inode = 1:num_nodes(geom)
-            _fill!(node, inode, icell)
-
-            @views UK .= U[:, node.index]
+    @inline function asm_node(node,fac)
+        @views UK .= U[:, node.index]
 
             evaluate!(rea_eval, UK)
             rea = res(rea_eval)
@@ -263,11 +261,72 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
             src = res(src_eval)
 
             function asm_res(idof, ispec)
-                integral[ispec] += cellnodefactors[inode, icell] * (rea[ispec] - src[ispec]) * tf[node.index]
+                integral[ispec] +=fac* (rea[ispec] - src[ispec]) * tf[node.index]
             end
             assemble_res(node, system, asm_res)
+    end
+    @inline function asm_edge(edge,fac)
+        @views UKL[1:nspecies] .= U[:, edge.node[1]]
+        @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
+        evaluate!(flux_eval, UKL)
+        flux = res(flux_eval)
+        
+        function asm_res(idofK, idofL, ispec)
+            integral[ispec] += fac * flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
+        end
+        assemble_res(edge, system, asm_res)
+        
+        if isnontrivial(erea_eval)
+            evaluate!(erea_eval, UKL)
+            erea = res(erea_eval)
+            
+            function easm_res(idofK, idofL, ispec)
+                integral[ispec] += fac * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
+            end
+            assemble_res(edge, system, easm_res)
+        end
+        
+    end
+    
+    if system.assembly_type==:cellwise
+        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+        for icell = 1:num_cells(grid)
+
+            for inode = 1:num_nodes(geom)
+                _fill!(node, inode, icell)
+                asm_node(node,cellnodefactors[inode, icell])
+            end
+            
+            for iedge = 1:num_edges(geom)
+                _fill!(edge, iedge, icell)
+                asm_edge(edge,celledgefactors[iedge, icell])
+            end
+            
+        end
+    else
+        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
+        noderegions::Array{Int,1} = rowvals(noderegionfactors)
+        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
+        
+        for inode = 1:num_nodes(grid)
+            for k in nzrange(noderegionfactors, inode)
+            _xfill!(node, noderegions[k], inode)
+                asm_node(node,nodefactors[k])
+            end
+        end
+        
+        edgeregionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.edgefactors
+        edgeregions::Array{Int,1}  = rowvals(edgeregionfactors)
+        edgefactors::Array{Tv,1} = nonzeros(edgeregionfactors)
+        for iedge = 1:num_edges(grid)
+            for k in nzrange(edgeregionfactors, iedge)
+                _xfill!(edge, edgeregions[k], iedge)
+                asm_edge(edge,edgefactors[k])
+            end
         end
     end
+
     return integral
 end
 
@@ -294,21 +353,34 @@ function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     csys = grid[CoordinateSystem]
     stor_eval = ResEvaluator(physics, :storage, UK, node, nspecies)
 
-    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
-    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
-
+    @inline function  asm_node(node,fac)
+        @views UK .= U[:, node.index]
+        evaluate!(stor_eval, UK)
+        stor = res(stor_eval)
+        
+        asm_res(idof, ispec) = integral[ispec] += fac * stor[ispec] * tf[node.index]
+        assemble_res(node, system, asm_res)
+    end
     
-    for icell = 1:num_cells(grid)
-        for inode = 1:num_nodes(geom)
-            _fill!(node, inode, icell)
-            @views UK .= U[:, node.index]
-            evaluate!(stor_eval, UK)
-            stor = res(stor_eval)
-
-            asm_res(idof, ispec) = integral[ispec] += cellnodefactors[inode, icell] * stor[ispec] * tf[node.index]
-            assemble_res(node, system, asm_res)
+    
+    if system.assembly_type==:cellwise
+        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+        for icell = 1:num_cells(grid)
+            for inode = 1:num_nodes(geom)
+                _fill!(node, inode, icell)
+                asm_node(node,cellnodefactors[inode, icell])
+            end
+        end
+    else
+        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
+        noderegions::Array{Int,1} = rowvals(noderegionfactors)
+        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
+        
+        for inode = 1:num_nodes(grid)
+            for k in nzrange(noderegionfactors, inode)
+                _xfill!(node, noderegions[k], inode)
+                asm_node(node,nodefactors[k])
+            end
         end
     end
     return integral

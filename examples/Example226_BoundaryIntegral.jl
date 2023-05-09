@@ -10,7 +10,7 @@ module Example226_BoundaryIntegral
 using VoronoiFVM, GridVisualize, ExtendableGrids
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
-              dim = 2)
+              dim = 2, assembly=:edgewise)
     n = [101, 21, 5]
     X = collect(range(0.0, 1; length = n[dim]))
     if dim == 1
@@ -45,7 +45,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
                                  storage = storage,
                                  breaction = breaction)
 
-    system = VoronoiFVM.System(grid, physics)
+    system = VoronoiFVM.System(grid, physics,assembly=assembly)
     enable_species!(system, 1, [1])
     boundary_dirichlet!(system, 1, Γ_where_T_equal_0[1], 1.0)
 
@@ -61,12 +61,19 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 end
 
 function test()
-    main(; dim = 1, unknown_storage = :sparse) ? true : return false
-    main(; dim = 1, unknown_storage = :dense) ? true : return false
-    main(; dim = 2, unknown_storage = :sparse) ? true : return false
-    main(; dim = 2, unknown_storage = :dense) ? true : return false
-    main(; dim = 3, unknown_storage = :sparse) ? true : return false
-    main(; dim = 3, unknown_storage = :dense) ? true : return false
+    main(; dim = 1, unknown_storage = :sparse, assembly=:edgewise) ? true : return false
+    main(; dim = 1, unknown_storage = :dense, assembly=:edgewise) ? true : return false
+    main(; dim = 2, unknown_storage = :sparse, assembly=:edgewise) ? true : return false
+    main(; dim = 2, unknown_storage = :dense, assembly=:edgewise) ? true : return false
+    main(; dim = 3, unknown_storage = :sparse, assembly=:edgewise) ? true : return false
+    main(; dim = 3, unknown_storage = :dense, assembly=:edgewise) ? true : return false
+
+    main(; dim = 1, unknown_storage = :sparse, assembly=:cellwise) ? true : return false
+    main(; dim = 1, unknown_storage = :dense, assembly=:cellwise) ? true : return false
+    main(; dim = 2, unknown_storage = :sparse, assembly=:cellwise) ? true : return false
+    main(; dim = 2, unknown_storage = :dense, assembly=:cellwise) ? true : return false
+    main(; dim = 3, unknown_storage = :sparse, assembly=:cellwise) ? true : return false
+    main(; dim = 3, unknown_storage = :dense, assembly=:cellwise) ? true : return false
 end
 
 end

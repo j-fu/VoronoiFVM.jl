@@ -11,7 +11,7 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
-function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
+function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly=:edgewise)
     if 2 * (N ÷ 2) == N
         N = N + 1
     end
@@ -19,7 +19,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
     xcoord = range(0, 2; length = N) |> collect
     grid = simplexgrid(xcoord)
     cellmask!(grid, [1], [2], 2)
-    system = VoronoiFVM.System(grid; unknown_storage = unknown_storage)
+    system = VoronoiFVM.System(grid; unknown_storage = unknown_storage, assembly=assembly)
 
     ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitly.
     cspec = ContinuousQuantity(system, 1:2)
@@ -68,8 +68,10 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse)
 end
 
 function test()
-    main(; unknown_storage = :sparse) &&
-        main(; unknown_storage = :dense)
+    main(; unknown_storage = :sparse, assembly=:edgewise)  &&
+        main(; unknown_storage = :dense, assembly=:edgewise) &&
+        main(; unknown_storage = :sparse, assembly=:cellwise) &&
+        main(; unknown_storage = :dense, assembly=:cellwise) 
 end
 
 end

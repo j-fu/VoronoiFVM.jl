@@ -15,7 +15,7 @@ using LinearSolve
 using ExtendableSparse
 using LinearAlgebra
 
-function main(; n = 10, Plotter = nothing, kwargs...)
+function main(; n = 10, Plotter = nothing, assembly=:edgwwise, kwargs...)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
@@ -58,7 +58,7 @@ function main(; n = 10, Plotter = nothing, kwargs...)
                             value = ramp(node.time; dt = (0, 0.1), du = (0, 1)))
     end
 
-    sys = VoronoiFVM.System(grid; reaction, flux, source, storage, bcondition,
+    sys = VoronoiFVM.System(grid; reaction, flux, source, storage, bcondition, assembly,
                             species = [1])
 
     @info "KLU:"
@@ -118,6 +118,6 @@ function main(; n = 10, Plotter = nothing, kwargs...)
 end
 
 function test()
-    main()
+    main(assembly=:edgewise) &&  main(assembly=:cellwise)
 end
 end
