@@ -23,8 +23,6 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
 
-    cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-    celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
     bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
     bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
 
@@ -59,7 +57,9 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
                 assemble_res(bnode, system, asm_res)
             end
         end
-    else
+    elseif system.assembly_type==:cellwise
+        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
+        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
         node = Node(system)
         nodeparams = (node,)
         if isdata(data)
@@ -86,6 +86,33 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
                 #     end                                                                                            
                 # end
                 asm_res(idof, ispec) = integral[ispec, node.region] += cellnodefactors[inode, icell] * res[ispec]
+                assemble_res(node, system, asm_res)
+            end
+        end
+    else
+        nn = num_nodes(grid)
+        ne = num_edges(grid)
+        noderegionfactors = system.assembly_data.nodefactors
+        noderegions = rowvals(noderegionfactors)
+        nodefactors = nonzeros(noderegionfactors)
+        
+        node = Node(system)
+        nodeparams = (node,)
+        if isdata(data)
+            nodeparams = (node, data)
+        end
+        geom = grid[CellGeometries][1]
+        cellnodes = grid[CellNodes]
+        cellregions = grid[CellRegions]
+        ncellregions = maximum(cellregions)
+        integral = zeros(Tu, nspecies, ncellregions)
+        for inode = 1:nn
+            for k in nzrange(noderegionfactors, inode)
+                _xfill!(node, noderegions[k], inode)
+                res .= zero(Tv)
+                fac=nodefactors[k]
+                @views F(rhs(node, res), unknowns(node, U[:, node.index]), nodeparams...)
+                asm_res(idof, ispec) = integral[ispec, node.region] += fac * res[ispec]
                 assemble_res(node, system, asm_res)
             end
         end

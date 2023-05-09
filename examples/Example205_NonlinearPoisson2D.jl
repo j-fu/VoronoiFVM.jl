@@ -58,10 +58,6 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
         u15 = U[15]
         inival .= U
 
-        if verbose
-            @printf("time=%g\n", time)
-        end
-
         scalarplot!(p[1, 1], grid, U[1, :]; Plotter = Plotter, clear = true, show = true)
         tstep *= 1.0
     end
