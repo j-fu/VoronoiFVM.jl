@@ -339,8 +339,8 @@ function eval_and_assemble(
     bedge = BEdge(system, time, λ, params)
 
 
-    bfacenodefactors::Array{Tv,2} = system.assembly_data.bfacenodefactors
-    bfaceedgefactors::Array{Tv,2} = system.assembly_data.bfaceedgefactors
+    bfacenodefactors::Array{Tv,2} = system.bfacenodefactors
+    bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2} = system.boundary_values
     has_legacy_bc = !iszero(boundary_factors) || !iszero(boundary_values)
