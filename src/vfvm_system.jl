@@ -11,15 +11,6 @@ struct CellWiseAssemblyData{Tv} <: AbstractAssemblyData{Tv}
     """
     celledgefactors::Array{Tv, 2}
 
-    """
-    Precomputed geometry factors for boundary nodes
-    """
-    bfacenodefactors::Array{Tv, 2}
-
-    """
-    Precomputed geometry factors for boundary edges
-    """
-    bfaceedgefactors::Array{Tv, 2}
 end
 
 struct EdgeWiseAssemblyData{Tv}<:AbstractAssemblyData{Tv}
@@ -32,17 +23,6 @@ struct EdgeWiseAssemblyData{Tv}<:AbstractAssemblyData{Tv}
     Precomputed geometry factors for cell edges
     """
     edgefactors::SparseMatrixCSC{Tv, Int}
-
-    """
-    Precomputed geometry factors for boundary nodes
-    """
-    bfacenodefactors::Array{Tv, 2}
-
-
-    """
-    Precomputed geometry factors for boundary edges
-    """
-    bfaceedgefactors::Array{Tv, 2}
 
 end
 
@@ -144,6 +124,16 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     assembly_data::AbstractAssemblyData{Tv}
 
+    """
+    Precomputed geometry factors for boundary nodes
+    """
+    bfacenodefactors::Array{Tv, 2}
+
+    """
+    Precomputed geometry factors for boundary edges
+    """
+    bfaceedgefactors::Array{Tv, 2}
+    
     """
     :edgewise or :cellwise
     """
@@ -677,7 +667,7 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
 
 
-    function cellwise_factors(csys::Type{T}) where {T}
+    function cellwise_factors!(csys::Type{T}) where {T}
    
         nalloc = @allocated for icell = 1:ncells
             @views cellfactors!(geom, csys, coord, cellnodes, icell,
@@ -690,10 +680,14 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
                                  bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
         end
         nalloc > 0 && @warn "$nalloc allocations in bface factor calculation"
-        CellWiseAssemblyData(cellnodefactors, celledgefactors,bfacenodefactors,bfaceedgefactors)
     end
+
+    cellwise_factors!(csys)
+
+    system.assembly_data=CellWiseAssemblyData(cellnodefactors, celledgefactors)
+    system.bfacenodefactors=bfacenodefactors
+    system.bfaceedgefactors=bfaceedgefactors
     
-    system.assembly_data=cellwise_factors(csys)
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -721,7 +715,7 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     ne::Int = num_edges(geom)
     
     
-    function edgewise_factors(csys::Type{T}) where {T}
+    function edgewise_factors!(csys::Type{T}) where {T}
         cellnodefactors=zeros(Tv,nn)
         celledgefactors=zeros(Tv,ne)
             
@@ -745,10 +739,14 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
                                  bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
         end
         nalloc > 0 && @warn "$nalloc allocations in bface factor calculation"
-        EdgeWiseAssemblyData(SparseMatrixCSC(cnf),SparseMatrixCSC(cef),bfacenodefactors,bfaceedgefactors)
     end
+
+    edgewise_factors!(csys)
     
-    system.assembly_data=edgewise_factors(csys)
+    system.assembly_data=EdgeWiseAssemblyData(SparseMatrixCSC(cnf),SparseMatrixCSC(cef))
+    system.bfacenodefactors=bfacenodefactors
+    system.bfaceedgefactors=bfaceedgefactors
+    
 end
 
 

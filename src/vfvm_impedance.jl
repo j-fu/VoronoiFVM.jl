@@ -148,7 +148,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
     end
 
 
-    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
+    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
 
 
     # Boundary face loop for building up storage derivative
@@ -188,7 +188,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix,
     nspecies = num_species(system)
     F = impedance_system.F
 
-    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
+    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
 
     for ibface = 1:num_bfaces(grid)
         ibreg = bfaceregions[ibface]

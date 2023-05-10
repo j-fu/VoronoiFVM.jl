@@ -23,8 +23,8 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
 
-    bfacenodefactors::Array{Tv, 2} = system.assembly_data.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.assembly_data.bfaceedgefactors
+    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
+    bfaceedgefactors::Array{Tv, 2} = system.bfaceedgefactors
 
     if boundary
         bnode = BNode(system)

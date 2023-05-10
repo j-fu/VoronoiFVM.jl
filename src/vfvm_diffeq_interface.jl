@@ -78,7 +78,7 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     node = Node(system)
     bnode = BNode(system)
     nspecies = num_species(system)
-    bfacenodefactors = system.assembly_data.bfacenodefactors
+    bfacenodefactors = system.bfacenodefactors
     bgeom = grid[BFaceGeometries][1]
     nbfaces = num_bfaces(grid)
     ndof = num_dof(system)
