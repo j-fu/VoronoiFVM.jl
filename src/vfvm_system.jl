@@ -222,6 +222,14 @@ Keyword arguments:
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 - `matrixindextype`: Integer type. Index type for sparse matrices created in the system.
 - `is_linear`: whether the system is linear or not. If it is linear, only one Newton step is used to solve it.
+- `assembly`: either `:cellwise` (default) or `:edgewise`. Determine, how the assembly loop is organized.
+   `:cellwise` means that the outer loop goes over grid cells (triangles, tetrahedra), and contributions to
+   edge fluxes and node reactions are calculated for each cell. As a consequence, e.g. im 2D for all interior
+   edges, flux functions are callled twice, once for each adjacent cell. Especially in 3D, this becomes a significant
+   overhead, so with `:edgewise`, geometry factors of these edges are pre-assembled, and the outer assembly loops
+  go over all grid edges resp. nodes, still with separate calls if neigboring cells belong to different regions.
+!!! note
+    It is planned to make `:edgewise` the default in a later version.
 
 Physics keyword arguments:
 - `flux`: Function.     Flux between neighboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
@@ -264,7 +272,7 @@ function System(grid::ExtendableGrid;
                 valuetype = coord_type(grid),
                 indextype = index_type(grid),
                 species = Int[],
-                assembly = :edgewise,
+                assembly = :cellwise,
                 unknown_storage = :dense,
                 matrixindextype = Int64,
                 matrixtype = :sparse,

@@ -91,7 +91,9 @@ export time, region, embedparam, parameters
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
 export Identity
-export Strategies
+
+include("SolverStrategies.jl")
+
 
 
 include("vfvm_solver.jl")
