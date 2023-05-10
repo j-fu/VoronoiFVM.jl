@@ -15,7 +15,7 @@ using ExtendableGrids
           v(0)   = 0.5          on   {0} × Γ_1
 &quot;&quot;&quot;
 
-function main(n = 1)
+function main(n = 1; assembly=:edgewise)
     breg = 5 # boundary region number for surface diffusion
 
     hmin = 0.05 * 2.0^(-n + 1)
@@ -61,7 +61,7 @@ function main(n = 1)
                                      f[1] = u[1]
                                  end)
 
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = :sparse)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = :sparse, assembly)
     enable_species!(sys, 1, [1])
     enable_boundary_species!(sys, 2, [breg])
 
@@ -95,7 +95,9 @@ function main(n = 1)
 end
 
 function test()
-    isapprox(main(), 1463.3732804776039; rtol = 1.0e-12)
+    testval=1509.8109057757858
+    isapprox(main(assembly=:edgewise), testval; rtol = 1.0e-12) &amp;&amp;
+    isapprox(main(assembly=:cellwise), testval; rtol = 1.0e-12)
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example301_Laplace3D/">« 301: 3D Laplace equation</a><a class="docs-footer-nextpage" href="../Example405_GenericOperator/">405: Generic operator »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 3 May 2023 22:20">Wednesday 3 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example301_Laplace3D/">« 301: 3D Laplace equation</a><a class="docs-footer-nextpage" href="../Example405_GenericOperator/">405: Generic operator »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 11:52">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

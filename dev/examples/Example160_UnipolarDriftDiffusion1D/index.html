@@ -57,11 +57,13 @@ function bcondition!(f, u, bnode, data)
 end
 
 function main(;
-              n = 20,
-              Plotter = nothing,
-              dlcap = false,
-              verbose = false,
-              unknown_storage = :sparse)
+    n = 20,
+    Plotter = nothing,
+    dlcap = false,
+    verbose = false,
+    unknown_storage = :sparse,
+    assembly = :edgewise,
+)
     h = 1.0 / convert(Float64, n)
     grid = VoronoiFVM.Grid(collect(0:h:1))
 
@@ -75,16 +77,20 @@ function main(;
     iphi = data.iphi
 
     physics = VoronoiFVM.Physics(;
-                                 data = data,
-                                 flux = sedanflux!,
-                                 reaction = reaction!,
-                                 breaction = bcondition!,
-                                 storage = storage!)
+        data = data,
+        flux = sedanflux!,
+        reaction = reaction!,
+        breaction = bcondition!,
+        storage = storage!,
+    )
 
-    sys = VoronoiFVM.System(grid,
-                            physics;
-                            unknown_storage = unknown_storage,
-                            species = [1, 2])
+    sys = VoronoiFVM.System(
+        grid,
+        physics;
+        unknown_storage = unknown_storage,
+        species = [1, 2],
+        assembly = assembly,
+    )
 
     inival = unknowns(sys)
     @views inival[iphi, :] .= 0
@@ -102,30 +108,36 @@ function main(;
         control.Δu_opt = 0.1
         control.damp_initial = 0.5
 
-        tsol = solve(sys;
-                     method_linear = UMFPACKFactorization(),
-                     inival,
-                     times = [0.0, 10],
-                     control = control)
+        tsol = solve(
+            sys;
+            method_linear = UMFPACKFactorization(),
+            inival,
+            times = [0.0, 10],
+            control = control,
+        )
 
         vis = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
         for log10t = -4:0.025:0
             time = 10^(log10t)
             sol = tsol(time)
-            scalarplot!(vis[1, 1],
-                        grid,
-                        sol[iphi, :];
-                        label = &quot;ϕ&quot;,
-                        title = @sprintf(&quot;time=%.3g&quot;, time),
-                        flimits = (0, 5),
-                        color = :green)
-            scalarplot!(vis[1, 1],
-                        grid,
-                        sol[ic, :];
-                        label = &quot;c&quot;,
-                        flimits = (0, 5),
-                        clear = false,
-                        color = :red)
+            scalarplot!(
+                vis[1, 1],
+                grid,
+                sol[iphi, :];
+                label = &quot;ϕ&quot;,
+                title = @sprintf(&quot;time=%.3g&quot;, time),
+                flimits = (0, 5),
+                color = :green,
+            )
+            scalarplot!(
+                vis[1, 1],
+                grid,
+                sol[ic, :];
+                label = &quot;c&quot;,
+                flimits = (0, 5),
+                clear = false,
+                color = :red,
+            )
             reveal(vis)
         end
         return sum(tsol[end])
@@ -157,21 +169,25 @@ function main(;
                 data.V = dir * phi + delta
                 U = solve(sys; inival = U, control, time = 1.0)
 
-                scalarplot!(vis[1, 1],
-                            grid,
-                            U[iphi, :];
-                            label = &quot;ϕ&quot;,
-                            title = @sprintf(&quot;Δϕ=%.3g&quot;, phi),
-                            flimits = (-5, 5),
-                            clear = true,
-                            color = :green)
-                scalarplot!(vis[1, 1],
-                            grid,
-                            U[ic, :];
-                            label = &quot;c&quot;,
-                            flimits = (0, 5),
-                            clear = false,
-                            color = :red)
+                scalarplot!(
+                    vis[1, 1],
+                    grid,
+                    U[iphi, :];
+                    label = &quot;ϕ&quot;,
+                    title = @sprintf(&quot;Δϕ=%.3g&quot;, phi),
+                    flimits = (-5, 5),
+                    clear = true,
+                    color = :green,
+                )
+                scalarplot!(
+                    vis[1, 1],
+                    grid,
+                    U[ic, :];
+                    label = &quot;c&quot;,
+                    flimits = (0, 5),
+                    clear = false,
+                    color = :red,
+                )
 
                 Qdelta = integrate(sys, physics.reaction, U)
                 cdl = (Qdelta[iphi] - Q[iphi]) / delta
@@ -187,12 +203,14 @@ function main(;
                 v = vcat(reverse(vminus), vplus)
                 c = vcat(reverse(cdlminus), cdlplus)
                 if length(v) &gt;= 2
-                    scalarplot!(vis[2, 1],
-                                v,
-                                c;
-                                color = :green,
-                                clear = false,
-                                title = &quot;C_dl&quot;)
+                    scalarplot!(
+                        vis[2, 1],
+                        v,
+                        c;
+                        color = :green,
+                        clear = false,
+                        title = &quot;C_dl&quot;,
+                    )
                 end
 
                 phi += dphi
@@ -208,18 +226,46 @@ function test()
     if Sys.isapple()</code></pre><p>skip this test - FP seems to behave differently</p><pre><code class="language-julia hljs">        @info &quot;test skipped&quot;
         return true
     else
-        isapprox(main(; unknown_storage = :sparse, dlcap = false),
-                 18.721369939561963;
-                 rtol = 1.0e-5) &amp;&amp;
-            isapprox(main(; unknown_storage = :sparse, dlcap = true),
-                     0.010759276468375045;
-                     rtol = 1.0e-5) &amp;&amp;
-            isapprox(main(; unknown_storage = :dense, dlcap = false),
-                     18.721369939561963;
-                     rtol = 1.0e-5) &amp;&amp;
-            isapprox(main(; unknown_storage = :dense, dlcap = true),
-                     0.010759276468375045;
-                     rtol = 1.0e-5)
+        isapprox(
+                main(; unknown_storage = :sparse, dlcap = false, assembly = :edgewise),
+                18.721369939561963;
+                rtol = 1.0e-5,
+            ) &amp;&amp;
+            isapprox(
+                main(; unknown_storage = :sparse, dlcap = true, assembly = :edgewise),
+                0.010759276468375045;
+                rtol = 1.0e-5,
+            ) &amp;&amp;
+            isapprox(
+                main(; unknown_storage = :dense, dlcap = false, assembly = :edgewise),
+                18.721369939561963;
+                rtol = 1.0e-5,
+            ) &amp;&amp;
+            isapprox(
+                main(; unknown_storage = :dense, dlcap = true, assembly = :edgewise),
+                0.010759276468375045;
+                rtol = 1.0e-5,
+            ) &amp;&amp;
+            isapprox(
+                main(; unknown_storage = :sparse, dlcap = false, assembly = :cellwise),
+                18.721369939561963;
+                rtol = 1.0e-5,
+            ) &amp;&amp;
+            isapprox(
+                main(; unknown_storage = :sparse, dlcap = true, assembly = :cellwise),
+                0.010759276468375045;
+                rtol = 1.0e-5,
+            ) &amp;&amp;
+            isapprox(
+                main(; unknown_storage = :dense, dlcap = false, assembly = :cellwise),
+                18.721369939561963;
+                rtol = 1.0e-5,
+            ) &amp;&amp;
+            isapprox(
+                main(; unknown_storage = :dense, dlcap = true, assembly = :cellwise),
+                0.010759276468375045;
+                rtol = 1.0e-5,
+            )
     end
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example151_Impedance1D/">« 151: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example201_Laplace2D/">201: 2D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 3 May 2023 22:20">Wednesday 3 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example151_Impedance1D/">« 151: Impedance calculation</a><a class="docs-footer-nextpage" href="../Example201_Laplace2D/">201: 2D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 11:52">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

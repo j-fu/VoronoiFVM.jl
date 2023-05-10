@@ -8,7 +8,7 @@ using GridVisualize
 using LinearSolve
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
-              unknown_storage = :sparse, tend = 10, rely_on_corrections = false)
+              unknown_storage = :sparse, tend = 10, rely_on_corrections = false, assembly=:edgewise)
     h = 3.0 / (n - 1)
     X = collect(0:h:3.0)
     grid = VoronoiFVM.Grid(X)
@@ -90,7 +90,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     end
 
     sys = VoronoiFVM.System(grid; flux, reaction, storage, source,
-                            unknown_storage = unknown_storage)
+                            unknown_storage = unknown_storage, assembly=assembly)
 
     enable_species!(sys, 1, [1])
     enable_species!(sys, 2, [1, 2, 3])
@@ -139,10 +139,14 @@ end
 
 function test()
     testval = 0.0005967243505359461
-    main(; unknown_storage = :sparse, rely_on_corrections = false) ≈ testval &amp;&amp;
-        main(; unknown_storage = :dense, rely_on_corrections = false) ≈ testval# &amp;&amp;
-    main(; unknown_storage = :sparse, rely_on_corrections = true) ≈ testval &amp;&amp;
-        main(; unknown_storage = :dense, rely_on_corrections = true) ≈ testval
+    main(; unknown_storage = :sparse, rely_on_corrections = false, assembly=:edgewise) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, rely_on_corrections = false, assembly=:edgewise) ≈ testval &amp;&amp;
+        main(; unknown_storage = :sparse, rely_on_corrections = true, assembly=:edgewise) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, rely_on_corrections = true, assembly=:edgewise) ≈ testval &amp;&amp;
+        main(; unknown_storage = :sparse, rely_on_corrections = false, assembly=:cellwise) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, rely_on_corrections = false, assembly=:cellwise) ≈ testval &amp;&amp;
+        main(; unknown_storage = :sparse, rely_on_corrections = true, assembly=:cellwise) ≈ testval &amp;&amp;
+        main(; unknown_storage = :dense, rely_on_corrections = true, assembly=:cellwise) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 3 May 2023 22:20">Wednesday 3 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« 115: 1D heterogeneous catalysis</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">121: 1D Poisson with point charge »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 11:52">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

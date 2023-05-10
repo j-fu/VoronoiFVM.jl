@@ -9,7 +9,7 @@ function main(; n = 2 * 10, # n musst be an even number
               d1 = 5.0, db = 5.0, # prefactors (before diffusive part)
               kmax = 2.0, cmax = 3.0,
               Plotter = nothing,
-              unknown_storage = :sparse)
+              unknown_storage = :sparse,assembly=:edgewise)
 
     ###########################################################################
     ######################          1D problem           ######################
@@ -121,7 +121,7 @@ function main(; n = 2 * 10, # n musst be an even number
                                                   source = source2D!,
                                                   bflux = bflux!, breaction = breaction!,
                                                   bsource = bsource!);
-                               unknown_storage = unknown_storage)</code></pre><p>enable species in only region</p><pre><code class="language-julia hljs">    enable_species!(sys_2D, ispec_2D, [bulk_2D])
+                               unknown_storage = unknown_storage, assembly=assembly)</code></pre><p>enable species in only region</p><pre><code class="language-julia hljs">    enable_species!(sys_2D, ispec_2D, [bulk_2D])
     enable_boundary_species!(sys_2D, ispec_boundary, [active_boundary])
 
     sol_2D = solve(sys_2D; inival = 0)</code></pre><p>this is for variable transformation, since we consider right outer boundary and want to transform to x-axis.</p><pre><code class="language-julia hljs">    function tran32!(a, b)
@@ -138,8 +138,10 @@ function main(; n = 2 * 10, # n musst be an even number
 end # main
 
 function test()
-    main(; unknown_storage = :dense) &lt; 1.0e-14 &amp;&amp;
-        main(; unknown_storage = :sparse) &lt; 1.0e-14
+    main(; unknown_storage = :dense, assembly=:edgewise) &lt; 1.0e-14 &amp;&amp;
+        main(; unknown_storage = :sparse, assembly=:edgewise) &lt; 1.0e-14 &amp;&amp;
+    main(; unknown_storage = :dense, assembly=:cellwise) &lt; 1.0e-14 &amp;&amp;
+        main(; unknown_storage = :sparse, assembly=:cellwise) &lt; 1.0e-14
 end
 
-end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 3 May 2023 22:20">Wednesday 3 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 11:52">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

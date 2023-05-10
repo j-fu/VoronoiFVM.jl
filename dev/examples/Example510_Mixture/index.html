@@ -15,6 +15,7 @@ m_{ij}= -\sum_{j\neq i} \frac{u_i}{D_ij}\]</p><p>such that</p><p class="math-con
 
 using Printf
 using VoronoiFVM
+using VoronoiFVM.SolverStrategies
 
 using ExtendableGrids
 using GridVisualize
@@ -24,7 +25,6 @@ using StrideArraysCore: @gc_preserve, StrideArray, StaticInt, PtrArray
 using LinearSolve,ExtendableSparse
 using StaticArrays
 using ExtendableSparse
-using ILUZero
 
 struct MyData{NSPec}
     DBinary::Symmetric{Float64, Matrix{Float64}}
@@ -120,8 +120,10 @@ function main(; n = 11, nspec = 5,
               Plotter = nothing,
               verbose = false,
               unknown_storage = :dense,
-              solver=:umfpack,
-              flux=:flux_strided)
+              flux=:flux_strided,
+              strategy=nothing,
+              assembly=:cellwise
+              )
 
     h = 1.0 / convert(Float64, n-1)
     X = collect(0.0:h:1.0)
@@ -150,52 +152,41 @@ function main(; n = 11, nspec = 5,
     _flux= flux==:flux_strided ? flux_strided : flux_marray
 
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
-    sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data)
+    sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data, assembly)
 
-
-
-    if solver==:umfpack0
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear=UMFPACKFactorization())
-    elseif solver==:umfpack
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = UMFPACKFactorization(),
-                         )
-    elseif solver==:ilu
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = ILUZeroPreconditioner()
-                         )
-    elseif solver==:bilu
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ILUZeroPreconditioner()),
-                         )
-    elseif solver==:bumfpack
-        @time  u = solve(sys;
-                         verbose,
-                         method_linear = KrylovJL_GMRES(),
-                         precon_linear = BlockPreconditioner(partitioning=partitioning(sys),factorization=ExtendableSparse.LUFactorization())
-                         )
-    end
+    @info &quot;Strategy: $(typeof(strategy))&quot;
+    control=SolverControl(strategy,sys)
+    @info control.method_linear
+    u=solve(sys;verbose,control ,log=true)
+    @info history_summary(sys)
 
     norm(u)
 end
 
-function test()
-    main(; dim = 1) ≈ 5.193296208697211 &amp;&amp;
-        main(; dim = 2) ≈ 17.224214949423878 &amp;&amp;
-        main(; dim = 3) ≈ 57.1262582956693 &amp;&amp;
-        main(; dim = 1, flux=:flux_marray) ≈ 5.193296208697211 &amp;&amp;
-        main(; dim = 2, flux=:flux_marray) ≈ 17.224214949423878 &amp;&amp;
-        main(; dim = 3, flux=:flux_marray) ≈ 57.1262582956693 &amp;&amp;
-        all(map(solver-&gt; main(; dim = 2, flux=:flux_marray,solver) ≈ 17.224214949423878,
-                [:umfpack0,:umfpack,:bumfpack,:ilu,:bilu]))
 
+
+function test()
+    res1=  main(; dim = 1, assembly=:edgewise) ≈ 5.193296208697211 &amp;&amp;
+        main(; dim = 2, assembly=:edgewise) ≈ 17.224214949423878 &amp;&amp;
+        main(; dim = 3, assembly=:edgewise) ≈ 57.1262582956693 &amp;&amp;
+        main(; dim = 1, flux=:flux_marray, assembly=:edgewise) ≈ 5.193296208697211 &amp;&amp;
+        main(; dim = 2, flux=:flux_marray, assembly=:edgewise) ≈ 17.224214949423878 &amp;&amp;
+        main(; dim = 3, flux=:flux_marray, assembly=:edgewise) ≈ 57.1262582956693 &amp;&amp;
+        all(map(strategy-&gt; main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,
+                [direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
+                 gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()
+                 ]))
+
+    res2= main(; dim = 1, assembly=:cellwise) ≈ 5.193296208697211 &amp;&amp;
+        main(; dim = 2, assembly=:cellwise) ≈ 17.224214949423878 &amp;&amp;
+        main(; dim = 3, assembly=:cellwise) ≈ 57.1262582956693 &amp;&amp;
+        main(; dim = 1, flux=:flux_marray, assembly=:cellwise) ≈ 5.193296208697211 &amp;&amp;
+        main(; dim = 2, flux=:flux_marray, assembly=:cellwise) ≈ 17.224214949423878 &amp;&amp;
+        main(; dim = 3, flux=:flux_marray, assembly=:cellwise) ≈ 57.1262582956693 &amp;&amp;
+        all(map(strategy-&gt; main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,
+                [direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
+                 gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()
+                 ]))
+    res1 &amp;&amp; res2
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example430_ParameterDerivativesStationary/">« 430: Parameter Derivatives (stationary)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 3 May 2023 22:20">Wednesday 3 May 2023</span>. Using Julia version 1.8.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example430_ParameterDerivativesStationary/">« 430: Parameter Derivatives (stationary)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 10 May 2023 11:52">Wednesday 10 May 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
