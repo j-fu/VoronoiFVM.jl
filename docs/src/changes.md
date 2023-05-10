@@ -1,6 +1,14 @@
 # Changes
-## v1.4.0 April 13, 2023
-- equation-block preconditioning support
+## v1.5.0 May 9, 2023
+- Introduced solver strategies like `gmres_iluzero()`, `direct_umfpack()` etc.
+  See documentation of the module `VoronoiFVM.SolverStrategies`. More to come.
+- edgewise assembly - faster in particular for 3D
+- Plan: edgewise assembly seems to be non-breaking, 
+  if this is confirmed, will be made default in 1.6 or (if it appears to be breaking
+  for some) in 2.0.
+
+## v1.4.0 May 3, 2023
+- equation-block preconditioning support with the help of ExtendableSparse.jl
 
 ## v1.3.0 April 13, 2023
 - inplace_linsolve! for dense linear system solution in flux functions
