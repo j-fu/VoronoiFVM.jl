@@ -91,11 +91,15 @@ export time, region, embedparam, parameters
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
 export Identity
+include("vfvm_linsolve.jl")
+export DirectSolver,GMRESIteration, CGIteration, BICGstabIteration, NoBlock, EquationBlock, PointBlock
 
+# Deprecate!
 include("SolverStrategies.jl")
 
 
-
+include("vfvm_exceptions.jl")
+include("vfvm_assembly.jl")
 include("vfvm_solver.jl")
 export evolve!
 export embed!

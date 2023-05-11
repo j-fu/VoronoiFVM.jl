@@ -1,5 +1,5 @@
 ################################################
-
+const FactorizationStrategy= Union{Nothing, Function, Type, ExtendableSparse.AbstractFactorization, LinearSolve.AbstractFactorization,LinearSolve.SciMLLinearSolveAlgorithm}
 """
     SolverControl
     SolverControl(;kwargs...)
@@ -124,7 +124,7 @@ Base.@kwdef mutable struct SolverControl
     - `ExtendableSparse.ILUZero`
     - `ExtendableSparse.Jacobi`
     """
-    precon_linear::Union{Type, Function, ExtendableSparse.AbstractFactorization, LinearSolve.AbstractFactorization} = A -> Identity()
+    precon_linear::FactorizationStrategy= A -> Identity()
 
     """
     Update preconditioner in each Newton step ?
@@ -308,12 +308,5 @@ end
 Legacy name of SolverControl
 """
 const NewtonControl = SolverControl
-
-
-
-abstract type AbstractStrategy end
-
-VoronoiFVM.SolverControl(::AbstractStrategy, sys; kwargs...) = SolverControl(;kwargs...)
-VoronoiFVM.SolverControl(::Nothing, sys; kwargs...) = SolverControl(;kwargs...)
 
 
