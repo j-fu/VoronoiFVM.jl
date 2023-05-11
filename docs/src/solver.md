@@ -22,14 +22,9 @@ NewtonControl
 ```
 
 ## Linear Solver strategies
-```@docs
-VoronoiFVM.SolverStrategies
-VoronoiFVM.SolverStrategies.direct_umfpack
-VoronoiFVM.SolverStrategies.gmres_umfpack
-VoronoiFVM.SolverStrategies.gmres_eqnblock_umfpack
-VoronoiFVM.SolverStrategies.gmres_iluzero
-VoronoiFVM.SolverStrategies.gmres_eqnblock_iluzero
-VoronoiFVM.SolverStrategies.gmres_pointblock_iluzero
+```@autodocs
+Modules = [VoronoiFVM.SolverStrategies]
+Pages = ["SolverStrategies.jl"] 
 ```
 
 
