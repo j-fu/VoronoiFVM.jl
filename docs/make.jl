@@ -24,6 +24,9 @@ function make_all(; with_examples = true, run_notebooks = true)
     example_md_dir = joinpath(@__DIR__, "src", "examples")
     notebook_html_dir = joinpath(@__DIR__, "src", "nbhtml")
 
+    with_examples && rm(example_md_dir, recursive = true, force=true)
+    run_notebooks && rm(notebook_html_dir, recursive = true, force=true)
+
 
     if with_examples
         #
@@ -144,13 +147,17 @@ function make_all(; with_examples = true, run_notebooks = true)
         ],
     )
 
-    with_examples && rm(example_md_dir, recursive = true)
-    run_notebooks && rm(notebook_html_dir, recursive = true)
+    with_examples && rm(example_md_dir, recursive = true, force=true)
+    run_notebooks && rm(notebook_html_dir, recursive = true, force=true)
 
     if !isinteractive()
         deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
     end
 end
 
-make_all(with_examples = true, run_notebooks = true)
-#make_all(with_examples=true,run_notebooks=false)
+if isinteractive()
+    make_all(with_examples = false, run_notebooks = false)
+else
+    make_all(with_examples = true, run_notebooks = true)
+end
+

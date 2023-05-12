@@ -1,35 +1,41 @@
 abstract type AbstractStrategy end
 
 """
-    VoronoiFVM.IterationStrategy
+    VoronoiFVM.LinearSolverStrategy
 
-An iteration strategy provides the possibility to construct SolverControl objects as follows:
+An linear solver strategy provides the possibility to construct [`SolverControl`](@ref) objects as follows:
 ```
     SolverControl(strategy,sys;kwargs...)
 ```,
 e.g.
 ```
-    SolverControl(GMRESIteration(UMFPackFactorization()),sys;kwargs...)
+    SolverControl(GMRESIteration(UMFPackFactorization(), EquationBlock()),sys;kwargs...)
 ```
 
-An iteration strategy combines a Krylov method  with an (incomplete) factorization
+A linear solver strategy combines a Krylov method  with an (incomplete) factorization
 which by default is calculated from the linearization of the initial value of the
 Newton iteration.
 
+Currently available strategies are:
+- [`DirectSolver`](@ref)
+- [`CGIteration`](@ref)
+- [`BICGstabIteration`](@ref)
+- [`GMRESIteration`](@ref)
+
+
 Notable LU Factorizations are:
-[`UMFPACKFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl),
-[`KLUFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl),
-[`SparspakFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#Sparspak.jl),
-[`SparspakLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.SparspakLU),
-[`MKLPardisoLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.MKLPardisoLU)
+- [`UMFPACKFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl)
+- [`KLUFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl)
+- [`SparspakFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#Sparspak.jl), [`SparspakLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.SparspakLU)
+- [`MKLPardisoLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.MKLPardisoLU)
 
 Notable incomplete factorizations are:
-[`ILUZeroPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUZeroPreconditioner)
-[`AMGPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.AMGPreconditioner),
-[`ILUTPrecondidtioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUTPreconditioner)
+- [`ILUZeroPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUZeroPreconditioner)
+- [`AMGPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.AMGPreconditioner),
+- [`ILUTPrecondidtioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUTPreconditioner)
 
 """
-abstract type IterationStrategy<:AbstractStrategy end
+abstract type LinearSolverStrategy<:AbstractStrategy end
 
 
 """
@@ -47,16 +53,18 @@ No blocking.
 struct NoBlock <: BlockStrategy end
 
 """
-       EquationBlock()
+    EquationBlock()
 
-Equation-wise blocking
+Equation-wise blocking. Can be combined with any preconditioner resp. factorization including direct solvers.
+In the moment, this requires a system with `unknown_storage=:dense`.
 """
 struct EquationBlock <: BlockStrategy end
 
 """
-       PointBlock()
+    PointBlock()
 
-Point-wise blocking
+Point-wise blocking. Currently only together with ILUZeroFactorization.
+This requires a system with `unknown_storage=:dense`.
 """
 struct PointBlock <: BlockStrategy end
 
@@ -66,7 +74,7 @@ struct PointBlock <: BlockStrategy end
 
 LU Factorization solver.
 """
-Base.@kwdef struct DirectSolver <: IterationStrategy
+Base.@kwdef struct DirectSolver <: LinearSolverStrategy
     factorization::FactorizationStrategy = UMFPACKFactorization()
     blocking::NoBlock = NoBlock() # prevent ambiguity in constructor definition
 end
@@ -87,7 +95,7 @@ end
     
 GMRES Iteration from Krylov.jl via LinearSolve.jl.
 """
-Base.@kwdef struct GMRESIteration <: IterationStrategy
+Base.@kwdef struct GMRESIteration <: LinearSolverStrategy
     memory::Int = 20
     restart::Bool = true
     factorization::FactorizationStrategy = UMFPACKFactorization()
@@ -116,7 +124,7 @@ end
     
 CG Iteration from Krylov.jl via LinearSolve.jl.
 """
-Base.@kwdef struct CGIteration <: IterationStrategy
+Base.@kwdef struct CGIteration <: LinearSolverStrategy
     factorization::FactorizationStrategy = UMFPACKFactorization()
     blocking::BlockStrategy = NoBlock()
 end
@@ -140,7 +148,7 @@ end
     
 BICGstab Iteration from Krylov.jl via LinearSolve.jl.
 """
-Base.@kwdef struct BICGstabIteration <: IterationStrategy
+Base.@kwdef struct BICGstabIteration <: LinearSolverStrategy
     factorization::FactorizationStrategy = UMFPACKFactorization()
     blocking::BlockStrategy = NoBlock()
 end
@@ -282,18 +290,16 @@ end
 """
     SolverStrategies
 
-!!! compat Only available in 1.5
-
-Please replace this by the new strategy API in 1.6.
-
-```
-direct_umfpack() = DirectSolver(UMFPACKFactorization())
-gmres_umfpack() = GMRESIteration(UMFPACKFactorization())
-gmres_eqnblock_umfpack() = GMRESIteration(UMFPACKFactorization(), EquationBlock())
-gmres_iluzero() = GMRESIteration(ILUZeroPreconditioner())
-gmres_eqnblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), EquationBlock())
-gmres_pointblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), PointBlock())
-```
+!!! compat "Only available in 1.5"
+    Please replace this functionality by the new strategy API in 1.6 as follows:
+    ```                                                                                
+    direct_umfpack() = DirectSolver(UMFPACKFactorization())                            
+    gmres_umfpack() = GMRESIteration(UMFPACKFactorization())                           
+    gmres_eqnblock_umfpack() = GMRESIteration(UMFPACKFactorization(), EquationBlock()) 
+    gmres_iluzero() = GMRESIteration(ILUZeroPreconditioner())                          
+    gmres_eqnblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), EquationBlock())
+    gmres_pointblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), PointBlock()) 
+    ```                                                                                
 """
 module SolverStrategies
 using VoronoiFVM
