@@ -92,10 +92,7 @@ include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
 export Identity
 include("vfvm_linsolve.jl")
-export DirectSolver,GMRESIteration, CGIteration, BICGstabIteration, NoBlock, EquationBlock, PointBlock
-
-# Deprecate!
-include("SolverStrategies.jl")
+export DirectSolver, GMRESIteration, CGIteration, BICGstabIteration, NoBlock, EquationBlock, PointBlock
 
 
 include("vfvm_exceptions.jl")

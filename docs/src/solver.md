@@ -23,8 +23,8 @@ NewtonControl
 
 ## Linear Solver strategies
 ```@autodocs
-Modules = [VoronoiFVM.SolverStrategies]
-Pages = ["SolverStrategies.jl"] 
+Modules = [VoronoiFVM,VoronoiFVM.SolverStrategies]
+Pages = ["vfvm_linsolve.jl"] 
 ```
 
 

@@ -39,16 +39,36 @@ Abstract supertype for various block preconditioning strategies.
 """
 abstract type BlockStrategy<:AbstractStrategy end
 
+"""
+    NoBlock()
 
+No blocking.
+"""
 struct NoBlock <: BlockStrategy end
+
+"""
+       EquationBlock()
+
+Equation-wise blocking
+"""
 struct EquationBlock <: BlockStrategy end
+
+"""
+       PointBlock()
+
+Point-wise blocking
+"""
 struct PointBlock <: BlockStrategy end
 
 
+"""
+    DirectSolver(;factorization=UMFPACKFactorization())
 
+LU Factorization solver.
+"""
 Base.@kwdef struct DirectSolver <: IterationStrategy
     factorization::FactorizationStrategy = UMFPACKFactorization()
-    x::Nothing = nothing # prevent ambiguity in constructor definition
+    blocking::NoBlock = NoBlock() # prevent ambiguity in constructor definition
 end
 
 DirectSolver(factorization::FactorizationStrategy; kwargs...) =
@@ -61,6 +81,12 @@ end
 
 
 
+"""
+    GMRESIteration(;factorization=ILUZeroFactorization(), memory=20, restart=true)
+    GMRESIteration(factorization; memory=20, restart=true)
+    
+GMRES Iteration from Krylov.jl via LinearSolve.jl.
+"""
 Base.@kwdef struct GMRESIteration <: IterationStrategy
     memory::Int = 20
     restart::Bool = true
@@ -84,6 +110,12 @@ function VoronoiFVM.SolverControl(strat::GMRESIteration, sys; kwargs...)
 end
 
 
+"""
+    CGIteration(;factorization=UMFPACKFactorization())
+    CGIteration(factorization)
+    
+CG Iteration from Krylov.jl via LinearSolve.jl.
+"""
 Base.@kwdef struct CGIteration <: IterationStrategy
     factorization::FactorizationStrategy = UMFPACKFactorization()
     blocking::BlockStrategy = NoBlock()
@@ -101,6 +133,37 @@ function VoronoiFVM.SolverControl(strat::CGIteration, sys; kwargs...)
     )
 end
 
+
+"""
+    BICGstabIteration(;factorization=UMFPACKFactorization())
+    BICGstabIteration(factorization)
+    
+BICGstab Iteration from Krylov.jl via LinearSolve.jl.
+"""
+Base.@kwdef struct BICGstabIteration <: IterationStrategy
+    factorization::FactorizationStrategy = UMFPACKFactorization()
+    blocking::BlockStrategy = NoBlock()
+end
+
+BICGstabIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kwargs...) =
+    BICGstabIteration(; factorization, blocking, kwargs...)
+
+
+function VoronoiFVM.SolverControl(strat::BICGstabIteration, sys; kwargs...)
+    SolverControl(;
+        method_linear = KrylovJL_BICGstab(),
+        precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
+        kwargs...,
+    )
+end
+
+
+
+"""
+    factorizationstrategy(preconditioner, blockstratrgy, system)
+
+Create a factorizations strategy from preconditioner and block information
+"""
 factorizationstrategy(p::FactorizationStrategy, ::NoBlock, sys) = p
 
 function factorizationstrategy(strat::FactorizationStrategy, ::EquationBlock, sys)
@@ -213,4 +276,47 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
             rethrow(err)
         end
     end
+end
+
+#################################
+"""
+    SolverStrategies
+
+!!! compat Only available in 1.5
+
+Please replace this by the new strategy API in 1.6.
+
+```
+direct_umfpack() = DirectSolver(UMFPACKFactorization())
+gmres_umfpack() = GMRESIteration(UMFPACKFactorization())
+gmres_eqnblock_umfpack() = GMRESIteration(UMFPACKFactorization(), EquationBlock())
+gmres_iluzero() = GMRESIteration(ILUZeroPreconditioner())
+gmres_eqnblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), EquationBlock())
+gmres_pointblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), PointBlock())
+```
+"""
+module SolverStrategies
+using VoronoiFVM
+using VoronoiFVM: isdensesystem, FactorizationStrategy
+using DocStringExtensions
+using LinearSolve
+using ExtendableSparse
+
+
+
+direct_umfpack() = DirectSolver(UMFPACKFactorization())
+gmres_umfpack() = GMRESIteration(UMFPACKFactorization())
+gmres_eqnblock_umfpack() = GMRESIteration(UMFPACKFactorization(), EquationBlock())
+gmres_iluzero() = GMRESIteration(ILUZeroPreconditioner())
+gmres_eqnblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), EquationBlock())
+gmres_pointblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), PointBlock())
+
+export direct_umfpack
+export gmres_umfpack
+export gmres_eqnblock_umfpack
+export gmres_iluzero
+export gmres_eqnblock_iluzero
+export gmres_pointblock_iluzero
+
+
 end

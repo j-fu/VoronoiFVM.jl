@@ -11,7 +11,7 @@ All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.
 Newton's method solves ``F(u)=0`` by the iterative procedure ``u_{i+1}=u_{i} - d_i F'(u_i)^{-1}F(u_i)``
 starting with some initial value ``u_0``, where ``d_i`` is a damping parameter.
 
-Preset linear solver strategies are available from the submodule [`VoronoiFVM.SolverStrategies`](@ref).
+For linear solver strategies, see [`VoronoiFVM.IterationsStrategy`](@ref).
 
 $(TYPEDFIELDS)
 """
