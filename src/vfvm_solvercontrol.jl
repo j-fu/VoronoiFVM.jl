@@ -1,9 +1,9 @@
 ################################################
-
+const FactorizationStrategy= Union{Nothing, Function, Type, ExtendableSparse.AbstractFactorization, LinearSolve.AbstractFactorization,LinearSolve.SciMLLinearSolveAlgorithm}
 """
     SolverControl
     SolverControl(;kwargs...)
-    SolverControl(strategy, sys; kwargs...)
+    SolverControl(linear_solver_strategy, sys; kwargs...)
 
 Solver control parameter for time stepping, embedding, Newton method and linear solver control.
 All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref)
@@ -11,7 +11,7 @@ All field names can be used as keyword arguments for [`solve(system::VoronoiFVM.
 Newton's method solves ``F(u)=0`` by the iterative procedure ``u_{i+1}=u_{i} - d_i F'(u_i)^{-1}F(u_i)``
 starting with some initial value ``u_0``, where ``d_i`` is a damping parameter.
 
-Preset linear solver strategies are available from the submodule [`VoronoiFVM.SolverStrategies`](@ref).
+For linear solver strategies, see [`VoronoiFVM.LinearSolverStrategy`](@ref).
 
 $(TYPEDFIELDS)
 """
@@ -97,6 +97,9 @@ Base.@kwdef mutable struct SolverControl
     - 3D:  `UMFPACKFactorization()`
     `SparspakFactorization()` is the default choice for general number types.
     Users should experiment with what works best for their problem.
+
+    For easy access to this functionality, see see also [`VoronoiFVM.LinearSolverStrategy`](@ref).
+    
     """
     method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
@@ -123,8 +126,10 @@ Base.@kwdef mutable struct SolverControl
     has an `ldiv!(u,A,v)` method. Useful examples:
     - `ExtendableSparse.ILUZero`
     - `ExtendableSparse.Jacobi`
+
+    For easy access to this functionality, see see also [`VoronoiFVM.LinearSolverStrategy`](@ref).
     """
-    precon_linear::Union{Type, Function, ExtendableSparse.AbstractFactorization, LinearSolve.AbstractFactorization} = A -> Identity()
+    precon_linear::FactorizationStrategy= A -> Identity()
 
     """
     Update preconditioner in each Newton step ?
@@ -308,12 +313,5 @@ end
 Legacy name of SolverControl
 """
 const NewtonControl = SolverControl
-
-
-
-abstract type AbstractStrategy end
-
-VoronoiFVM.SolverControl(::AbstractStrategy, sys; kwargs...) = SolverControl(;kwargs...)
-VoronoiFVM.SolverControl(::Nothing, sys; kwargs...) = SolverControl(;kwargs...)
 
 

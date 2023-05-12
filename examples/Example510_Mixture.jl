@@ -195,28 +195,39 @@ function main(; n = 11, nspec = 5,
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
     sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data, assembly)
 
-    @info "Strategy: $(typeof(strategy))"
+    @info "Strategy: $(strategy)"
     control=SolverControl(strategy,sys)
     @info control.method_linear
     u=solve(sys;verbose,control ,log=true)
-    @info history_summary(sys)
-                                          
     norm(u)
 end
 
 
 
 function test()
+    # Legacy strategy list (only in 1.5)
+    strat1=[direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
+            gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()]
+
+    # Equivalent up-to-date list
+    strat2=[DirectSolver(UMFPACKFactorization()),
+            GMRESIteration(UMFPACKFactorization()),
+            GMRESIteration(UMFPACKFactorization(), EquationBlock()),
+            GMRESIteration(ILUZeroPreconditioner()),
+            GMRESIteration(ILUZeroPreconditioner(), EquationBlock()),
+            GMRESIteration(ILUZeroPreconditioner(), PointBlock())]
+
+
+
+    
     res1=  main(; dim = 1, assembly=:edgewise) ≈ 5.193296208697211 &&
         main(; dim = 2, assembly=:edgewise) ≈ 17.224214949423878 &&
         main(; dim = 3, assembly=:edgewise) ≈ 57.1262582956693 &&
         main(; dim = 1, flux=:flux_marray, assembly=:edgewise) ≈ 5.193296208697211 &&
         main(; dim = 2, flux=:flux_marray, assembly=:edgewise) ≈ 17.224214949423878 &&
         main(; dim = 3, flux=:flux_marray, assembly=:edgewise) ≈ 57.1262582956693 &&
-        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,
-                [direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
-                 gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()
-                 ]))
+        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,strat1))
+    
 
     res2= main(; dim = 1, assembly=:cellwise) ≈ 5.193296208697211 &&
         main(; dim = 2, assembly=:cellwise) ≈ 17.224214949423878 &&
@@ -224,10 +235,7 @@ function test()
         main(; dim = 1, flux=:flux_marray, assembly=:cellwise) ≈ 5.193296208697211 &&
         main(; dim = 2, flux=:flux_marray, assembly=:cellwise) ≈ 17.224214949423878 &&
         main(; dim = 3, flux=:flux_marray, assembly=:cellwise) ≈ 57.1262582956693 &&
-        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,
-                [direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
-                 gmres_iluzero(),gmres_eqnblock_iluzero(),gmres_pointblock_iluzero()
-                 ]))
+        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ 17.224214949423878,strat2))
     res1 && res2
 end
 end
