@@ -104,8 +104,15 @@ export solve!, solve
 
 include("vfvm_postprocess.jl")
 export nodeflux
-include("vfvm_testfunctions.jl")
 export integrate
+export l2norm,lpnorm
+export w1pseminorm,h1seminorm
+export w1pnorm,h1norm
+export lpw1pnorm,l2h1norm
+export lpw1pseminorm,l2h1seminorm
+
+
+include("vfvm_testfunctions.jl")
 export testfunction
 export TestFunctionFactory
 

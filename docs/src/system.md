@@ -109,7 +109,6 @@ Base.map
 Base.map!
 VoronoiFVM.isunknownsof
 Base.reshape
-LinearAlgebra.norm(system::VoronoiFVM.AbstractSystem, u,p)
 ```
 
 ## Types
@@ -117,8 +116,6 @@ LinearAlgebra.norm(system::VoronoiFVM.AbstractSystem, u,p)
 ```@docs
 VoronoiFVM.AbstractSystem
 VoronoiFVM.System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix}
-VoronoiFVM.DenseSystem
-VoronoiFVM.SparseSystem
 ```
 
 
@@ -130,5 +127,7 @@ boundary_neumann!(system::VoronoiFVM.AbstractSystem, ispec, ibc, v)
 boundary_neumann!(system::VoronoiFVM.AbstractSystem; kwargs...)
 boundary_robin!(system::VoronoiFVM.AbstractSystem, ispec, ibc,alpha, v)
 boundary_robin!(system::VoronoiFVM.AbstractSystem; kwargs...)
+VoronoiFVM.DenseSystem
+VoronoiFVM.SparseSystem
 ```
 

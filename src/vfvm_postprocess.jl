@@ -8,13 +8,11 @@ Base.setindex!(I::SolutionIntegral, v, ispec::Integer, ireg) = I.value[ispec, ir
 
 ################################################################
 """
-````
-integrate(system,F,U; boundary=false)    
-````
+    integrate(system,F,U; boundary=false)    
 
 Integrate node function (same signature as reaction or storage)
  `F` of  solution vector region-wise over domain or boundary.
-The result is  `nspec x nregion` vector.
+The result is an `nspec x nregion` vector.
 """
 function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
                    boundary = false) where {Tu, Tv, Tc, Ti, Tm}
@@ -120,6 +118,120 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
 
     return SolutionIntegral(integral)
 end
+
+"""
+    edgeintegrate(system,F,U; boundary=false)    
+
+Integrate edge function (same signature as flux function)
+ `F` of  solution vector region-wise over domain or boundary.
+The result is an `nspec x nregion` vector.
+"""
+function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
+                       boundary = false) where {Tu, Tv, Tc, Ti, Tm}
+    grid = system.grid
+    dim=dim_space(grid)
+    data = system.physics.data
+    nspecies = num_species(system)
+    res = zeros(Tu, nspecies)
+    nparams = system.num_parameters
+
+    UKL = Array{Tv, 1}(undef, 2 * nspecies + nparams)
+
+    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
+    bfaceedgefactors::Array{Tv, 2} = system.bfaceedgefactors
+
+    if boundary
+        error("missing implementation of boundary edge integrals")
+        # bnode = BNode(system)
+        # bnodeparams = (bnode,)
+        # if isdata(data)
+        #     bnodeparams = (bnode, data)
+        # end
+        # #!!!        bnode.time=time
+        # #!!!        bnode.embedparam=embedparam
+
+        # geom = grid[BFaceGeometries][1]
+        # bfaceregions = grid[BFaceRegions]
+        # nbfaceregions = maximum(bfaceregions)
+        # integral = zeros(Tu, nspecies, nbfaceregions)
+
+        # for ibface = 1:num_bfaces(grid)
+        #     for inode = 1:num_nodes(geom)
+        #         _fill!(bnode, inode, ibface)
+        #         res .= zero(Tv)
+        #         @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnodeparams...)
+
+        #         # asm_res                                                                                   
+        #         # for ispec=1:nspecies                                                                        
+        #         #     if isdof(system, ispec, bnode.index)                                                    
+        #         #         integral[ispec,bnode.region]+=system.bfacenodefactors[inode,ibface]*res[ispec]                      
+        #         #     end                                                                                     
+        #         # end                                                                                         
+
+        #         asm_res(idof, ispec) = integral[ispec, bnode.region] += bfacenodefactors[inode, ibface] * res[ispec]
+        #         assemble_res(bnode, system, asm_res)
+        #     end
+        # end
+    elseif system.assembly_type==:cellwise
+        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+        edge = Edge(system)
+        edgeparams = (edge,)
+        if isdata(data)
+            edgeparams = (edge, data)
+        end
+        geom = grid[CellGeometries][1]
+        cellregions = grid[CellRegions]
+        ncellregions = maximum(cellregions)
+        integral = zeros(Tu, nspecies, ncellregions)
+        
+        for icell = 1:num_cells(grid)
+            for iedge = 1:num_edges(geom)
+                #abs(celledgefactors[iedge, icell]) < edge_cutoff && continue
+                _fill!(edge, iedge, icell)
+                fac = celledgefactors[iedge, icell]
+                @views UKL[1:nspecies] .= U[:, edge.node[1]]
+                @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
+                res .= zero(Tv)
+                @views F(rhs(edge, res), unknowns(edge,UKL), edgeparams...)
+                function asm_res(idofK, idofL, ispec)
+                    integral[ispec,edge.region] += fac*res[ispec]*dim
+                end
+                assemble_res(edge, system, asm_res)
+            end
+        end
+    else
+        ne = num_edges(grid)
+        edgeregionfactors = system.assembly_data.edgefactors
+        edgeregions = rowvals(edgeregionfactors)
+        edgefactors = nonzeros(edgeregionfactors)
+        
+        edge = Edge(system)
+        edgeparams = (edge,)
+        if isdata(data)
+            edgeparams = (edge, data)
+        end
+        geom = grid[CellGeometries][1]
+        cellregions = grid[CellRegions]
+        ncellregions = maximum(cellregions)
+        integral = zeros(Tu, nspecies, ncellregions)
+        for iedge = 1:ne
+            for k in nzrange(edgeregionfactors, iedge)
+                _xfill!(edge, edgeregions[k], iedge)
+                @views UKL[1:nspecies] .= U[:, edge.node[1]]
+                @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
+                res .= zero(Tv)
+                fac=edgefactors[k]
+                @views F(rhs(edge, res), unknowns(edge,UKL), edgeparams...)
+                function asm_res(idofK, idofL, ispec)
+                    integral[ispec,edge.region] += fac*res[ispec]*dim
+                end
+                assemble_res(edge, system, asm_res)
+            end
+        end
+    end
+    return SolutionIntegral(integral)
+end
+
 
 ############################################################################
 """
@@ -236,3 +348,135 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
     end
     nodeflux
 end
+
+
+#####################################################################################
+"""
+    $(SIGNATURES)
+
+Calculate Euklidean norm of the degree of freedom vector.
+"""
+function LinearAlgebra.norm(system::AbstractSystem, u, p::Number=2) end
+
+function LinearAlgebra.norm(system::DenseSystem, u, p::Number=2)
+    _initialize_inactive_dof!(u, system)
+    norm(u, p)
+end
+
+
+LinearAlgebra.norm(system::SparseSystem, u::SparseSolutionArray, p::Number=2) = LinearAlgebra.norm(u.node_dof.nzval, p)
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``L^p`` norm of a solution vector.
+"""
+function lpnorm(sys,u,p,species_weights=ones(num_species(sys)))
+    nspec=num_species(sys)
+    II=integrate(sys, (y,u,node,data=nothing)->y.=u.^p,u)
+    (sum([sum(II[i,:]) for i=1:nspec].*species_weights))^(1/p)
+end
+
+"""
+    $(SIGNATURES)
+
+Calculate weigthed discrete ``L^2(\\Omega)`` norm of a solution vector. 
+"""
+function l2norm(sys,u,species_weights=ones(num_species(sys)))
+    lpnorm(sys,u,2,species_weights)
+end
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``W^{1,p}(\\Omega)`` seminorm of a solution vector.
+"""
+function w1pseminorm(sys,u,p,species_weights=ones(num_species(sys)))
+    nspec=num_species(sys)
+    function f(y,u,edge,data=nothing)
+        for ispec=1:nspec
+            y[ispec]=(u[ispec,1]-u[ispec,2])^p
+        end
+    end
+    II=edgeintegrate(sys,f,u)
+    (sum([sum(II[i,:]) for i=1:nspec].*species_weights))^(1/p)
+end
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``H^1(\\Omega)`` seminorm of a solution vector.
+"""
+function h1seminorm(sys,u,species_weights=ones(num_species(sys)))
+    w1pseminorm(sys,u,2,species_weights)
+end
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``W^{1,p}(\\Omega)`` norm of a solution vector.
+"""
+function w1pnorm(sys,u,p,species_weights=ones(num_species(sys)))
+    lpnorm(sys,u,p,species_weights)+w1pseminorm(sys,u,p,species_weights)
+end
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``H^1(\\Omega)`` norm of a solution vector.
+"""
+function h1norm(sys,u,species_weights=ones(num_species(sys)))
+    w1pnorm(sys,u,2,species_weights)
+end
+
+function _bochnernorm(sys,u::TransientSolution,p,species_weights,spatialnorm::F) where F
+    n=length(u.t)
+    nrm=spatialnorm(sys,u.u[1],p,species_weights)^p*(u.t[2]-u.t[1])/2
+    for i=2:n-1
+        nrm+=spatialnorm(sys,u.u[1],p,species_weights)^p*(u.t[i+1]-u.t[i-1])/2
+    end
+    nrm+=spatialnorm(sys,u.u[n],p,species_weights)^p*(u.t[end]-u.t[end-1])/2
+    nrm^(1/p)
+end
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``L^p([0,T];W^{1,p}(\\Omega))`` norm of a transient solution.
+"""
+function lpw1pnorm(sys,u::TransientSolution,p,species_weights=ones(num_species(sys)))
+    _bochnernorm(sys,u,p,species_weights,w1pnorm)
+end
+
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``L^p([0,T];W^{1,p}(\\Omega))`` seminorm of a transient solution.
+"""
+function lpw1pseminorm(sys,u::TransientSolution,p,species_weights=ones(num_species(sys)))
+    _bochnernorm(sys,u,p,species_weights,w1pseminorm)
+end
+
+
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``L^2([0,T];H^1(\\Omega))`` seminorm of a transient solution.
+"""
+function l2h1seminorm(sys,u::TransientSolution,species_weights=ones(num_species(sys)))
+    lpw1pseminorm(sys,u,2,species_weights)
+end
+
+
+"""
+    $(SIGNATURES)
+
+Calculate weighted discrete ``L^2([0,T];H^1(\\Omega))`` norm of a transient solution.
+"""
+function l2h1norm(sys,u::TransientSolution,species_weights=ones(num_species(sys)))
+    lpw1pnorm(sys,u,2,species_weights)
+end
+
+

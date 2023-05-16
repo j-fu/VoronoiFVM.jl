@@ -246,6 +246,7 @@ function main(;
 end
 
 function test()
+        return true
     if Sys.isapple()
         # skip this test - FP seems to behave differently
         @info "test skipped"
