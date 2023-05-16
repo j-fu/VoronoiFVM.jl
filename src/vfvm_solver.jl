@@ -96,6 +96,9 @@ function _solve_timestep!(
             )
 
             values(solution) .-= damp * values(update)
+            
+            # "incremental collection may only sweep   so-called young objects"
+            GC.gc(false)
 
             if system.is_linear
                 converged = true

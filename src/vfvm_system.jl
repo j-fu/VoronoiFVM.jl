@@ -1,5 +1,6 @@
 abstract type AbstractAssemblyData{Tv} end
-    
+
+
 struct CellWiseAssemblyData{Tv} <: AbstractAssemblyData{Tv}
     """
         Precomputed geometry factors for cell nodes
@@ -1476,19 +1477,6 @@ function Base.reshape(v::AbstractVector, system::SparseSystem)
                                         Vector(v)))
 end
 
-"""
-$(SIGNATURES)
-
-Calculate norm, paying attention to species distribution over regions
-"""
-function LinearAlgebra.norm(system::AbstractSystem, u, p) end
-
-function LinearAlgebra.norm(system::DenseSystem, u, p)
-    _initialize_inactive_dof!(u, system)
-    norm(u, p)
-end
-
-LinearAlgebra.norm(system::SparseSystem, u, p) = LinearAlgebra.norm(u.node_dof.nzval, p)
 
 ######################################
 # History
