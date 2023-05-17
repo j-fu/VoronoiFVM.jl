@@ -204,45 +204,27 @@ function Random.rand(
 end
 
 
-mutable struct FactorizationPreconditioner{C}
-    cache::C
-end
-
 """
-   factorize(A,method::LinearSolve.AbstractFactorization)
-
-Calculate an LU factorization of A using one of the methods available in LinearSolve.jl. 
+    Make preconditioner constructors from methods
 """
-function LinearAlgebra.factorize(A, method::LinearSolve.AbstractFactorization)
+
+function (method::LinearSolve.AbstractFactorization)(A)
     pr = LinearProblem(A, zeros(eltype(A), size(A, 1)))
-    p = FactorizationPreconditioner(init(pr, method))
-    p
+    init(pr, method)
 end
 
-function LinearAlgebra.factorize(A, method::LinearSolve.SciMLLinearSolveAlgorithm)
+function (method::LinearSolve.SciMLLinearSolveAlgorithm)(A)
     pr = LinearProblem(SparseMatrixCSC(A), zeros(eltype(A), size(A, 1)))
-    p = FactorizationPreconditioner(init(pr, method))
-    p
-end
-
-
-function (f::LinearSolve.AbstractFactorization)(A)
-    factorize(A, f)
-end
-
-function (f::LinearSolve.SciMLLinearSolveAlgorithm)(A)
-    factorize(SparseMatrixCSC(A), f)
+    init(pr, method)
 end
 
 function (f::ExtendableSparse.AbstractFactorization)(A)
     factorize!(f, A)
 end
 
-
-function LinearAlgebra.ldiv!(u, p::FactorizationPreconditioner, b)
-    p.cache = LinearSolve.set_b(p.cache, b)
-    sol = solve(p.cache)
-    p.cache = sol.cache
+function LinearAlgebra.ldiv!(u, cache::LinearSolve.LinearCache, b)
+    cache.b=b
+    sol = solve!(cache)
     copyto!(u, sol.u)
 end
 
@@ -260,19 +242,16 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
             Pl,
         )
     else
-        system.linear_cache = LinearSolve.set_A(system.linear_cache, SparseMatrixCSC(A))
-        system.linear_cache = LinearSolve.set_b(system.linear_cache, b)
+        system.linear_cache.A=SparseMatrixCSC(A)
+        system.linear_cache.b=b
         if control.keepcurrent_linear
-            Pl = control.precon_linear(SparseMatrixCSC(A))
             nlhistory.nlu += 1
-            system.linear_cache =
-                LinearSolve.set_prec(system.linear_cache, Pl, LinearSolve.Identity())
+            system.linear_cache.Pl=control.precon_linear(SparseMatrixCSC(A))
         end
     end
 
     try
-        sol = LinearSolve.solve(system.linear_cache)
-        system.linear_cache = sol.cache
+        sol = LinearSolve.solve!(system.linear_cache)
         u .= sol.u
         nliniter = sol.iters
         nlhistory.nlin = sol.iters
