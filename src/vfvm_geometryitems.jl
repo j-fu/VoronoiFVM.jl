@@ -127,19 +127,31 @@ mutable struct Node{Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     """
     params::Vector{Tp}
 
+
+    """
+    Form factor
+    """
+    fac::Float64
+
+    """
+    Local loop index
+    """
+    _idx::Ti
+    
     function Node{Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(zero(Ti), 0,
             num_species(sys), 0,
             coordinates(sys.grid),
             sys.grid[CellNodes],
             sys.grid[CellRegions],
-            time, embedparam, params)
+            time, embedparam, params,0.0,0)
     end
 end
 
 function Node(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
     Node{Tc, Tp, Ti}(sys, time, embedparam, params)
 end
+
 Node(sys) = Node(sys, 0, 0, zeros(0))
 
 @inline function _fill!(node::Node, inode, icell)
@@ -155,6 +167,8 @@ end
     node.icell = 0
     nothing
 end
+
+
 
 """
     $(TYPEDEF)
@@ -362,6 +376,17 @@ mutable struct Edge{Tc, Tp, Ti} <: AbstractEdge{Tc, Tp, Ti}
 
     params::Vector{Tp}
 
+    """
+    Form factor
+    """
+    fac::Float64
+    
+     """
+    Local loop index
+    """
+    _idx::Ti
+    
+
     Edge{Tc, Tp, Ti}(::Nothing) where {Tc, Tp, Ti} = new()
 end
 
@@ -390,6 +415,8 @@ function Edge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
     edge.time = time
     edge.embedparam = embedparam
     edge.params = params
+    edge.fac=0
+    edge._idx=0
     edge
 end
 
@@ -425,6 +452,9 @@ end
     edge.icell = 0
     nothing
 end
+
+
+
 
 
 

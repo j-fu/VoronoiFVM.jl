@@ -62,6 +62,7 @@ Abstract type for finite volume system structure.
 """
 abstract type AbstractSystem{Tv <: Number, Tc <: Number, Ti <: Integer, Tm <: Integer} end
 include("vfvm_geometryitems.jl")
+include("vfvm_assemblydata.jl")
 include("vfvm_system.jl")
 export unknowns
 export num_species
@@ -131,6 +132,6 @@ export eval_rhs!, eval_jacobian!, mass_matrix, prepare_diffeq!
 
 include("gridvisualize.jl")
 
-include("precompile.jl")
+#include("precompile.jl")
 
 end

@@ -32,137 +32,6 @@ end
 
 zero!(m::AbstractMatrix{T}) where {T} = m .= zero(T)
 
-################################################################
-# Ideally, these macros would be inline functions,
-# but this for yet to be understood reasons triggers allocations.
-# 
-macro asm_node()
-    esc(
-        quote
-            @views UK[1:nspecies] .= U[:, node.index]
-            @views UKOld[1:nspecies] .= UOld[:, node.index]
-
-            evaluate!(src_evaluator)
-            src = res(src_evaluator)
-
-            evaluate!(rea_evaluator, UK)
-            res_react = res(rea_evaluator)
-            jac_react = jac(rea_evaluator)
-
-            evaluate!(stor_evaluator, UK)
-            res_stor = res(stor_evaluator)
-            jac_stor = jac(stor_evaluator)
-
-            evaluate!(oldstor_evaluator, UKOld)
-            oldstor = res(oldstor_evaluator)
-
-            @inline function asm_res(idof, ispec)
-                _add(
-                    F,
-                    idof,
-                    fac * (
-                        res_react[ispec] - src[ispec] +
-                        (res_stor[ispec] - oldstor[ispec]) * tstepinv
-                    ),
-                )
-            end
-
-            @inline function asm_jac(idof, jdof, ispec, jspec)
-                _addnz(
-                    system.matrix,
-                    idof,
-                    jdof,
-                    jac_react[ispec, jspec] + jac_stor[ispec, jspec] * tstepinv,
-                    fac,
-                )
-            end
-
-            @inline function asm_param(idof, ispec, iparam)
-                jparam = nspecies + iparam
-                dudp[iparam][ispec, idof] +=
-                    (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) * fac
-            end
-
-            assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
-
-        end,
-    )
-
-end
-
-macro asm_edge()
-    esc(
-        quote
-            #Set up argument for fluxwrap
-            @views UKL[1:nspecies] .= U[:, edge.node[1]]
-            @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
-
-            evaluate!(flux_evaluator, UKL)
-            res_flux = res(flux_evaluator)
-            jac_flux = jac(flux_evaluator)
-
-            @inline function asm_res(idofK, idofL, ispec)
-                val = fac * res_flux[ispec]
-                _add(F, idofK, val)
-                _add(F, idofL, -val)
-            end
-
-            @inline function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], fac)
-                _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], fac)
-                _addnz(system.matrix, idofK, jdofL, +jac_flux[ispec, jspec+nspecies], fac)
-                _addnz(system.matrix, idofL, jdofL, -jac_flux[ispec, jspec+nspecies], fac)
-            end
-
-            @inline function asm_param(idofK, idofL, ispec, iparam)
-                jparam = 2 * nspecies + iparam
-                dudp[iparam][ispec, idofK] += fac * jac_flux[ispec, jparam]
-                dudp[iparam][ispec, idofL] -= fac * jac_flux[ispec, jparam]
-            end
-
-            assemble_res_jac(edge, system, asm_res, asm_jac, asm_param)
-
-            if isnontrivial(erea_evaluator)
-                evaluate!(erea_evaluator, UKL)
-                res_erea = res(erea_evaluator)
-                jac_erea = jac(erea_evaluator)
-
-                @inline function ereaasm_res(idofK, idofL, ispec)
-                    val = fac * res_erea[ispec]
-                    _add(F, idofK, val)
-                    _add(F, idofL, val)
-                end
-
-                @inline function ereaasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                    _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], fac)
-                    _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], fac)
-                    _addnz(
-                        system.matrix,
-                        idofK,
-                        jdofL,
-                        -jac_erea[ispec, jspec+nspecies],
-                        fac,
-                    )
-                    _addnz(
-                        system.matrix,
-                        idofL,
-                        jdofL,
-                        +jac_erea[ispec, jspec+nspecies],
-                        fac,
-                    )
-                end
-
-                @inline function ereaasm_param(idofK, idofL, ispec, iparam)
-                    jparam = 2 * nspecies + iparam
-                    dudp[iparam][ispec, idofK] += fac * jac_erea[ispec, jparam]
-                    dudp[iparam][ispec, idofL] += fac * jac_erea[ispec, jparam]
-                end
-
-                assemble_res_jac(edge, system, ereaasm_res, ereaasm_jac, ereaasm_param)
-            end
-        end,
-    )
-end
 """
 $(SIGNATURES)
 
@@ -230,46 +99,128 @@ function eval_and_assemble(
     erea_evaluator = ResJacEvaluator(physics, :edgereaction, UKL, edge, nspecies)
 
 
-    if system.assembly_type == :cellwise
-        ncells = num_cells(grid)
-        geom = grid[CellGeometries][1]
-        cellnodefactors::Array{Tv,2} = system.assembly_data.cellnodefactors
-        celledgefactors::Array{Tv,2} = system.assembly_data.celledgefactors
-        ncalloc = @allocated for icell = 1:ncells
-            for inode = 1:num_nodes(geom)
-                _fill!(node, inode, icell)
-                fac = cellnodefactors[inode, icell]
-                @asm_node
-            end
-            for iedge = 1:num_edges(geom)
-                #abs(celledgefactors[iedge, icell]) < edge_cutoff && continue
-                _fill!(edge, iedge, icell)
-                fac = celledgefactors[iedge, icell]
-                @asm_edge
-            end
-        end
-    else
-        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
-        noderegions::Array{Int,1} = rowvals(noderegionfactors)
-        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
+    ncalloc = @allocated for icell in noderange(system.assembly_data)
+        for inode in noderange(system.assembly_data,icell)
+            _fill!(node,system.assembly_data,inode,icell)
+            fac=node.fac
+                        @views UK[1:nspecies] .= U[:, node.index]
+            @views UKOld[1:nspecies] .= UOld[:, node.index]
 
-        ncalloc = @allocated for inode = 1:num_nodes(grid)
-            for k in nzrange(noderegionfactors, inode)
-                _xfill!(node, noderegions[k], inode)
-                fac = nodefactors[k]
-                @asm_node
-            end
-        end
+            evaluate!(src_evaluator)
+            src = res(src_evaluator)
 
-        edgeregionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.edgefactors
-        edgeregions::Array{Int,1} = rowvals(edgeregionfactors)
-        edgefactors::Array{Tv,1} = nonzeros(edgeregionfactors)
-        ncalloc += @allocated for iedge = 1:num_edges(grid)
-            for k in nzrange(edgeregionfactors, iedge)
-                fac = edgefactors[k]
-                #                abs(fac) < edge_cutoff && continue
-                _xfill!(edge, edgeregions[k], iedge)
-                @asm_edge
+            evaluate!(rea_evaluator, UK)
+            res_react = res(rea_evaluator)
+            jac_react = jac(rea_evaluator)
+
+            evaluate!(stor_evaluator, UK)
+            res_stor = res(stor_evaluator)
+            jac_stor = jac(stor_evaluator)
+
+            evaluate!(oldstor_evaluator, UKOld)
+            oldstor = res(oldstor_evaluator)
+
+            @inline function asm_res(idof, ispec)
+                _add(
+                    F,
+                    idof,
+                    fac * (
+                        res_react[ispec] - src[ispec] +
+                        (res_stor[ispec] - oldstor[ispec]) * tstepinv
+                    ),
+                )
+            end
+
+            @inline function asm_jac(idof, jdof, ispec, jspec)
+                _addnz(
+                    system.matrix,
+                    idof,
+                    jdof,
+                    jac_react[ispec, jspec] + jac_stor[ispec, jspec] * tstepinv,
+                    fac,
+                )
+            end
+
+            @inline function asm_param(idof, ispec, iparam)
+                jparam = nspecies + iparam
+                dudp[iparam][ispec, idof] +=
+                    (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) * fac
+            end
+
+            assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
+
+        end
+    end
+    
+    ncalloc += @allocated for icell in edgerange(system.assembly_data)
+        for iedge in edgerange(system.assembly_data,icell)
+            _fill!(edge,system.assembly_data,iedge,icell) 
+            fac=edge.fac
+            @views UKL[1:nspecies] .= U[:, edge.node[1]]
+            @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
+            
+            evaluate!(flux_evaluator, UKL)
+            res_flux = res(flux_evaluator)
+            jac_flux = jac(flux_evaluator)
+            
+            @inline function asm_res(idofK, idofL, ispec)
+                val = fac * res_flux[ispec]
+                _add(F, idofK, val)
+                _add(F, idofL, -val)
+            end
+            
+            @inline function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
+                _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], fac)
+                _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], fac)
+                _addnz(system.matrix, idofK, jdofL, +jac_flux[ispec, jspec+nspecies], fac)
+                _addnz(system.matrix, idofL, jdofL, -jac_flux[ispec, jspec+nspecies], fac)
+            end
+            
+            @inline function asm_param(idofK, idofL, ispec, iparam)
+                jparam = 2 * nspecies + iparam
+                dudp[iparam][ispec, idofK] += fac * jac_flux[ispec, jparam]
+                dudp[iparam][ispec, idofL] -= fac * jac_flux[ispec, jparam]
+            end
+            
+            assemble_res_jac(edge, system, asm_res, asm_jac, asm_param)
+            
+            if isnontrivial(erea_evaluator)
+                evaluate!(erea_evaluator, UKL)
+                res_erea = res(erea_evaluator)
+                jac_erea = jac(erea_evaluator)
+                
+                @inline function ereaasm_res(idofK, idofL, ispec)
+                    val = fac * res_erea[ispec]
+                    _add(F, idofK, val)
+                    _add(F, idofL, val)
+                end
+                
+                @inline function ereaasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
+                    _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], fac)
+                    _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], fac)
+                    _addnz(
+                        system.matrix,
+                        idofK,
+                        jdofL,
+                        -jac_erea[ispec, jspec+nspecies],
+                        fac,
+                    )
+                    _addnz(
+                        system.matrix,
+                        idofL,
+                        jdofL,
+                        +jac_erea[ispec, jspec+nspecies],
+                        fac,
+                    )
+                end
+                
+                @inline function ereaasm_param(idofK, idofL, ispec, iparam)
+                    jparam = 2 * nspecies + iparam
+                    dudp[iparam][ispec, idofK] += fac * jac_erea[ispec, jparam]
+                    dudp[iparam][ispec, idofL] += fac * jac_erea[ispec, jparam]
+                end
+                
+                assemble_res_jac(edge, system, ereaasm_res, ereaasm_jac, ereaasm_param)
             end
         end
     end

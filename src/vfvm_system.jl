@@ -1,33 +1,3 @@
-abstract type AbstractAssemblyData{Tv} end
-
-
-struct CellWiseAssemblyData{Tv} <: AbstractAssemblyData{Tv}
-    """
-        Precomputed geometry factors for cell nodes
-    """
-    cellnodefactors::Array{Tv, 2}
-
-    """
-    Precomputed geometry factors for cell edges
-    """
-    celledgefactors::Array{Tv, 2}
-
-end
-
-struct EdgeWiseAssemblyData{Tv}<:AbstractAssemblyData{Tv}
-    """
-        Precomputed geometry factors for cell nodes
-    """
-    nodefactors::SparseMatrixCSC{Tv, Int}
-
-    """
-    Precomputed geometry factors for cell edges
-    """
-    edgefactors::SparseMatrixCSC{Tv, Int}
-
-end
-
-
 """
 $(TYPEDEF)
 
@@ -123,7 +93,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Precomputed form factors for assembly
     """
-    assembly_data::AbstractAssemblyData{Tv}
+    assembly_data::AbstractAssemblyData{Tv,Ti}
 
     """
     Precomputed geometry factors for boundary nodes
@@ -685,7 +655,7 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     cellwise_factors!(csys)
 
-    system.assembly_data=CellWiseAssemblyData(cellnodefactors, celledgefactors)
+    system.assembly_data=CellWiseAssemblyData(cellnodefactors, celledgefactors, grid[CellRegions])
     system.bfacenodefactors=bfacenodefactors
     system.bfaceedgefactors=bfaceedgefactors
     
@@ -707,8 +677,8 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     grid[EdgeNodes] # !!!workaround for bug in extendablegrids: sets num_edges right.
     bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
-    cnf=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_nodes(grid))
-    cef=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_edges(grid))
+    cnf=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_nodes(grid))
+    cef=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_edges(grid))
 
     
     
