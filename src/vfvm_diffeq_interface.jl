@@ -97,41 +97,16 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     asm_res(idof, ispec) = nothing
     asm_param(idof, ispec, iparam) = nothing
 
-    if system.assembly_type==:cellwise
-        cellnodefactors = system.assembly_data.cellnodefactors
-        for icell = 1:num_cells(grid)
-            ireg = cellregions[icell]
-            for inode = 1:num_nodes(geom)
-                _fill!(node, inode, icell)
-                K = node.index
-                
-                @views evaluate!(stor_eval, U[:, K])
-                jac_stor = jac(stor_eval)
-                fac=cellnodefactors[inode, icell]
-                asm_jac(idof, jdof, ispec, jspec) = _addnz(M, idof, jdof, jac_stor[ispec, jspec], fac)
-                assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
-            end
+    for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)
+            @views evaluate!(stor_eval, U[:, node.index])
+            jac_stor = jac(stor_eval)
+            asm_jac(idof, jdof, ispec, jspec) = _addnz(M, idof, jdof, jac_stor[ispec, jspec], node.fac)
+            assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
         end
-    else
-        nn = num_nodes(grid)
-        ne = num_edges(grid)
-        noderegionfactors = system.assembly_data.nodefactors
-        noderegions = rowvals(noderegionfactors)
-        nodefactors = nonzeros(noderegionfactors)
-        for inode = 1:nn
-            for k in nzrange(noderegionfactors, inode)
-                _xfill!(node, noderegions[k], inode)
-                fac=nodefactors[k]
-                K = node.index
-                
-                @views evaluate!(stor_eval, U[:, K])
-                jac_stor = jac(stor_eval)
-                asm_jac(idof, jdof, ispec, jspec) = _addnz(M, idof, jdof, jac_stor[ispec, jspec], fac)
-                assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
-            end
-        end
-
     end
+    
     if isnontrivial(bstor_eval)
         for ibface = 1:nbfaces
             for ibnode = 1:num_nodes(bgeom)

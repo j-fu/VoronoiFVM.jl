@@ -55,9 +55,7 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
                 assemble_res(bnode, system, asm_res)
             end
         end
-    elseif system.assembly_type==:cellwise
-        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
+    else
         node = Node(system)
         nodeparams = (node,)
         if isdata(data)
@@ -65,52 +63,17 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
         end
         #!!!        node.time=time
         #!!!        node.embedparam=embedparam
-
-        geom = grid[CellGeometries][1]
-        cellnodes = grid[CellNodes]
         cellregions = grid[CellRegions]
         ncellregions = maximum(cellregions)
         integral = zeros(Tu, nspecies, ncellregions)
-
-        for icell = 1:num_cells(grid)
-            for inode = 1:num_nodes(geom)
-                _fill!(node, inode, icell)
-                res .= zero(Tv)
-                @views F(rhs(node, res), unknowns(node, U[:, node.index]), nodeparams...)
-                # !!! asm_res                                                                      
-                # for ispec=1:nspecies                                                               
-                #     if isdof(system, ispec, node.index)                                            
-                #         integral[ispec,node.region]+=system.cellnodefactors[inode,icell]*res[ispec]
-                #     end                                                                                            
-                # end
-                asm_res(idof, ispec) = integral[ispec, node.region] += cellnodefactors[inode, icell] * res[ispec]
-                assemble_res(node, system, asm_res)
-            end
-        end
-    else
-        nn = num_nodes(grid)
-        ne = num_edges(grid)
-        noderegionfactors = system.assembly_data.nodefactors
-        noderegions = rowvals(noderegionfactors)
-        nodefactors = nonzeros(noderegionfactors)
         
-        node = Node(system)
-        nodeparams = (node,)
-        if isdata(data)
-            nodeparams = (node, data)
-        end
-        geom = grid[CellGeometries][1]
-        cellnodes = grid[CellNodes]
-        cellregions = grid[CellRegions]
-        ncellregions = maximum(cellregions)
-        integral = zeros(Tu, nspecies, ncellregions)
-        for inode = 1:nn
-            for k in nzrange(noderegionfactors, inode)
-                _xfill!(node, noderegions[k], inode)
+        
+        for item in nodebatch(system.assembly_data)
+            for inode in noderange(system.assembly_data,item)
+                _fill!(node,system.assembly_data,inode,item)
                 res .= zero(Tv)
-                fac=nodefactors[k]
                 @views F(rhs(node, res), unknowns(node, U[:, node.index]), nodeparams...)
-                asm_res(idof, ispec) = integral[ispec, node.region] += fac * res[ispec]
+                asm_res(idof, ispec) = integral[ispec, node.region] += node.fac * res[ispec]
                 assemble_res(node, system, asm_res)
             end
         end
@@ -142,88 +105,24 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
 
     if boundary
         error("missing implementation of boundary edge integrals")
-        # bnode = BNode(system)
-        # bnodeparams = (bnode,)
-        # if isdata(data)
-        #     bnodeparams = (bnode, data)
-        # end
-        # #!!!        bnode.time=time
-        # #!!!        bnode.embedparam=embedparam
-
-        # geom = grid[BFaceGeometries][1]
-        # bfaceregions = grid[BFaceRegions]
-        # nbfaceregions = maximum(bfaceregions)
-        # integral = zeros(Tu, nspecies, nbfaceregions)
-
-        # for ibface = 1:num_bfaces(grid)
-        #     for inode = 1:num_nodes(geom)
-        #         _fill!(bnode, inode, ibface)
-        #         res .= zero(Tv)
-        #         @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnodeparams...)
-
-        #         # asm_res                                                                                   
-        #         # for ispec=1:nspecies                                                                        
-        #         #     if isdof(system, ispec, bnode.index)                                                    
-        #         #         integral[ispec,bnode.region]+=system.bfacenodefactors[inode,ibface]*res[ispec]                      
-        #         #     end                                                                                     
-        #         # end                                                                                         
-
-        #         asm_res(idof, ispec) = integral[ispec, bnode.region] += bfacenodefactors[inode, ibface] * res[ispec]
-        #         assemble_res(bnode, system, asm_res)
-        #     end
-        # end
-    elseif system.assembly_type==:cellwise
-        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
-        edge = Edge(system)
-        edgeparams = (edge,)
-        if isdata(data)
-            edgeparams = (edge, data)
-        end
-        geom = grid[CellGeometries][1]
-        cellregions = grid[CellRegions]
-        ncellregions = maximum(cellregions)
-        integral = zeros(Tu, nspecies, ncellregions)
-        
-        for icell = 1:num_cells(grid)
-            for iedge = 1:num_edges(geom)
-                #abs(celledgefactors[iedge, icell]) < edge_cutoff && continue
-                _fill!(edge, iedge, icell)
-                fac = celledgefactors[iedge, icell]
-                @views UKL[1:nspecies] .= U[:, edge.node[1]]
-                @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
-                res .= zero(Tv)
-                @views F(rhs(edge, res), unknowns(edge,UKL), edgeparams...)
-                function asm_res(idofK, idofL, ispec)
-                    integral[ispec,edge.region] += fac*res[ispec]*dim
-                end
-                assemble_res(edge, system, asm_res)
-            end
-        end
     else
-        ne = num_edges(grid)
-        edgeregionfactors = system.assembly_data.edgefactors
-        edgeregions = rowvals(edgeregionfactors)
-        edgefactors = nonzeros(edgeregionfactors)
-        
         edge = Edge(system)
         edgeparams = (edge,)
         if isdata(data)
             edgeparams = (edge, data)
         end
-        geom = grid[CellGeometries][1]
         cellregions = grid[CellRegions]
         ncellregions = maximum(cellregions)
         integral = zeros(Tu, nspecies, ncellregions)
-        for iedge = 1:ne
-            for k in nzrange(edgeregionfactors, iedge)
-                _xfill!(edge, edgeregions[k], iedge)
+        for item in edgebatch(system.assembly_data)
+            for iedge in edgerange(system.assembly_data,item)
+                _fill!(edge,system.assembly_data,iedge,item) 
                 @views UKL[1:nspecies] .= U[:, edge.node[1]]
                 @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
                 res .= zero(Tv)
-                fac=edgefactors[k]
                 @views F(rhs(edge, res), unknowns(edge,UKL), edgeparams...)
                 function asm_res(idofK, idofL, ispec)
-                    integral[ispec,edge.region] += fac*res[ispec]*dim
+                    integral[ispec,edge.region] += edge.fac*res[ispec]*dim
                 end
                 assemble_res(edge, system, asm_res)
             end
@@ -275,74 +174,37 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
     cellnodes = grid[CellNodes]
     physics = system.physics
     edge = Edge(system)
+    node = Node(system)
 
     
     # !!! TODO Parameter handling here
     UKL = Array{Tu, 1}(undef, 2 * nspecies)
     flux_eval = ResEvaluator(system.physics, :flux, UKL, edge, nspecies)
 
-    geom = grid[CellGeometries][1]
-
-    @inline function asm_edge(edge,fac)
-        K = edge.node[1]
-        L = edge.node[2]
-        @views UKL[1:nspecies] .= U[:, edge.node[1]]
-        @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
-        evaluate!(flux_eval, UKL)
-        edgeflux = res(flux_eval)
-        
-        # !!! asm_res                                                                              
-        # for ispec=1:nspecies                                                                       
-        #     if isdof(system, ispec,K) && isdof(system, ispec,L)                                    
-        #         @views nodeflux[:,ispec,K].+=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,K]) 
-        #         @views nodeflux[:,ispec,L].-=fac*edgeflux[ispec]*(xsigma[:,edge.index]-coord[:,L]) 
-        #     end
-        # end
-        
-        function asm_res(idofK, idfoL, ispec)
-            @views nodeflux[:, ispec, K] .+= fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, K])
-            @views nodeflux[:, ispec, L] .-= fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, L])
+    for item in edgebatch(system.assembly_data)
+        for iedge in edgerange(system.assembly_data,item)
+            _fill!(edge,system.assembly_data,iedge,item) 
+            K = edge.node[1]
+            L = edge.node[2]
+            @views UKL[1:nspecies] .= U[:, edge.node[1]]
+            @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
+            evaluate!(flux_eval, UKL)
+            edgeflux = res(flux_eval)
+            function asm_res(idofK, idfoL, ispec)
+                @views nodeflux[:, ispec, K] .+= edge.fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, K])
+                @views nodeflux[:, ispec, L] .-= edge.fac * edgeflux[ispec] * (xsigma[:, edge.index] - coord[:, L])
+            end
+            assemble_res(edge, system, asm_res)
         end
-        
-        assemble_res(edge, system, asm_res)
     end
     
-    if system.assembly_type==:cellwise
-        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-        celledgefactors::Array{Tv, 2} = system.assembly_data.celledgefactors
-        for icell = 1:num_cells(grid)
-
-            for iedge = 1:num_edges(geom)
-                _fill!(edge, iedge, icell)
-                asm_edge(edge,celledgefactors[iedge, icell])
-            end
-            
-            for inode = 1:num_nodes(geom)
-                nodevol[cellnodes[inode, icell]] += cellnodefactors[inode, icell]
-            end
-        end
-    else
-        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
-        noderegions::Array{Int,1} = rowvals(noderegionfactors)
-        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
-        
-        for inode = 1:num_nodes(grid)
-            for k in nzrange(noderegionfactors, inode)
-                nodevol[inode] += nodefactors[k]
-            end
-        end
-        
-        edgeregionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.edgefactors
-        edgeregions::Array{Int,1}  = rowvals(edgeregionfactors)
-        edgefactors::Array{Tv,1} = nonzeros(edgeregionfactors)
-        for iedge = 1:num_edges(grid)
-            for k in nzrange(edgeregionfactors, iedge)
-                _xfill!(edge, edgeregions[k], iedge)
-                asm_edge(edge,edgefactors[k])
-            end
+    for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)        
+            nodevol[node.index] += node.fac
         end
     end
-
+    
     for inode = 1:nnodes
         @views nodeflux[:, :, inode] /= nodevol[inode]
     end

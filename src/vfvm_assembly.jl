@@ -98,12 +98,10 @@ function eval_and_assemble(
     flux_evaluator = ResJacEvaluator(physics, :flux, UKL, edge, nspecies)
     erea_evaluator = ResJacEvaluator(physics, :edgereaction, UKL, edge, nspecies)
 
-
-    ncalloc = @allocated for icell in noderange(system.assembly_data)
-        for inode in noderange(system.assembly_data,icell)
-            _fill!(node,system.assembly_data,inode,icell)
-            fac=node.fac
-                        @views UK[1:nspecies] .= U[:, node.index]
+    ncalloc=@allocated for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)
+            @views UK[1:nspecies] .= U[:, node.index]
             @views UKOld[1:nspecies] .= UOld[:, node.index]
 
             evaluate!(src_evaluator)
@@ -124,7 +122,7 @@ function eval_and_assemble(
                 _add(
                     F,
                     idof,
-                    fac * (
+                    node.fac * (
                         res_react[ispec] - src[ispec] +
                         (res_stor[ispec] - oldstor[ispec]) * tstepinv
                     ),
@@ -137,25 +135,24 @@ function eval_and_assemble(
                     idof,
                     jdof,
                     jac_react[ispec, jspec] + jac_stor[ispec, jspec] * tstepinv,
-                    fac,
+                    node.fac,
                 )
             end
 
             @inline function asm_param(idof, ispec, iparam)
                 jparam = nspecies + iparam
                 dudp[iparam][ispec, idof] +=
-                    (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) * fac
+                    (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) * node.fac
             end
 
             assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
-
         end
     end
     
-    ncalloc += @allocated for icell in edgerange(system.assembly_data)
-        for iedge in edgerange(system.assembly_data,icell)
-            _fill!(edge,system.assembly_data,iedge,icell) 
-            fac=edge.fac
+    ncalloc += @allocated for item in edgebatch(system.assembly_data)
+        for iedge in edgerange(system.assembly_data,item)
+            _fill!(edge,system.assembly_data,iedge,item) 
+
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
             @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
             
@@ -164,22 +161,22 @@ function eval_and_assemble(
             jac_flux = jac(flux_evaluator)
             
             @inline function asm_res(idofK, idofL, ispec)
-                val = fac * res_flux[ispec]
+                val = edge.fac * res_flux[ispec]
                 _add(F, idofK, val)
                 _add(F, idofL, -val)
             end
             
             @inline function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], fac)
-                _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], fac)
-                _addnz(system.matrix, idofK, jdofL, +jac_flux[ispec, jspec+nspecies], fac)
-                _addnz(system.matrix, idofL, jdofL, -jac_flux[ispec, jspec+nspecies], fac)
+                _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], edge.fac)
+                _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], edge.fac)
+                _addnz(system.matrix, idofK, jdofL, +jac_flux[ispec, jspec+nspecies], edge.fac)
+                _addnz(system.matrix, idofL, jdofL, -jac_flux[ispec, jspec+nspecies], edge.fac)
             end
             
             @inline function asm_param(idofK, idofL, ispec, iparam)
                 jparam = 2 * nspecies + iparam
-                dudp[iparam][ispec, idofK] += fac * jac_flux[ispec, jparam]
-                dudp[iparam][ispec, idofL] -= fac * jac_flux[ispec, jparam]
+                dudp[iparam][ispec, idofK] += edge.fac * jac_flux[ispec, jparam]
+                dudp[iparam][ispec, idofL] -= edge.fac * jac_flux[ispec, jparam]
             end
             
             assemble_res_jac(edge, system, asm_res, asm_jac, asm_param)
@@ -190,34 +187,34 @@ function eval_and_assemble(
                 jac_erea = jac(erea_evaluator)
                 
                 @inline function ereaasm_res(idofK, idofL, ispec)
-                    val = fac * res_erea[ispec]
+                    val = edge.fac * res_erea[ispec]
                     _add(F, idofK, val)
                     _add(F, idofL, val)
                 end
                 
                 @inline function ereaasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                    _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], fac)
-                    _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], fac)
+                    _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], edge.fac)
+                    _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], edge.fac)
                     _addnz(
                         system.matrix,
                         idofK,
                         jdofL,
                         -jac_erea[ispec, jspec+nspecies],
-                        fac,
+                        edge.fac,
                     )
                     _addnz(
                         system.matrix,
                         idofL,
                         jdofL,
                         +jac_erea[ispec, jspec+nspecies],
-                        fac,
+                        edge.fac,
                     )
                 end
                 
                 @inline function ereaasm_param(idofK, idofL, ispec, iparam)
                     jparam = 2 * nspecies + iparam
-                    dudp[iparam][ispec, idofK] += fac * jac_erea[ispec, jparam]
-                    dudp[iparam][ispec, idofL] += fac * jac_erea[ispec, jparam]
+                    dudp[iparam][ispec, idofK] += edge.fac * jac_erea[ispec, jparam]
+                    dudp[iparam][ispec, idofL] += edge.fac * jac_erea[ispec, jparam]
                 end
                 
                 assemble_res_jac(edge, system, ereaasm_res, ereaasm_jac, ereaasm_param)

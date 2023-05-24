@@ -114,39 +114,19 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
 
     # Interior cell loop for building up storage derivative
     # Evaluate & differentiate storage term at U0
-    @inline function asm_node(node,fac)
-        evaluate!(stor_eval, UK)
-        jac_stor = jac(stor_eval)
-        
-        # Sort it into storderiv matrix.
-        K = node.index
-        function asm_jac(idof, jdof, ispec, jspec)
-                updateindex!(storderiv, +, jac_stor[ispec, jspec] * fac, idof, jdof)
+    for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)
+            evaluate!(stor_eval, UK)
+            jac_stor = jac(stor_eval)
+            # Sort it into storderiv matrix.
+            function asm_jac(idof, jdof, ispec, jspec)
+                updateindex!(storderiv, +, jac_stor[ispec, jspec] * node.fac, idof, jdof)
+            end
+            assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
         end
-        assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
     end
     
-    if system.assembly_type==:cellwise
-        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-        for icell = 1:num_cells(grid)
-            for inode = 1:num_nodes(geom)
-                _fill!(node, inode, icell)
-                asm_node(node,cellnodefactors[inode, icell])
-            end
-        end
-    else
-        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
-        noderegions::Array{Int,1} = rowvals(noderegionfactors)
-        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
-        
-        for inode = 1:num_nodes(grid)
-            for k in nzrange(noderegionfactors, inode)
-                _xfill!(node, noderegions[k], inode)
-                asm_node(node,nodefactors[k])
-            end
-        end
-    end
-
 
     bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
 
