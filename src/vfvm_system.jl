@@ -1191,10 +1191,6 @@ function Base.map!(inifunc::TF,
     grid = system.grid
     node = Node(system, 0, 0, Tv[])
     nspecies::Int = num_species(system)
-    cellregions::Vector{Ti} = grid[CellRegions]
-    ncells = num_cells(grid)
-    geom = grid[CellGeometries][1]
-    nn::Int = num_nodes(geom)
     UK = Array{Tu, 1}(undef, nspecies)
 
     for item in nodebatch(system.assembly_data)
