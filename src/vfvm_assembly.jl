@@ -222,12 +222,10 @@ function eval_and_assemble(
         end
     end
 
-    bnode = BNode(system, time, λ, params)
+    bnode = BNode(system, time, λ, params)   
     bedge = BEdge(system, time, λ, params)
 
 
-    bfacenodefactors::Array{Tv,2} = system.bfacenodefactors
-    bfaceedgefactors::Array{Tv,2} = system.bfaceedgefactors
     boundary_factors::Array{Tv,2} = system.boundary_factors
     boundary_values::Array{Tv,2} = system.boundary_values
     has_legacy_bc = !iszero(boundary_factors) || !iszero(boundary_values)
@@ -238,31 +236,15 @@ function eval_and_assemble(
     oldbstor_evaluator = ResEvaluator(physics, :bstorage, UK, bnode, nspecies)
     bflux_evaluator = ResJacEvaluator(physics, :bflux, UKL, bedge, nspecies)
 
-    
-    bfaceregions::Vector{Ti} = grid[BFaceRegions]
-    nbfaces = num_bfaces(grid)
-    bgeom = grid[BFaceGeometries][1]
 
-    nbn::Int = num_nodes(bgeom)
-    nbe::Int = num_edges(bgeom)
-
-    # Assembly loop for boundary conditions
-    nballoc = @allocated for ibface = 1:nbfaces
-
-        ibreg = bfaceregions[ibface]
-
-        # Loop over nodes of boundary face
-        for ibnode = 1:nbn
-            # Fill bnode data shuttle with data from grid
-            _fill!(bnode, ibnode, ibface)
-
-            # Measure of boundary face part assembled to node
-            bnode_factor::Tv = bfacenodefactors[ibnode, ibface]
+    nballoc=@allocated for item in nodebatch(system.boundary_assembly_data)
+        for ibnode in noderange(system.boundary_assembly_data,item)
+            _fill!(bnode,system.boundary_assembly_data,ibnode,item)
 
             if has_legacy_bc
                 # Global index of node
                 K = bnode.index
-                bnode.Dirichlet = Dirichlet / bnode_factor
+                bnode.Dirichlet = Dirichlet / bnode.fac
                 # Assemble "standard" boundary conditions: Robin or
                 # Dirichlet
                 # valid only for interior species, currently not checked
@@ -271,8 +253,8 @@ function eval_and_assemble(
                     # If species is present, assemble the boundary condition
                     if idof > 0
                         # Get user specified data
-                        boundary_factor = boundary_factors[ispec, ibreg]
-                        boundary_value = boundary_values[ispec, ibreg]
+                        boundary_factor = boundary_factors[ispec, bnode.region]
+                        boundary_value = boundary_values[ispec,  bnode.region]
 
                         if boundary_factor == Dirichlet
                             # Dirichlet is encoded in the boundary condition factor
@@ -287,13 +269,13 @@ function eval_and_assemble(
                         else
                             # Robin boundary condition
                             F[ispec, K] +=
-                                bnode_factor *
+                                bnode.fac *
                                 (boundary_factor * U[ispec, K] - boundary_value)
-                            _addnz(system.matrix, idof, idof, boundary_factor, bnode_factor)
+                            _addnz(system.matrix, idof, idof, boundary_factor, bnode.fac)
                         end
                     end
                 end
-            end
+            end # legacy bc
 
             # Copy unknown values from solution into dense array
             @views UK[1:nspecies] .= U[:, bnode.index]
@@ -306,19 +288,19 @@ function eval_and_assemble(
             jac_breact = jac(brea_evaluator)
 
             asm_res1(idof, ispec) =
-                _add(F, idof, bnode_factor * (res_breact[ispec] - bsrc[ispec]))
+                _add(F, idof, bnode.fac * (res_breact[ispec] - bsrc[ispec]))
 
             asm_jac1(idof, jdof, ispec, jspec) = _addnz(
                 system.matrix,
                 idof,
                 jdof,
                 jac_breact[ispec, jspec],
-                bnode_factor,
+                bnode.fac,
             )
 
             asm_param1(idof, ispec, iparam) =
                 dudp[iparam][ispec, idof] +=
-                    jac_breact[ispec, nspecies+iparam] * bnode_factor
+                    jac_breact[ispec, nspecies+iparam] * bnode.fac
 
             assemble_res_jac(bnode, system, asm_res1, asm_jac1, asm_param1)
 
@@ -334,7 +316,7 @@ function eval_and_assemble(
                 asm_res2(idof, ispec) = _add(
                     F,
                     idof,
-                    bnode_factor * (res_bstor[ispec] - oldbstor[ispec]) * tstepinv,
+                    bnode.fac * (res_bstor[ispec] - oldbstor[ispec]) * tstepinv,
                 )
 
                 function asm_jac2(idof, jdof, ispec, jspec)
@@ -343,25 +325,24 @@ function eval_and_assemble(
                         idof,
                         jdof,
                         jac_bstor[ispec, jspec],
-                        bnode_factor * tstepinv,
+                        bnode.fac * tstepinv,
                     )
                 end
 
                 function asm_param2(idof, ispec, iparam)
                     dudp[iparam][ispec, idof] +=
-                        jac_bstor[ispec, nspecies+iparam] * bnode_factor * tstepinv
+                        jac_bstor[ispec, nspecies+iparam] * bnode.fac * tstepinv
                 end
 
                 assemble_res_jac(bnode, system, asm_res2, asm_jac2, asm_param2)
             end
         end # ibnode=1:nbn
-
-        if isnontrivial(bflux_evaluator)
-            for ibedge = 1:nbe
-                fac = bfaceedgefactors[ibedge, ibface]
-                #if abs(fac) < edge_cutoff    continue    end
-
-                _fill!(bedge, ibedge, ibface)
+    end
+    
+    if isnontrivial(bflux_evaluator)
+        nballoc+=@allocated  for item in edgebatch(system.boundary_assembly_data)
+            for ibedge in edgerange(system.boundary_assembly_data,item)
+                _fill!(bedge,system.boundary_assembly_data,ibedge,item) 
                 @views UKL[1:nspecies] .= U[:, bedge.node[1]]
                 @views UKL[(nspecies+1):(2*nspecies)] .= U[:, bedge.node[2]]
 
@@ -370,38 +351,39 @@ function eval_and_assemble(
                 jac_bflux = jac(bflux_evaluator)
 
                 function asm_res(idofK, idofL, ispec)
-                    _add(F, idofK, fac * res_bflux[ispec])
-                    _add(F, idofL, -fac * res_bflux[ispec])
+                    _add(F, idofK, bedge.fac * res_bflux[ispec])
+                    _add(F, idofL, -bedge.fac * res_bflux[ispec])
                 end
 
                 function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                    _addnz(system.matrix, idofK, jdofK, +jac_bflux[ispec, jspec], fac)
-                    _addnz(system.matrix, idofL, jdofK, -jac_bflux[ispec, jspec], fac)
+                    _addnz(system.matrix, idofK, jdofK, +jac_bflux[ispec, jspec], bedge.fac)
+                    _addnz(system.matrix, idofL, jdofK, -jac_bflux[ispec, jspec], bedge.fac)
                     _addnz(
                         system.matrix,
                         idofK,
                         jdofL,
                         +jac_bflux[ispec, jspec+nspecies],
-                        fac,
+                        bedge.fac,
                     )
                     _addnz(
                         system.matrix,
                         idofL,
                         jdofL,
                         -jac_bflux[ispec, jspec+nspecies],
-                        fac,
+                        bedge.fac,
                     )
                 end
-
+                
                 function asm_param(idofK, idofL, ispec, iparam)
                     jparam = 2 * nspecies + iparam
-                    dudp[iparam][ispec, idofK] += fac * jac_bflux[ispec, jparam]
-                    dudp[iparam][ispec, idofL] -= fac * jac_bflux[ispec, jparam]
+                    dudp[iparam][ispec, idofK] += bedge.fac * jac_bflux[ispec, jparam]
+                    dudp[iparam][ispec, idofL] -= bedge.fac * jac_bflux[ispec, jparam]
                 end
                 assemble_res_jac(bedge, system, asm_res, asm_jac, asm_param)
             end
         end
     end
+
     noallocs(m::ExtendableSparseMatrix) = isnothing(m.lnkmatrix)
     noallocs(m::AbstractMatrix) = false
     # if  no new matrix entries have been created, we should see no allocations

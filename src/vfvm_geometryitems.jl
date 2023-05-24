@@ -248,6 +248,8 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
 
     dirichlet_value::Vector{Tv}
 
+    fac::Float64
+    
     function BNode{Tv, Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam,
                                    params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(0, 0, 0, 0, zeros(Ti, 2),
@@ -258,31 +260,13 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
             sys.grid[CellRegions],
             sys.grid[BFaceCells],
             Dirichlet, time, embedparam, params,
-            zeros(Tv, num_species(sys)))
+            zeros(Tv, num_species(sys)),0.0)
     end
 end
 function BNode(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
     BNode{Tv, Tc, Tp, Ti}(sys, time, embedparam, params)
 end
 BNode(sys) = BNode(sys, 0, 0, zeros(0))
-
-@inline function _fill0!(node::BNode, ibnode, ibface)
-    node.ibface = ibface
-    node.ibnode = ibnode
-    node.region = node.bfaceregions[ibface]
-    node.index = node.bfacenodes[ibnode, ibface]
-    nothing
-end
-
-@inline function _fill!(node::BNode, ibnode, ibface)
-    _fill0!(node, ibnode, ibface)
-    node.cellregions[1] = 0
-    node.cellregions[2] = 0
-    for i = 1:num_targets(node.bfacecells, ibface)
-        icell = node.bfacecells[i, ibface]
-        node.cellregions[i] = node.allcellregions[icell]
-    end
-end
 
 
 struct BNodeUnknowns{Tval, Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
@@ -483,6 +467,7 @@ mutable struct BEdge{Tc, Tp, Ti} <: AbstractEdge{Tc, Tp, Ti}
 
     params::Vector{Tp}
 
+    fac::Float64
     BEdge{Tc, Tp, Ti}(::Nothing) where {Tc, Tp, Ti} = new()
 end
 
@@ -504,18 +489,8 @@ function BEdge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Ve
     bedge.time = time
     bedge.embedparam = embedparam
     bedge.params = params
+    bedge.fac=0.0
     bedge
-end
-
-@inline function _fill!(bedge::BEdge, ibedge, ibface)
-    bedge.index = bedge.bfaceedges[ibedge, ibface]
-    bedge.node[1] = bedge.bedgenodes[1, bedge.index]
-    bedge.node[2] = bedge.bedgenodes[2, bedge.index]
-
-    bedge.region = bedge.bfaceregions[ibface]
-    bedge.icell = ibface
-
-    nothing
 end
 
 

@@ -95,15 +95,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     assembly_data::AbstractAssemblyData{Tv,Ti}
 
-    """
-    Precomputed geometry factors for boundary nodes
-    """
-    bfacenodefactors::Array{Tv, 2}
-
-    """
-    Precomputed geometry factors for boundary edges
-    """
-    bfaceedgefactors::Array{Tv, 2}
+    boundary_assembly_data::AbstractAssemblyData{Tv,Ti}
     
     """
     :edgewise or :cellwise
@@ -656,9 +648,7 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     cellwise_factors!(csys)
 
     system.assembly_data=CellWiseAssemblyData(cellnodefactors, celledgefactors, grid[CellRegions])
-    system.bfacenodefactors=bfacenodefactors
-    system.bfaceedgefactors=bfaceedgefactors
-    
+    system.boundary_assembly_data=CellWiseAssemblyData(bfacenodefactors, bfaceedgefactors, grid[BFaceRegions])
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -715,9 +705,7 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     edgewise_factors!(csys)
     
     system.assembly_data=EdgeWiseAssemblyData(SparseMatrixCSC(cnf),SparseMatrixCSC(cef))
-    system.bfacenodefactors=bfacenodefactors
-    system.bfaceedgefactors=bfaceedgefactors
-    
+    system.boundary_assembly_data=CellWiseAssemblyData(bfacenodefactors, bfaceedgefactors, grid[BFaceRegions])
 end
 
 
@@ -991,8 +979,8 @@ num_species(a::AbstractArray) = size(a, 1)
 #
 function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc, Ti, Tm}; time = 0.0, λ = 0.0,
                                 params::Vector{Tp} = Float64[]) where {Tv, Tp, Tc, Ti, Tm}
-    _bfaceregions = bfaceregions(system.grid)
-    _bfacenodes = bfacenodes(system.grid)
+
+    _complete!(system, create_newtonvectors=true)
     nspecies = num_species(system)
 
     # set up bnode
@@ -1014,29 +1002,25 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
     y = rhs(bnode, zeros(Tv, num_species(system)))
 
     # loop over all boundary faces
-    for ibface = 1:num_bfaces(system.grid)
-        ibreg = _bfaceregions[ibface]
-
-        # loop over all nodes of boundary face        
-        for inode = 1:dim_grid(system.grid)
-            # Set Diichlet values to uninitialized
-            _fill!(bnode, inode, ibface)
+    for item in nodebatch(system.boundary_assembly_data)
+        for ibnode in noderange(system.boundary_assembly_data,item)
+            _fill!(bnode,system.boundary_assembly_data,ibnode,item)
+            
             bnode.dirichlet_value .= Inf
-            jnode = _bfacenodes[inode, ibface]
             # set up solution vector, call boundary reaction
-            @views UK[1:nspecies] .= U[:, jnode]
+            @views UK[1:nspecies] .= U[:, bnode.index]
             system.physics.breaction(y, u, bnodeparams...)
 
             # Check for Dirichlet bc
             for ispec = 1:nspecies
                 # Dirichlet bc given in breaction
                 if !isinf(bnode.dirichlet_value[ispec])
-                    U[ispec, jnode] = bnode.dirichlet_value[ispec]
+                    U[ispec, bnode.index] = bnode.dirichlet_value[ispec]
                 end
 
                 # Dirichlet bc given after system creation (old API)
-                if system.boundary_factors[ispec, ibreg] ≈ Dirichlet
-                    U[ispec, jnode] = system.boundary_values[ispec, ibreg]
+                if system.boundary_factors[ispec, bnode.region] ≈ Dirichlet
+                    U[ispec, bnode.index] = system.boundary_values[ispec, bnode.region]
                 end
             end
         end

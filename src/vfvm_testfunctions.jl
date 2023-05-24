@@ -211,9 +211,6 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     UK = Array{Tu, 1}(undef, nspecies)
     geom = grid[CellGeometries][1]
 
-    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.bfaceedgefactors
-
     
     src_eval = ResEvaluator(physics, :source, UK, node, nspecies)
     rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies)

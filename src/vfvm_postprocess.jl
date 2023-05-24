@@ -21,9 +21,6 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
 
-    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.bfaceedgefactors
-
     if boundary
         bnode = BNode(system)
         bnodeparams = (bnode,)
@@ -33,25 +30,16 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
         #!!!        bnode.time=time
         #!!!        bnode.embedparam=embedparam
 
-        geom = grid[BFaceGeometries][1]
         bfaceregions = grid[BFaceRegions]
         nbfaceregions = maximum(bfaceregions)
         integral = zeros(Tu, nspecies, nbfaceregions)
 
-        for ibface = 1:num_bfaces(grid)
-            for inode = 1:num_nodes(geom)
-                _fill!(bnode, inode, ibface)
+        for item in nodebatch(system.boundary_assembly_data)
+            for ibnode in noderange(system.boundary_assembly_data,item)
+                _fill!(bnode,system.boundary_assembly_data,ibnode,item)
                 res .= zero(Tv)
                 @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnodeparams...)
-
-                # asm_res                                                                                   
-                # for ispec=1:nspecies                                                                        
-                #     if isdof(system, ispec, bnode.index)                                                    
-                #         integral[ispec,bnode.region]+=system.bfacenodefactors[inode,ibface]*res[ispec]                      
-                #     end                                                                                     
-                # end                                                                                         
-
-                asm_res(idof, ispec) = integral[ispec, bnode.region] += bfacenodefactors[inode, ibface] * res[ispec]
+                asm_res(idof, ispec) = integral[ispec, bnode.region] += bnode.fac * res[ispec]
                 assemble_res(bnode, system, asm_res)
             end
         end
@@ -66,8 +54,6 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
         cellregions = grid[CellRegions]
         ncellregions = maximum(cellregions)
         integral = zeros(Tu, nspecies, ncellregions)
-        
-        
         for item in nodebatch(system.assembly_data)
             for inode in noderange(system.assembly_data,item)
                 _fill!(node,system.assembly_data,inode,item)
@@ -99,9 +85,6 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
     nparams = system.num_parameters
 
     UKL = Array{Tv, 1}(undef, 2 * nspecies + nparams)
-
-    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
-    bfaceedgefactors::Array{Tv, 2} = system.bfaceedgefactors
 
     if boundary
         error("missing implementation of boundary edge integrals")

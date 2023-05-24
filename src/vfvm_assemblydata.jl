@@ -13,9 +13,9 @@ struct CellWiseAssemblyData{Tv,Ti} <: AbstractAssemblyData{Tv,Ti}
     edgefactors::Array{Tv,2}
 
     """
-    Cell regions
+    Regions
     """
-    cellregions::Array{Ti,1}
+    regions::Array{Ti,1}
 end
 
 
@@ -67,6 +67,28 @@ function _fill!(
     node.icell = icell
 end
 
+
+
+function _fill!(
+    node::BNode,
+    asmdata::CellWiseAssemblyData{Tv,Ti},
+    ibnode,
+    ibface,
+) where {Tv,Ti}
+    node.ibface = ibface
+    node.ibnode = ibnode
+    node.region = node.bfaceregions[ibface]
+    node.index = node.bfacenodes[ibnode, ibface]
+    node.cellregions[1] = 0
+    node.cellregions[2] = 0
+    for i = 1:num_targets(node.bfacecells, ibface)
+        icell = node.bfacecells[i, ibface]
+        node.cellregions[i] = node.allcellregions[icell]
+    end
+    node.fac = asmdata.nodefactors[ibnode, ibface]
+end
+
+
 function _fill!(
     edge::Edge,
     asmdata::CellWiseAssemblyData{Tv,Ti},
@@ -89,6 +111,22 @@ function _fill!(
     edge.region = edge.cellregions[icell]
     edge.fac = asmdata.edgefactors[iedge, icell]
     edge.icell = icell
+end
+
+
+
+function _fill!(
+    bedge::BEdge,
+    asmdata::CellWiseAssemblyData{Tv,Ti},
+    ibedge,
+    ibface,
+) where {Tv,Ti}
+    bedge.index = bedge.bfaceedges[ibedge, ibface]
+    bedge.node[1] = bedge.bedgenodes[1, bedge.index]
+    bedge.node[2] = bedge.bedgenodes[2, bedge.index]
+    bedge.region = bedge.bfaceregions[ibface]
+    bedge.icell = ibface
+    bedge.fac = asmdata.edgefactors[ibedge, ibface]
 end
 
 
