@@ -1188,6 +1188,7 @@ function Base.map!(inifunc::TF,
                    U::AbstractMatrix{Tu},
                    system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tu, Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF}
     isunknownsof(U, system) || error("U is not unknowns of system")
+    _complete!(system)
     grid = system.grid
     node = Node(system, 0, 0, Tv[])
     nspecies::Int = num_species(system)
