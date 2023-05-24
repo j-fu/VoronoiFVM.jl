@@ -1197,10 +1197,9 @@ function Base.map!(inifunc::TF,
     nn::Int = num_nodes(geom)
     UK = Array{Tu, 1}(undef, nspecies)
 
-    for icell = 1:ncells
-        ireg = cellregions[icell]
-        for inode = 1:nn
-            _fill!(node, inode, icell)
+    for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)
             @views UK .= U[:, node.index]
             inifunc(unknowns(node, UK), node)
             K = node.index

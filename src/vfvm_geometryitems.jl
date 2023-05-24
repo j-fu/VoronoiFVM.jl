@@ -154,21 +154,6 @@ end
 
 Node(sys) = Node(sys, 0, 0, zeros(0))
 
-@inline function _fill!(node::Node, inode, icell)
-    node.region = node.cellregions[icell]
-    node.index = node.cellnodes[inode, icell]
-    node.icell = icell
-    nothing
-end
-
-@inline function _xfill!(node::Node, iregion, inode)
-    node.region = iregion
-    node.index = inode
-    node.icell = 0
-    nothing
-end
-
-
 
 """
     $(TYPEDEF)
@@ -418,39 +403,6 @@ function Edge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
     edge.fac=0
     edge._idx=0
     edge
-end
-
-@inline function _fill!(edge::Edge, iedge, icell)
-    if edge.has_celledges #  cellx==celledges, edgenodes==global_edgenodes
-        # If we work with projections of fluxes onto edges,
-        # we need to ensure that the edges are accessed with the
-        # same orientation without regard of the orientation induced
-        # by local cell numbering
-        edge.index = edge.cellx[iedge, icell]
-        edge.node[1] = edge.edgenodes[1, edge.index]
-        edge.node[2] = edge.edgenodes[2, edge.index]
-    else # cx==cellnodes, edgenodes== local_edgenodes
-        edge.index = 0
-        edge.node[1] = edge.cellx[edge.edgenodes[1, iedge], icell]
-        edge.node[2] = edge.cellx[edge.edgenodes[2, iedge], icell]
-    end
-    edge.region = edge.cellregions[icell]
-    edge.icell = icell
-    nothing
-end
-
-@inline function _xfill!(edge::Edge, iregion,iedge)
-    #  cellx==celledges, edgenodes==global_edgenodes
-    # If we work with projections of fluxes onto edges,
-    # we need to ensure that the edges are accessed with the
-    # same orientation without regard of the orientation induced
-    # by local cell numbering
-    edge.index = iedge
-    edge.node[1] = edge.edgenodes[1, edge.index]
-    edge.node[2] = edge.edgenodes[2, edge.index]
-    edge.region = iregion
-    edge.icell = 0
-    nothing
 end
 
 

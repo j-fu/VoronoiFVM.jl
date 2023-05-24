@@ -61,8 +61,10 @@ function _fill!(
     inode,
     icell,
 ) where {Tv,Ti}
+    node.index = node.cellnodes[inode, icell]
+    node.region = node.cellregions[icell]
     node.fac = asmdata.nodefactors[inode, icell]
-    _fill!(node, inode, icell)
+    node.icell = icell
 end
 
 function _fill!(
@@ -71,21 +73,36 @@ function _fill!(
     iedge,
     icell,
 ) where {Tv,Ti}
+    if edge.has_celledges #  cellx==celledges, edgenodes==global_edgenodes
+        # If we work with projections of fluxes onto edges,
+        # we need to ensure that the edges are accessed with the
+        # same orientation without regard of the orientation induced
+        # by local cell numbering
+        edge.index = edge.cellx[iedge, icell]
+        edge.node[1] = edge.edgenodes[1, edge.index]
+        edge.node[2] = edge.edgenodes[2, edge.index]
+    else # cx==cellnodes, edgenodes== local_edgenodes
+        edge.index = 0
+        edge.node[1] = edge.cellx[edge.edgenodes[1, iedge], icell]
+        edge.node[2] = edge.cellx[edge.edgenodes[2, iedge], icell]
+    end
+    edge.region = edge.cellregions[icell]
     edge.fac = asmdata.edgefactors[iedge, icell]
-    _fill!(edge, iedge, icell)
+    edge.icell = icell
 end
 
 
-
-
-
 function _fill!(node::Node, asmdata::EdgeWiseAssemblyData{Tv,Ti}, k, inode) where {Tv,Ti}
-    _xfill!(node, asmdata.nodefactors.rowval[k], inode)
+    node.index = inode
+    node.region = asmdata.nodefactors.rowval[k]
     node.fac = asmdata.nodefactors.nzval[k]
 end
 
 function _fill!(edge::Edge, asmdata::EdgeWiseAssemblyData{Tv,Ti}, k, iedge) where {Tv,Ti}
-    _xfill!(edge, asmdata.edgefactors.rowval[k], iedge)
+    edge.index = iedge
+    edge.node[1] = edge.edgenodes[1, edge.index]
+    edge.node[2] = edge.edgenodes[2, edge.index]
+    edge.region = asmdata.edgefactors.rowval[k]
     edge.fac = asmdata.edgefactors.nzval[k]
 end
 
