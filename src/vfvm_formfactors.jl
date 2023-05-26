@@ -382,6 +382,11 @@ function edgevelocities(grid, velofunc)
     return velovec
 end
 
+"""
+$(SIGNATURES)
+
+Project velocity onto boundary face normals
+"""
 function bfacevelocities(grid, velofunc)
     @assert dim_space(grid) < 3
     bfacenodes = grid[BFaceNodes]

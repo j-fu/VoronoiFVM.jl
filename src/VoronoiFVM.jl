@@ -1,6 +1,4 @@
 """
-$(README)
-
 $(EXPORTS)
 """
 module VoronoiFVM
@@ -76,7 +74,6 @@ export boundary_neumann!
 export boundary_robin!
 export ramp
 export value
-export check_allocs!
 export physics!
 export history, history_summary, history_details
 export evaluate_residual_and_jacobian
@@ -91,7 +88,6 @@ export time, region, embedparam, parameters
 
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
-export Identity
 include("vfvm_linsolve.jl")
 export DirectSolver, GMRESIteration, CGIteration, BICGstabIteration, NoBlock, EquationBlock, PointBlock
 

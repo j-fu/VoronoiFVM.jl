@@ -561,11 +561,6 @@ struct VectorUnknowns{Tv} <: AbstractVector{Tv}
     offset::Int64
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Construct vector unknowns on edge.
-"""
 unknowns(edge::AbstractEdge, u::AbstractVector{Tv}, i) where {Tv} = VectorUnknowns{Tv}(u, edge.nspec, (i - 1) * (edge.nspec))
 Base.getindex(u::VectorUnknowns, i) = @inbounds u.val[u.offset + i]
 Base.size(u::VectorUnknowns) = (u.n,)

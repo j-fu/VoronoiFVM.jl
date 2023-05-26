@@ -31,6 +31,8 @@ VoronoiFVM.BlockStrategy
 NoBlock
 EquationBlock
 PointBlock
+Equationwise
+partitioning
 ```
 
 

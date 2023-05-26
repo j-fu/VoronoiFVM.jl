@@ -1,36 +1,82 @@
+"""
+    $(TYPEDEF)
+
+Assembly of residual and Jacobian comes in two flavors, cellwise and edgewise assembly loops, see [`VoronoiFVM.System(grid;kwargs...)`](@ref).
+The necessary data for assembly are held in structs which are subtypes of `AbstractAssemblyData`.
+"""
 abstract type AbstractAssemblyData{Tv,Ti} end
 
+"""
+    $(TYPEDEF)
+Data for cellwise assembly.
 
+
+$(TYPEDFIELDS)
+"""
 struct CellWiseAssemblyData{Tv,Ti} <: AbstractAssemblyData{Tv,Ti}
     """
-    Precomputed geometry factors for cell nodes
+        Precomputed geometry factors for cell nodes.
+        This is a `ncells x nnodes_per_cell` full matrix.
     """
     nodefactors::Array{Tv,2}
 
     """
-    Precomputed geometry factors for cell edges
+        Precomputed geometry factors for cell edges
+        This is a `ncells x nedge_per_cell` full matrix.
     """
     edgefactors::Array{Tv,2}
-
-    """
-    Regions
-    """
-    regions::Array{Ti,1}
 end
 
 
+"""
+    $(TYPEDEF)
+
+
+$(TYPEDFIELDS)
+"""
 struct EdgeWiseAssemblyData{Tv,Ti} <: AbstractAssemblyData{Tv,Ti}
     """
-        Precomputed geometry factors for cell nodes
+        Precomputed geometry factors for  nodes.
+        This is a `nnodes x nregions` sparse matrix.
     """
     nodefactors::SparseMatrixCSC{Tv,Ti}
 
     """
-    Precomputed geometry factors for cell edges
+    Precomputed geometry factors for  edges
+        This is a `nedges x nregions` sparse matrix.
     """
     edgefactors::SparseMatrixCSC{Tv,Ti}
-
 end
+
+"""
+    nodebatch(assemblydata)
+
+Outer range for node assembly loop. 
+"""
+function nodebatch end
+
+"""
+    noderange(assemblydata, i)
+
+Inner range for node assembly loop. 
+"""
+function noderange end
+
+"""
+    nodebatch(assemblydata)
+
+Outer range for edge assembly loop. 
+"""
+function edgebatch end
+
+"""
+    edgerange(assemblydata, i)
+
+Inner range for edge assembly loop. 
+"""
+function edgerange end
+
+
 
 
 nodebatch(asmdata::CellWiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
@@ -54,7 +100,11 @@ noderange(asmdata::CellWiseAssemblyData{Tv,Ti}, inode) where {Tv,Ti} =
 edgerange(asmdata::CellWiseAssemblyData{Tv,Ti}, iedge) where {Tv,Ti} =
     1:size(asmdata.edgefactors, 1)
 
+"""
+    $(SIGNATURES)
 
+Fill node with the help of assemblydata.
+"""
 function _fill!(
     node::Node,
     asmdata::CellWiseAssemblyData{Tv,Ti},
@@ -67,8 +117,11 @@ function _fill!(
     node.icell = icell
 end
 
+"""
+    $(SIGNATURES)
 
-
+Fill boundary node with the help of assemblydata.
+"""
 function _fill!(
     node::BNode,
     asmdata::CellWiseAssemblyData{Tv,Ti},
@@ -89,6 +142,11 @@ function _fill!(
 end
 
 
+"""
+    $(SIGNATURES)
+
+Fill edge with the help of assemblydata.
+"""
 function _fill!(
     edge::Edge,
     asmdata::CellWiseAssemblyData{Tv,Ti},
@@ -115,6 +173,11 @@ end
 
 
 
+"""
+    $(SIGNATURES)
+
+Fill boundary edge with the help of assemblydata.
+"""
 function _fill!(
     bedge::BEdge,
     asmdata::CellWiseAssemblyData{Tv,Ti},
@@ -130,12 +193,22 @@ function _fill!(
 end
 
 
+"""
+    $(SIGNATURES)
+
+Fill node with the help of assemblydata.
+"""
 function _fill!(node::Node, asmdata::EdgeWiseAssemblyData{Tv,Ti}, k, inode) where {Tv,Ti}
     node.index = inode
     node.region = asmdata.nodefactors.rowval[k]
     node.fac = asmdata.nodefactors.nzval[k]
 end
 
+"""
+    $(SIGNATURES)
+
+Fill edge with the help of assemblydata.
+"""
 function _fill!(edge::Edge, asmdata::EdgeWiseAssemblyData{Tv,Ti}, k, iedge) where {Tv,Ti}
     edge.index = iedge
     edge.node[1] = edge.edgenodes[1, edge.index]

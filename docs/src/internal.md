@@ -1,17 +1,9 @@
 # Internal API
 
 
-Besides of the interface methods for `VoronoiFVMDiffEq`, these are not exported and therefore should not be used outside of the package
+Besides of the interface methods for `VoronoiFVMDiffEq`, 
+these are not exported and therefore should not be used outside of the package
 
-## Interface methods for `VoronoiFVMDiffEq.jl`
-For VoronoiFVM v0.18, v0.19 we allow breaking changes on this part of the API in patch revisions.
-```@docs
-VoronoiFVM._eval_res_jac!
-eval_rhs!
-eval_jacobian!
-mass_matrix
-prepare_diffeq!
-```
 
 
 ## Wrapping evaluators for physics callbacks
@@ -31,27 +23,21 @@ VoronoiFVM.jac(e::VoronoiFVM.ResJacEvaluator)
 VoronoiFVM.isnontrivial
 ```
 
-## Degree of Freedom management
 
-
-
-We distinguish
-- active degrees of freedom: these are the actual degrees of freedom 
-- degrees of freedom (dof)  potential degrees of freedom - the may be active dofs or dummy ones
-  With sparse arrays there are no dummy ones, with dense arrays dummy are maske in the node_dof field
-- species: each degree of freedom has associated the species it represents and the node index where it is localized  
-
-
-
-
+## Global node and edge assembly loops
 ```@docs 
-VoronoiFVM.isnodepecies
-VoronoiFVM.isregionspecies
-VoronoiFVM.firstnodedof
-VoronoiFVM.lastnodedof
-VoronoiFVM.getspecies
-VoronoiFVM.getnodedof
+VoronoiFVM.AbstractAssemblyData
+VoronoiFVM.CellWiseAssemblyData
+VoronoiFVM.EdgeWiseAssemblyData
+VoronoiFVM.nodebatch
+VoronoiFVM.noderange
+VoronoiFVM.edgebatch
+VoronoiFVM.edgerange
+VoronoiFVM._fill!
 ```
+
+
+
 ## Local node and edge assembly loops
 
 Local assembly methods organize the assembly of data to those degrees of freedom (dofs) which are defined for a given node or edge.
@@ -68,12 +54,51 @@ VoronoiFVM.assemble_res
 ```
 
 
+## Degree of Freedom management
+
+
+
+We distinguish
+- active degrees of freedom: these are the actual degrees of freedom 
+- degrees of freedom (dof)  potential degrees of freedom - the may be active dofs or dummy ones
+  With sparse arrays there are no dummy ones, with dense arrays dummy are maske in the node_dof field
+- species: each degree of freedom has associated the species it represents and the node index where it is localized  
+
+
+
+
+```@docs 
+VoronoiFVM.isnodespecies
+VoronoiFVM.isregionspecies
+VoronoiFVM.firstnodedof
+VoronoiFVM.lastnodedof
+VoronoiFVM.getspecies
+VoronoiFVM.getnodedof
+```
+
+
+## Abstract geometry data
+```@docs
+VoronoiFVM.AbstractGeometryItem
+VoronoiFVM.AbstractNode
+VoronoiFVM.AbstractNodeData
+VoronoiFVM.AbstractEdge
+VoronoiFVM.AbstractEdgeData
+```
+
 ## Global assembly & helpers
 
 ```@docs 
 VoronoiFVM.eval_and_assemble
-VoronoiFVM._solve!
 VoronoiFVM._addnz
 VoronoiFVM._add
 ```
 
+## Interface methods for `VoronoiFVMDiffEq.jl`
+```@docs
+VoronoiFVM._eval_res_jac!
+eval_rhs!
+eval_jacobian!
+mass_matrix
+prepare_diffeq!
+```

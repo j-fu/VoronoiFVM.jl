@@ -15,6 +15,12 @@ cellnodes(grid::ExtendableGrid) = grid[CellNodes]
 bfacenodes(grid::ExtendableGrid) = grid[BFaceNodes]
 coordinates(grid::ExtendableGrid) = grid[Coordinates]
 
+
+"""
+   $(SIGNATURES)
+
+Set coordinate system in grid to cartesian.
+"""
 function cartesian!(grid::ExtendableGrid)
     if dim_space(grid) == 1
         grid[CoordinateSystem] = Cartesian1D
@@ -27,6 +33,11 @@ function cartesian!(grid::ExtendableGrid)
     return grid
 end
 
+"""
+   $(SIGNATURES)
+
+Set coordinate system in grid to circular/cylindrical symmetry.
+"""
 function circular_symmetric!(grid::ExtendableGrid)
     if dim_space(grid) == 1
         grid[CoordinateSystem] = Polar1D
@@ -38,6 +49,11 @@ function circular_symmetric!(grid::ExtendableGrid)
     return grid
 end
 
+"""
+   $(SIGNATURES)
+
+Set coordinate system in grid to spherical symmetry.
+"""
 function spherical_symmetric!(grid::ExtendableGrid)
     d = dim_space(grid)
     if d == 1

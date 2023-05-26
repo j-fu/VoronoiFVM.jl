@@ -179,8 +179,8 @@ Keyword arguments:
    `:cellwise` means that the outer loop goes over grid cells (triangles, tetrahedra), and contributions to
    edge fluxes and node reactions are calculated for each cell. As a consequence, e.g. im 2D for all interior
    edges, flux functions are callled twice, once for each adjacent cell. Especially in 3D, this becomes a significant
-   overhead, so with `:edgewise`, geometry factors of these edges are pre-assembled, and the outer assembly loops
-  go over all grid edges resp. nodes, still with separate calls if neigboring cells belong to different regions.
+   overhead. With `:edgewise`, geometry factors of these edges are pre-assembled, and the outer assembly loops
+   go over all grid edges resp. nodes, still with separate calls if neigboring cells belong to different regions.
 !!! note
     It is planned to make `:edgewise` the default in a later version.
 
@@ -1108,7 +1108,7 @@ $(SIGNATURES)
 Create a solution vector for system with elements of type `Tu`.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu, system; inival = undef, inifunc = nothing) end
+function unknowns(Tu::Type, system::AbstractSystem; inival = undef, inifunc = nothing) end
 
 function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = nothing)
     a0 = Array{Tu}(undef, num_dof(system))
@@ -1124,9 +1124,18 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     u
 end
 
+"""
+    $(TYPEDEF)
 
+Equationwise partitioning mode.
+"""
 struct Equationwise end
 
+"""
+    $(SIGNATURES)
+
+Calculate partitioning of system unknowns.
+"""
 function partitioning(system::DenseSystem;mode=Equationwise())
     len=length(system.node_dof)
     nspec=size(system.node_dof,1)
