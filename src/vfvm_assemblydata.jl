@@ -4,7 +4,7 @@
 Assembly of residual and Jacobian comes in two flavors, cellwise and edgewise assembly loops, see [`VoronoiFVM.System(grid;kwargs...)`](@ref).
 The necessary data for assembly are held in structs which are subtypes of `AbstractAssemblyData`.
 """
-abstract type AbstractAssemblyData{Tv,Ti} end
+abstract type AbstractAssemblyData{Tv, Ti} end
 
 """
     $(TYPEDEF)
@@ -13,7 +13,7 @@ Data for cellwise assembly.
 
 $(TYPEDFIELDS)
 """
-struct CellWiseAssemblyData{Tv,Ti} <: AbstractAssemblyData{Tv,Ti}
+struct CellwiseAssemblyData{Tv, Ti} <: AbstractAssemblyData{Tv, Ti}
     """
         Precomputed geometry factors for cell nodes.
         This is a `ncells x nnodes_per_cell` full matrix.
@@ -25,6 +25,7 @@ struct CellWiseAssemblyData{Tv,Ti} <: AbstractAssemblyData{Tv,Ti}
         This is a `ncells x nedge_per_cell` full matrix.
     """
     edgefactors::Array{Tv,2}
+
 end
 
 
@@ -34,7 +35,7 @@ end
 
 $(TYPEDFIELDS)
 """
-struct EdgeWiseAssemblyData{Tv,Ti} <: AbstractAssemblyData{Tv,Ti}
+struct EdgewiseAssemblyData{Tv,Ti} <: AbstractAssemblyData{Tv,Ti}
     """
         Precomputed geometry factors for  nodes.
         This is a `nnodes x nregions` sparse matrix.
@@ -79,25 +80,25 @@ function edgerange end
 
 
 
-nodebatch(asmdata::CellWiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
+nodebatch(asmdata::CellwiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
     1:size(asmdata.nodefactors, 2)
-edgebatch(asmdata::CellWiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
+edgebatch(asmdata::CellwiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
     1:size(asmdata.edgefactors, 2)
 
-nodebatch(asmdata::EdgeWiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
+nodebatch(asmdata::EdgewiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
     1:size(asmdata.nodefactors, 2)
-edgebatch(asmdata::EdgeWiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
+edgebatch(asmdata::EdgewiseAssemblyData{Tv,Ti}) where {Tv,Ti} =
     1:size(asmdata.edgefactors, 2)
 
 
-noderange(asmdata::EdgeWiseAssemblyData{Tv,Ti}, inode) where {Tv,Ti} =
+noderange(asmdata::EdgewiseAssemblyData{Tv,Ti}, inode) where {Tv,Ti} =
     nzrange(asmdata.nodefactors, inode)
-edgerange(asmdata::EdgeWiseAssemblyData{Tv,Ti}, iedge) where {Tv,Ti} =
+edgerange(asmdata::EdgewiseAssemblyData{Tv,Ti}, iedge) where {Tv,Ti} =
     nzrange(asmdata.edgefactors, iedge)
 
-noderange(asmdata::CellWiseAssemblyData{Tv,Ti}, inode) where {Tv,Ti} =
+noderange(asmdata::CellwiseAssemblyData{Tv,Ti}, inode) where {Tv,Ti} =
     1:size(asmdata.nodefactors, 1)
-edgerange(asmdata::CellWiseAssemblyData{Tv,Ti}, iedge) where {Tv,Ti} =
+edgerange(asmdata::CellwiseAssemblyData{Tv,Ti}, iedge) where {Tv,Ti} =
     1:size(asmdata.edgefactors, 1)
 
 """
@@ -107,7 +108,7 @@ Fill node with the help of assemblydata.
 """
 function _fill!(
     node::Node,
-    asmdata::CellWiseAssemblyData{Tv,Ti},
+    asmdata::CellwiseAssemblyData{Tv,Ti},
     inode,
     icell,
 ) where {Tv,Ti}
@@ -124,7 +125,7 @@ Fill boundary node with the help of assemblydata.
 """
 function _fill!(
     node::BNode,
-    asmdata::CellWiseAssemblyData{Tv,Ti},
+    asmdata::CellwiseAssemblyData{Tv,Ti},
     ibnode,
     ibface,
 ) where {Tv,Ti}
@@ -149,7 +150,7 @@ Fill edge with the help of assemblydata.
 """
 function _fill!(
     edge::Edge,
-    asmdata::CellWiseAssemblyData{Tv,Ti},
+    asmdata::CellwiseAssemblyData{Tv,Ti},
     iedge,
     icell,
 ) where {Tv,Ti}
@@ -180,7 +181,7 @@ Fill boundary edge with the help of assemblydata.
 """
 function _fill!(
     bedge::BEdge,
-    asmdata::CellWiseAssemblyData{Tv,Ti},
+    asmdata::CellwiseAssemblyData{Tv,Ti},
     ibedge,
     ibface,
 ) where {Tv,Ti}
@@ -198,7 +199,7 @@ end
 
 Fill node with the help of assemblydata.
 """
-function _fill!(node::Node, asmdata::EdgeWiseAssemblyData{Tv,Ti}, k, inode) where {Tv,Ti}
+function _fill!(node::Node, asmdata::EdgewiseAssemblyData{Tv,Ti}, k, inode) where {Tv,Ti}
     node.index = inode
     node.region = asmdata.nodefactors.rowval[k]
     node.fac = asmdata.nodefactors.nzval[k]
@@ -209,7 +210,7 @@ end
 
 Fill edge with the help of assemblydata.
 """
-function _fill!(edge::Edge, asmdata::EdgeWiseAssemblyData{Tv,Ti}, k, iedge) where {Tv,Ti}
+function _fill!(edge::Edge, asmdata::EdgewiseAssemblyData{Tv,Ti}, k, iedge) where {Tv,Ti}
     edge.index = iedge
     edge.node[1] = edge.edgenodes[1, edge.index]
     edge.node[2] = edge.edgenodes[2, edge.index]

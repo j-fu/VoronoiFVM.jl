@@ -93,9 +93,9 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Precomputed form factors for assembly
     """
-    assembly_data::AbstractAssemblyData{Tv,Ti}
+    assembly_data::AbstractAssemblyData{Tc,Ti}
 
-    boundary_assembly_data::AbstractAssemblyData{Tv,Ti}
+    boundary_assembly_data::AbstractAssemblyData{Tc,Ti}
     
     """
     :edgewise or :cellwise
@@ -647,8 +647,8 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     cellwise_factors!(csys)
 
-    system.assembly_data=CellWiseAssemblyData(cellnodefactors, celledgefactors, grid[CellRegions])
-    system.boundary_assembly_data=CellWiseAssemblyData(bfacenodefactors, bfaceedgefactors, grid[BFaceRegions])
+    system.assembly_data=CellwiseAssemblyData{Tc,Ti}(cellnodefactors, celledgefactors)
+    system.boundary_assembly_data=CellwiseAssemblyData{Tc,Ti}(bfacenodefactors, bfaceedgefactors)
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -704,8 +704,8 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     edgewise_factors!(csys)
     
-    system.assembly_data=EdgeWiseAssemblyData(SparseMatrixCSC(cnf),SparseMatrixCSC(cef))
-    system.boundary_assembly_data=CellWiseAssemblyData(bfacenodefactors, bfaceedgefactors, grid[BFaceRegions])
+    system.assembly_data=EdgewiseAssemblyData{Tc,Ti}(SparseMatrixCSC(cnf),SparseMatrixCSC(cef))
+    system.boundary_assembly_data=CellwiseAssemblyData{Tc,Ti}(bfacenodefactors, bfaceedgefactors)
 end
 
 

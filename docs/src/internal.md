@@ -27,8 +27,8 @@ VoronoiFVM.isnontrivial
 ## Global node and edge assembly loops
 ```@docs 
 VoronoiFVM.AbstractAssemblyData
-VoronoiFVM.CellWiseAssemblyData
-VoronoiFVM.EdgeWiseAssemblyData
+VoronoiFVM.CellwiseAssemblyData
+VoronoiFVM.EdgewiseAssemblyData
 VoronoiFVM.nodebatch
 VoronoiFVM.noderange
 VoronoiFVM.edgebatch
