@@ -411,3 +411,10 @@ function bfacevelocities(grid, velofunc)
     end
     return velovec
 end
+
+"""
+$(SIGNATURES)
+
+Node form factors per boundary face
+"""
+bfacenodefactors(sys) = sys.boundary_assembly_data.nodefactors

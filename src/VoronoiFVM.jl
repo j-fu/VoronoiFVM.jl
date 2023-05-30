@@ -83,7 +83,7 @@ export viewK, viewL, data
 include("vfvm_formfactors.jl")
 export meas, project
 export unknown_indices
-export edgevelocities, bfacevelocities
+export edgevelocities, bfacevelocities, bfacenodefactors
 export time, region, embedparam, parameters
 
 include("vfvm_solvercontrol.jl")

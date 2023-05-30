@@ -15,12 +15,12 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     physics::Physics
 
     """
-    Array of boundary values 
+    Array of boundary condition values 
     """
     boundary_values::Array{Tv, 2}
 
     """
-    Array of boundary factors 
+    Array of boundary condition factors 
     """
     boundary_factors::Array{Tv, 2}
 
@@ -56,7 +56,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
                   BandedMatrix{Tv}}
 
     """
-    Linear problem
+    Linear solver cache
     """
     linear_cache::Union{Nothing, LinearSolve.LinearCache}
 
@@ -91,10 +91,13 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     residual::TSolArray
 
     """
-    Precomputed form factors for assembly
+    Precomputed form factors for bulk  assembly
     """
     assembly_data::AbstractAssemblyData{Tc,Ti}
 
+    """
+    Precomputed form factors for boundary assembly
+    """
     boundary_assembly_data::AbstractAssemblyData{Tc,Ti}
     
     """
