@@ -133,6 +133,17 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}() where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = new()
 end
 
+function Base.getproperty(sys::System,sym::Symbol)
+    if sym==:bfacenodefactors
+        @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
+        return sys.boundary_assembly_data.nodefactors
+    else # fallback to getfield
+        return getfield(sys, sym)
+    end
+end
+
+
+
 """
     const DenseSystem
 

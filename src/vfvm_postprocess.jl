@@ -282,7 +282,7 @@ function _bochnernorm(sys,u::TransientSolution,p,species_weights,spatialnorm::F)
     n=length(u.t)
     nrm=spatialnorm(sys,u.u[1],p,species_weights)^p*(u.t[2]-u.t[1])/2
     for i=2:n-1
-        nrm+=spatialnorm(sys,u.u[1],p,species_weights)^p*(u.t[i+1]-u.t[i-1])/2
+        nrm+=spatialnorm(sys,u.u[i],p,species_weights)^p*(u.t[i+1]-u.t[i-1])/2
     end
     nrm+=spatialnorm(sys,u.u[n],p,species_weights)^p*(u.t[end]-u.t[end-1])/2
     nrm^(1/p)
