@@ -1,33 +1,3 @@
-abstract type AbstractAssemblyData{Tv} end
-
-
-struct CellWiseAssemblyData{Tv} <: AbstractAssemblyData{Tv}
-    """
-        Precomputed geometry factors for cell nodes
-    """
-    cellnodefactors::Array{Tv, 2}
-
-    """
-    Precomputed geometry factors for cell edges
-    """
-    celledgefactors::Array{Tv, 2}
-
-end
-
-struct EdgeWiseAssemblyData{Tv}<:AbstractAssemblyData{Tv}
-    """
-        Precomputed geometry factors for cell nodes
-    """
-    nodefactors::SparseMatrixCSC{Tv, Int}
-
-    """
-    Precomputed geometry factors for cell edges
-    """
-    edgefactors::SparseMatrixCSC{Tv, Int}
-
-end
-
-
 """
 $(TYPEDEF)
 
@@ -45,12 +15,12 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     physics::Physics
 
     """
-    Array of boundary values 
+    Array of boundary condition values 
     """
     boundary_values::Array{Tv, 2}
 
     """
-    Array of boundary factors 
+    Array of boundary condition factors 
     """
     boundary_factors::Array{Tv, 2}
 
@@ -86,7 +56,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
                   BandedMatrix{Tv}}
 
     """
-    Linear problem
+    Linear solver cache
     """
     linear_cache::Union{Nothing, LinearSolve.LinearCache}
 
@@ -121,19 +91,14 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     residual::TSolArray
 
     """
-    Precomputed form factors for assembly
+    Precomputed form factors for bulk  assembly
     """
-    assembly_data::AbstractAssemblyData{Tv}
+    assembly_data::AbstractAssemblyData{Tc,Ti}
 
     """
-    Precomputed geometry factors for boundary nodes
+    Precomputed form factors for boundary assembly
     """
-    bfacenodefactors::Array{Tv, 2}
-
-    """
-    Precomputed geometry factors for boundary edges
-    """
-    bfaceedgefactors::Array{Tv, 2}
+    boundary_assembly_data::AbstractAssemblyData{Tc,Ti}
     
     """
     :edgewise or :cellwise
@@ -167,6 +132,17 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
 
     System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}() where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = new()
 end
+
+function Base.getproperty(sys::System,sym::Symbol)
+    if sym==:bfacenodefactors
+        @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
+        return sys.boundary_assembly_data.nodefactors
+    else # fallback to getfield
+        return getfield(sys, sym)
+    end
+end
+
+
 
 """
     const DenseSystem
@@ -217,8 +193,8 @@ Keyword arguments:
    `:cellwise` means that the outer loop goes over grid cells (triangles, tetrahedra), and contributions to
    edge fluxes and node reactions are calculated for each cell. As a consequence, e.g. im 2D for all interior
    edges, flux functions are callled twice, once for each adjacent cell. Especially in 3D, this becomes a significant
-   overhead, so with `:edgewise`, geometry factors of these edges are pre-assembled, and the outer assembly loops
-  go over all grid edges resp. nodes, still with separate calls if neigboring cells belong to different regions.
+   overhead. With `:edgewise`, geometry factors of these edges are pre-assembled, and the outer assembly loops
+   go over all grid edges resp. nodes, still with separate calls if neigboring cells belong to different regions.
 !!! note
     It is planned to make `:edgewise` the default in a later version.
 
@@ -685,10 +661,8 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     cellwise_factors!(csys)
 
-    system.assembly_data=CellWiseAssemblyData(cellnodefactors, celledgefactors)
-    system.bfacenodefactors=bfacenodefactors
-    system.bfaceedgefactors=bfaceedgefactors
-    
+    system.assembly_data=CellwiseAssemblyData{Tc,Ti}(cellnodefactors, celledgefactors)
+    system.boundary_assembly_data=CellwiseAssemblyData{Tc,Ti}(bfacenodefactors, bfaceedgefactors)
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -707,8 +681,8 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     grid[EdgeNodes] # !!!workaround for bug in extendablegrids: sets num_edges right.
     bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
-    cnf=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_nodes(grid))
-    cef=ExtendableSparseMatrix{Tv,Int}(num_cellregions(grid),num_edges(grid))
+    cnf=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_nodes(grid))
+    cef=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_edges(grid))
 
     
     
@@ -744,10 +718,8 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     edgewise_factors!(csys)
     
-    system.assembly_data=EdgeWiseAssemblyData(SparseMatrixCSC(cnf),SparseMatrixCSC(cef))
-    system.bfacenodefactors=bfacenodefactors
-    system.bfaceedgefactors=bfaceedgefactors
-    
+    system.assembly_data=EdgewiseAssemblyData{Tc,Ti}(SparseMatrixCSC(cnf),SparseMatrixCSC(cef))
+    system.boundary_assembly_data=CellwiseAssemblyData{Tc,Ti}(bfacenodefactors, bfaceedgefactors)
 end
 
 
@@ -820,211 +792,6 @@ getspecies(sys::SparseSystem, idof) = sys.node_dof.rowval[idof]
         return searchk
     end
     return 0
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual and jacobian for node functions. Parameters:
-
-- `system`: System to be worked with
-- `node`: node
-- `asm_res(idof,ispec)`: e.g. assemble local ispec to global degree of freedom in unknowns
-- `asm_jac(idof,jdof,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry `idof,jdof` of global matrix
-- `asm_param(idof,ispec,iparam)` shall assemble parameter derivatives
-"""
-@inline function assemble_res_jac(node::Node, system::AbstractSystem, asm_res::R, asm_jac::J, asm_param::P) where {R, J, P}
-    K = node.index
-    ireg = node.region
-    for idof = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idof)
-        if isregionspecies(system, ispec, ireg) # it is not enough to know if the species are defined...
-            asm_res(idof, ispec)
-            for jdof = firstnodedof(system, K):lastnodedof(system, K)
-                jspec = getspecies(system, jdof)
-                if isregionspecies(system, jspec, ireg)
-                    asm_jac(idof, jdof, ispec, jspec)
-                end
-            end
-        end
-        for iparam = 1:(system.num_parameters)
-            asm_param(idof, ispec, iparam)
-        end
-    end
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual and jacobian for boundary node functions.
-See [`assemble_res_jac`](@ref) for more explanations.
-"""
-@inline function assemble_res_jac(bnode::BNode, system::AbstractSystem, asm_res::R, asm_jac::J, asm_param::P) where {R, J, P}
-    K = bnode.index
-    for idof = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idof)
-        if isnodespecies(system, ispec, K)
-            asm_res(idof, ispec)
-            for jdof = firstnodedof(system, K):lastnodedof(system, K)
-                jspec = getspecies(system, jdof)
-                if isnodespecies(system, jspec, K)
-                    asm_jac(idof, jdof, ispec, jspec)
-                end
-            end
-        end
-        for iparam = 1:(system.num_parameters)
-            asm_param(idof, ispec, iparam)
-        end
-    end
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual for node functions.
-See [`assemble_res_jac`](@ref) for more explanations.
-"""
-@inline function assemble_res(node::Node, system::AbstractSystem, asm_res::R) where {R}
-    K = node.index
-    ireg = node.region
-    for idof = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idof)
-        if isregionspecies(system, ispec, ireg)
-            asm_res(idof, ispec)
-        end
-    end
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual for boundary node functions.
-See [`assemble_res_jac`](@ref) for more explanations.
-"""
-@inline function assemble_res(bnode::BNode, system::AbstractSystem, asm_res::R) where {R}
-    K = bnode.index
-    for idof = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idof)
-        if isnodespecies(system, ispec, K)
-            asm_res(idof, ispec)
-        end
-    end
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual and jacobian for edge (flux) functions. Parameters:
-
-- `system`: System to be worked with
-- `node`: node
-- `asm_res(idofK,idofL,ispec)`: e.g. assemble local ispec to global degrees of freedom in unknowns
-- `asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry four entries defined by `idofK` and `idofL` of global matrix
-- `asm_param(idofK,idofL,ispec,iparam)` shall assemble parameter derivatives
-"""
-@inline function assemble_res_jac(edge::Edge, system::AbstractSystem, asm_res::R, asm_jac::J, asm_param::P) where {R, J, P}
-    K = edge.node[1]
-    L = edge.node[2]
-    ireg = edge.region
-
-    for idofK = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idofK)
-        if isregionspecies(system, ispec, ireg)
-            idofL = getnodedof(system, ispec, L)
-            if idofL > 0
-                asm_res(idofK, idofL, ispec)
-                for jdofK = firstnodedof(system, K):lastnodedof(system, K)
-                    jspec = getspecies(system, jdofK)
-                    if isregionspecies(system, jspec, ireg)
-                        jdofL = getnodedof(system, jspec, L)
-                        if jdofL > 0
-                            asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                        end
-                    end
-                end
-            end
-        end
-
-        for iparam = 1:(system.num_parameters)
-            asm_param(idofK, idofL, ispec, iparam)
-        end
-    end
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual for edge (flux) functions.
-See [`assemble_res_jac`](@ref) for more explanations.
-"""
-@inline function assemble_res(edge::Edge, system::AbstractSystem, asm_res::R) where {R}
-    K = edge.node[1]
-    L = edge.node[2]
-    ireg = edge.region
-
-    for idofK = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idofK)
-        if isregionspecies(system, ispec, ireg)
-            idofL = getnodedof(system, ispec, L)
-            if idofL > 0
-                asm_res(idofK, idofL, ispec)
-            end
-        end
-    end
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual and jacobian for boundary edge (flux) functions.
-See [`assemble_res_jac`](@ref) for more explanations.
-"""
-@inline function assemble_res_jac(bedge::BEdge, system::AbstractSystem, asm_res::R, asm_jac::J, asm_param::P) where {R, J, P}
-    K = bedge.node[1]
-    L = bedge.node[2]
-    for idofK = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idofK)
-        if isnodespecies(system, ispec, K)
-            idofL = getnodedof(system, ispec, L)
-            if idofL > 0
-                asm_res(idofK, idofL, ispec)
-
-                for jdofK = firstnodedof(system, K):lastnodedof(system, K)
-                    jspec = getspecies(system, jdofK)
-                    if isnodespecies(system, jspec, K)
-                        jdofL = getnodedof(system, jspec, L)
-                        if jdofL > 0
-                            asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    for iparam = 1:(system.num_parameters)
-        asm_param(idofK, idofL, ispec, iparam)
-    end
-end
-
-"""
-$(SIGNATURES)
-
-Assemble residual for boundary edge (flux) functions.
-See [`assemble_res_jac`](@ref) for more explanations.
-"""
-@inline function assemble_res(bedge::BEdge, system::AbstractSystem, asm_res::R) where {R}
-    K = bedge.node[1]
-    L = bedge.node[2]
-    for idofK = firstnodedof(system, K):lastnodedof(system, K)
-        ispec = getspecies(system, idofK)
-        if isnodespecies(system, ispec, K)
-            idofL = dof(F, ispec, L)
-            if idofL > 0
-                asm_res(idofK, idofL, ispec)
-            end
-        end
-    end
 end
 
 ##################################################################
@@ -1226,8 +993,8 @@ num_species(a::AbstractArray) = size(a, 1)
 #
 function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc, Ti, Tm}; time = 0.0, λ = 0.0,
                                 params::Vector{Tp} = Float64[]) where {Tv, Tp, Tc, Ti, Tm}
-    _bfaceregions = bfaceregions(system.grid)
-    _bfacenodes = bfacenodes(system.grid)
+
+    _complete!(system, create_newtonvectors=true)
     nspecies = num_species(system)
 
     # set up bnode
@@ -1249,29 +1016,25 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
     y = rhs(bnode, zeros(Tv, num_species(system)))
 
     # loop over all boundary faces
-    for ibface = 1:num_bfaces(system.grid)
-        ibreg = _bfaceregions[ibface]
-
-        # loop over all nodes of boundary face        
-        for inode = 1:dim_grid(system.grid)
-            # Set Diichlet values to uninitialized
-            _fill!(bnode, inode, ibface)
+    for item in nodebatch(system.boundary_assembly_data)
+        for ibnode in noderange(system.boundary_assembly_data,item)
+            _fill!(bnode,system.boundary_assembly_data,ibnode,item)
+            
             bnode.dirichlet_value .= Inf
-            jnode = _bfacenodes[inode, ibface]
             # set up solution vector, call boundary reaction
-            @views UK[1:nspecies] .= U[:, jnode]
+            @views UK[1:nspecies] .= U[:, bnode.index]
             system.physics.breaction(y, u, bnodeparams...)
 
             # Check for Dirichlet bc
             for ispec = 1:nspecies
                 # Dirichlet bc given in breaction
                 if !isinf(bnode.dirichlet_value[ispec])
-                    U[ispec, jnode] = bnode.dirichlet_value[ispec]
+                    U[ispec, bnode.index] = bnode.dirichlet_value[ispec]
                 end
 
                 # Dirichlet bc given after system creation (old API)
-                if system.boundary_factors[ispec, ibreg] ≈ Dirichlet
-                    U[ispec, jnode] = system.boundary_values[ispec, ibreg]
+                if system.boundary_factors[ispec, bnode.region] ≈ Dirichlet
+                    U[ispec, bnode.index] = system.boundary_values[ispec, bnode.region]
                 end
             end
         end
@@ -1359,7 +1122,7 @@ $(SIGNATURES)
 Create a solution vector for system with elements of type `Tu`.
 If inival is not specified, the entries of the returned vector are undefined.
 """
-function unknowns(Tu, system; inival = undef, inifunc = nothing) end
+function unknowns(Tu::Type, system::AbstractSystem; inival = undef, inifunc = nothing) end
 
 function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = nothing)
     a0 = Array{Tu}(undef, num_dof(system))
@@ -1375,9 +1138,18 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     u
 end
 
+"""
+    $(TYPEDEF)
 
+Equationwise partitioning mode.
+"""
 struct Equationwise end
 
+"""
+    $(SIGNATURES)
+
+Calculate partitioning of system unknowns.
+"""
 function partitioning(system::DenseSystem;mode=Equationwise())
     len=length(system.node_dof)
     nspec=size(system.node_dof,1)
@@ -1423,19 +1195,15 @@ function Base.map!(inifunc::TF,
                    U::AbstractMatrix{Tu},
                    system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tu, Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF}
     isunknownsof(U, system) || error("U is not unknowns of system")
+    _complete!(system)
     grid = system.grid
     node = Node(system, 0, 0, Tv[])
     nspecies::Int = num_species(system)
-    cellregions::Vector{Ti} = grid[CellRegions]
-    ncells = num_cells(grid)
-    geom = grid[CellGeometries][1]
-    nn::Int = num_nodes(geom)
     UK = Array{Tu, 1}(undef, nspecies)
 
-    for icell = 1:ncells
-        ireg = cellregions[icell]
-        for inode = 1:nn
-            _fill!(node, inode, icell)
+    for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)
             @views UK .= U[:, node.index]
             inifunc(unknowns(node, UK), node)
             K = node.index

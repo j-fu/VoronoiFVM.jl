@@ -4,7 +4,7 @@
 
 ## v1.6.0 May 12, 2023
 - Rework linear solver strategies - prevent combinatorial explosion. 
-  E.g. `gmres_iluzero` is now `GMRESIteration(ILUZeroPreconditioner)` etc.
+  E.g. `gmres_iluzero` is now `GMRESIteration(ILUZeroPreconditioner())` etc.
 
 ## v1.5.0 May 9, 2023
 - Introduced solver strategies like `gmres_iluzero()`, `direct_umfpack()` etc.
