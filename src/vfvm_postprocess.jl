@@ -105,7 +105,9 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
                 res .= zero(Tv)
                 @views F(rhs(edge, res), unknowns(edge,UKL), edgeparams...)
                 function asm_res(idofK, idofL, ispec)
-                    integral[ispec,edge.region] += edge.fac*res[ispec]*dim
+                    h=meas(edge)
+                    # This corresponds to the multiplication with the diamond volume.
+                    integral[ispec,edge.region] += h^2*edge.fac*res[ispec]/dim
                 end
                 assemble_res(edge, system, asm_res)
             end
@@ -238,9 +240,11 @@ Calculate weighted discrete ``W^{1,p}(\\Omega)`` seminorm of a solution vector.
 """
 function w1pseminorm(sys,u,p,species_weights=ones(num_species(sys)))
     nspec=num_species(sys)
+    dim=dim_space(sys.grid)
     function f(y,u,edge,data=nothing)
+        h=meas(edge)
         for ispec=1:nspec
-            y[ispec]=(u[ispec,1]-u[ispec,2])^p
+            y[ispec]=dim*((u[ispec,1]-u[ispec,2])/h)^p
         end
     end
     II=edgeintegrate(sys,f,u)

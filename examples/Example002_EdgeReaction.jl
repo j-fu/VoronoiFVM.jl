@@ -81,7 +81,7 @@ function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :c
     end
 
     #
-    # 3: "Joule heat: |∇ϕ|^2=1 after 3.17 in Bradji/Herbin
+    # 3: "Joule heat:" |∇ϕ|^2=1 after 3.17 in Bradji/Herbin
     # Here we divide twice by "h" to get the constant squared gradient.
     # The multiplication with dim in 3.17 compensates the division
     # we had before
