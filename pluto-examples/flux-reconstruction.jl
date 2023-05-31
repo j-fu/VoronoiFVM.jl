@@ -20,7 +20,7 @@ begin
     developing = false
     if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl"))
         _Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
+        _Pkg.develop(path=joinpath(@__DIR__, ".."))
         using Revise
         developing = true
     end

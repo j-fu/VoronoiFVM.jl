@@ -67,7 +67,7 @@ function run_notebook_in_current_environment(notebookname)
 
     wd=pwd()
     t= @elapsed notebook = Pluto.SessionActions.open(session, notebookname; run_async=false)
-    @info "$(notebookname) executed in $(t) seconds"
+    @info "notebook executed in $(round(t,sigdigits=4)) seconds"
     cd(wd)
     errored=false
     for c in notebook.cells
