@@ -79,7 +79,7 @@ function run_notebook_in_current_environment(notebookname)
     !errored
 end
 
-function run_all_tests()
+function run_all_tests(;run_notebooks=false)
     
     notebooks=["nbproto.jl",
                "nonlinear-solvers.jl",
@@ -112,7 +112,7 @@ function run_all_tests()
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
 
-    if false
+    if run_notebooks
         @testset "notebooks" begin
             for notebook in notebooks
                 @info "notebook $(notebook):"
@@ -124,4 +124,4 @@ function run_all_tests()
     Pkg.activate(@__DIR__)
 end
 
-run_all_tests()
+run_all_tests(;run_notebooks=true)
