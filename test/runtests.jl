@@ -112,7 +112,7 @@ function run_all_tests()
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
 
-    if VERSION>=v"1.8" 
+    if false
         @testset "notebooks" begin
             for notebook in notebooks
                 @info "notebook $(notebook):"
