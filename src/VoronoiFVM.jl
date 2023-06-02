@@ -13,7 +13,6 @@ using BandedMatrices
 # using MultidiagonalMatrices
 
 using LinearSolve
-using LinearSolve: Identity
 using Statistics
 
 using ForwardDiff

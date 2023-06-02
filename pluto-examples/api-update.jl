@@ -225,7 +225,7 @@ md"""
         sys0;
         inival = 0.1,
         method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = A -> factorize(A, SparspakFactorization()),
+        precon_linear = SparspakFactorization(),
     verbose="nlad"
 	)
 

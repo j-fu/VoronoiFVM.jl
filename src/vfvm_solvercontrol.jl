@@ -1,5 +1,12 @@
 ################################################
 const FactorizationStrategy= Union{Nothing, Function, Type, ExtendableSparse.AbstractFactorization, LinearSolve.AbstractFactorization,LinearSolve.SciMLLinearSolveAlgorithm}
+
+struct Identity end
+Identity(A)=Identity()
+LinearAlgebra.ldiv!(u,I::Identity,v)=u.=v
+LinearAlgebra.ldiv!(I::Identity,u)=nothing
+
+
 """
     SolverControl
     SolverControl(;kwargs...)
