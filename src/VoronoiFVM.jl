@@ -1,6 +1,4 @@
 """
-$(README)
-
 $(EXPORTS)
 """
 module VoronoiFVM
@@ -62,6 +60,7 @@ Abstract type for finite volume system structure.
 """
 abstract type AbstractSystem{Tv <: Number, Tc <: Number, Ti <: Integer, Tm <: Integer} end
 include("vfvm_geometryitems.jl")
+include("vfvm_assemblydata.jl")
 include("vfvm_system.jl")
 export unknowns
 export num_species
@@ -75,7 +74,6 @@ export boundary_neumann!
 export boundary_robin!
 export ramp
 export value
-export check_allocs!
 export physics!
 export history, history_summary, history_details
 export evaluate_residual_and_jacobian
@@ -85,12 +83,11 @@ export viewK, viewL, data
 include("vfvm_formfactors.jl")
 export meas, project
 export unknown_indices
-export edgevelocities, bfacevelocities
+export edgevelocities, bfacevelocities, bfacenodefactors
 export time, region, embedparam, parameters
 
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl
-export Identity
 include("vfvm_linsolve.jl")
 export DirectSolver, GMRESIteration, CGIteration, BICGstabIteration, NoBlock, EquationBlock, PointBlock
 

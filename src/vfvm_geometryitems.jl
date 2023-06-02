@@ -127,34 +127,33 @@ mutable struct Node{Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     """
     params::Vector{Tp}
 
+
+    """
+    Form factor
+    """
+    fac::Float64
+
+    """
+    Local loop index
+    """
+    _idx::Ti
+    
     function Node{Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(zero(Ti), 0,
             num_species(sys), 0,
             coordinates(sys.grid),
             sys.grid[CellNodes],
             sys.grid[CellRegions],
-            time, embedparam, params)
+            time, embedparam, params,0.0,0)
     end
 end
 
 function Node(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
     Node{Tc, Tp, Ti}(sys, time, embedparam, params)
 end
+
 Node(sys) = Node(sys, 0, 0, zeros(0))
 
-@inline function _fill!(node::Node, inode, icell)
-    node.region = node.cellregions[icell]
-    node.index = node.cellnodes[inode, icell]
-    node.icell = icell
-    nothing
-end
-
-@inline function _xfill!(node::Node, iregion, inode)
-    node.region = iregion
-    node.index = inode
-    node.icell = 0
-    nothing
-end
 
 """
     $(TYPEDEF)
@@ -249,6 +248,8 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
 
     dirichlet_value::Vector{Tv}
 
+    fac::Float64
+    
     function BNode{Tv, Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam,
                                    params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(0, 0, 0, 0, zeros(Ti, 2),
@@ -259,31 +260,13 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
             sys.grid[CellRegions],
             sys.grid[BFaceCells],
             Dirichlet, time, embedparam, params,
-            zeros(Tv, num_species(sys)))
+            zeros(Tv, num_species(sys)),0.0)
     end
 end
 function BNode(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
     BNode{Tv, Tc, Tp, Ti}(sys, time, embedparam, params)
 end
 BNode(sys) = BNode(sys, 0, 0, zeros(0))
-
-@inline function _fill0!(node::BNode, ibnode, ibface)
-    node.ibface = ibface
-    node.ibnode = ibnode
-    node.region = node.bfaceregions[ibface]
-    node.index = node.bfacenodes[ibnode, ibface]
-    nothing
-end
-
-@inline function _fill!(node::BNode, ibnode, ibface)
-    _fill0!(node, ibnode, ibface)
-    node.cellregions[1] = 0
-    node.cellregions[2] = 0
-    for i = 1:num_targets(node.bfacecells, ibface)
-        icell = node.bfacecells[i, ibface]
-        node.cellregions[i] = node.allcellregions[icell]
-    end
-end
 
 
 struct BNodeUnknowns{Tval, Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
@@ -362,6 +345,17 @@ mutable struct Edge{Tc, Tp, Ti} <: AbstractEdge{Tc, Tp, Ti}
 
     params::Vector{Tp}
 
+    """
+    Form factor
+    """
+    fac::Float64
+    
+     """
+    Local loop index
+    """
+    _idx::Ti
+    
+
     Edge{Tc, Tp, Ti}(::Nothing) where {Tc, Tp, Ti} = new()
 end
 
@@ -390,41 +384,13 @@ function Edge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
     edge.time = time
     edge.embedparam = embedparam
     edge.params = params
+    edge.fac=0
+    edge._idx=0
     edge
 end
 
-@inline function _fill!(edge::Edge, iedge, icell)
-    if edge.has_celledges #  cellx==celledges, edgenodes==global_edgenodes
-        # If we work with projections of fluxes onto edges,
-        # we need to ensure that the edges are accessed with the
-        # same orientation without regard of the orientation induced
-        # by local cell numbering
-        edge.index = edge.cellx[iedge, icell]
-        edge.node[1] = edge.edgenodes[1, edge.index]
-        edge.node[2] = edge.edgenodes[2, edge.index]
-    else # cx==cellnodes, edgenodes== local_edgenodes
-        edge.index = 0
-        edge.node[1] = edge.cellx[edge.edgenodes[1, iedge], icell]
-        edge.node[2] = edge.cellx[edge.edgenodes[2, iedge], icell]
-    end
-    edge.region = edge.cellregions[icell]
-    edge.icell = icell
-    nothing
-end
 
-@inline function _xfill!(edge::Edge, iregion,iedge)
-    #  cellx==celledges, edgenodes==global_edgenodes
-    # If we work with projections of fluxes onto edges,
-    # we need to ensure that the edges are accessed with the
-    # same orientation without regard of the orientation induced
-    # by local cell numbering
-    edge.index = iedge
-    edge.node[1] = edge.edgenodes[1, edge.index]
-    edge.node[2] = edge.edgenodes[2, edge.index]
-    edge.region = iregion
-    edge.icell = 0
-    nothing
-end
+
 
 
 
@@ -501,6 +467,7 @@ mutable struct BEdge{Tc, Tp, Ti} <: AbstractEdge{Tc, Tp, Ti}
 
     params::Vector{Tp}
 
+    fac::Float64
     BEdge{Tc, Tp, Ti}(::Nothing) where {Tc, Tp, Ti} = new()
 end
 
@@ -522,18 +489,8 @@ function BEdge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Ve
     bedge.time = time
     bedge.embedparam = embedparam
     bedge.params = params
+    bedge.fac=0.0
     bedge
-end
-
-@inline function _fill!(bedge::BEdge, ibedge, ibface)
-    bedge.index = bedge.bfaceedges[ibedge, ibface]
-    bedge.node[1] = bedge.bedgenodes[1, bedge.index]
-    bedge.node[2] = bedge.bedgenodes[2, bedge.index]
-
-    bedge.region = bedge.bfaceregions[ibface]
-    bedge.icell = ibface
-
-    nothing
 end
 
 
@@ -604,11 +561,6 @@ struct VectorUnknowns{Tv} <: AbstractVector{Tv}
     offset::Int64
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-Construct vector unknowns on edge.
-"""
 unknowns(edge::AbstractEdge, u::AbstractVector{Tv}, i) where {Tv} = VectorUnknowns{Tv}(u, edge.nspec, (i - 1) * (edge.nspec))
 Base.getindex(u::VectorUnknowns, i) = @inbounds u.val[u.offset + i]
 Base.size(u::VectorUnknowns) = (u.n,)

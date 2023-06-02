@@ -105,65 +105,38 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
         F .-= system.dudp[1]
     end
 
-    geom = grid[CellGeometries][1]
-
-    bgeom = grid[BFaceGeometries][1]
-
     asm_res(idof, ispec) = nothing
     asm_param(idof, ispec, iparam) = nothing
 
     # Interior cell loop for building up storage derivative
     # Evaluate & differentiate storage term at U0
-    @inline function asm_node(node,fac)
-        evaluate!(stor_eval, UK)
-        jac_stor = jac(stor_eval)
-        
-        # Sort it into storderiv matrix.
-        K = node.index
-        function asm_jac(idof, jdof, ispec, jspec)
-                updateindex!(storderiv, +, jac_stor[ispec, jspec] * fac, idof, jdof)
+    for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)
+            evaluate!(stor_eval, UK)
+            jac_stor = jac(stor_eval)
+            # Sort it into storderiv matrix.
+            function asm_jac(idof, jdof, ispec, jspec)
+                updateindex!(storderiv, +, jac_stor[ispec, jspec] * node.fac, idof, jdof)
+            end
+            assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
         end
-        assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
     end
     
-    if system.assembly_type==:cellwise
-        cellnodefactors::Array{Tv, 2} = system.assembly_data.cellnodefactors
-        for icell = 1:num_cells(grid)
-            for inode = 1:num_nodes(geom)
-                _fill!(node, inode, icell)
-                asm_node(node,cellnodefactors[inode, icell])
-            end
-        end
-    else
-        noderegionfactors::SparseMatrixCSC{Tv,Int} = system.assembly_data.nodefactors
-        noderegions::Array{Int,1} = rowvals(noderegionfactors)
-        nodefactors::Array{Tv,1} = nonzeros(noderegionfactors)
-        
-        for inode = 1:num_nodes(grid)
-            for k in nzrange(noderegionfactors, inode)
-                _xfill!(node, noderegions[k], inode)
-                asm_node(node,nodefactors[k])
-            end
-        end
-    end
-
-
-    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
-
 
     # Boundary face loop for building up storage derivative
     # and right hand side contribution from boundary condition
     if isdefined(physics, :bstorage) # should involve only bspecies
-        for ibface = 1:num_bfaces(grid)
-            for ibnode = 1:num_nodes(bgeom)
-                _fill!(bnode, ibnode, ibface)
+        for item in nodebatch(system.boundary_assembly_data)
+            for ibnode in noderange(system.boundary_assembly_data,item)
+                _fill!(bnode,system.boundary_assembly_data,ibnode,item)
                 @views UK[1:nspecies] = U0[:, bnode.index]
                 # Evaluate & differentiate storage term
                 evaluate!(bstor_eval, UK)
                 jac_bstor = jac(bstor_eval)
                 K = bnode.index
                 function asm_jac(idof, jdof, ispec, jspec)
-                    updateindex!(storderiv, +, jac_bstor[ispec, jspec] * bfacenodefactors[ibnode, ibface], idof, jdof)
+                    updateindex!(storderiv, +, jac_bstor[ispec, jspec] * bnode.fac, idof, jdof)
                 end
                 assemble_res_jac(bnode, system, asm_res, asm_jac, asm_param)
             end
@@ -181,35 +154,30 @@ under the assumption of a periodic perturbation of species `excited_spec` at  bo
 """
 function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix, excited_spec, excited_bc) where {Tv, Tc, Ti}
     impedance_system = ImpedanceSystem(system, U0)
-    grid = system.grid
-    bgeom = grid[BFaceGeometries][1]
     bnode = BNode(system)
-    bfaceregions::Vector{Ti} = grid[BFaceRegions]
     nspecies = num_species(system)
     F = impedance_system.F
 
-    bfacenodefactors::Array{Tv, 2} = system.bfacenodefactors
 
-    for ibface = 1:num_bfaces(grid)
-        ibreg = bfaceregions[ibface]
-        for ibnode = 1:num_nodes(bgeom)
-            _fill!(bnode, ibnode, ibface)
-
+    for item in nodebatch(system.boundary_assembly_data)
+        for ibnode in noderange(system.boundary_assembly_data,item)
+            _fill!(bnode,system.boundary_assembly_data,ibnode,item)
+           
             # Set right hand side for excited boundary conditions
             # We don't need to put the penalty term to storderiv
             # as it is already in the main part of the matrix
-            if ibreg == excited_bc
+            if bnode.region == excited_bc
                 for ispec = 1:nspecies
                     if ispec != excited_spec
                         continue
                     end
                     idof = dof(F, ispec, bnode.index)
                     if idof > 0
-                        fac = system.boundary_factors[ispec, ibreg]
+                        fac = system.boundary_factors[ispec, bnode.region]
                         if fac == Dirichlet
                             F[ispec, bnode.index] += fac
                         else
-                            F[ispec, bnode.index] += fac * bfacenodefactors[ibnode, ibface]
+                            F[ispec, bnode.index] += fac * bnode.fac
                         end
                     end
                 end

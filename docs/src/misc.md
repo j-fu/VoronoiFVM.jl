@@ -7,9 +7,11 @@ value
 ```
 
 ## Form factor calculatione
-```@autodocs
-Modules = [VoronoiFVM]
-Pages = ["vfvm_formfactors.jl"]
+
+## Velocity projections
+```@docs
+edgevelocities
+bfacevelocities
 ```
 
 ## Additional grid methods
@@ -18,5 +20,10 @@ Modules = [VoronoiFVM]
 Pages = ["vfvm_xgrid.jl"]
 ```
 
-
-
+## Exception types
+```@docs
+VoronoiFVM.AssemblyError
+VoronoiFVM.ConvergenceError
+VoronoiFVM.EmbeddingError
+VoronoiFVM.LinearSolverError
+```

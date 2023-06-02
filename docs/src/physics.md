@@ -9,10 +9,11 @@ Base.show(io::IO,physics::VoronoiFVM.AbstractPhysics)
 ```
 
 ## Edge and node data
-```@autodocs
-Modules = [VoronoiFVM]
-Pages = ["vfvm_geometryitems.jl"]
-]
+```@docs
+VoronoiFVM.Node
+VoronoiFVM.BNode
+VoronoiFVM.Edge
+VoronoiFVM.BEdge
 ```
 
 ## Special functions

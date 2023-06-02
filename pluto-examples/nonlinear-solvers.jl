@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.25
+# v0.19.26
 
 using Markdown
 using InteractiveUtils
@@ -11,6 +11,7 @@ begin
     if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl"))
         _Pkg.activate(@__DIR__)
         _Pkg.instantiate()
+        _Pkg.develop(path=joinpath(@__DIR__, ".."))
         using Revise
         developing = true
     end

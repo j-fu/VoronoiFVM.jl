@@ -1,3 +1,12 @@
+#
+# See
+# https://discourse.julialang.org/t/is-it-possible-to-detect-if-julia-is-ahead-of-time-precompiling/78631
+#
+is_precompiling() = ccall(:jl_generating_output, Cint, ()) == 1
+
+
+
+
 """
 $(SIGNATURES)
 
@@ -173,7 +182,7 @@ function _solve_timestep!(
         nlhistory.tasm = tasm
     end
 
-    if ncalloc + nballoc > 0 && doprint(control, 'a')
+    if ncalloc + nballoc > 0 && doprint(control, 'a') && !is_precompiling()
         @warn "[a]llocations in assembly loop: cells: $(ncalloc÷neval), bfaces: $(nballoc÷neval)"
     end
 

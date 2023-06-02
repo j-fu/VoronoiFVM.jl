@@ -33,6 +33,8 @@ physics!
 enable_species!(system::VoronoiFVM.AbstractSystem,ispec::Integer, regions::AbstractVector)
 enable_species!(system::VoronoiFVM.AbstractSystem; kwargs...)
 enable_boundary_species!
+VoronoiFVM.is_boundary_species
+VoronoiFVM.is_bulk_species
 ```
 
 
@@ -72,8 +74,7 @@ Case 1: a parameter changes its value, and Julia is not sure about the type.
 ```julia
 eps=1.0
 
-flux(f,_u,edge)
-    u=unknowns(edge,_u)
+flux(f,u,edge)
     f[1]=eps*(u[1,1]-[1,2])
 end
 ... solve etc ...
@@ -87,16 +88,16 @@ This behaviour is explained in the [Julia documentation](https://docs.julialang.
 Case 2: variables in the closure have the same name as a variable
 introduced in a callback.
 ```julia
-flux(f,_u,edge)
-    u=unknowns(edge,_u)
-    f[1]=(u[1,1]-[1,2])
+flux(f,u,edge)
+    x=(u[1,1]-[1,2])
+    f[1]=x
 end
 
 ... create etc ...
 
-u=solve(...)
+x=solve(...)
 ```
-Remedy: rename e.g. `u=solve()` to `sol=solve()`
+Remedy: rename e.g. `x=solve()` to `sol=solve()`
 
 
 
@@ -104,7 +105,9 @@ Remedy: rename e.g. `u=solve()` to `sol=solve()`
 
 ```@docs
 num_dof
-unknowns(system::VoronoiFVM.AbstractSystem; kwargs...)
+num_species
+VoronoiFVM.unknowns(system::VoronoiFVM.AbstractSystem; kwargs...)
+VoronoiFVM.unknowns(Tu::Type, system::VoronoiFVM.AbstractSystem; kwargs...)
 Base.map
 Base.map!
 VoronoiFVM.isunknownsof
@@ -129,5 +132,7 @@ boundary_robin!(system::VoronoiFVM.AbstractSystem, ispec, ibc,alpha, v)
 boundary_robin!(system::VoronoiFVM.AbstractSystem; kwargs...)
 VoronoiFVM.DenseSystem
 VoronoiFVM.SparseSystem
+viewK
+viewL
 ```
 

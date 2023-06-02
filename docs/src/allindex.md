@@ -1,5 +1,10 @@
 # Index
 
+## Exported
+```@docs
+VoronoiFVM
+```
+
 ## Types and Constructors
 ```@index
 Modules = [VoronoiFVM]
