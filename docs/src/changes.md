@@ -1,4 +1,7 @@
 # Changes
+## v1.8.0 June 20, 2023
+- LinearSolve 2.x
+
 ## v1.7.0 May 17, 2023
 - Discrete Sobolev norms
 
