@@ -79,7 +79,7 @@ function testfunction(factory::TestFunctionFactory, bc0, bc1)
         method_linear = UMFPACKFactorization()
     end
 
-    p = LinearProblem(factory.tfsystem.matrix, vec(f))
+    p = LinearProblem(SparseMatrixCSC(factory.tfsystem.matrix), vec(f))
     sol = solve(p, method_linear)
     sol.u
 end

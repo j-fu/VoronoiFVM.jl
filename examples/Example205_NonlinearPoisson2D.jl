@@ -13,7 +13,7 @@ using ILUZero
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse,
               method_linear = nothing, assembly=:edgewise,
-              precon_linear = A -> LinearSolve.Identity())
+              precon_linear = A -> VoronoiFVM.Identity())
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
