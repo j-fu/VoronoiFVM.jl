@@ -343,7 +343,9 @@ function CommonSolve.solve(
         println("[e]volution: start in $(extrema(lambdas))")
     end
 
+    λ0 = 0
     istep = 0
+    solved = false
     t1 = @elapsed for i = 1:(length(lambdas)-1)
         Δλ = max(Δλ, Δλ_min(control, transient))
         λstart = lambdas[i]
@@ -402,58 +404,74 @@ function CommonSolve.solve(
                 if !solved
                     # reduce time step and retry  solution
                     Δλ = Δλ * 0.5
+                    rd(x)=round(x,sigdigits=5)
                     if Δλ < Δλ_min(control, transient)
                         if !(control.force_first_step && istep == 0)
-                            throw(
-                                EmbeddingError(
-                                    " Δ$(λstr)_min=$(Δλ_min(control,transient)) reached while Δu=$(Δu) >>  Δu_opt=$(control.Δu_opt) ",
-                                ),
-                            )
+                            err="At $(λstr)=$(λ|>rd): Δ$(λstr)_min=$(Δλ_min(control,transient)|>rd) reached while Δu=$(Δu|>rd) and Δu_opt=$(control.Δu_opt|>rd) "
+                            if control.handle_exceptions
+                                @warn  err
+                            else
+                                throw(DomainError(err))
+                            end
+                            break
                         else
-                            solved = true
+                            solved=true
                         end
                     end
                     if doprint(control, 'e')
                         @printf("[e]volution:  Δu=%.3e => retry: Δ%s=%.3e\n", Δu, λstr, Δλ)
                     end
                 end
-            end
-            istep = istep + 1
-            if doprint(control, 'e')
-                @printf(
-                    "[e]volution: step=%d %s=%.3e Δ%s=%.3e Δu=%.3e\n",
-                    istep,
-                    λstr,
-                    λ,
-                    λstr,
-                    Δλ,
-                    Δu
-                )
-            end
-            if control.log
-                push!(allhistory, system.history)
-                push!(allhistory.updates, Δu)
-                push!(allhistory.times, λ)
-            end
-            if control.store_all
-                append!(tsol, λ, solution)
-            end
-            control.post(solution, oldsolution, λ, Δλ)
-            oldsolution .= solution
-            if λ < λend
-                Δλ = min(
-                    Δλ_max(control, transient),
-                    Δλ * Δλ_grow(control, transient),
-                    Δλ * control.Δu_opt / (Δu + 1.0e-14),
-                    λend - λ,
-                )
-            end
+            end # while !solved
+
+            if solved 
+                istep = istep + 1
+                if doprint(control, 'e')
+                    @printf(
+                        "[e]volution: step=%d %s=%.3e Δ%s=%.3e Δu=%.3e\n",
+                        istep,
+                        λstr,
+                        λ,
+                        λstr,
+                        Δλ,
+                        Δu
+                    )
+                end
+                if control.log
+                    push!(allhistory, system.history)
+                    push!(allhistory.updates, Δu)
+                    push!(allhistory.times, λ)
+                end
+                if control.store_all
+                    append!(tsol, λ, solution)
+                end
+                control.post(solution, oldsolution, λ, Δλ)
+                oldsolution .= solution
+                if λ < λend
+                    Δλ = min(
+                        Δλ_max(control, transient),
+                        Δλ * Δλ_grow(control, transient),
+                        Δλ * control.Δu_opt / (Δu + 1.0e-14),
+                        λend - λ,
+                    )
+                end
+            else 
+                break
+            end # if solved            
+        end # while λ<λ_end
+
+        if !control.store_all # store last solutionobtained
+            append!(tsol, λ0, solution)
         end
-        if !control.store_all
-            append!(tsol, lambdas[i+1], solution)
+        control.sample(solution,  λ0)
+        if solved
+            if !(λ≈lambdas[i+1])
+                @warn "λ=$(λ), lambdas[i+1]=$(lambdas[i+1])"
+            end
+        else
+            break
         end
-        control.sample(solution, lambdas[i+1])
-    end
+    end # for i = 1:(length(lambdas)-1)
 
     if doprint(control, 'e')
         println("[e]volution:  $(round(t0+t1,sigdigits=3)) seconds")
