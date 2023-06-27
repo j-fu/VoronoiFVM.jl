@@ -1,4 +1,10 @@
 # Changes
+
+## v1.9.0 June 27, 2023
+- With `control.handle_exceptions=true`, in case of a failing step,
+  time stepping and embeding now returns the solution calculated so far instead of
+  throwing an error
+
 ## v1.8.0 June 20, 2023
 - LinearSolve 2.x
 

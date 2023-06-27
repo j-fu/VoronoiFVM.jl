@@ -198,8 +198,11 @@ Base.@kwdef mutable struct SolverControl
     """
     Handle exceptions during transient solver and parameter embedding. 
     If `true`, exceptions in Newton solves are caught, the embedding resp. time step is lowered, 
-    and solution is retried.  
+    and solution is retried. Moreover, if embedding or time stepping fails (e.g. due to reaching
+    minimal step size), a warning is issued, and a solution is returned with all steps calculated
+    so far.
 
+    Otherwise (by default) errors are thrown.
     """
     handle_exceptions::Bool = false
 
