@@ -20,8 +20,8 @@ GridVisualize.gridplot!(vis, sys::AbstractSystem; kwargs...) = GridVisualize.gri
 
 Plot one species from solution
 """
-function GridVisualize.scalarplot(sys::AbstractSystem, sol::AbstractMatrix; species = 1, kwargs...)
-    GridVisualize.scalarplot(sys.grid, sol[species, :]; kwargs...)
+function GridVisualize.scalarplot(sys::AbstractSystem, sol::AbstractMatrix; species = 1, scale=1.0, kwargs...)
+    GridVisualize.scalarplot(sys.grid, sol[species, :]*scale; kwargs...)
 end
 
 """
@@ -29,8 +29,8 @@ end
 
 Plot one species from solution
 """
-function GridVisualize.scalarplot!(vis, sys::AbstractSystem, sol::AbstractMatrix; species = 1, kwargs...)
-    GridVisualize.scalarplot!(vis, sys.grid, sol[species, :]; kwargs...)
+function GridVisualize.scalarplot!(vis, sys::AbstractSystem, sol::AbstractMatrix; species = 1, scale=1.0, kwargs...)
+    GridVisualize.scalarplot!(vis, sys.grid, sol[species, :]*scale; kwargs...)
 end
 
 """
@@ -38,11 +38,11 @@ end
 
 Plot one species from transient solution
 """
-function GridVisualize.scalarplot(sys::AbstractSystem, sol::TransientSolution; species = 1, kwargs...)
+function GridVisualize.scalarplot(sys::AbstractSystem, sol::TransientSolution; species = 1, scale=1.0, tscale=:identity, kwargs...)
     @assert dim_space(grid) == 1
     vis = GridVisualizer(kwargs...)
     if !isnothing(vis.Plotter)
-        scalarplot!(vis[1, 1], sys, sol; species = species, kwargs...)
+        scalarplot!(vis[1, 1], sys, sol; species = species,scale=scale, tscale=tscale, kwargs...)
         reveal(vis)
     end
 end
@@ -52,12 +52,12 @@ end
 
 Plot one species from transient solution
 """
-function GridVisualize.scalarplot!(vis, sys::AbstractSystem, sol::TransientSolution; species = 1, tscale = :identity, tlabel = "t",
+function GridVisualize.scalarplot!(vis, sys::AbstractSystem, sol::TransientSolution; species = 1,scale=1.0, tscale = :identity, tlabel = "t",
                                    kwargs...)
     if !isnothing(vis)
         grid = sys.grid
         @assert dim_space(grid) == 1
-        f = vec(sol[species, :, :])
+        f = vec(sol[species, :, :])*scale
         coord = grid[Coordinates]
         X = view(coord, 1, :)
         T = sol.t
