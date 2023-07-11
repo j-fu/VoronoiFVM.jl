@@ -40,14 +40,14 @@ mutable struct TransientSolution{T, N, A, B} <: AbstractTransientSolution{T, N, 
 end
 
 function TransientSolution(vec::AbstractVector{T}, ts, ::NTuple{N}) where {T, N}
-    TransientSolution{eltype(T), N, typeof(vec), typeof(ts)}(vec, ts)
+    TransientSolution{T, N, typeof(vec), typeof(ts)}(vec, ts)
 end
 
 TransientSolution(vec::AbstractVector, ts::AbstractVector) = TransientSolution(vec, ts, (size(vec[1])..., length(vec)))
 
-Base.append!(s::TransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, copy(sol))
+Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, copy(sol))
 
-(sol::TransientSolution)(t) = _interpolate(sol, t)
+(sol::AbstractTransientSolution)(t) = _interpolate(sol, t)
 
 function _interpolate(sol, t)
     if isapprox(t, sol.t[1]; atol = 1.0e-10 * abs(sol.t[2] - sol.t[1]))
@@ -126,7 +126,7 @@ function VectorOfDiskArrays(obj::AbstractArray{T}; keep_open = true, fname = _te
     v
 end
 
-function Base.append!(s::TransientSolution{T, N, VectorOfDiskArrays{T}, B}, t::Real, sol::AbstractArray) where {T, N, B}
+function Base.append!(s::AbstractTransientSolution{T, N, VectorOfDiskArrays{T}, B}, t::Real, sol::AbstractArray) where {T, N, B}
     push!(s.t, t), push!(s.u, sol)
 end
 

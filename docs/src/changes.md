@@ -1,4 +1,6 @@
 # Changes
+## v1.10.0 July 11, 2023
+- Use AbstractTransientSolution in gridvisualize stuff
 
 ## v1.9.0 June 27, 2023
 - With `control.handle_exceptions=true`, in case of a failing step,

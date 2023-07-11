@@ -38,7 +38,7 @@ end
 
 Plot one species from transient solution
 """
-function GridVisualize.scalarplot(sys::AbstractSystem, sol::TransientSolution; species = 1, scale=1.0, tscale=:identity, kwargs...)
+function GridVisualize.scalarplot(sys::AbstractSystem, sol::AbstractTransientSolution; species = 1, scale=1.0, tscale=:identity, kwargs...)
     @assert dim_space(grid) == 1
     vis = GridVisualizer(kwargs...)
     if !isnothing(vis.Plotter)
@@ -52,7 +52,7 @@ end
 
 Plot one species from transient solution
 """
-function GridVisualize.scalarplot!(vis, sys::AbstractSystem, sol::TransientSolution; species = 1,scale=1.0, tscale = :identity, tlabel = "t",
+function GridVisualize.scalarplot!(vis, sys::AbstractSystem, sol::AbstractTransientSolution; species = 1,scale=1.0, tscale = :identity, tlabel = "t",
                                    kwargs...)
     if !isnothing(vis)
         grid = sys.grid
