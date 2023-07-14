@@ -84,6 +84,7 @@ export meas, project
 export unknown_indices
 export edgevelocities, bfacevelocities, bfacenodefactors
 export time, region, embedparam, parameters
+export calc_divergences
 
 include("vfvm_solvercontrol.jl")
 export fixed_timesteps!, NewtonControl, SolverControl

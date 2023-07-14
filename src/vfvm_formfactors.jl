@@ -324,7 +324,7 @@ end
 #
 # TODO: this should be generalized for more quadrules
 #
-function integrate(coordl, coordr, hnormal, velofunc)
+function integrate(::Type{<:Cartesian2D},coordl, coordr, hnormal, velofunc)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
@@ -333,6 +333,22 @@ function integrate(coordl, coordr, hnormal, velofunc)
     (vxm, vym) = velofunc(coordm[1], coordm[2])
     (vxr, vyr) = velofunc(coordr[1], coordr[2])
     return (wl * vxl + wm * vxm + wr * vxr) * hnormal[1] + (wl * vyl + wm * vym + wr * vyr) * hnormal[2]
+end
+
+function integrate(::Type{<:Cylindrical2D},coordl, coordr, hnormal, velofunc)
+    wl = 1.0 / 6.0
+    wm = 2.0 / 3.0
+    wr = 1.0 / 6.0
+    coordm = 0.5 * (coordl + coordr)
+
+    if abs(coordm[1]) < eps()
+        return 0
+    else
+        (vxl, vyl) = coordl[1] .* velofunc(coordl[1], coordl[2])
+        (vxm, vym) = coordm[1] .* velofunc(coordm[1], coordm[2])
+        (vxr, vyr) = coordr[1] .* velofunc(coordr[1], coordr[2])
+        return ((wl * vxl + wm * vxm + wr * vxr) * hnormal[1] + (wl * vyl + wm * vym + wr * vyr) * hnormal[2])/(coordm[1])
+    end
 end
 
 """
@@ -347,6 +363,7 @@ function edgevelocities(grid, velofunc)
     ec = grid[EdgeCells]
     en = grid[EdgeNodes]
     coord = grid[Coordinates]
+    coord_system = grid[CoordinateSystem]
 
     velovec = zeros(Float64, num_edges(grid))
     if dim_space(grid) == 1
@@ -376,7 +393,7 @@ function edgevelocities(grid, velofunc)
                 p2 .= 0.5 * (coord[:, K] + coord[:, L])
             end
             hnormal = coord[:, K] - coord[:, L]
-            velovec[iedge] = integrate(p1, p2, hnormal, velofunc)
+            velovec[iedge] = integrate(coord_system,p1, p2, hnormal, velofunc)
         end
     end
     return velovec
@@ -391,6 +408,7 @@ function bfacevelocities(grid, velofunc)
     @assert dim_space(grid) < 3
     bfacenodes = grid[BFaceNodes]
     coord = grid[Coordinates]
+    coord_system = grid[CoordinateSystem]
     bfacecells = grid[BFaceCells]
     bfacenormals = grid[BFaceNormals]
     bfr = grid[BFaceRegions]
@@ -405,11 +423,61 @@ function bfacevelocities(grid, velofunc)
             p1 = coord[:, bfacenodes[1, ibface]]
             p2 = coord[:, bfacenodes[2, ibface]]
             pm = 0.5 * (p1 + p2)
-            velovec[1, ibface] = integrate(p1, pm, bfacenormals[:, ibface], velofunc)
-            velovec[2, ibface] = integrate(pm, p2, bfacenormals[:, ibface], velofunc)
+            velovec[1, ibface] = integrate(coord_system,p1, pm, bfacenormals[:, ibface], velofunc)
+            velovec[2, ibface] = integrate(coord_system,pm, p2, bfacenormals[:, ibface], velofunc)
         end
     end
     return velovec
+end
+
+"""
+$(SIGNATURES)
+
+Calculate for each Voronoi cell associated with a node of sys.grid
+the divergence of the velocity field used to obtain `evelo` and `bfvelo` via 
+[`edgevelocities`](@ref) and [`bfacevelocities`](@ref) by means of summing
+all `evelos` and `bfvelos` per Voronoi cell.
+"""
+function calc_divergences(sys,evelo,bfvelo)
+    assem_data=sys.assembly_data
+    boundary_assem_data=sys.boundary_assembly_data
+    grid=sys.grid
+    en=local_celledgenodes(Triangle2D)
+    bfacenodes = grid[BFaceNodes]
+    cellnodes = grid[CellNodes]
+    celledges = grid[CellEdges]
+    celledgesigns = grid[CellFaceSigns]
+    div4nodes = zeros(Float64, num_nodes(grid))
+
+    edgefactors = assem_data.edgefactors
+    boundarynodefactors = boundary_assem_data.nodefactors
+
+    for icell in 1:num_cells(grid)
+        for localedge in 1 : 3
+            node1 = cellnodes[en[1,localedge], icell]
+            node2 = cellnodes[en[2,localedge], icell]
+            sign = celledgesigns[localedge, icell]
+            div4nodes[node1] -= sign*evelo[celledges[localedge,icell]] * edgefactors[localedge,icell]
+            div4nodes[node2] += sign*evelo[celledges[localedge,icell]] * edgefactors[localedge,icell]
+        end
+    end
+
+    for ibface in 1:num_bfaces(grid)
+        node1 = bfacenodes[1, ibface]
+        node2 = bfacenodes[2, ibface]
+        div4nodes[node1] += boundarynodefactors[1, ibface] * bfvelo[1,ibface]
+        div4nodes[node2] += boundarynodefactors[2, ibface] * bfvelo[2,ibface]
+    end
+
+    return div4nodes
+end
+
+function calc_divergences(sys,velofunc)
+    grid = sys.grid
+    evelo = edgevelocities(grid,velofunc)
+    bfvelo = bfacevelocities(grid,velofunc)
+    
+    return calc_divergences(sys,evelo,bfvelo)
 end
 
 """
