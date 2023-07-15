@@ -1,5 +1,5 @@
 # Changes
-## v1.11.0 July 15, 2023
+## v1.11.0 July 17, 2023
 - Add [`calc_divergences`](@ref) method for checking velocity field divergences
 - Fix form factor calculation and velocity projecion for unstructructured grids and cylindrical symmetry
 
