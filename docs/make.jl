@@ -16,9 +16,10 @@ end
 
 
 
-function make_all(; with_examples = true, run_notebooks = true)
+function make_all(; with_examples = true, run_notebooks = true, example=nothing)
 
     generated_examples = []
+    notebooks  = []
     notebooks = []
     example_jl_dir = joinpath(@__DIR__, "..", "examples")
     example_md_dir = joinpath(@__DIR__, "src", "examples")
@@ -26,12 +27,8 @@ function make_all(; with_examples = true, run_notebooks = true)
 
     with_examples && rm(example_md_dir, recursive = true, force=true)
     run_notebooks && rm(notebook_html_dir, recursive = true, force=true)
-
-
-    if with_examples
-        #
-        # Run notebooks
-        #
+    
+    if run_notebooks
         notebooks = [
             "API Updates" => "api-update.jl",
             "Nonlinear solver control" => "nonlinear-solvers.jl",
@@ -39,11 +36,10 @@ function make_all(; with_examples = true, run_notebooks = true)
             "Internal interfaces (1D)" => "interfaces1d.jl",
             "A case for caution" => "problemcase.jl",
         ]
-
+        
         notebookjl = last.(notebooks)
         notebookmd = []
-
-
+        
         # function rendernotebook(name)
         #     base=split(name,".")[1]
         #     input=joinpath(@__DIR__,"..","pluto-examples",base*".jl")
@@ -52,52 +48,56 @@ function make_all(; with_examples = true, run_notebooks = true)
         #     html_contents=PlutoStaticHTML.notebook2html(input;session)
         #     write(output, html_contents)
         # end
-
-
+        
+        
         # for notebook in notebookjl
         #     @info "Converting $(notebook)"
         #     rendernotebook(notebook)
         # end
-
-
-        # Use sliderserver to generate html
-        if run_notebooks
-            export_directory(
-                joinpath(@__DIR__, "..", "pluto-examples"),
-                notebook_paths = notebookjl,
-                Export_output_dir = joinpath(notebook_html_dir),
-                Export_offer_binder = false,
-            )
-            
-            # generate frame markdown for each notebook
-            for notebook in notebookjl
-                base = split(notebook, ".")[1]
-                mdstring = """
-                           ##### [$(base).jl](@id $(base))
-                           [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
-                                       this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
-    
-                           ```@raw html
-                           <iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
-                           ```
-                           """
-                mdname = base * ".md"
-                push!(notebookmd, joinpath("nbhtml", mdname))
-                io = open(joinpath(notebook_html_dir, mdname), "w")
-                write(io, mdstring)
-                close(io)
-            end
-            
-            notebooks = first.(notebooks) .=> notebookmd
-            pushfirst!(notebooks, "About the notebooks" => "notebooks.md")
-        end
+        
 
         
+        export_directory(
+            joinpath(@__DIR__, "..", "pluto-examples"),
+            notebook_paths = notebookjl,
+            Export_output_dir = joinpath(notebook_html_dir),
+            Export_offer_binder = false,
+        )
+        
+        # generate frame markdown for each notebook
+        for notebook in notebookjl
+            base = split(notebook, ".")[1]
+            mdstring = """
+                           ##### [$(base).jl](@id $(base))
+                                   [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
+                                           this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
+        
+                               ```@raw html
+                               <iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
+                           ```
+                           """
+            mdname = base * ".md"
+            push!(notebookmd, joinpath("nbhtml", mdname))
+            io = open(joinpath(notebook_html_dir, mdname), "w")
+            write(io, mdstring)
+            close(io)
+        end
+            
+        notebooks = first.(notebooks) .=> notebookmd
+        pushfirst!(notebooks, "About the notebooks" => "notebooks.md")
+    end
+    
+
+    if with_examples
         #
         # Generate Markdown pages from examples
         #
-        
-        for example_source in readdir(example_jl_dir)
+        if example==nothing
+            example_sources=readdir(example_jl_dir)
+        else
+            example_sources=[example]
+        end
+        for example_source in  example_sources
             base, ext = splitext(example_source)
             if ext == ".jl"
                 source_url =
