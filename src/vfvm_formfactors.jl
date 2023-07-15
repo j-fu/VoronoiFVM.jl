@@ -457,29 +457,40 @@ the divergence of the velocity field used to obtain `evelo` and `bfvelo` via
 all `evelos` and `bfvelos` per Voronoi cell.
 """
 function calc_divergences(sys,evelo,bfvelo)
-    assem_data=sys.assembly_data
     boundary_assem_data=sys.boundary_assembly_data
     grid=sys.grid
-    en=local_celledgenodes(Triangle2D)
-    bfacenodes = grid[BFaceNodes]
-    cellnodes = grid[CellNodes]
-    celledges = grid[CellEdges]
-    celledgesigns = grid[CellFaceSigns]
     div4nodes = zeros(Float64, num_nodes(grid))
 
-    edgefactors = assem_data.edgefactors
-    boundarynodefactors = boundary_assem_data.nodefactors
 
-    for icell in 1:num_cells(grid)
-        for localedge in 1 : 3
-            node1 = cellnodes[en[1,localedge], icell]
-            node2 = cellnodes[en[2,localedge], icell]
-            sign = celledgesigns[localedge, icell]
-            div4nodes[node1] -= sign*evelo[celledges[localedge,icell]] * edgefactors[localedge,icell]
-            div4nodes[node2] += sign*evelo[celledges[localedge,icell]] * edgefactors[localedge,icell]
+    edge = Edge(sys)
+    for item in edgebatch(sys.assembly_data)
+        for iedge in edgerange(sys.assembly_data,item)
+            _fill!(edge,sys.assembly_data,iedge,item) 
+            node1 = edge.node[1]
+            node2 = edge.node[2]
+            div4nodes[node1] -= evelo[edge.index] * edge.fac
+            div4nodes[node2] += evelo[edge.index] * edge.fac
         end
     end
+    
+    # assem_data=sys.assembly_data
+    # edgefactors = assem_data.edgefactors
+    # cellnodes = grid[CellNodes]
+    # celledges = grid[CellEdges]
+    # celledgesigns = grid[CellFaceSigns]
+    # en=local_celledgenodes(Triangle2D)
+    # for icell in 1:num_cells(grid)
+    #     for localedge in 1 : 3
+    #         node1 = cellnodes[en[1,localedge], icell]
+    #         node2 = cellnodes[en[2,localedge], icell]
+    #         sign = celledgesigns[localedge, icell]
+    #         div4nodes[node1] -= sign*evelo[celledges[localedge,icell]] * edgefactors[localedge,icell]
+    #         div4nodes[node2] += sign*evelo[celledges[localedge,icell]] * edgefactors[localedge,icell]
+    #     end
+    # end
 
+    bfacenodes = grid[BFaceNodes]
+    boundarynodefactors = boundary_assem_data.nodefactors
     for ibface in 1:num_bfaces(grid)
         node1 = bfacenodes[1, ibface]
         node2 = bfacenodes[2, ibface]

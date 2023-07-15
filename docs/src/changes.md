@@ -1,4 +1,8 @@
 # Changes
+## v1.11.0 July 15, 2023
+- Add [`calc_divergences`](@ref) method for checking velocity field divergences
+- Fix form factor calculation and velocity projecion for unstructructured grids and cylindrical symmetry
+
 ## v1.10.0 July 11, 2023
 - Use AbstractTransientSolution in gridvisualize stuff
 
