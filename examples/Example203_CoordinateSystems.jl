@@ -81,6 +81,39 @@ function maincylinder(;
 end
 
 """
+    maincylinder_unstruct(;Plotter=nothing)
+
+Solve homogeneuous Dirichlet problem  `-Δu=1`  
+on disk of radius r2, exact solution is `(r_2^2-r^2)/4`. 
+
+In this case, the discretization appears to be exact.
+"""
+function maincylinder_unstruct(;
+                               Plotter = nothing,
+                               assembly = :edgewise
+                               )
+    if VERSION<v"1.7"
+        # no pkdir
+        return true
+    end
+    nref = 0
+    r2 = 5.0
+    z1 = 0.0
+    z2 = 1.0
+    h = 0.1 * 2.0^(-nref)
+    grid = simplexgrid(joinpath(pkgdir(VoronoiFVM),"assets","cyl_unstruct.sg"))
+    circular_symmetric!(grid)
+    source(f, node) = f[1] = 1.0
+    sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
+    boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
+    sol = solve(sys)
+    exact = symlapdisk.(coordinates(grid)[1, :], r2)
+    plot(grid, sol, exact, Plotter)
+    norm(sol[1, :] - exact, Inf) < 0.0012
+end
+
+
+"""
     symlapring(r,r1,r2)
 
 Exact solution of Dirichlet problem `-Δu=0` on ring between radii r1 and r2, 
@@ -210,12 +243,14 @@ function test()
     maindisk(assembly = :edgewise) &&
         mainring(assembly = :edgewise) &&
         maincylinder(assembly = :edgewise) &&
+        maincylinder_unstruct(assembly = :edgewise) &&
         maincylindershell(assembly = :edgewise) &&
         mainsphere(assembly = :edgewise) &&
         mainsphereshell(assembly = :edgewise) &&
         maindisk(assembly = :cellwise) &&
         mainring(assembly = :cellwise) &&
         maincylinder(assembly = :cellwise) &&
+        maincylinder_unstruct(assembly = :cellwise) &&
         maincylindershell(assembly = :cellwise) &&
         mainsphere(assembly = :cellwise) &&
         mainsphereshell(assembly = :cellwise)

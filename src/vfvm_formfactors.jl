@@ -95,9 +95,9 @@ function cellfactors!(T::Type{Triangle2D}, ::Type{Cartesian2D}, coord, cellnodes
     nothing
 end
 
-function cellfactors!(T::Type{Triangle2D}, ::Type{<:Cylindrical2D}, coord, cellnodes, icell, npar, epar)
-    en = local_celledgenodes(T)
 
+function cellfactors!(T::Type{Triangle2D}, ::Type{Cylindrical2D}, coord, cellnodes, icell, npar, epar)
+    en = local_celledgenodes(T)
     @views n = cellnodes[:, icell]
 
     # Fill matrix of edge vectors
@@ -106,50 +106,56 @@ function cellfactors!(T::Type{Triangle2D}, ::Type{<:Cylindrical2D}, coord, celln
 
     # Compute determinant 
     det = V[1, 3] * V[2, 2] - V[1, 2] * V[2, 3]
-    area = abs(0.5 * det)
+    vol = abs(0.5 * det)
+    ivol = 1.0 / vol
 
-    # Integrate R over triangle (via quadrature rule)
-    vol = 2.0 * π * area * (coord[1, n[1]] + coord[1, n[2]] + coord[1, n[3]]) / 3.0
-
+    # squares of edge lengths
     dd = (V[1, 1] * V[1, 1] + V[2, 1] * V[2, 1],
           V[1, 2] * V[1, 2] + V[2, 2] * V[2, 2],
           V[1, 3] * V[1, 3] + V[2, 3] * V[2, 3])
 
+    # Edge midpoints
     emid = @SArray[0.5*(coord[1, n[en[1, 1]]] + coord[1, n[en[2, 1]]]) 0.5*(coord[1, n[en[1, 2]]] + coord[1, n[en[2, 2]]]) 0.5*(coord[1, n[en[1, 3]]] + coord[1, n[en[2, 3]]]);
                    0.5*(coord[2, n[en[1, 1]]] + coord[2, n[en[2, 1]]]) 0.5*(coord[2, n[en[1, 2]]] + coord[2, n[en[2, 2]]]) 0.5*(coord[2, n[en[1, 3]]] + coord[2, n[en[2, 3]]])]
 
-    # use epar as temp storage
+    # Circumcenter; use epar as temp storage
     @views tricircumcenter!(epar, coord[:, n[1]], coord[:, n[2]], coord[:, n[3]])
-    cc = (epar[1], epar[2])
+    rcc=epar[1]
+    
+    # contributions to \sigma_kl/h_kl (cartesian)
+    epar[1] = (dd[2] + dd[3] - dd[1]) * 0.125 * ivol
+    epar[2] = (dd[3] + dd[1] - dd[2]) * 0.125 * ivol
+    epar[3] = (dd[1] + dd[2] - dd[3]) * 0.125 * ivol
 
-    r(p) = p[1]
-    z(p) = p[2]
-
-    for i = 1:3
-        @views epar[i] = π * (r(cc) + r(emid[:, i])) * sqrt((r(cc) - r(emid[:, i]))^2 + (z(cc) - z(emid[:, i]))^2) / sqrt(dd[i])
-    end
-
-    function rintegrate(coord1::T1, coord2::T2, coord3::T3) where {T1, T2, T3}
-        V11 = coord2[1] - coord1[1]
-        V21 = coord2[2] - coord1[2]
-
-        V12 = coord3[1] - coord1[1]
-        V22 = coord3[2] - coord1[2]
-        local det = V11 * V22 - V12 * V21
-        a = abs(0.5 * det)
-        2.0 * π * a * (r(coord1) + r(coord2) + r(coord3)) / 3.0
-    end
-
+    
+    # contributions to \omega_k
+    # for integration we multiply cartesian areas with 2\pi the average radius
     npar .= 0.0
     for i = 1:3
-        @views coord1 = coord[:, n[en[1, i]]]
-        @views coord2 = coord[:, n[en[2, i]]]
 
-        @views npar[en[1, i]] += rintegrate(coord1, cc, emid[:, i])
-        @views npar[en[2, i]] += rintegrate(coord2, cc, emid[:, i])
+        @views r1 = coord[1, n[en[1, i]]]
+        @views r2 = coord[1, n[en[2, i]]]
+
+        cylfac1=2*π*(r1+rcc+emid[1,i])/3
+        cylfac2=2*π*(r2+rcc+emid[1,i])/3
+        
+        npar[en[1, i]] += epar[i] * dd[i] * 0.25 * cylfac1
+        npar[en[2, i]] += epar[i] * dd[i] * 0.25 * cylfac2
     end
+
+
+    # for angular integration we multiply interface lengths with 2\pi the average radius of the interface
+    # need to do this after angular integrating volume contributions
+    for i=1:3
+        rmid=(rcc+emid[1,i])/2
+        epar[i]*=2π*rmid
+    end
+
+
     nothing
 end
+
+
 
 function cellfactors!(T::Type{Tetrahedron3D}, ::Type{Cartesian3D}, coord, cellnodes, icell, npar, epar)
     # Transferred from WIAS/pdelib, (c) J. Fuhrmann, H. Langmach, I. Schmelzer
@@ -281,6 +287,7 @@ function bfacefactors!(T::Type{Edge1D}, ::Type{<:Cylindrical2D}, coord, bfacenod
     nothing
 end
 
+
 function bfacefactors!(T::Type{Triangle2D}, ::Type{<:Cartesian3D}, coord, bfacenodes, ibface, npar, epar)
     # Transferred from WIAS/pdelib, (c) J. Fuhrmann, H. Langmach, I. Schmelzer
 
@@ -341,14 +348,25 @@ function integrate(::Type{<:Cylindrical2D},coordl, coordr, hnormal, velofunc)
     wr = 1.0 / 6.0
     coordm = 0.5 * (coordl + coordr)
 
+    rl=coordl[1]
+    rm=coordm[1]
+    rr=coordr[1]
+    
     if abs(coordm[1]) < eps()
         return 0
     else
-        (vxl, vyl) = coordl[1] .* velofunc(coordl[1], coordl[2])
-        (vxm, vym) = coordm[1] .* velofunc(coordm[1], coordm[2])
-        (vxr, vyr) = coordr[1] .* velofunc(coordr[1], coordr[2])
-        return ((wl * vxl + wm * vxm + wr * vxr) * hnormal[1] + (wl * vyl + wm * vym + wr * vyr) * hnormal[2])/(coordm[1])
+        (vxl, vyl) = velofunc(coordl[1], coordl[2])
+        (vxm, vym) = velofunc(coordm[1], coordm[2])
+        (vxr, vyr) = velofunc(coordr[1], coordr[2])
+
+        vl=vxl*hnormal[1]+vyl*hnormal[2]
+        vm=vxm*hnormal[1]+vym*hnormal[2]
+        vr=vxr*hnormal[1]+vyr*hnormal[2]
+
+        return (wl*vl*rl + wm*vm*rm + wr*vr*rr)/rm
+        
     end
+    
 end
 
 """
