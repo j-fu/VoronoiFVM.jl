@@ -89,6 +89,7 @@ function run_all_tests(;run_notebooks=false)
                "interfaces1d.jl"
                ]
 
+    
     @testset "basictest" begin
         run_tests_from_directory(@__DIR__,"test_")
     end
@@ -111,8 +112,8 @@ function run_all_tests(;run_notebooks=false)
     @testset "Misc Examples" begin
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
-
     if run_notebooks && VERSION>v"1.8" && !(VERSION>v"1.9.99")
+        Pkg.activate(joinpath(@__DIR__,"..","pluto-examples"))
         @testset "notebooks" begin
             for notebook in notebooks
                 @info "notebook $(notebook):"
@@ -121,7 +122,7 @@ function run_all_tests(;run_notebooks=false)
             end
         end
     end
-    Pkg.activate(@__DIR__)
+    #    Pkg.activate(@__DIR__)
 end
 
 run_all_tests(;run_notebooks=true)

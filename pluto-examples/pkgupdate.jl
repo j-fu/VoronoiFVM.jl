@@ -44,9 +44,10 @@ function force_update_notebook_environment(notebook)
     # After this, notebook env + current env are in sync
     Pluto.activate_notebook_environment(tmpjl)
 
+    Pkg.status()
     # Get list of current dependencies and their UUIDs:
     pkgs=[PackageSpec(uuid=v) for (k,v) in Pkg.project().dependencies]
-
+    
     # Remove and re-add packages, thus ignoring compat
     Pkg.rm(pkgs)
     Pkg.add(pkgs)
