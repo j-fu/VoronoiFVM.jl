@@ -4,20 +4,6 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
-begin
-    import Pkg as _Pkg
-    developing = false
-    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl")) && haskey(ENV,"PLUTO_DEVELOP")
-        _Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-        _Pkg.develop(path=joinpath(@__DIR__, ".."))
-        using Revise
-        developing = true
-    end
-    initialized = true
-end;
-
 # ╔═╡ b285aca3-dee5-4b77-9276-537563e8643b
 begin
     if initialized
@@ -55,19 +41,25 @@ md"""
 
 # ╔═╡ ad899a81-baab-4433-8b7f-1e5c3b18dae6
 md"""
-This notebook is also run during the automatic unit tests. In this case, all interactive elements and visualizations should be deactivated.
-For this purposes, the next cell detects if the notebook is running under Pluto
-and sets the `inpluto` flag accordingly.
-
-Furthermore, the cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl. Otherwise, Pluto's built-in package manager is used.
+The next cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl
+and the environment variable `PLUTO_DEVELOP` is set, e.g. during continuous integration tests.
+Otherwise, Pluto's built-in package manager is used.
 """
 
+# ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
+begin
+    import Pkg as _Pkg
+    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl")) && haskey(ENV,"PLUTO_DEVELOP")
+        _Pkg.activate(@__DIR__)
+        _Pkg.instantiate()
+        _Pkg.develop(path=joinpath(@__DIR__, ".."))
+        using Revise
+    end
+    initialized = true
+end;
+
 # ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
-if developing
-    @info "Developing VoronoiFVM at  $(pathof(VoronoiFVM))"
-else
-    @info "Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"
-end
+
 
 # ╔═╡ Cell order:
 # ╠═b285aca3-dee5-4b77-9276-537563e8643b

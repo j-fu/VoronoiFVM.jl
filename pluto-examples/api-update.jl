@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.27
 
 using Markdown
 using InteractiveUtils
@@ -522,23 +522,14 @@ Furthermore, the cell activates a development environment if the notebook is loa
 # ╔═╡ e00d0175-866e-4f0f-8121-49e7bbda6fb6
 begin
     import Pkg as _Pkg
-    developing = false
     if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl")) && haskey(ENV,"PLUTO_DEVELOP")
         _Pkg.activate(@__DIR__)
         _Pkg.instantiate()
         _Pkg.develop(path=joinpath(@__DIR__, ".."))
         using Revise
-        developing = true
     end
     initialized = true
 end;
-
-# ╔═╡ bdbe6513-70b1-4d97-a79c-71534caad2b7
-if developing
-    @info "Developing VoronoiFVM at  $(pathof(VoronoiFVM))"
-else
-    @info "Loaded VoronoiFVM from  $(pathof(VoronoiFVM))"
-end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -561,7 +552,7 @@ ExtendableGrids = "~0.9.17"
 ExtendableSparse = "~1.2.0"
 GridVisualize = "~1.1.3"
 ILUZero = "~0.2.0"
-LinearSolve = "~2.3.0"
+LinearSolve = "~2.4.1"
 PlutoUI = "~0.7.51"
 PlutoVista = "~0.8.24"
 Revise = "~3.5.3"
@@ -574,7 +565,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "d490cb630c92281a2687247e599402229585a561"
+project_hash = "6e4228f2418299c5bc3b00f891026a8a6f896922"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "e58c18d2312749847a74f5be80bb0fa53da102bd"
@@ -962,9 +953,9 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
 [[deps.FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]
-git-tree-sha1 = "e5556303fd8c9ad4a8fceccd406ef3433ddb4c45"
+git-tree-sha1 = "192cee6de045c39e26f4ce4b7e0f00a9dae14dd1"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.FiniteDiff]]
 deps = ["ArrayInterface", "LinearAlgebra", "Requires", "Setfield", "SparseArrays"]
@@ -1194,9 +1185,9 @@ version = "0.4.0"
 
 [[deps.Krylov]]
 deps = ["LinearAlgebra", "Printf", "SparseArrays"]
-git-tree-sha1 = "0356a64062656b0cbb43c504ad5de338251f4bda"
+git-tree-sha1 = "6dc4ad9cd74ad4ca0a8e219e945dbd22039f2125"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
-version = "0.9.1"
+version = "0.9.2"
 
 [[deps.LaTeXStrings]]
 git-tree-sha1 = "f2355693d6778a178ade15952b7ac47a4ff97996"
@@ -1285,9 +1276,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LinearSolve]]
 deps = ["ArrayInterface", "DocStringExtensions", "EnumX", "FastLapackInterface", "GPUArraysCore", "InteractiveUtils", "KLU", "Krylov", "LinearAlgebra", "PrecompileTools", "Preferences", "RecursiveFactorization", "Reexport", "Requires", "SciMLBase", "SciMLOperators", "Setfield", "SparseArrays", "Sparspak", "SuiteSparse", "UnPack"]
-git-tree-sha1 = "93f3a0d88c8f5498bed3ad37ddd844b939fdf899"
+git-tree-sha1 = "1b55771f2c211583ad52af5a5ca6475be374c961"
 uuid = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
-version = "2.3.0"
+version = "2.4.1"
 
     [deps.LinearSolve.extensions]
     LinearSolveCUDAExt = "CUDA"
@@ -1774,9 +1765,9 @@ weakdeps = ["Statistics"]
     StaticArraysStatisticsExt = "Statistics"
 
 [[deps.StaticArraysCore]]
-git-tree-sha1 = "1d5708d926c76a505052d0d24a846d5da08bc3a4"
+git-tree-sha1 = "36b3d696ce6366023a0ea192b4cd442268995a0d"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
-version = "1.4.1"
+version = "1.4.2"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -2091,6 +2082,5 @@ version = "17.4.0+0"
 # ╟─f50c6497-cba3-491a-bedd-5f94f88f76fb
 # ╟─ad899a81-baab-4433-8b7f-1e5c3b18dae6
 # ╠═e00d0175-866e-4f0f-8121-49e7bbda6fb6
-# ╠═bdbe6513-70b1-4d97-a79c-71534caad2b7
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
