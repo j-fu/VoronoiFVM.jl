@@ -79,7 +79,7 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
 <iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
 ```
 """
-<iframe sandbox="allow-same-origin" onload="this.style.height=(this.contentWindow.document.body.scrollHeight+20)+'px';" width="100%" src="../$(base).html"> </iframe>
+# <iframe sandbox="allow-same-origin" onload="this.style.height=(this.contentWindow.document.body.scrollHeight+20)+'px';" width="100%" src="../$(base).html"> </iframe>
             mdname = base * ".md"
             push!(notebookmd, joinpath("nbhtml", mdname))
             io = open(joinpath(notebook_html_dir, mdname), "w")
