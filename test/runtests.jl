@@ -114,6 +114,7 @@ function run_all_tests(;run_notebooks=false)
     end
     if run_notebooks && VERSION>v"1.8" && !(VERSION>v"1.9.99")
         Pkg.activate(joinpath(@__DIR__,"..","pluto-examples"))
+        Pkg.instantiate()
         @testset "notebooks" begin
             for notebook in notebooks
                 @info "notebook $(notebook):"
