@@ -71,12 +71,12 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
             base = split(notebook, ".")[1]
             mdstring = """
 ##### [$(base).jl](@id $(base))
-        [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
-                this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
+    [Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
+            this [Pluto.jl](https://github.com/fonsp/Pluto.jl) notebook.
 
-    ```@raw html
-    <iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
-    ```
+```@raw html
+<iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
+```
 """
             mdname = base * ".md"
             push!(notebookmd, joinpath("nbhtml", mdname))
