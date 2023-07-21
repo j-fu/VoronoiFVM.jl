@@ -90,7 +90,6 @@ function run_all_tests(;run_notebooks=false)
                ]
 
 
-    if false
     @testset "basictest" begin
         run_tests_from_directory(@__DIR__,"test_")
     end
@@ -113,7 +112,7 @@ function run_all_tests(;run_notebooks=false)
     @testset "Misc Examples" begin
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
-    end
+
     if run_notebooks && VERSION>v"1.8" && !(VERSION>v"1.9.99")
         notebookenv=joinpath(@__DIR__,"..","pluto-examples")
         Pkg.activate(notebookenv)
