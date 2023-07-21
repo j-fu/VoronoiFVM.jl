@@ -14,6 +14,17 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
+begin
+    import Pkg as _Pkg
+    haskey(ENV,"PLUTO_PROJECT") && _Pkg.activate(ENV["PLUTO_PROJECT"])
+    using Revise
+    using Test
+    using SimplexGridFactory, Triangulate, ExtendableGrids, VoronoiFVM
+    using PlutoUI, GridVisualize, PlutoVista
+    GridVisualize.default_plotter!(PlutoVista)
+end;
+
 # ╔═╡ de468cb9-b34d-4d2e-b911-9b93920caca1
 md"""
 # Flux reconstruction and visualization for the Laplace operator
@@ -26,16 +37,6 @@ We demonstrate the reconstruction of the gradient vector field from the solution
 
 # ╔═╡ 184193b6-39ef-4d0c-92a3-157fa5809832
 TableOfContents(; aside = false)
-
-# ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
-begin
-    if initialized
-        using Test
-        using SimplexGridFactory, Triangulate, ExtendableGrids, VoronoiFVM
-        using PlutoUI, GridVisualize, PlutoVista
-        GridVisualize.default_plotter!(PlutoVista)
-    end
-end;
 
 # ╔═╡ 30dc968f-44df-45ea-bdb3-c938a8026224
 md"""
@@ -183,16 +184,6 @@ md"""
 Solve, and trigger solution upon boundary value change
 """
 
-# ╔═╡ 27efdcac-8ee4-47e4-905d-8d8c7313ddd1
-begin
-    params.val11 = val11
-    sol = solve(system)
-end;
-
-
-# ╔═╡ 18d5bc33-2578-41d0-a390-c164d754b8e1
-@test params.val11 != 5.0 || isapprox(sum(sol), 7842.2173682050525, rtol = 1.0e-12)
-
 # ╔═╡ 90bd1da0-c371-4889-a00f-a17a27463c88
 md"""
 ## Flux reconstruction
@@ -209,13 +200,6 @@ R. Eymard, T. Gallouet, R. Herbin, IMA Journal of Numerical Analysis (2006)
 
 """
 
-# ╔═╡ 41f427c1-b6ad-46d4-9151-1d872b4efeb6
-nf = nodeflux(system, sol)
-
-
-# ╔═╡ 0e34c818-021b-44c9-8ee4-1a737c3de9cb
-@test params.val11 != 5.0 || isapprox(sum(nf), 978.000534849034, rtol = 1.0e-14)
-
 # ╔═╡ 17be52fb-f55b-4b3d-85e5-33f36134046b
 vis = GridVisualizer(dim = 2, resolution = (400, 400))
 
@@ -223,6 +207,23 @@ vis = GridVisualizer(dim = 2, resolution = (400, 400))
 md"""
 ``v_{11}:`` $(@bind  val11 Slider(0:0.1:10,default=5,show_value=true))
 """
+
+# ╔═╡ 27efdcac-8ee4-47e4-905d-8d8c7313ddd1
+begin
+    params.val11 = val11
+    sol = solve(system)
+end;
+
+
+# ╔═╡ 18d5bc33-2578-41d0-a390-c164d754b8e1
+@test params.val11 != 5.0 || isapprox(sum(sol), 7842.2173682050525, rtol = 1.0e-12)
+
+# ╔═╡ 41f427c1-b6ad-46d4-9151-1d872b4efeb6
+nf = nodeflux(system, sol)
+
+
+# ╔═╡ 0e34c818-021b-44c9-8ee4-1a737c3de9cb
+@test params.val11 != 5.0 || isapprox(sum(nf), 978.000534849034, rtol = 1.0e-14)
 
 # ╔═╡ 9468db0c-e924-4737-9b75-6bec753aafa9
 md"""
@@ -290,36 +291,10 @@ end
 @test nf1d[1, 1, 1] ≈ -nf1d[1, 1, end]
 
 # ╔═╡ d3e64470-8e11-4ef7-af34-453088910fee
-html"""<hr><hr><hr>"""
+html"""<hr>"""
 
-# ╔═╡ 00111b16-ac13-417d-93bf-cf908f620452
-md"""
-# Appendix: Tests & Development
-"""
-
-# ╔═╡ ec03b394-d56f-4722-949d-93f5d63a29ac
-md"""
-The next cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl
-and the environment variable `PLUTO_DEVELOP` is set, e.g. during continuous integration tests.
-Otherwise, Pluto's built-in package manager is used.
-"""
-
-# ╔═╡ 33365518-b403-4fad-aca8-1670a12ff715
-begin
-    import Pkg as _Pkg
-    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl")) && haskey(ENV,"PLUTO_DEVELOP")
-        _Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-        _Pkg.develop(path=joinpath(@__DIR__, ".."))
-        using Revise
-    end
-    initialized = true
-end;
-
-
-# ╔═╡ 3cce3948-42b5-45dc-a2d5-e50fabfee5ea
-
-
+# ╔═╡ 2b3132a4-5e99-47f2-b85f-c55e90f7f93f
+html"""<hr>"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1845,9 +1820,6 @@ version = "17.4.0+0"
 # ╠═c62f06a2-70d5-40e7-b137-3dc547f5e246
 # ╠═cdd80b71-50dc-4b64-b0ea-37c57d65012f
 # ╟─d3e64470-8e11-4ef7-af34-453088910fee
-# ╟─00111b16-ac13-417d-93bf-cf908f620452
-# ╟─ec03b394-d56f-4722-949d-93f5d63a29ac
-# ╠═33365518-b403-4fad-aca8-1670a12ff715
-# ╟─3cce3948-42b5-45dc-a2d5-e50fabfee5ea
+# ╟─2b3132a4-5e99-47f2-b85f-c55e90f7f93f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

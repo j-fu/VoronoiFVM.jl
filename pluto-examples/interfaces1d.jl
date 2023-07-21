@@ -6,18 +6,19 @@ using InteractiveUtils
 
 # ╔═╡ 18c423cc-18bf-41a0-a6e4-e30f91f39728
 begin
-    if initialized
-        using VoronoiFVM
-        using ExtendableGrids
-        using GridVisualize
-        using PlutoVista
-        using PlutoUI
-        using HypertextLiteral
-        using LinearAlgebra
-        using LinearSolve
-        using Test
-        GridVisualize.default_plotter!(PlutoVista)
-    end
+    import Pkg as _Pkg
+    haskey(ENV,"PLUTO_PROJECT") && _Pkg.activate(ENV["PLUTO_PROJECT"])
+    using Revise
+    using VoronoiFVM
+    using ExtendableGrids
+    using GridVisualize
+    using PlutoVista
+    using PlutoUI
+    using HypertextLiteral
+    using LinearAlgebra
+    using LinearSolve
+    using Test
+    GridVisualize.default_plotter!(PlutoVista)
 end
 
 # ╔═╡ 327af4a8-74cc-4834-ab19-d3a1d6873982
@@ -241,6 +242,12 @@ Note, that ``f_i`` is monotonically increasing in ``u_i`` and monotonically decr
 Note that the "no reaction" case is just a special case where ``k_1,k_2=0``.
 """
 
+# ╔═╡ d027ff24-3ad1-4528-b5cf-10814caf30db
+begin
+    const k1 = 0.1
+    const k2 = 10
+end
+
 # ╔═╡ 1328b4bf-2d64-4b02-a910-1995da8be28b
 function mal_reaction(f, u, node)
     if node.region == 3
@@ -253,12 +260,6 @@ end
 
 # ╔═╡ 610a0761-1c23-415d-a187-f7d93a1b7637
 system2 = make_system(mal_reaction)
-
-# ╔═╡ d027ff24-3ad1-4528-b5cf-10814caf30db
-begin
-    const k1 = 0.1
-    const k2 = 10
-end
 
 # ╔═╡ 87edce1f-df6d-4cd8-bce5-24fb666cd6b5
 begin
@@ -338,6 +339,9 @@ According to the mass action law, this is implemented via
 
 """
 
+# ╔═╡ f2490f99-04ca-4f42-af2a-53adae51ca68
+const k_r = 1000
+
 # ╔═╡ 39a0db1b-3a4e-4108-b43f-d4e578c92608
 function recombination(f, u, node)
     if node.region == 3
@@ -349,9 +353,6 @@ end;
 
 # ╔═╡ 644149fb-2264-42bd-92c9-193ab07c08f6
 system4 = make_system(recombination);
-
-# ╔═╡ f2490f99-04ca-4f42-af2a-53adae51ca68
-const k_r = 1000
 
 # ╔═╡ b479402f-ef00-4425-8b0f-45f2dae74d80
 plot(mysolve(system4)...)
@@ -421,13 +422,13 @@ md"""
 In order to streamline the handling of multiple interfaces,  we propose an API layer on top  of the species handling of VoronoiFVM. We call these "meta species" "quantities".
 """
 
+# ╔═╡ d44407de-8c9c-42fa-b1a2-ae02b826eccc
+N = 6
+
 # ╔═╡ 2da8a5b1-b168-41d9-baa8-d65a4ef5c4c0
 md"""
 We define a grid with N=$(N) subregions
 """
-
-# ╔═╡ d44407de-8c9c-42fa-b1a2-ae02b826eccc
-N = 6
 
 # ╔═╡ ae268316-c058-4db8-9b71-57b0d9425274
 begin
@@ -488,6 +489,21 @@ md"""
 Define a thin layer interface condition for `dspec` and an interface source for `cspec`.
 """
 
+# ╔═╡ da41b22e-114d-4eee-81d0-73e6f3b45242
+md"""
+Add physics to the system, set dirichlet bc at both ends, and extract subgrids
+for plotting (until there will be a plotting API for this...)
+"""
+
+# ╔═╡ 2867307e-1f46-4b62-8793-fa6668122bea
+allsubgrids = subgrids(dspec, system6)
+
+# ╔═╡ b8cd6ad1-d323-4888-bbd1-5deba5a5870d
+const d1 = 0.1
+
+# ╔═╡ 441a39a0-a7de-47db-8539-12dee30b8312
+const q1 = 0.2
+
 # ╔═╡ d6e1c6c7-060d-4c2f-8054-d8f33f54bd55
 function breaction2(f, u, node)
     if node.region > 2
@@ -498,12 +514,6 @@ function breaction2(f, u, node)
         f[cspec] = -q1
     end
 end
-
-# ╔═╡ da41b22e-114d-4eee-81d0-73e6f3b45242
-md"""
-Add physics to the system, set dirichlet bc at both ends, and extract subgrids
-for plotting (until there will be a plotting API for this...)
-"""
 
 # ╔═╡ 59c83a22-a4cc-4b51-a1cc-5eb39588eacd
 begin
@@ -521,19 +531,10 @@ begin
 	physics_ok=true 
 end;
 
-# ╔═╡ 2867307e-1f46-4b62-8793-fa6668122bea
-allsubgrids = subgrids(dspec, system6)
-
 # ╔═╡ de119a22-b695-4b4f-8e04-b7d68ec1e91b
 if physics_ok
    sol6 = solve(system6, inival = 0.5)
 end;
-
-# ╔═╡ b8cd6ad1-d323-4888-bbd1-5deba5a5870d
-const d1 = 0.1
-
-# ╔═╡ 441a39a0-a7de-47db-8539-12dee30b8312
-const q1 = 0.2
 
 # ╔═╡ 83527778-76b2-4569-86c8-50dc6b48129f
 function plot2(U, subgrids, system6)
@@ -576,31 +577,8 @@ if d1 == 0.1 && N == 6
     @test norm(system6, sol6, 2) ≈ 7.0215437706445245
 end
 
-# ╔═╡ 335940d8-fe16-4256-abb0-0a25da14922f
-md"""
-## Appendix: Development + Styling
-"""
-
 # ╔═╡ 6ee90c4b-5ebf-48c4-a3b7-2efc32d16996
-md"""
-The next cell activates a development environment if the notebook is loaded from a checked out VoronoiFVM.jl
-and the environment variable `PLUTO_DEVELOP` is set, e.g. during continuous integration tests.
-Otherwise, Pluto's built-in package manager is used.
-"""
-
-
-# ╔═╡ 12ab1a8c-943c-41e5-959f-4e0b956b2532
-begin
-    import Pkg as _Pkg
-    if isfile(joinpath(@__DIR__, "..", "src", "VoronoiFVM.jl")) && haskey(ENV,"PLUTO_DEVELOP")
-        _Pkg.activate(@__DIR__)
-        _Pkg.instantiate()
-        _Pkg.develop(path=joinpath(@__DIR__, ".."))
-        using Revise
-    end
-    initialized = true
-end;
-
+html"""<hr>"""
 
 # ╔═╡ c344c0af-fb75-45f4-8977-45041a22b605
 begin
@@ -640,6 +618,9 @@ begin
 """
 end
 
+
+# ╔═╡ b5a87200-eea5-4164-bfd5-dee1045a0464
+html"""<hr>"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2180,9 +2161,8 @@ version = "17.4.0+0"
 # ╠═d58407fe-dcd4-47bb-a65e-db5fedb58edc
 # ╟─8a435b96-4859-4452-b82a-e43a0c310a9a
 # ╠═4d8e81c1-dbec-4379-9ab7-a585a369582d
-# ╟─335940d8-fe16-4256-abb0-0a25da14922f
 # ╟─6ee90c4b-5ebf-48c4-a3b7-2efc32d16996
-# ╠═12ab1a8c-943c-41e5-959f-4e0b956b2532
 # ╟─c344c0af-fb75-45f4-8977-45041a22b605
+# ╟─b5a87200-eea5-4164-bfd5-dee1045a0464
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

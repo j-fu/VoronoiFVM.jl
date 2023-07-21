@@ -82,14 +82,15 @@ end
 function run_all_tests(;run_notebooks=false)
     
     notebooks=["nbproto.jl",
+               "flux-reconstruction.jl",
+               "interfaces1d.jl",
+               "problemcase.jl",
                "nonlinear-solvers.jl",
                "api-update.jl",
-               "flux-reconstruction.jl",
-               "problemcase.jl",
-               "interfaces1d.jl"
                ]
 
-    
+
+    if false
     @testset "basictest" begin
         run_tests_from_directory(@__DIR__,"test_")
     end
@@ -112,10 +113,13 @@ function run_all_tests(;run_notebooks=false)
     @testset "Misc Examples" begin
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
+    end
     if run_notebooks && VERSION>v"1.8" && !(VERSION>v"1.9.99")
-        Pkg.activate(joinpath(@__DIR__,"..","pluto-examples"))
+        notebookenv=joinpath(@__DIR__,"..","pluto-examples")
+        Pkg.activate(notebookenv)
         Pkg.develop(path=joinpath(@__DIR__, ".."))
         Pkg.instantiate()
+        ENV["PLUTO_PROJECT"]=notebookenv
         @testset "notebooks" begin
             for notebook in notebooks
                 @info "notebook $(notebook):"

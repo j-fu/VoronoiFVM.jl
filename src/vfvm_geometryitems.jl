@@ -355,7 +355,14 @@ mutable struct Edge{Tc, Tp, Ti} <: AbstractEdge{Tc, Tp, Ti}
     """
     _idx::Ti
     
+    outflownoderegions::Union{Nothing,SparseMatrixCSC{Bool,Int}}
 
+    """
+    Outflow node
+    """
+    outflownode::Int
+    
+    
     Edge{Tc, Tp, Ti}(::Nothing) where {Tc, Tp, Ti} = new()
 end
 
@@ -385,7 +392,9 @@ function Edge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
     edge.embedparam = embedparam
     edge.params = params
     edge.fac=0
+    edge.outflownode=0
     edge._idx=0
+    edge.outflownoderegions=sys.outflownoderegions
     edge
 end
 
@@ -411,6 +420,21 @@ struct EdgeRHS{Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
 end
 
 @inline rhs(edge::Edge{Tc, Tp, Ti}, f::AbstractVector{Tv}) where {Tv, Tc, Tp, Ti} = EdgeRHS{Tv, Tc, Tp, Ti}(f, edge.nspec, edge)
+
+
+isoutflownode(edge) = isoutflownode(edge, 1) || isoutflownode(edge, 2)
+
+isoutflownode(edge, inode) = length(nzrange(edge.outflownoderegions, edge.node[inode])) > 0
+
+isoutflownode(edge, inode, iregion)= edge.outflownoderegions[iregion,edge.node[inode]]
+
+outflownode(edge)=edge.outflownode
+
+function outflownode!(edge)
+    isoutflownode(edge, 1) ?  edge.outflownode=1 : true
+    isoutflownode(edge, 2) ?  edge.outflownode=2 : true
+end
+
 
 ##################################################################
 """

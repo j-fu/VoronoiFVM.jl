@@ -30,13 +30,14 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
 
     
     if run_notebooks
-        ENV["PLUTO_DEVELOP"]="true"
+        notebookenv=joinpath(@__DIR__,"..","pluto-examples")
+        ENV["PLUTO_PROJECT"]=notebookenv
         notebooks = [
-            "API Updates" => "api-update.jl",
             "Nonlinear solver control" => "nonlinear-solvers.jl",
             "Obtaining vector fields" => "flux-reconstruction.jl",
             "Internal interfaces (1D)" => "interfaces1d.jl",
             "A case for caution" => "problemcase.jl",
+            "API Updates" => "api-update.jl",
         ]
         
         notebookjl = last.(notebooks)

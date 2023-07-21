@@ -111,6 +111,11 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     is_linear::Bool
 
     """
+    Outflow nodes
+    """
+    outflownoderegions::Union{SparseMatrixCSC{Bool,Int},Nothing}
+    
+    """
     Sparse matrix for generic operator handling
     """
     generic_matrix::SparseMatrixCSC
@@ -271,6 +276,7 @@ function System(grid::ExtendableGrid;
     system.num_quantities = 0
     system.uhash = 0x0
     system.matrixtype = matrixtype
+    system.outflownoderegions=nothing
     system.linear_cache = nothing
     system.history = nothing
     system.num_parameters = nparams
@@ -683,7 +689,7 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
     cnf=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_nodes(grid))
     cef=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_edges(grid))
-
+    
     
     
     nn::Int = num_nodes(geom)

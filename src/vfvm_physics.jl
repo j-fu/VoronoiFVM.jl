@@ -59,6 +59,8 @@ end
 function nosrc2(f, node)
 end
 
+
+
 function default_storage2(f, u, node)
     f .= u
 end
@@ -88,6 +90,7 @@ struct Physics{Flux <: Function,
                BReaction <: Function,
                BSource <: Function,
                BStorage <: Function,
+               BOutflow <: Function,
                GenericOperator <: Function,
                GenericOperatorSparsity <: Function,
                Data} <: AbstractPhysics
@@ -154,6 +157,10 @@ struct Physics{Flux <: Function,
     """
     bstorage::BStorage
 
+    boutflow::BOutflow
+
+    outflowboundaries::Vector{Int}
+    
     """
     Generic operator  `generic_operator(f,u,sys)`. 
     This operator acts on the full solution `u` of a system. Sparsity
@@ -195,6 +202,8 @@ Physics(;num_species=0,
          source,
          breaction,
          bstorage,
+         boutflow,
+         outflowboundaries,
          generic,
          generic_sparsity
     )
@@ -213,6 +222,8 @@ function Physics(; num_species = 0,
                  breaction::Function = nofunc,
                  bsource::Function = nosrc,
                  bstorage::Function = nofunc,
+                 boutflow::Function = nofunc,
+                 outflowboundaries::Vector{Int} = Int[],
                  generic::Function = nofunc_generic,
                  generic_sparsity::Function = nofunc_generic_sparsity,
                  kwargs...)
@@ -226,6 +237,7 @@ function Physics(; num_species = 0,
         breaction == nofunc ? breaction = nofunc2 : true
         bsource == nosrc ? bsource = nosrc2 : true
         bstorage == nofunc ? bstorage = nofunc2 : true
+        boutflow == nofunc ? boutflow = nofunc2 : true
     end
 
     return Physics(flux,
@@ -237,6 +249,8 @@ function Physics(; num_species = 0,
                    breaction,
                    bsource,
                    bstorage,
+                   boutflow,
+                   outflowboundaries,
                    generic,
                    generic_sparsity,
                    data,
@@ -253,6 +267,8 @@ function Physics(physics::Physics, data)
             physics.breaction,
             physics.bsource,
             physics.bstorage,
+            physics.boutflow,
+            physics.outflowboundaries,
             physics.generic,
             physics.generic_sparsity,
             data,
@@ -265,6 +281,11 @@ $(SIGNATURES)
 Check if physics object has data
 """
 hasdata(physics::Physics) = isdata(physics.data)
+
+
+hasoutflow(physics::Physics) = physics.boutflow !=nofunc && physics.boutflow !=nofunc2 
+
+
 
 """
 $(SIGNATURES)

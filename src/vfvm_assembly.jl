@@ -98,10 +98,11 @@ function eval_and_assemble(
     oldstor_evaluator = ResEvaluator(physics, :storage, UK, node, nspecies)
     flux_evaluator = ResJacEvaluator(physics, :flux, UKL, edge, nspecies)
     erea_evaluator = ResJacEvaluator(physics, :edgereaction, UKL, edge, nspecies)
+    outflow_evaluator = ResJacEvaluator(physics, :boutflow, UKL, edge, nspecies)
 
-    ncalloc=@allocated for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)
+    ncalloc = @allocated for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             @views UK[1:nspecies] .= U[:, node.index]
             @views UKOld[1:nspecies] .= UOld[:, node.index]
 
@@ -143,56 +144,91 @@ function eval_and_assemble(
             @inline function asm_param(idof, ispec, iparam)
                 jparam = nspecies + iparam
                 dudp[iparam][ispec, idof] +=
-                    (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) * node.fac
+                    (jac_react[ispec, jparam] + jac_stor[ispec, jparam] * tstepinv) *
+                    node.fac
             end
 
             assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
         end
     end
-    
+
+    if isnontrivial(outflow_evaluator)
+        if isnothing(system.outflownoderegions)
+            bfacenodes = system.grid[BFaceNodes]
+            bfaceregions = system.grid[BFaceRegions]
+            outflownoderegions = ExtendableSparseMatrix{Bool,Int}(
+                num_bfaceregions(system.grid),
+                num_nodes(system.grid),
+            )
+            for ibface = 1:num_bfaces(system.grid)
+                for ibn = 1:dim_space(system.grid)
+                    if bfaceregions[ibface]∈ system.physics.outflowboundaries
+                        outflownoderegions[bfaceregions[ibface], bfacenodes[ibn, ibface]] = true
+                    end
+                end
+            end
+            system.outflownoderegions = SparseMatrixCSC(outflownoderegions)
+            edge.outflownoderegions = system.outflownoderegions
+        end
+    end
+
+
     ncalloc += @allocated for item in edgebatch(system.assembly_data)
-        for iedge in edgerange(system.assembly_data,item)
-            _fill!(edge,system.assembly_data,iedge,item) 
+        for iedge in edgerange(system.assembly_data, item)
+            _fill!(edge, system.assembly_data, iedge, item)
 
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
             @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
-            
+
             evaluate!(flux_evaluator, UKL)
             res_flux = res(flux_evaluator)
             jac_flux = jac(flux_evaluator)
-            
+
             @inline function asm_res(idofK, idofL, ispec)
                 val = edge.fac * res_flux[ispec]
                 _add(F, idofK, val)
                 _add(F, idofL, -val)
             end
-            
+
             @inline function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
                 _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], edge.fac)
                 _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], edge.fac)
-                _addnz(system.matrix, idofK, jdofL, +jac_flux[ispec, jspec+nspecies], edge.fac)
-                _addnz(system.matrix, idofL, jdofL, -jac_flux[ispec, jspec+nspecies], edge.fac)
+                _addnz(
+                    system.matrix,
+                    idofK,
+                    jdofL,
+                    +jac_flux[ispec, jspec+nspecies],
+                    edge.fac,
+                )
+                _addnz(
+                    system.matrix,
+                    idofL,
+                    jdofL,
+                    -jac_flux[ispec, jspec+nspecies],
+                    edge.fac,
+                )
             end
-            
+
             @inline function asm_param(idofK, idofL, ispec, iparam)
                 jparam = 2 * nspecies + iparam
                 dudp[iparam][ispec, idofK] += edge.fac * jac_flux[ispec, jparam]
                 dudp[iparam][ispec, idofL] -= edge.fac * jac_flux[ispec, jparam]
             end
-            
+
             assemble_res_jac(edge, system, asm_res, asm_jac, asm_param)
-            
+
+            ##################################################################################
             if isnontrivial(erea_evaluator)
                 evaluate!(erea_evaluator, UKL)
                 res_erea = res(erea_evaluator)
                 jac_erea = jac(erea_evaluator)
-                
+
                 @inline function ereaasm_res(idofK, idofL, ispec)
                     val = edge.fac * res_erea[ispec]
                     _add(F, idofK, val)
                     _add(F, idofL, val)
                 end
-                
+
                 @inline function ereaasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
                     _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], edge.fac)
                     _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], edge.fac)
@@ -211,19 +247,95 @@ function eval_and_assemble(
                         edge.fac,
                     )
                 end
-                
+
                 @inline function ereaasm_param(idofK, idofL, ispec, iparam)
                     jparam = 2 * nspecies + iparam
                     dudp[iparam][ispec, idofK] += edge.fac * jac_erea[ispec, jparam]
                     dudp[iparam][ispec, idofL] += edge.fac * jac_erea[ispec, jparam]
                 end
-                
+
                 assemble_res_jac(edge, system, ereaasm_res, ereaasm_jac, ereaasm_param)
             end
+
+            ##################################################################################
+            if isnontrivial(outflow_evaluator) && isoutflownode(edge)
+                outflownode!(edge)
+                evaluate!(outflow_evaluator, UKL)
+                res_outflow = res(outflow_evaluator)
+                jac_outflow = jac(outflow_evaluator)
+                
+                @inline function outflowasm_res(idofK, idofL, ispec)
+                    val = edge.fac * res_outflow[ispec]
+
+                    if isoutflownode(edge,1)
+                        _add(F, idofK, val)
+                    end
+                    
+                    if isoutflownode(edge,2)
+                        _add(F, idofL, -val)
+                    end
+                end
+
+                @inline function outflowasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
+                    if isoutflownode(edge, 1)
+                        _addnz(
+                            system.matrix,
+                            idofK,
+                            jdofK,
+                            +jac_outflow[ispec, jspec],
+                            edge.fac
+                        )
+                        _addnz(
+                            system.matrix,
+                            idofK,
+                            jdofL,
+                            -jac_outflow[ispec, jspec+nspecies],
+                            edge.fac
+                        )
+                    end
+
+                    if isoutflownode(edge, 2)
+                        _addnz(
+                            system.matrix,
+                            idofL,
+                            jdofK,
+                            +jac_outflow[ispec, jspec],
+                            edge.fac
+                        )
+                        _addnz(
+                            system.matrix,
+                            idofL,
+                            jdofL,
+                            -jac_outflow[ispec, jspec+nspecies],
+                            edge.fac
+                        )
+                    end
+                end
+
+                @inline function outflowasm_param(idofK, idofL, ispec, iparam)
+                    jparam = 2 * nspecies + iparam
+                    if isoutflownode(edge, 1)
+                        dudp[iparam][ispec, idofK] += edge.fac * jac_outflow[ispec, jparam]
+                    end
+                    if isoutflownode(edge, 2)
+                        dudp[iparam][ispec, idofL] += edge.fac * jac_outflow[ispec, jparam]
+                    end
+                end
+
+                assemble_res_jac(
+                    edge,
+                    system,
+                    outflowasm_res,
+                    outflowasm_jac,
+                    outflowasm_param,
+                )
+            end
+
+
         end
     end
 
-    bnode = BNode(system, time, λ, params)   
+    bnode = BNode(system, time, λ, params)
     bedge = BEdge(system, time, λ, params)
 
 
@@ -238,9 +350,10 @@ function eval_and_assemble(
     bflux_evaluator = ResJacEvaluator(physics, :bflux, UKL, bedge, nspecies)
 
 
-    nballoc=@allocated for item in nodebatch(system.boundary_assembly_data)
-        for ibnode in noderange(system.boundary_assembly_data,item)
-            _fill!(bnode,system.boundary_assembly_data,ibnode,item)
+
+    nballoc = @allocated for item in nodebatch(system.boundary_assembly_data)
+        for ibnode in noderange(system.boundary_assembly_data, item)
+            _fill!(bnode, system.boundary_assembly_data, ibnode, item)
 
             if has_legacy_bc
                 # Global index of node
@@ -255,7 +368,7 @@ function eval_and_assemble(
                     if idof > 0
                         # Get user specified data
                         boundary_factor = boundary_factors[ispec, bnode.region]
-                        boundary_value = boundary_values[ispec,  bnode.region]
+                        boundary_value = boundary_values[ispec, bnode.region]
 
                         if boundary_factor == Dirichlet
                             # Dirichlet is encoded in the boundary condition factor
@@ -270,8 +383,7 @@ function eval_and_assemble(
                         else
                             # Robin boundary condition
                             F[ispec, K] +=
-                                bnode.fac *
-                                (boundary_factor * U[ispec, K] - boundary_value)
+                                bnode.fac * (boundary_factor * U[ispec, K] - boundary_value)
                             _addnz(system.matrix, idof, idof, boundary_factor, bnode.fac)
                         end
                     end
@@ -291,13 +403,8 @@ function eval_and_assemble(
             asm_res1(idof, ispec) =
                 _add(F, idof, bnode.fac * (res_breact[ispec] - bsrc[ispec]))
 
-            asm_jac1(idof, jdof, ispec, jspec) = _addnz(
-                system.matrix,
-                idof,
-                jdof,
-                jac_breact[ispec, jspec],
-                bnode.fac,
-            )
+            asm_jac1(idof, jdof, ispec, jspec) =
+                _addnz(system.matrix, idof, jdof, jac_breact[ispec, jspec], bnode.fac)
 
             asm_param1(idof, ispec, iparam) =
                 dudp[iparam][ispec, idof] +=
@@ -339,11 +446,11 @@ function eval_and_assemble(
             end
         end # ibnode=1:nbn
     end
-    
+
     if isnontrivial(bflux_evaluator)
-        nballoc+=@allocated  for item in edgebatch(system.boundary_assembly_data)
-            for ibedge in edgerange(system.boundary_assembly_data,item)
-                _fill!(bedge,system.boundary_assembly_data,ibedge,item) 
+        nballoc += @allocated for item in edgebatch(system.boundary_assembly_data)
+            for ibedge in edgerange(system.boundary_assembly_data, item)
+                _fill!(bedge, system.boundary_assembly_data, ibedge, item)
                 @views UKL[1:nspecies] .= U[:, bedge.node[1]]
                 @views UKL[(nspecies+1):(2*nspecies)] .= U[:, bedge.node[2]]
 
@@ -374,7 +481,7 @@ function eval_and_assemble(
                         bedge.fac,
                     )
                 end
-                
+
                 function asm_param(idofK, idofL, ispec, iparam)
                     jparam = 2 * nspecies + iparam
                     dudp[iparam][ispec, idofK] += bedge.fac * jac_bflux[ispec, jparam]

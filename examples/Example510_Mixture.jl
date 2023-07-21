@@ -131,7 +131,7 @@ function flux_marray(f, u, edge, data)
         for jspec = 1:nspec(data)
             if ispec != jspec
                 M[ispec, ispec] += au[jspec] / data.DBinary[ispec, jspec]
-                M[ispec, jspec] = -au[jspec] / data.DBinary[ispec, jspec]
+                M[ispec, jspec] = -au[ispec] / data.DBinary[ispec, jspec]
             end
         end
     end
