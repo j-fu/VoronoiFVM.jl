@@ -1,4 +1,4 @@
-using Documenter, VoronoiFVM, Literate, PlutoSliderServer, ExtendableGrids, GridVisualize
+using Documenter, VoronoiFVM, Literate, PlutoSliderServer, ExtendableGrids, GridVisualize, Pkg
 using LinearAlgebra
 
 #
