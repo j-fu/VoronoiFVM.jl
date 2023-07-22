@@ -30,6 +30,10 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
     
     if run_notebooks
         notebookenv=joinpath(@__DIR__,"..","pluto-examples")
+        Pkg.activate(notebookenv)
+        Pkg.develop(path=joinpath(@__DIR__, ".."))
+        Pkg.instantiate()
+
         ENV["PLUTO_PROJECT"]=notebookenv
         notebooks = [
             "Outflow boundary conditions" => "outflow.jl",
