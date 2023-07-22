@@ -1,4 +1,7 @@
 # Changes
+## v1.12.0 July 22, 2023
+- Add functionality for outflow boundary conditions
+
 ## v1.11.0 July 17, 2023
 - Add [`calc_divergences`](@ref) method for checking velocity field divergences
 - Fix form factor calculation and velocity projecion for unstructructured grids and cylindrical symmetry

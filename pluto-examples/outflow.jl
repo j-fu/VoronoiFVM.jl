@@ -105,7 +105,7 @@ nodes, in that case it is assumed that the contribution is zero. In the present 
 
 # ╔═╡ c5fb189b-e542-4313-bad2-d6fe64d70771
 function boutflow(y,u,edge,data)
-	y[data.ic]=-darcyvelo(u,data)*u[data.ic,edge.outflownode]
+	y[data.ic]=-darcyvelo(u,data)*u[data.ic,outflownode(edge)]
 end
 
 # ╔═╡ 210aeda9-9c37-4278-8466-8d0a62347367

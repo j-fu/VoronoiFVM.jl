@@ -52,6 +52,19 @@ boundary_robin!(y,u,bnode;kwargs...)
 ramp
 ```
 
+### Outflow boundary conditions
+These are characterized by the `boutflow` physics callback and 
+and the `outflowboundaries` keyword argument in the system
+resp. physics constructor. See also the 
+[corresponding notebook](https://j-fu.github.io/VoronoiFVM.jl/dev/nbhtml/outflow/)
+
+```@docs
+hasoutflownode
+isoutflownode
+outflownode
+```
+
+
 ## Allocation warnings
 
 The code checks for allocations in the assembly loop. 

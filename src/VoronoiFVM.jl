@@ -78,6 +78,7 @@ export history, history_summary, history_details
 export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
+export hasoutflownode,isoutflownode, outflownode
 
 include("vfvm_formfactors.jl")
 export meas, project
