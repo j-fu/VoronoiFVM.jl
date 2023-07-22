@@ -24,7 +24,7 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
     example_jl_dir = joinpath(@__DIR__, "..", "examples")
     example_md_dir = joinpath(@__DIR__, "src", "examples")
     notebook_html_dir = joinpath(@__DIR__, "src", "nbhtml")
-
+    
     with_examples && rm(example_md_dir, recursive = true, force=true)
     run_notebooks && rm(notebook_html_dir, recursive = true, force=true)
     

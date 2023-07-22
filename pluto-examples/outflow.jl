@@ -6,7 +6,6 @@ using InteractiveUtils
 
 # ╔═╡ 4fc7fda6-423b-48ea-8f86-6718a9050ee0
 begin
-using Pkg
     import Pkg as _Pkg
     haskey(ENV,"PLUTO_PROJECT") && _Pkg.activate(ENV["PLUTO_PROJECT"])
     using Revise
