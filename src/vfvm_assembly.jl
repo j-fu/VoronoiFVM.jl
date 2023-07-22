@@ -152,24 +152,8 @@ function eval_and_assemble(
         end
     end
 
+    
     if isnontrivial(outflow_evaluator)
-        if isnothing(system.outflownoderegions)
-            bfacenodes = system.grid[BFaceNodes]
-            bfaceregions = system.grid[BFaceRegions]
-            outflownoderegions = ExtendableSparseMatrix{Bool,Int}(
-                num_bfaceregions(system.grid),
-                num_nodes(system.grid),
-            )
-            for ibface = 1:num_bfaces(system.grid)
-                for ibn = 1:dim_space(system.grid)
-                    if bfaceregions[ibface]∈ system.physics.outflowboundaries
-                        outflownoderegions[bfaceregions[ibface], bfacenodes[ibn, ibface]] = true
-                    end
-                end
-            end
-            system.outflownoderegions = SparseMatrixCSC(outflownoderegions)
-            edge.outflownoderegions = system.outflownoderegions
-        end
     end
 
 
@@ -258,7 +242,7 @@ function eval_and_assemble(
             end
 
             ##################################################################################
-            if isnontrivial(outflow_evaluator) && isoutflownode(edge)
+            if isnontrivial(outflow_evaluator) && hasoutflownode(edge)
                 outflownode!(edge)
                 evaluate!(outflow_evaluator, UKL)
                 res_outflow = res(outflow_evaluator)

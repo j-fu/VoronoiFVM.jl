@@ -82,6 +82,7 @@ end
 function run_all_tests(;run_notebooks=false)
     
     notebooks=["nbproto.jl",
+               "outflow.jl",
                "flux-reconstruction.jl",
                "interfaces1d.jl",
                "problemcase.jl",

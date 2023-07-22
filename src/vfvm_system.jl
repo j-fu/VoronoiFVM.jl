@@ -111,7 +111,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     is_linear::Bool
 
     """
-    Outflow nodes
+    Outflow nodes with their region numbers.
     """
     outflownoderegions::Union{SparseMatrixCSC{Bool,Int},Nothing}
     
@@ -631,6 +631,23 @@ Update grid (e.g. after rescaling of coordinates).
 """
 function update_grid!(system::AbstractSystem;grid=system.grid)
     system.assembly_type==:cellwise ? update_grid_cellwise!(system,grid) :  update_grid_edgewise!(system,grid)
+
+    if length(system.physics.outflowboundaries)>0
+        bfacenodes = system.grid[BFaceNodes]
+        bfaceregions = system.grid[BFaceRegions]
+        outflownoderegions = ExtendableSparseMatrix{Bool,Int}(
+            num_bfaceregions(system.grid),
+            num_nodes(system.grid),
+        )
+        for ibface = 1:num_bfaces(system.grid)
+            for ibn = 1:dim_space(system.grid)
+                if bfaceregions[ibface]∈ system.physics.outflowboundaries
+                    outflownoderegions[bfaceregions[ibface], bfacenodes[ibn, ibface]] = true
+                end
+            end
+        end
+        system.outflownoderegions = SparseMatrixCSC(outflownoderegions)
+    end
 end
 
 function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}

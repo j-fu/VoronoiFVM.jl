@@ -399,10 +399,6 @@ function Edge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
 end
 
 
-
-
-
-
 struct EdgeUnknowns{Tv, Tc, Tp, Ti} <: AbstractEdgeData{Tv}
     val::Vector{Tv}
     n1::Ti
@@ -422,14 +418,39 @@ end
 @inline rhs(edge::Edge{Tc, Tp, Ti}, f::AbstractVector{Tv}) where {Tv, Tc, Tp, Ti} = EdgeRHS{Tv, Tc, Tp, Ti}(f, edge.nspec, edge)
 
 
-isoutflownode(edge) = isoutflownode(edge, 1) || isoutflownode(edge, 2)
+"""
+    hasoutflownode(edge)
 
+Check if one node of the edge is situated on a boundary region listed in `outflowboundaries`, see
+[`struct Physics`].
+"""
+hasoutflownode(edge) = isoutflownode(edge, 1) || isoutflownode(edge, 2)
+
+"""
+    isoutflownode(edge,inode)
+
+Check if inode (1 or 2) is an outflow node.
+"""
 isoutflownode(edge, inode) = length(nzrange(edge.outflownoderegions, edge.node[inode])) > 0
 
+"""
+    isoutflownode(edge,inode,irefgion)
+
+Check if inode (1 or 2) is an outflow node on boundary region `iregion`.
+"""
 isoutflownode(edge, inode, iregion)= edge.outflownoderegions[iregion,edge.node[inode]]
 
+"""
+    outflownode(edge)
+
+Return outflow node of edge (1 or 2).
+"""
 outflownode(edge)=edge.outflownode
 
+"""
+    outflownode!(edge)
+Set `edge.outflownode` entry.
+"""
 function outflownode!(edge)
     isoutflownode(edge, 1) ?  edge.outflownode=1 : true
     isoutflownode(edge, 2) ?  edge.outflownode=2 : true

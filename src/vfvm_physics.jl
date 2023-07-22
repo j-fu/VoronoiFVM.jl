@@ -135,7 +135,8 @@ struct Physics{Flux <: Function,
     source::Source
 
     """
-    Flux between neighboring control volumes on the boundary
+    Flux between neighboring control volumes on the boundary. Called on edges
+    fully adjacent to the boundary: `bflux(f,u,bedge)` or `bflux(f,u,bedge,data)
     """
     bflux::BFlux
 
@@ -151,14 +152,28 @@ struct Physics{Flux <: Function,
     It should return in `f[i]` the value of the source term for the i-th equation.
     """
     bsource::BSource
+
     """
     Boundary storage term: `bstorage(f,u,node)` or `bstorage(f,u,node,data)` 
     Similar to storage, but restricted to the inner or outer boundaries.
     """
     bstorage::BStorage
 
+
+    """
+    Outflow boundary term  `boutflow(f,u,edge)` or `boutflow(f,u,edge,data)` 
+    This function is called for edges (including interior ones) which have at least one ode
+    on one of the outflow boundaries. Within this function,
+    [`outflownode`](@ref) and  [`isoutflownode`](@ref) can be used to identify
+    that node.  There is some ambiguity in the case that both nodes are outflow
+    nodes, in that case it is assumed that the contribution is zero.
+    """
     boutflow::BOutflow
 
+    """
+    List (Vector) of boundary regions which carry outflow bondary conditions.
+    Influences when `boutflow` is called.
+    """
     outflowboundaries::Vector{Int}
     
     """

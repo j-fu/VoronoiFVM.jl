@@ -27,16 +27,16 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
 
     with_examples && rm(example_md_dir, recursive = true, force=true)
     run_notebooks && rm(notebook_html_dir, recursive = true, force=true)
-
     
     if run_notebooks
         notebookenv=joinpath(@__DIR__,"..","pluto-examples")
         ENV["PLUTO_PROJECT"]=notebookenv
         notebooks = [
-            "Nonlinear solver control" => "nonlinear-solvers.jl",
+            "Outflow boundary conditions" => "outflow.jl",
             "Obtaining vector fields" => "flux-reconstruction.jl",
             "Internal interfaces (1D)" => "interfaces1d.jl",
             "A case for caution" => "problemcase.jl",
+            "Nonlinear solver control" => "nonlinear-solvers.jl",
             "API Updates" => "api-update.jl",
         ]
         
