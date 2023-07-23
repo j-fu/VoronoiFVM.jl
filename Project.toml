@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>", "Dilara Abdel", "Jan Weidner", "Alexander Seiler", "Patricio Farrell", "Matthias Liero"]
-version = "1.12"
+version = "1.12.1"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -34,7 +34,7 @@ BandedMatrices = "0.17"
 CommonSolve = "0.2"
 DiffResults = "1"
 DocStringExtensions = "0.8,0.9"
-ExtendableGrids = "0.9.16"
+ExtendableGrids = "0.9.16,1"
 ExtendableSparse = "1.2"
 ForwardDiff = "0.10.35"
 GridVisualize = "0.5.2,0.6.1,1"
