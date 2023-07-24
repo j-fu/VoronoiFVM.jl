@@ -131,7 +131,8 @@ function run_all_tests(;run_notebooks=false)
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
     
-    if run_notebooks # && VERSION>v"1.8" && !(VERSION>v"1.9.99")
+    if run_notebooks  && VERSION>v"1.8"  # due to (;... syntax)   && !(VERSION>v"1.9.99")
+        
 #        notebookenv=joinpath(@__DIR__,"..","pluto-examples")
 #        Pkg.activate(notebookenv)
 #        Pkg.develop(path=joinpath(@__DIR__, ".."))
