@@ -329,3 +329,24 @@ function l2h1norm(sys,u::TransientSolution,species_weights=ones(num_species(sys)
 end
 
 
+"""
+    $(SIGNATURES)
+
+Calculate volumes of Voronoi cells.
+"""
+function nodevolumes(system)
+    if isnothing(system.assembly_data)
+        update_grid!(system)
+    end
+    node= Node(system)
+    nodevol = zeros(num_nodes(system.grid))
+    for item in nodebatch(system.assembly_data)
+        for inode in noderange(system.assembly_data,item)
+            _fill!(node,system.assembly_data,inode,item)        
+            nodevol[node.index] += node.fac
+        end
+    end
+    nodevol
+end
+
+

@@ -1,4 +1,7 @@
 # Changes
+## v1.13.0 July 24, 2023
+- Add `nodevolumes(sys)` method
+
 ## v1.12.0 July 22, 2023
 - Add functionality for outflow boundary conditions
 

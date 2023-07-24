@@ -95,6 +95,13 @@ function test_transient_exp(;
 end
 
 
+function test_nodevol(;dim=1,h=0.1,assembly = :edgewise)
+    X=0:h:1
+    g=grid(X,dim)
+    sys = VoronoiFVM.System(g; species = [1], assembly)
+    sum(nodevolumes(sys))
+end
+
 function test()
     for assembly in (:edgewise, :cellwise)
         for dim = 1:3
@@ -113,9 +120,11 @@ function test()
                 @test test_transient_exp(; time_dep = t -> t, nrm, dim, c, assembly) ≈ c* 0.620483682299542   # c/sqrt(3)
                 @test test_transient_exp(; time_dep = t -> exp(-t/2), nrm, dim, c, assembly) ≈ c*0.7953912484980525 # c* sqrt((1-exp(-1)))
             end
+            @test test_nodevol(;dim,assembly)≈1.0
         end
     end
     true
 end
+
 
 end

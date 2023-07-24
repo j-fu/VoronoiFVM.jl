@@ -12,7 +12,7 @@ GridVisualize.scalarplot
 GridVisualize.scalarplot!
 ```
 
-## Norms
+## Norms & volumes
 ```@docs
 LinearAlgebra.norm
 lpnorm
@@ -25,6 +25,7 @@ lpw1pseminorm
 l2h1seminorm
 lpw1pnorm
 l2h1norm
+nodevolumes
 ```
 
 ## Solution integrals

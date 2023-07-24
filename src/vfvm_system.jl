@@ -93,7 +93,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Precomputed form factors for bulk  assembly
     """
-    assembly_data::AbstractAssemblyData{Tc,Ti}
+    assembly_data::Union{Nothing,AbstractAssemblyData{Tc,Ti}}
 
     """
     Precomputed form factors for boundary assembly
@@ -278,6 +278,7 @@ function System(grid::ExtendableGrid;
     system.matrixtype = matrixtype
     system.outflownoderegions=nothing
     system.linear_cache = nothing
+    system.assembly_data=nothing
     system.history = nothing
     system.num_parameters = nparams
     system.is_linear = is_linear
