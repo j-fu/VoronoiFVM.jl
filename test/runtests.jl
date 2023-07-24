@@ -1,6 +1,7 @@
 using Test
 using Pluto
 using Pkg
+using UUIDs
 using VoronoiFVM
 
 
@@ -79,6 +80,20 @@ function run_notebook_in_current_environment(notebookname)
     !errored
 end
 
+function test_as_script(notebookname;verbose=false)
+    modname="mod"*string(uuid1())[1:8]
+    notebook="module $(modname)\n\n"
+    notebook*=read(notebookname,String)
+    notebook*="\nend"
+    t=@elapsed begin
+        @testset "$notebookname" begin
+            eval(Meta.parse(notebook))
+        end
+    end
+    @info "notebook executed in $(round(t,sigdigits=4)) seconds"
+end
+
+
 function run_all_tests(;run_notebooks=false)
     
     notebooks=["nbproto.jl",
@@ -89,7 +104,9 @@ function run_all_tests(;run_notebooks=false)
                "nonlinear-solvers.jl",
                "api-update.jl",
                ]
+    
 
+ 
 
     @testset "basictest" begin
         run_tests_from_directory(@__DIR__,"test_")
@@ -113,17 +130,18 @@ function run_all_tests(;run_notebooks=false)
     @testset "Misc Examples" begin
         run_tests_from_directory(joinpath(@__DIR__,"..","examples"),"Example4")
     end
-
-    if run_notebooks && VERSION>v"1.8" && !(VERSION>v"1.9.99")
-        notebookenv=joinpath(@__DIR__,"..","pluto-examples")
-        Pkg.activate(notebookenv)
-        Pkg.develop(path=joinpath(@__DIR__, ".."))
-        Pkg.instantiate()
-        ENV["PLUTO_PROJECT"]=notebookenv
+    
+    if run_notebooks # && VERSION>v"1.8" && !(VERSION>v"1.9.99")
+#        notebookenv=joinpath(@__DIR__,"..","pluto-examples")
+#        Pkg.activate(notebookenv)
+#        Pkg.develop(path=joinpath(@__DIR__, ".."))
+#        Pkg.instantiate()
+#        ENV["PLUTO_PROJECT"]=notebookenv
         @testset "notebooks" begin
             for notebook in notebooks
                 @info "notebook $(notebook):"
-                @test run_notebook_in_current_environment(joinpath(@__DIR__,"..","pluto-examples",notebook))
+#                @test run_notebook_in_current_environment(joinpath(@__DIR__,"..","pluto-examples",notebook))
+                test_as_script(joinpath(@__DIR__,"..","pluto-examples",notebook))
                 @info "notebook $(notebook) ok"
             end
         end

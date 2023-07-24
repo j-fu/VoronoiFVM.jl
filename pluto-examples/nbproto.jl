@@ -33,7 +33,7 @@ TableOfContents(; aside = false)
 scalarplot(sin.(0:0.1:10), size = (500, 200))
 
 # ╔═╡ 3eef08af-f6ba-4874-82c0-65ff53e7f7da
-@test true
+@test 1==1
 
 # ╔═╡ fc0245fe-1bf2-45a3-aa7c-9cce8d7eef37
 html"""<hr><hr><hr>"""
