@@ -1,6 +1,6 @@
 ## Attempt on https://discourse.julialang.org/t/22-seconds-to-3-and-now-more-lets-fix-all-of-the-differentialequations-jl-universe-compile-times/66313
 using PrecompileTools
-@static if VERSION > v"1.7"
+@static if VERSION > v"1.7" && !Sys.isapple() 
     PrecompileTools.@compile_workload let
         function lin1()
             n = 5
