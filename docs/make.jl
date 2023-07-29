@@ -150,6 +150,7 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
                 "misc.md",
                 "internal.md",
                 "allindex.md",
+                "devel.md",
             ],
             "Tutorial Notebooks" => notebooks,
             "Examples" => generated_examples,
