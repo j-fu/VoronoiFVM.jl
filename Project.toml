@@ -29,7 +29,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-BandedMatrices = "0.17"
+BandedMatrices = "0.17, 1"
 CommonSolve = "0.2"
 DiffResults = "1"
 DocStringExtensions = "0.8,0.9"
