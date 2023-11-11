@@ -15,3 +15,4 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 [compat]
 Literate = ">=0.2.7"
 Pluto = ">=0.17.4"
+Documenter = "1"
