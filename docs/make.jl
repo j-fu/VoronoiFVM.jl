@@ -19,6 +19,7 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
 
     generated_examples = []
     notebooks = []
+    notebookmd = String[]
     example_jl_dir = joinpath(@__DIR__, "..", "examples")
     example_md_dir = joinpath(@__DIR__, "src", "examples")
     notebook_md_dir = joinpath(@__DIR__, "src", "notebooks")
@@ -38,15 +39,14 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
         Pkg.instantiate()
         Pkg.activate(thisdir)
         ENV["PLUTO_PROJECT"] = notebookdir
-        notebooks =
-            [
-                "Outflow boundary conditions" => "outflow.jl",
-                "Obtaining vector fields" => "flux-reconstruction.jl",
-                "Internal interfaces (1D)" => "interfaces1d.jl",
-                "A case for caution" => "problemcase.jl",
-                "Nonlinear solver control" => "nonlinear-solvers.jl",
-                "API Updates" => "api-update.jl",
-            ]e
+        notebooks = [
+            "Outflow boundary conditions" => "outflow.jl",
+            "Obtaining vector fields" => "flux-reconstruction.jl",
+            "Internal interfaces (1D)" => "interfaces1d.jl",
+            "A case for caution" => "problemcase.jl",
+            "Nonlinear solver control" => "nonlinear-solvers.jl",
+            "API Updates" => "api-update.jl",
+        ]
         oopts = OutputOptions(; append_build_context = true)
         output_format = documenter_output
         bopts = BuildOptions(notebookdir; output_format)
@@ -60,7 +60,6 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
 
         notebooks = first.(notebooks) .=> joinpath.("notebooks", notebookmd)
         pushfirst!(notebooks, "About the notebooks" => "notebooks.md")
-        @show notebooks
     end
 
 
@@ -104,6 +103,10 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
         warnonly = true,
         authors = "J. Fuhrmann",
         repo = "https://github.com/j-fu/VoronoiFVM.jl",
+        format = Documenter.HTML(
+            size_threshold_ignore = joinpath.("notebooks", notebookmd),
+            mathengine = MathJax3(),
+        ),
         pages = [
             "Home" => "index.md",
             "changes.md",
