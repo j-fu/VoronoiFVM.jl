@@ -1,4 +1,5 @@
-using Documenter, VoronoiFVM, Literate, PlutoSliderServer, ExtendableGrids, GridVisualize, Pkg
+push!(LOAD_PATH, joinpath(@__DIR__, ".."))
+using Documenter, VoronoiFVM, Literate, PlutoStaticHTML, ExtendableGrids, GridVisualize, Pkg
 using LinearAlgebra
 
 #
@@ -14,99 +15,65 @@ function replace_source_url(input, source_url)
 end
 
 
-
-
-function make_all(; with_examples = true, run_notebooks = true, example=nothing)
+function make_all(; with_examples = true, with_notebooks = true, example = nothing)
 
     generated_examples = []
-    notebooks  = []
     notebooks = []
     example_jl_dir = joinpath(@__DIR__, "..", "examples")
     example_md_dir = joinpath(@__DIR__, "src", "examples")
-    notebook_html_dir = joinpath(@__DIR__, "src", "nbhtml")
-    
-    with_examples && rm(example_md_dir, recursive = true, force=true)
-    run_notebooks && rm(notebook_html_dir, recursive = true, force=true)
-    
-    if run_notebooks
-        notebookenv=joinpath(@__DIR__,"..","pluto-examples")
-        Pkg.activate(notebookenv)
-        Pkg.develop(path=joinpath(@__DIR__, ".."))
-        Pkg.instantiate()
+    notebook_md_dir = joinpath(@__DIR__, "src", "notebooks")
 
-        ENV["PLUTO_PROJECT"]=notebookenv
-        notebooks = [
-            "Outflow boundary conditions" => "outflow.jl",
-            "Obtaining vector fields" => "flux-reconstruction.jl",
-            "Internal interfaces (1D)" => "interfaces1d.jl",
-            "A case for caution" => "problemcase.jl",
-            "Nonlinear solver control" => "nonlinear-solvers.jl",
-            "API Updates" => "api-update.jl",
-        ]
-        
-        notebookjl = last.(notebooks)
-        notebookmd = []
-        
-        # function rendernotebook(name)
-        #     base=split(name,".")[1]
-        #     input=joinpath(@__DIR__,"..","pluto-examples",base*".jl")
-        #     output=joinpath(@__DIR__,"src","nbhtml",base*".html")
-        #     session = Pluto.ServerSession();
-        #     html_contents=PlutoStaticHTML.notebook2html(input;session)
-        #     write(output, html_contents)
-        # end
-        
-        
-        # for notebook in notebookjl
-        #     @info "Converting $(notebook)"
-        #     rendernotebook(notebook)
-        # end
-        
+    with_examples && rm(example_md_dir, recursive = true, force = true)
 
-        
-        export_directory(
-            joinpath(@__DIR__, "..", "pluto-examples"),
-            notebook_paths = notebookjl,
-            Export_output_dir = joinpath(notebook_html_dir),
-            Export_offer_binder = false,
-        )
-        
-        # generate frame markdown for each notebook
-        for notebook in notebookjl
-            base = split(notebook, ".")[1]
-            mdstring = """
-##### [$(base).jl](@id $(base))
-
-[Download](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/$(notebook))
-            this [Pluto.jl](https://plutojl.org) this notebook.
-
-```@raw html
-<iframe style="height:20000px" width="100%" src="../$(base).html"> </iframe>
-```
-"""
-# <iframe sandbox="allow-same-origin" onload="this.style.height=(this.contentWindow.document.body.scrollHeight+20)+'px';" width="100%" src="../$(base).html"> </iframe>
-            mdname = base * ".md"
-            push!(notebookmd, joinpath("nbhtml", mdname))
-            io = open(joinpath(notebook_html_dir, mdname), "w")
-            write(io, mdstring)
-            close(io)
-        end
-            
-        notebooks = first.(notebooks) .=> notebookmd
-        pushfirst!(notebooks, "About the notebooks" => "notebooks.md")
+    if with_notebooks
+        rm(notebook_md_dir, recursive = true, force = true)
+        mkdir(notebook_md_dir)
     end
-    
+
+    if with_notebooks
+        thisdir = pwd()
+        notebookdir = joinpath(@__DIR__, "..", "pluto-examples")
+        Pkg.activate(notebookdir)
+        Pkg.develop(path = joinpath(@__DIR__, ".."))
+        Pkg.instantiate()
+        Pkg.activate(thisdir)
+        ENV["PLUTO_PROJECT"] = notebookdir
+        notebooks =
+            [
+                "Outflow boundary conditions" => "outflow.jl",
+                "Obtaining vector fields" => "flux-reconstruction.jl",
+                "Internal interfaces (1D)" => "interfaces1d.jl",
+                "A case for caution" => "problemcase.jl",
+                "Nonlinear solver control" => "nonlinear-solvers.jl",
+                "API Updates" => "api-update.jl",
+            ]e
+        oopts = OutputOptions(; append_build_context = true)
+        output_format = documenter_output
+        bopts = BuildOptions(notebookdir; output_format)
+
+        notebookjl = last.(notebooks)
+        notebookmd = [split(notebook, ".")[1] * ".md" for notebook in notebookjl]
+        build_notebooks(bopts, notebookjl, oopts)
+        for nb in notebookmd
+            mv(joinpath(notebookdir, nb), joinpath(notebook_md_dir, nb))
+        end
+
+        notebooks = first.(notebooks) .=> joinpath.("notebooks", notebookmd)
+        pushfirst!(notebooks, "About the notebooks" => "notebooks.md")
+        @show notebooks
+    end
+
 
     if with_examples
         #
         # Generate Markdown pages from examples
         #
-        if example==nothing
-            example_sources=readdir(example_jl_dir)
+        if example == nothing
+            example_sources = readdir(example_jl_dir)
         else
-            example_sources=[example]
+            example_sources = [example]
         end
-        for example_source in  example_sources
+        for example_source in example_sources
             base, ext = splitext(example_source)
             if ext == ".jl"
                 source_url =
@@ -130,10 +97,11 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
 
     makedocs(
         sitename = "VoronoiFVM.jl",
-        modules = [VoronoiFVM,VoronoiFVM.SolverStrategies],
+        modules = [VoronoiFVM, VoronoiFVM.SolverStrategies],
         checkdocs = :all,
         clean = false,
         doctest = true,
+        warnonly = true,
         authors = "J. Fuhrmann",
         repo = "https://github.com/j-fu/VoronoiFVM.jl",
         pages = [
@@ -157,8 +125,8 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
         ],
     )
 
-    with_examples && rm(example_md_dir, recursive = true, force=true)
-    run_notebooks && rm(notebook_html_dir, recursive = true, force=true)
+    with_examples && rm(example_md_dir, recursive = true, force = true)
+    with_notebooks && rm(notebook_md_dir, recursive = true, force = true)
 
     if !isinteractive()
         deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
@@ -166,8 +134,8 @@ function make_all(; with_examples = true, run_notebooks = true, example=nothing)
 end
 
 if isinteractive()
-    make_all(with_examples = false, run_notebooks = false)
+    make_all(with_examples = false, with_notebooks = false)
 else
-    make_all(with_examples = true, run_notebooks = true)
+    make_all(with_examples = true, with_notebooks = true)
 end
 
