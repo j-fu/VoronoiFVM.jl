@@ -131,6 +131,7 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
     with_examples && rm(example_md_dir, recursive = true, force = true)
     with_notebooks && rm(notebook_md_dir, recursive = true, force = true)
 
+
     if !isinteractive()
         deploydocs(repo = "github.com/j-fu/VoronoiFVM.jl.git")
     end
