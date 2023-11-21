@@ -15,7 +15,7 @@ using ExtendableGrids
 using GridVisualize
 
 function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse,
-              reactionN = 5.0e0, reactionP = 5.0e0, assembly=:edgewise)
+              reactionN = 5.0e0, reactionP = 5.0e0, assembly = :edgewise)
 
     ################################################################################
     #### grid
@@ -58,7 +58,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
     #########  system
     ################################################################################
 
-    sys = VoronoiFVM.System(grid; unknown_storage = unknown_storage, assembly=assembly)
+    sys = VoronoiFVM.System(grid; unknown_storage = unknown_storage, assembly = assembly)
     iphin = DiscontinuousQuantity(sys, 1:numberOfRegions; id = 1)
     iphip = DiscontinuousQuantity(sys, 1:numberOfRegions; id = 2)
     iphinb = InterfaceQuantity(sys, [bjunction]; id = 3)
@@ -235,12 +235,13 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
     return sol_bound[1]
 end # main
 
-function test()
+using Test
+function runtests()
     testval = 0.35545473758267826
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end # module

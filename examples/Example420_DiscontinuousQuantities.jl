@@ -14,7 +14,7 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
-function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly=:edgewise)
+function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly = :edgewise)
     XX = collect(0:0.1:1)
     xcoord = XX
     for i = 1:(N - 1)
@@ -34,7 +34,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly=:e
         params[2, i] = 10 * i
     end
 
-    system = VoronoiFVM.System(grid2; unknown_storage = unknown_storage, assembly=assembly)
+    system = VoronoiFVM.System(grid2; unknown_storage = unknown_storage, assembly = assembly)
 
     ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitly.
     cspec = ContinuousQuantity(system, 1:N; ispec = 1, id = 1)
@@ -123,12 +123,13 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly=:e
     sum(I[dspec, :]) + sum(I[cspec, :])
 end
 
-function test()
+using Test
+function runtests()
     testval = 4.2
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

@@ -35,7 +35,7 @@ function barenblatt(x, t, m)
 end
 
 function main(; n = 20, m = 2, Plotter = nothing, verbose = false,
-              unknown_storage = :sparse, tend = 0.01, tstep = 0.0001, assembly=:edgewise)
+              unknown_storage = :sparse, tend = 0.01, tstep = 0.0001, assembly = :edgewise)
 
     ## Create a one-dimensional discretization
     h = 1.0 / convert(Float64, n / 2)
@@ -61,7 +61,7 @@ function main(; n = 20, m = 2, Plotter = nothing, verbose = false,
     ## in the dense or  the sparse version.
     ## The difference is in the way the solution object
     ## is stored - as dense or as sparse matrix
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly=assembly)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly = assembly)
 
     ## Add species 1 to region 1
     enable_species!(sys, 1, [1])
@@ -98,12 +98,13 @@ function main(; n = 20, m = 2, Plotter = nothing, verbose = false,
     return sum(tsol[end])
 end
 
-function test()
+using Test
+function runtests()
     testval = 46.66666666647518
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

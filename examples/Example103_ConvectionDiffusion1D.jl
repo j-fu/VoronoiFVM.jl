@@ -77,9 +77,10 @@ function main(; n = 10, Plotter = nothing, D = 0.01, v = 1.0, tend = 100)
     tsol
 end
 
-function test()
+using Test
+function runtests()
     tsol = main()
-    maximum(tsol) <= 1.0 && maximum(tsol[end]) < 1.0e-20
+    @test maximum(tsol) <= 1.0 && maximum(tsol[end]) < 1.0e-20
 end
 
 end

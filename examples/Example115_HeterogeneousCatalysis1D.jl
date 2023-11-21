@@ -61,7 +61,7 @@ using GridVisualize
 using LinearAlgebra
 
 function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
-              unknown_storage = :sparse, assembly=:edgewise)
+              unknown_storage = :sparse, assembly = :edgewise)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     N = length(X)
@@ -172,11 +172,12 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     return tsol[iC, 1, end]
 end
 
-function test()
+using Test
+function runtests()
     testval = 0.87544440641274
-    isapprox(main(; unknown_storage = :sparse, assembly=:edgewise), testval; rtol = 1.0e-12) &&
-        isapprox(main(; unknown_storage = :dense, assembly=:edgewise), testval; rtol = 1.0e-12) &&
-        isapprox(main(; unknown_storage = :sparse, assembly=:cellwise), testval; rtol = 1.0e-12) &&
-        isapprox(main(; unknown_storage = :dense, assembly=:cellwise), testval; rtol = 1.0e-12)
+    @test isapprox(main(; unknown_storage = :sparse, assembly = :edgewise), testval; rtol = 1.0e-12) &&
+          isapprox(main(; unknown_storage = :dense, assembly = :edgewise), testval; rtol = 1.0e-12) &&
+          isapprox(main(; unknown_storage = :sparse, assembly = :cellwise), testval; rtol = 1.0e-12) &&
+          isapprox(main(; unknown_storage = :dense, assembly = :cellwise), testval; rtol = 1.0e-12)
 end
 end

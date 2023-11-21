@@ -85,8 +85,9 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     return u5
 end
 
-function test()
-    main(; unknown_storage = :sparse) ≈ 0.0020781361856598
+using Test
+function runtests()
+    @test main(; unknown_storage = :sparse) ≈ 0.0020781361856598
     main(; unknown_storage = :dense) ≈ 0.0020781361856598
 end
 end

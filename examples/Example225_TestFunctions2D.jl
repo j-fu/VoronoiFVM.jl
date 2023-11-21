@@ -108,7 +108,7 @@ module Example225_TestFunctions2D
 
 using VoronoiFVM, GridVisualize, ExtendableGrids
 
-function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise,
+function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise,
               dim = 2, tend = 5, dt = 0.2)
     n = [101, 21, 5]
     X = collect(range(0.0, 1; length = n[dim]))
@@ -151,7 +151,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
                                  reaction = reaction,
                                  source = source)
 
-    system = VoronoiFVM.System(grid, physics,assembly=assembly)
+    system = VoronoiFVM.System(grid, physics; assembly = assembly)
 
     enable_species!(system, 1, [1])
     enable_species!(system, 2, [1])
@@ -230,20 +230,21 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     return false
 end
 
-function test()
-    main(; dim = 1, unknown_storage = :sparse, assembly=:edgewise) ? true : return false
-    main(; dim = 1, unknown_storage = :dense, assembly=:edgewise) ? true : return false
-    main(; dim = 2, unknown_storage = :sparse, assembly=:edgewise) ? true : return false
-    main(; dim = 2, unknown_storage = :dense, assembly=:edgewise) ? true : return false
-    main(; dim = 3, unknown_storage = :sparse, assembly=:edgewise) ? true : return false
-    main(; dim = 3, unknown_storage = :dense, assembly=:edgewise) ? true : return false
+using Test
+function runtests()
+    @test main(; dim = 1, unknown_storage = :sparse, assembly = :edgewise)
+    @test main(; dim = 1, unknown_storage = :dense, assembly = :edgewise)
+    @test main(; dim = 2, unknown_storage = :sparse, assembly = :edgewise)
+    @test main(; dim = 2, unknown_storage = :dense, assembly = :edgewise)
+    @test main(; dim = 3, unknown_storage = :sparse, assembly = :edgewise)
+    @test main(; dim = 3, unknown_storage = :dense, assembly = :edgewise)
 
-    main(; dim = 1, unknown_storage = :sparse, assembly=:cellwise) ? true : return false
-    main(; dim = 1, unknown_storage = :dense, assembly=:cellwise) ? true : return false
-    main(; dim = 2, unknown_storage = :sparse, assembly=:cellwise) ? true : return false
-    main(; dim = 2, unknown_storage = :dense, assembly=:cellwise) ? true : return false
-    main(; dim = 3, unknown_storage = :sparse, assembly=:cellwise) ? true : return false
-    main(; dim = 3, unknown_storage = :dense, assembly=:cellwise) ? true : return false
+    @test main(; dim = 1, unknown_storage = :sparse, assembly = :cellwise)
+    @test main(; dim = 1, unknown_storage = :dense, assembly = :cellwise)
+    @test main(; dim = 2, unknown_storage = :sparse, assembly = :cellwise)
+    @test main(; dim = 2, unknown_storage = :dense, assembly = :cellwise)
+    @test main(; dim = 3, unknown_storage = :sparse, assembly = :cellwise)
+    @test main(; dim = 3, unknown_storage = :dense, assembly = :cellwise)
 end
 
 end

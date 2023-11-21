@@ -31,7 +31,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise,
+function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise,
               L = 1.0, R = 1.0, D = 1.0, C = 1.0,
               ω0 = 1.0e-3, ω1 = 5.0e1)
 
@@ -71,7 +71,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
                                  storage = storage,
                                  reaction = reaction)
     # Create discrete system and enable species
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly=assembly)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly = assembly)
 
     enable_species!(sys, excited_spec, [1])
 
@@ -152,12 +152,13 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
     sum(allIL)
 end
 
-function test()
+using Test
+function runtests()
     testval = 57.92710286186797 + 23.163945443946027im
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

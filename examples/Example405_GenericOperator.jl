@@ -71,10 +71,11 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     return sum(solution)
 end
 
-function test()
+using Test
+function runtests()
     testval = 1.099999999614456
-    main(; unknown_storage = :sparse) ≈ testval &&
-        main(; unknown_storage = :dense) ≈ testval
+    @test main(; unknown_storage = :sparse) ≈ testval &&
+          main(; unknown_storage = :dense) ≈ testval
 end
 
 end

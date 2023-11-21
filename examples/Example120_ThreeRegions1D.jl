@@ -10,7 +10,7 @@ using GridVisualize
 using LinearSolve
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
-              unknown_storage = :sparse, tend = 10, rely_on_corrections = false, assembly=:edgewise)
+              unknown_storage = :sparse, tend = 10, rely_on_corrections = false, assembly = :edgewise)
     h = 3.0 / (n - 1)
     X = collect(0:h:3.0)
     grid = VoronoiFVM.Grid(X)
@@ -92,7 +92,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     end
 
     sys = VoronoiFVM.System(grid; flux, reaction, storage, source,
-                            unknown_storage = unknown_storage, assembly=assembly)
+                            unknown_storage = unknown_storage, assembly = assembly)
 
     enable_species!(sys, 1, [1])
     enable_species!(sys, 2, [1, 2, 3])
@@ -139,16 +139,17 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     return testval
 end
 
-function test()
+using Test
+function runtests()
     testval = 0.0005967243505359461
-    main(; unknown_storage = :sparse, rely_on_corrections = false, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, rely_on_corrections = false, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, rely_on_corrections = true, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, rely_on_corrections = true, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, rely_on_corrections = false, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, rely_on_corrections = false, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :sparse, rely_on_corrections = true, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, rely_on_corrections = true, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :cellwise) ≈ testval
 end
 
 end

@@ -185,12 +185,13 @@ function main(; n = 10,
     return U[iC, 1]
 end
 
-function test()
+using Test
+function runtests()
     testval = 0.007027597470502758
-    main(; unknown_storage = :sparse) ≈ testval &&
-        main(; unknown_storage = :dense) ≈ testval &&
-        main(; unknown_storage = :sparse, autodetect_sparsity = false) ≈ testval &&
-        main(; unknown_storage = :dense, autodetect_sparsity = false) ≈ testval
+    @test main(; unknown_storage = :sparse) ≈ testval &&
+          main(; unknown_storage = :dense) ≈ testval &&
+          main(; unknown_storage = :sparse, autodetect_sparsity = false) ≈ testval &&
+          main(; unknown_storage = :dense, autodetect_sparsity = false) ≈ testval
 end
 
 end

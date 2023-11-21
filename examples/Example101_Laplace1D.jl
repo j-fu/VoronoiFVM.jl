@@ -120,10 +120,9 @@ function main()
     return sum(solution)
 end
 
-## Called by unit test
-
-function test()
-    main() ≈ 3.0
+using Test
+function runtests()
+    @test main() ≈ 3.0
 end
 
 end

@@ -124,9 +124,10 @@ function main(; n = 10, Plotter = nothing, verbose = false, D = 0.01, v = 1.0)
     return sum(solution_exponential) + sum(solution_upwind) + sum(solution_central)
 end
 
-function test()
+using Test
+function runtests()
     testval = 2.523569744561089
-    main() ≈ testval
+    @test main() ≈ testval
 end
 
 end
