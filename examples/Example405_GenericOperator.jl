@@ -1,7 +1,7 @@
 #=
 
 # 405: Generic operator
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Handle an operator which does not fit into the storage/flux/reaction API.
 This uses automatic sparsity detection.

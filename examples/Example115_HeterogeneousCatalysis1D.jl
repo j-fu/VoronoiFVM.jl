@@ -1,7 +1,7 @@
 #=
 
 # 115: 1D heterogeneous catalysis
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Let $\Omega=(0,1)$, $\Gamma_1=\{0\}$, $\Gamma_2=\{1\}$
 Regard a system of three species: $A,B,C$ and let 

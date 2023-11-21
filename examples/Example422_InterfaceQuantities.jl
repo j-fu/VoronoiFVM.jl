@@ -1,7 +1,7 @@
 #=
 
 # 422: Drift-Diffusion with Discontinuous and Interface Potentials
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 Nondimensionalized semiconductor device equations (with artificial doping)
 with Discontinuousquantities and additional Interfacequantities.

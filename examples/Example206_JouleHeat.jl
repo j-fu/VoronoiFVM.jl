@@ -1,5 +1,5 @@
 # # 206: 2D Joule heating
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 #=
 
 ```math

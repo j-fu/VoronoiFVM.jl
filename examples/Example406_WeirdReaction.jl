@@ -1,7 +1,7 @@
 #=
 
 # 406: 1D Weird Surface Reaction
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Species $A$ and $B$ exist in the interior of the domain, species $C$
 lives a the boundary $\Gamma_1$.  We assume a heterogeneous reaction scheme

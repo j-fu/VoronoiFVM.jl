@@ -1,7 +1,7 @@
 #=
 
 # 203: Various coordinate systems 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 =#
 
 module Example203_CoordinateSystems

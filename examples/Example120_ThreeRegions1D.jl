@@ -1,5 +1,5 @@
 # # 120: Differing species sets in regions, 1D
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 
 module Example120_ThreeRegions1D
 

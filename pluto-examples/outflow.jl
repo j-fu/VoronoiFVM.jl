@@ -13,7 +13,7 @@ begin
     using VoronoiFVM
     using GridVisualize
     using CairoMakie
-    CairoMakie.activate!(type = "svg", visible = false)
+    CairoMakie.activate!(; type = "svg", visible = false)
     GridVisualize.default_plotter!(CairoMakie)
     using SimplexGridFactory, Triangulate
     using ExtendableGrids
@@ -23,6 +23,8 @@ end
 # ╔═╡ 7ea92fa4-272f-40b1-ac5e-a5f4808c8300
 md"""
 # Outflow boundary conditions
+
+[Source](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/outflow.jl)
 """
 
 # ╔═╡ 0d1b7d24-4dc7-4f1d-944f-e279e18f151c
@@ -89,9 +91,9 @@ end
 # ╔═╡ addf62a3-9a71-49b8-b54a-441f65a01d01
 function bcondition(y, u, bnode, data)
     (; ic, ip, Γ_in, Γ_out, v_in, c_in) = data
-    boundary_neumann!(y, u, bnode, species = ip, region = Γ_in, value = v_in)
-    boundary_dirichlet!(y, u, bnode, species = ip, region = Γ_out, value = 0)
-    boundary_dirichlet!(y, u, bnode, species = ic, region = Γ_in, value = c_in)
+    boundary_neumann!(y, u, bnode; species = ip, region = Γ_in, value = v_in)
+    boundary_dirichlet!(y, u, bnode; species = ip, region = Γ_out, value = 0)
+    boundary_dirichlet!(y, u, bnode; species = ic, region = Γ_in, value = c_in)
 end
 
 # ╔═╡ e087d35c-47ca-47f4-ab20-32a7adf94f00
@@ -112,15 +114,13 @@ end
 # ╔═╡ 210aeda9-9c37-4278-8466-8d0a62347367
 function flowtransportsystem(grid; kwargs...)
     data = FlowTransportData(; kwargs...)
-    VoronoiFVM.System(
-        grid;
-        flux,
-        bcondition,
-        boutflow,
-        data,
-        outflowboundaries = [data.Γ_out],
-        species = [1, 2],
-    )
+    VoronoiFVM.System(grid;
+                      flux,
+                      bcondition,
+                      boutflow,
+                      data,
+                      outflowboundaries = [data.Γ_out],
+                      species = [1, 2],)
 end
 
 # ╔═╡ 3e6b27b4-066f-475e-99f4-8eba666f9dc2
@@ -144,13 +144,13 @@ grid = simplexgrid(X)
 sys1 = flowtransportsystem(grid);
 
 # ╔═╡ 37c874cf-5fc7-47f8-99fe-1dafc01a5153
-sol1 = solve(sys1, verbose = "n");
+sol1 = solve(sys1; verbose = "n");
 
 # ╔═╡ 1e3cac4e-1d53-4305-bbac-78b5ce6bc983
 let
-    vis = GridVisualizer(size = (600, 300))
+    vis = GridVisualizer(; size = (600, 300))
     scalarplot!(vis, grid, sol1[1, :])
-    scalarplot!(vis, grid, sol1[2, :], clear = false, color = :red)
+    scalarplot!(vis, grid, sol1[2, :]; clear = false, color = :red)
     reveal(vis)
 end
 
@@ -178,19 +178,19 @@ begin
 end
 
 # ╔═╡ 0db7e6eb-2783-43f6-bcf4-fa1e16899b77
-gridplot(g2, size = (300, 300))
+gridplot(g2; size = (300, 300))
 
 # ╔═╡ 0aca8362-1fbe-4db6-9684-e0eacaa10fd0
-sys2 = flowtransportsystem(g2, Γ_in = 4, Γ_out = 5);
+sys2 = flowtransportsystem(g2; Γ_in = 4, Γ_out = 5);
 
 # ╔═╡ 93ea6a39-4435-44d7-a2dd-091e8da15266
-sol2 = solve(sys2, verbose = "n")
+sol2 = solve(sys2; verbose = "n")
 
 # ╔═╡ 2ebbdc56-806a-4590-a699-2a75eeb0b55c
 let
-    vis = GridVisualizer(size = (700, 300), layout = (1, 2))
+    vis = GridVisualizer(; size = (700, 300), layout = (1, 2))
     scalarplot!(vis[1, 1], g2, sol2[1, :])
-    scalarplot!(vis[1, 2], g2, sol2[2, :], limits = (0, 1))
+    scalarplot!(vis[1, 2], g2, sol2[2, :]; limits = (0, 1))
     reveal(vis)
 end
 
@@ -218,19 +218,19 @@ begin
 end
 
 # ╔═╡ f403351e-9174-471d-b4bd-6d5ce2f76ed5
-gridplot(g3, size = (300, 300))
+gridplot(g3; size = (300, 300))
 
 # ╔═╡ 9ad14ea9-359f-4cf4-a97c-cfa02855e5af
-sys3 = flowtransportsystem(g3, Γ_in = 6, Γ_out = 7);
+sys3 = flowtransportsystem(g3; Γ_in = 6, Γ_out = 7);
 
 # ╔═╡ 46aab208-7ed7-4570-a0da-4e70665e9f25
-sol3 = solve(sys3, verbose = "n")
+sol3 = solve(sys3; verbose = "n")
 
 # ╔═╡ d8bc8821-b9d7-4aae-8600-14db3af5e429
 let
-    vis = GridVisualizer(size = (700, 300), layout = (1, 2))
+    vis = GridVisualizer(; size = (700, 300), layout = (1, 2))
     scalarplot!(vis[1, 1], g3, sol3[1, :])
-    scalarplot!(vis[1, 2], g3, sol3[2, :], limits = (0, 1))
+    scalarplot!(vis[1, 2], g3, sol3[2, :]; limits = (0, 1))
     reveal(vis)
 end
 
@@ -248,15 +248,13 @@ t3 = checkinout(sys3, sol3)
 
 # ╔═╡ 60941eaa-1aea-11eb-1277-97b991548781
 
-
 # ╔═╡ f9b4d4dc-7def-409f-b40a-f4eba1163741
 TableOfContents()
 
 # ╔═╡ 7a93e9a8-8a2d-4b11-84ef-691706c0eb0f
 begin
     hrule() = html"""<hr>"""
-    highlight(mdstring, color) =
-        htl"""<blockquote style="padding: 10px; background-color: $(color);">$(mdstring)</blockquote>"""
+    highlight(mdstring, color) = htl"""<blockquote style="padding: 10px; background-color: $(color);">$(mdstring)</blockquote>"""
 
     macro important_str(s)
         :(highlight(Markdown.parse($s), "#ffcccc"))
@@ -267,7 +265,6 @@ begin
     macro statement_str(s)
         :(highlight(Markdown.parse($s), "#ccffcc"))
     end
-
 
     html"""
         <style>

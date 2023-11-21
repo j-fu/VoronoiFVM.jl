@@ -1,6 +1,6 @@
 #=
 # 125: Terminal flux calculation via test functions
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 For a rather comprehensive explanation
 see [225: Terminal flux calculation via test functions, nD](@ref)

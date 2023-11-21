@@ -1,6 +1,6 @@
 #=
  # 121: 1D Poisson with point charge
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Solve a Poisson equation
 ```math

@@ -1,7 +1,7 @@
 #=
 
 # 103: Boundary flux
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 We consider two test problems.
 

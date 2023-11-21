@@ -1,5 +1,5 @@
 # # 150: Impedance calculation
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 #
 #  Impedance calculation for
 #

@@ -1,5 +1,5 @@
 # # 207: 2D Nonlinear Poisson equation
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 
 module Example207_NonlinearPoisson2D
 

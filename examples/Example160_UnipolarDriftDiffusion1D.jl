@@ -1,7 +1,7 @@
 #=
 
 # 160: Unipolar degenerate drift-diffusion
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 See: C. Cancès, C. Chainais-Hillairet, J. Fuhrmann, and B. Gaudeul, "A numerical-analysis-focused comparison of several finite volume schemes for a unipolar degenerate drift-diffusion model" IMA Journal of Numerical Analysis, vol. 41, no. 1, pp. 271–314, 2021.  
 

@@ -1,7 +1,7 @@
 #=
 
 # 421: Current Calculation for AbstractQuantities
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Test current calculation for jumping species. Here, we have three cases:
     a. Problem initialized as usual

@@ -18,7 +18,7 @@ begin
     using LinearSolve
     using Test
     using CairoMakie
-    CairoMakie.activate!(type = "svg", visible = false)
+    CairoMakie.activate!(; type = "svg", visible = false)
     GridVisualize.default_plotter!(CairoMakie)
 end
 
@@ -28,6 +28,8 @@ TableOfContents(; title = "", aside = false)
 # ╔═╡ 3fa189e4-9e1c-470c-bf26-15b631945d2d
 md"""
 # Interface conditions in 1D
+[Source](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/interfaces1d.jl)
+
 This notebooks discusses handling of internal interfaces with VoronoiFVM.jl.
 
 ## Two subdomains
@@ -93,7 +95,7 @@ begin
 end;
 
 # ╔═╡ 4cb07222-587b-4a74-a444-43f5433d5b03
-gridplot(grid, legend = :rt, resolution = (600, 200))
+gridplot(grid; legend = :rt, resolution = (600, 200))
 
 # ╔═╡ 02ec3c0b-6e68-462b-84df-931370cbdcac
 md"""
@@ -139,10 +141,10 @@ Create the system. We pass the interface condition function as a parameter.
 
 # ╔═╡ 139058a9-44a0-43d5-a377-4fc72927fa28
 function make_system(breaction)
-    physics = VoronoiFVM.Physics(flux = flux!, breaction = breaction)
+    physics = VoronoiFVM.Physics(; flux = flux!, breaction = breaction)
 
     ## Create system
-    sys = VoronoiFVM.System(grid, physics, unknown_storage = :sparse)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = :sparse)
 
     ##  Enable species in their respective subregions
     enable_species!(sys, 1, [1])
@@ -176,28 +178,24 @@ Plot the results
 
 # ╔═╡ 467dc381-3b3d-4de7-a7f9-bfc51300832b
 function plot(U1, U2; title = "")
-    vis = GridVisualizer(resolution = (600, 300))
-    scalarplot!(
-        vis,
-        subgrid1,
-        U1,
-        clear = false,
-        show = false,
-        color = :green,
-        label = "u1",
-    )
-    scalarplot!(
-        vis,
-        subgrid2,
-        U2,
-        clear = false,
-        show = true,
-        color = :blue,
-        label = "u2",
-        legend = :rt,
-        title = title,
-        flimits = (-0.5, 1.5),
-    )
+    vis = GridVisualizer(; resolution = (600, 300))
+    scalarplot!(vis,
+                subgrid1,
+                U1;
+                clear = false,
+                show = false,
+                color = :green,
+                label = "u1")
+    scalarplot!(vis,
+                subgrid2,
+                U2;
+                clear = false,
+                show = true,
+                color = :blue,
+                label = "u2",
+                legend = :rt,
+                title = title,
+                flimits = (-0.5, 1.5))
 end
 
 # ╔═╡ fa4fcc0d-1d3a-45a2-8857-50536bbe39cc
@@ -255,7 +253,6 @@ function mal_reaction(f, u, node)
         react = k1 * u[1] - k2 * u[2]
         f[1] = react
         f[2] = -react
-
     end
 end
 
@@ -435,20 +432,20 @@ We define a grid with N=$(N) subregions
 begin
     XX = collect(0:0.1:1)
     local xcoord = XX
-    for i = 1:N-1
+    for i = 1:(N - 1)
         xcoord = glue(xcoord, XX .+ i)
     end
     grid2 = simplexgrid(xcoord)
     for i = 1:N
         cellmask!(grid2, [i - 1], [i], i)
     end
-    for i = 1:N-1
+    for i = 1:(N - 1)
         bfacemask!(grid2, [i], [i], i + 2)
     end
 end
 
 # ╔═╡ b53b9d28-4c25-4fb8-a3e4-599b0e385121
-gridplot(grid2, legend = :lt, resolution = (600, 200))
+gridplot(grid2; legend = :lt, resolution = (600, 200))
 
 # ╔═╡ e7ce7fd4-cfa4-4cc6-84a2-7e20ed2f4e5c
 md"""
@@ -464,7 +461,7 @@ First, we introduce a continuous quantity which we name "cspec". Note that the "
 """
 
 # ╔═╡ f35f419a-94dd-4051-a533-4b1ec9a4c9ec
-const cspec = ContinuousQuantity(system6, 1:N, ispec = 1)
+const cspec = ContinuousQuantity(system6, 1:N; ispec = 1)
 
 # ╔═╡ 9661e4fc-55e1-4c2c-a3ad-515cdac3b514
 md"""
@@ -518,8 +515,7 @@ end
 
 # ╔═╡ 59c83a22-a4cc-4b51-a1cc-5eb39588eacd
 begin
-    physics!(system6, VoronoiFVM.Physics(flux = flux2, breaction = breaction2))
-
+    physics!(system6, VoronoiFVM.Physics(; flux = flux2, breaction = breaction2))
 
     ## Set boundary conditions
     boundary_dirichlet!(system6, dspec, 1, g_1)
@@ -534,34 +530,30 @@ end;
 
 # ╔═╡ de119a22-b695-4b4f-8e04-b7d68ec1e91b
 if physics_ok
-    sol6 = solve(system6, inival = 0.5)
+    sol6 = solve(system6; inival = 0.5)
 end;
 
 # ╔═╡ 83527778-76b2-4569-86c8-50dc6b48129f
 function plot2(U, subgrids, system6)
     dvws = VoronoiFVM.views(U, dspec, allsubgrids, system6)
     cvws = VoronoiFVM.views(U, cspec, allsubgrids, system6)
-    vis = GridVisualizer(resolution = (600, 300), legend = :rt)
-    scalarplot!(
-        vis,
-        allsubgrids,
-        grid2,
-        dvws,
-        flimits = (-0.5, 1.5),
-        clear = false,
-        color = :red,
-        label = "discontinuous species",
-    )
-    scalarplot!(
-        vis,
-        allsubgrids,
-        grid2,
-        cvws,
-        flimits = (-0.5, 1.5),
-        clear = false,
-        color = :green,
-        label = "continuous species",
-    )
+    vis = GridVisualizer(; resolution = (600, 300), legend = :rt)
+    scalarplot!(vis,
+                allsubgrids,
+                grid2,
+                dvws;
+                flimits = (-0.5, 1.5),
+                clear = false,
+                color = :red,
+                label = "discontinuous species")
+    scalarplot!(vis,
+                allsubgrids,
+                grid2,
+                cvws;
+                flimits = (-0.5, 1.5),
+                clear = false,
+                color = :green,
+                label = "continuous species")
     reveal(vis)
 end
 
@@ -584,8 +576,7 @@ html"""<hr>"""
 # ╔═╡ c344c0af-fb75-45f4-8977-45041a22b605
 begin
     hrule() = html"""<hr>"""
-    highlight(mdstring, color) =
-        htl"""<blockquote style="padding: 10px; background-color: $(color);">$(mdstring)</blockquote>"""
+    highlight(mdstring, color) = htl"""<blockquote style="padding: 10px; background-color: $(color);">$(mdstring)</blockquote>"""
 
     macro important_str(s)
         :(highlight(Markdown.parse($s), "#ffcccc"))
@@ -596,7 +587,6 @@ begin
     macro statement_str(s)
         :(highlight(Markdown.parse($s), "#ccffcc"))
     end
-
 
     html"""
     <style>
@@ -618,7 +608,6 @@ begin
     </style>
 """
 end
-
 
 # ╔═╡ b5a87200-eea5-4164-bfd5-dee1045a0464
 html"""<hr>"""

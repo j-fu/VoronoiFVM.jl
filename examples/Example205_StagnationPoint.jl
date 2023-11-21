@@ -1,7 +1,7 @@
 #=
 
 # 205: Convection in axisymmetric stagnation point flow
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 Solve the equation
 

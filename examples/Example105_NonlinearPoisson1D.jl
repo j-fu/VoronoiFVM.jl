@@ -1,6 +1,6 @@
 #=
 # 105: 1D Nonlinear Poisson equation 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 Solve the nonlinear Poisson equation
 

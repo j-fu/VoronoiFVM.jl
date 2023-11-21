@@ -1,5 +1,5 @@
 # # 151: Impedance calculation
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 
 #  Same as Example150, but with new and more generic way of
 #  passing the parameter.

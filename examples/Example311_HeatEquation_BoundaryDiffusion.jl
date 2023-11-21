@@ -1,7 +1,7 @@
 #=
 
 # 311: Heat Equation with boundary diffusion 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 =#
 

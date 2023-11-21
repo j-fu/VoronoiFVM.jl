@@ -1,7 +1,7 @@
 #=
 
 # 226: Terminal flux calculation via test functions, nD, boundary reaction
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 =#
 

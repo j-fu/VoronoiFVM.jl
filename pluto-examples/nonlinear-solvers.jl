@@ -16,13 +16,15 @@ begin
     using LinearAlgebra
     using GridVisualize
     using CairoMakie
-    CairoMakie.activate!(type = "svg", visible = false)
+    CairoMakie.activate!(; type = "svg", visible = false)
     GridVisualize.default_plotter!(CairoMakie)
 end;
 
 # ╔═╡ 4ed0c302-26e4-468a-a40d-0e6406f802d0
 md"""
 # Nonlinear solver control
+[Source](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/nonlinear-solvers.jl)
+
 """
 
 # ╔═╡ eb9ea477-6122-4774-b4a4-04dd7346e2b6
@@ -65,8 +67,7 @@ function bc(y, u, node)
 end;
 
 # ╔═╡ 316112fd-6553-494a-8e4a-65b34829891d
-system =
-    VoronoiFVM.System(X; flux = flux, reaction = reaction, bcondition = bc, species = 1);
+system = VoronoiFVM.System(X; flux = flux, reaction = reaction, bcondition = bc, species = 1);
 
 # ╔═╡ 42e54ff9-fc11-4a31-ba10-32f8d817d50c
 md"""
@@ -80,14 +81,12 @@ begin
 end;
 
 # ╔═╡ b9bb8020-5470-4964-818c-7f9b3bf2a8b4
-scalarplot(
-    system,
-    sol,
-    resolution = (500, 200),
-    xlabel = "x",
-    ylable = "y",
-    title = "solution",
-)
+scalarplot(system,
+           sol;
+           resolution = (500, 200),
+           xlabel = "x",
+           ylable = "y",
+           title = "solution")
 
 # ╔═╡ b3124c06-1f40-46f5-abee-9c2e8e538162
 md"""
@@ -101,15 +100,15 @@ The history can be plotted:
 """
 
 # ╔═╡ 20e925f3-43fa-4db1-a656-79cf9c1c3303
-plothistory(h) = scalarplot(
-    1:length(h),
-    h,
-    resolution = (500, 200),
-    yscale = :log,
-    xlabel = "step",
-    ylabel = "||δu||_∞",
-    title = "Maximum norm of Newton update",
-);
+function plothistory(h)
+    scalarplot(1:length(h),
+               h;
+               resolution = (500, 200),
+               yscale = :log,
+               xlabel = "step",
+               ylabel = "||δu||_∞",
+               title = "Maximum norm of Newton update")
+end;
 
 # ╔═╡ ebdc2c82-f72e-4e35-a63f-4ba5154e294f
 plothistory(hist)
@@ -136,7 +135,7 @@ With default solver settings, for this particular problem, Newton's method needs
 """
 
 # ╔═╡ ccef0590-d5f8-4ee2-bb7a-d48ccfbd4d99
-check(sol) = isapprox(sum(sol), 2554.7106586964906, rtol = 1.0e-12)
+check(sol) = isapprox(sum(sol), 2554.7106586964906; rtol = 1.0e-12)
 
 # ╔═╡ c0432a54-85ec-4478-bd75-f5b43770a117
 @test check(sol)
@@ -153,7 +152,7 @@ Try to use a damped version of Newton method. The damping scheme is rather simpl
 
 # ╔═╡ d961d026-0b55-46c2-8555-8ef0763d8016
 begin
-    sol1 = solve(system, log = true, inival = 1, damp = 0.15, damp_grow = 1.5)
+    sol1 = solve(system; log = true, inival = 1, damp = 0.15, damp_grow = 1.5)
     hist1 = history(system)
 end
 
@@ -201,30 +200,26 @@ function pbc(y, u, node)
 end;
 
 # ╔═╡ 89435c65-0520-4430-8727-9d013df6182d
-system2 = VoronoiFVM.System(
-    X;
-    flux = flux,
-    reaction = function (y, u, node)
-        reaction(y, u, node)
+system2 = VoronoiFVM.System(X;
+                            flux = flux,
+                            reaction = function (y, u, node)
+                                reaction(y, u, node)
 
-        y[1] = y[1] * embedparam(node)
-    end,
-    bcondition = pbc,
-    species = 1,
-);
+                                y[1] = y[1] * embedparam(node)
+                            end,
+                            bcondition = pbc,
+                            species = 1,);
 
 # ╔═╡ cb382145-c4f1-4222-aed7-32fa1e3bd7e4
 begin
-    sol2 = solve(
-        system2,
-        inival = 0,
-        log = true,
-        embed = (0, 1),
-        Δp = 0.1,
-        max_lureuse = 0,
-        Δp_grow = 1.2,
-        Δu_opt = 15,
-    )
+    sol2 = solve(system2;
+                 inival = 0,
+                 log = true,
+                 embed = (0, 1),
+                 Δp = 0.1,
+                 max_lureuse = 0,
+                 Δp_grow = 1.2,
+                 Δu_opt = 15)
     history2 = history(system2)
 end
 

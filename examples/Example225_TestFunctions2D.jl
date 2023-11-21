@@ -1,7 +1,7 @@
 #=
 
 # 225: Terminal flux calculation via test functions, nD
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 After calculating solutions based on the finite volume method, it
 may be interesting to obtain information about the solution besides of the graphical representation.

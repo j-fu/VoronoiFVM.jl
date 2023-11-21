@@ -1,7 +1,7 @@
 #=
 
 # 424: Initialization of Abstract quantities
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 =#
 module Example424_AbstractQuantitiesInit

@@ -1,5 +1,5 @@
 # # 110: 1D Reaction Diffusion equation with two species
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 #
 # Solve the nonlinear coupled reaction diffusion problem
 # 

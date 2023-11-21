@@ -1,7 +1,7 @@
 #=
 
 # 301: 3D Laplace equation 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 =#
 

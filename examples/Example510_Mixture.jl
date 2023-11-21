@@ -1,5 +1,5 @@
 # # 510: Mixture
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 #=
 
 Test mixture diffusion flux. The problem is here that in the flux function we need to

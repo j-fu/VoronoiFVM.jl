@@ -1,5 +1,5 @@
 # # 210: 2D Nonlinear Poisson with reaction
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 
 module Example210_NonlinearPoisson2D_Reaction
 

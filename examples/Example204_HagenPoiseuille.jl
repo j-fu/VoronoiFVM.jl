@@ -1,7 +1,7 @@
 #=
 
 # 204: 2D Convection in Hagen-Poiseuille flow
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 Solve the equation
 

@@ -7,7 +7,11 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local iv = try
+            Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value
+        catch
+            b -> missing
+        end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
@@ -25,13 +29,14 @@ begin
     using PlutoUI
     using GridVisualize
     using CairoMakie
-    CairoMakie.activate!(type = "svg", visible = false)
+    CairoMakie.activate!(; type = "svg", visible = false)
     GridVisualize.default_plotter!(CairoMakie)
 end;
 
 # ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
 md"""
 # Some problems with Voronoi FVM
+[Source](https://github.com/j-fu/VoronoiFVM.jl/blob/master/pluto-examples/problemcase.jl)
 
 Draft. J. Fuhrmann, Oct. 29. 2021. Updated Dec 19, 2021.
 
@@ -86,7 +91,6 @@ tend = 100
 # ╔═╡ 5f6ac608-b1a0-450e-910e-d7d8ea2ffae0
 ε_fix = 1.0e-4
 
-
 # ╔═╡ 5b60c7d4-7bdb-4989-b055-6695b9fdeedc
 md"""
 Here, we plot the solutions for the `grid_n` case and the `grid_f` case.
@@ -114,7 +118,6 @@ where D is large in the high permeability region and small otherwise. R is a con
 md"""
 ### Results
 """
-
 
 # ╔═╡ fcd066f1-bcd8-4479-a4e4-7b8c235336c4
 md"""
@@ -270,10 +273,10 @@ function grid_2d(; nref = 0, ε_fix = 0.0)
 end
 
 # ╔═╡ 46a0f078-4165-4e37-9e69-e69af8584f6e
-gridplot(grid_2d(), resolution = (400, 300))
+gridplot(grid_2d(); resolution = (400, 300))
 
 # ╔═╡ 3f693666-4026-4c01-a7aa-8c7dcbc32372
-gridplot(grid_2d(; ε_fix = 1.0e-1), resolution = (400, 300))
+gridplot(grid_2d(; ε_fix = 1.0e-1); resolution = (400, 300))
 
 # ╔═╡ c402f03c-746a-45b8-aaac-902a2f196094
 function grid_1d(; nref = 0)
@@ -318,7 +321,7 @@ function breakthrough(sys, tf, sol)
     t = sol.t
     of[1] = 0
     for i = 2:length(sol.t)
-        of[i] = -integrate(sys, tf, sol[i], sol[i-1], t[i] - t[i-1])[ic]
+        of[i] = -integrate(sys, tf, sol[i], sol[i - 1], t[i] - t[i - 1])[ic]
     end
     of
 end
@@ -329,15 +332,12 @@ Transient solver:
 """
 
 # ╔═╡ e866db69-9388-4691-99f7-879cf0658418
-function trsolve(
-    grid;
-    κ = [1.0e-3, 5],
-    D = [1.0e-12, 1.0e-12],
-    Δp = 1.0,
-    ϕ = [1, 1],
-    tend = 100,
-)
-
+function trsolve(grid;
+                 κ = [1.0e-3, 5],
+                 D = [1.0e-12, 1.0e-12],
+                 Δp = 1.0,
+                 ϕ = [1, 1],
+                 tend = 100,)
     function flux(y, u, edge)
         y[ip] = κ[edge.region] * (u[ip, 1] - u[ip, 2])
         bp, bm = fbernoulli_pm(y[ip] / D[edge.region])
@@ -351,7 +351,7 @@ function trsolve(
 
     dim = dim_space(grid)
     function bc(y, u, bnode)
-        c0 = ramp(bnode.time, dt = (0, 0.001), du = (0, 1))
+        c0 = ramp(bnode.time; dt = (0, 0.001), du = (0, 1))
         boundary_dirichlet!(y, u, bnode, ic, Γ_in, c0)
         boundary_dirichlet!(y, u, bnode, ic, Γ_out, 0)
 
@@ -363,27 +363,22 @@ function trsolve(
         end
     end
 
-    sys = VoronoiFVM.System(
-        grid;
-        check_allocs = true,
-        flux = flux,
-        storage = stor,
-        bcondition = bc,
-        species = [ip, ic],
-    )
+    sys = VoronoiFVM.System(grid;
+                            check_allocs = true,
+                            flux = flux,
+                            storage = stor,
+                            bcondition = bc,
+                            species = [ip, ic],)
 
-    inival = solve(sys, inival = 0, time = 0.0)
+    inival = solve(sys; inival = 0, time = 0.0)
     factory = TestFunctionFactory(sys)
     tfc = testfunction(factory, [Γ_in, Γ_left, Γ_top, Γ_bot], [Γ_out])
 
-
-    sol = VoronoiFVM.solve(
-        sys;
-        inival = inival,
-        times = [0, tend],
-        Δt = 1.0e-4,
-        Δt_min = 1.0e-6,
-    )
+    sol = VoronoiFVM.solve(sys;
+                           inival = inival,
+                           times = [0, tend],
+                           Δt = 1.0e-4,
+                           Δt_min = 1.0e-6,)
 
     bt = breakthrough(sys, tfc, sol)
     if dim == 1
@@ -394,7 +389,7 @@ function trsolve(
 end
 
 # ╔═╡ cd88123a-b042-43e2-99b9-ec925a8794ed
-grid_n, sol_n, bt_n = trsolve(grid_2d(nref = nref), tend = tend);
+grid_n, sol_n, bt_n = trsolve(grid_2d(; nref = nref); tend = tend);
 
 # ╔═╡ 1cf0db37-42cc-4dd9-9da3-ebb94ff63b1b
 sum(bt_n)
@@ -403,80 +398,68 @@ sum(bt_n)
 @test sum(bt_n) ≈ 17.643110936180495
 
 # ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
-scalarplot(grid_n, sol_n(t)[ic, :], resolution = (500, 200), show = true)
+scalarplot(grid_n, sol_n(t)[ic, :]; resolution = (500, 200), show = true)
 
 # ╔═╡ b0ad0adf-6f6c-4fb3-b58e-e05cc8c0c796
-grid_1, sol_1, bt_1 = trsolve(grid_1d(nref = nref), tend = tend);
+grid_1, sol_1, bt_1 = trsolve(grid_1d(; nref = nref); tend = tend);
 
 # ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
 @test sum(bt_1) ≈ 20.412099101959157
 
 # ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
-scalarplot(
-    grid_1,
-    sol_1(t)[ic, :],
-    levels = 0:0.2:1,
-    resolution = (500, 150),
-    xlabel = "x",
-    ylabel = "c",
-    title = "1D calculation, t=$t",
-)
+scalarplot(grid_1,
+           sol_1(t)[ic, :];
+           levels = 0:0.2:1,
+           resolution = (500, 150),
+           xlabel = "x",
+           ylabel = "c",
+           title = "1D calculation, t=$t")
 
 # ╔═╡ 76b77ec0-27b0-4a02-9ae4-43d756eb09dd
-grid_f, sol_f, bt_f = trsolve(grid_2d(nref = nref, ε_fix = ε_fix), tend = tend);
+grid_f, sol_f, bt_f = trsolve(grid_2d(; nref = nref, ε_fix = ε_fix); tend = tend);
 
 # ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
 @test sum(bt_f) ≈ 20.411131554885404
 
 # ╔═╡ f42d4eb6-3e07-40c9-a8b3-dc772e674222
-scalarplot(grid_f, sol_f(t)[ic, :], resolution = (500, 200), show = true)
+scalarplot(grid_f, sol_f(t)[ic, :]; resolution = (500, 200), show = true)
 
 # ╔═╡ 904b36f0-10b4-4db6-9252-21668305de9c
-grid_ϕ, sol_ϕ, bt_ϕ = trsolve(grid_2d(nref = nref), ϕ = [1.0e-3, 1], tend = tend);
+grid_ϕ, sol_ϕ, bt_ϕ = trsolve(grid_2d(; nref = nref); ϕ = [1.0e-3, 1], tend = tend);
 
 # ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
 @test sum(bt_ϕ) ≈ 20.4122562994476
 
-
-
 # ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
 begin
-    p1 = GridVisualizer(
-        resolution = (500, 200),
-        xlabel = "t",
-        ylabel = "outflow",
-        legend = :rb,
-        title = "Breakthrough Curves",
-    )
-    scalarplot!(p1, sol_n.t, bt_n, label = "naive grid", color = :red)
-    scalarplot!(
-        p1,
-        sol_1.t,
-        bt_1,
-        label = "1D grid",
-        markershape = :x,
-        markersize = 10,
-        clear = false,
-        color = :green,
-    )
-    scalarplot!(
-        p1,
-        sol_f.t,
-        bt_f,
-        label = "grid with fix",
-        markershape = :circle,
-        color = :green,
-        clear = false,
-    )
-    scalarplot!(
-        p1,
-        sol_ϕ.t,
-        bt_ϕ,
-        label = "modified ϕ",
-        markershape = :cross,
-        color = :blue,
-        clear = false,
-    )
+    p1 = GridVisualizer(; resolution = (500, 200),
+                        xlabel = "t",
+                        ylabel = "outflow",
+                        legend = :rb,
+                        title = "Breakthrough Curves")
+    scalarplot!(p1, sol_n.t, bt_n; label = "naive grid", color = :red)
+    scalarplot!(p1,
+                sol_1.t,
+                bt_1;
+                label = "1D grid",
+                markershape = :x,
+                markersize = 10,
+                clear = false,
+                color = :green)
+    scalarplot!(p1,
+                sol_f.t,
+                bt_f;
+                label = "grid with fix",
+                markershape = :circle,
+                color = :green,
+                clear = false)
+    scalarplot!(p1,
+                sol_ϕ.t,
+                bt_ϕ;
+                label = "modified ϕ",
+                markershape = :cross,
+                color = :blue,
+                clear = false)
     reveal(p1)
 end
 
@@ -487,7 +470,6 @@ md"""
 
 # ╔═╡ bb3a50ed-32e7-4305-87d8-4093c054a4d2
 function rdsolve(grid; D = [1.0e-12, 1.0], R = [1, 0.1])
-
     function flux(y, u, edge)
         y[1] = D[edge.region] * (u[1, 1] - u[1, 2])
     end
@@ -499,16 +481,13 @@ function rdsolve(grid; D = [1.0e-12, 1.0], R = [1, 0.1])
         boundary_dirichlet!(args..., 1, Γ_in, 1)
         boundary_dirichlet!(args..., 1, Γ_out, 0)
     end
-    sys = VoronoiFVM.System(
-        grid,
-        flux = flux,
-        reaction = rea,
-        species = 1,
-        bcondition = bc,
-        check_allocs = true,
-    )
+    sys = VoronoiFVM.System(grid;
+                            flux = flux,
+                            reaction = rea,
+                            species = 1,
+                            bcondition = bc,
+                            check_allocs = true)
     dim = dim_space(grid)
-
 
     sol = VoronoiFVM.solve(sys)
     factory = TestFunctionFactory(sys)
@@ -519,38 +498,37 @@ function rdsolve(grid; D = [1.0e-12, 1.0], R = [1, 0.1])
         fac = W
     end
     grid, sol[1, :], of[1] * fac
-
 end
 
 # ╔═╡ 2f560406-d169-4027-9cfe-7689494edf45
-rdgrid_1, rdsol_1, of_1 = rdsolve(grid_1d(nref = nref));
+rdgrid_1, rdsol_1, of_1 = rdsolve(grid_1d(; nref = nref));
 
 # ╔═╡ 40850999-12da-46cd-b86c-45808592fb9e
 @test of_1 ≈ -0.013495959676585267
 
 # ╔═╡ 34228382-4b1f-4897-afdd-19db7d5a7c59
-scalarplot(rdgrid_1, rdsol_1, resolution = (300, 200))
+scalarplot(rdgrid_1, rdsol_1; resolution = (300, 200))
 
 # ╔═╡ a6714eac-9e7e-4bdb-beb7-aca354664ad6
-rdgrid_n, rdsol_n, of_n = rdsolve(grid_2d(nref = nref));
+rdgrid_n, rdsol_n, of_n = rdsolve(grid_2d(; nref = nref));
 
 # ╔═╡ d1bfac0f-1f20-4c0e-9a9f-c7d36bc338ef
 @test of_n ≈ -0.00023622450350365264
 
 # ╔═╡ 5899df30-5198-4946-a148-108746cdde79
-scalarplot(rdgrid_n, rdsol_n, resolution = (500, 200))
+scalarplot(rdgrid_n, rdsol_n; resolution = (500, 200))
 
 # ╔═╡ 20d7624b-f43c-4ac2-bad3-383a9e4e1b42
-rdgrid_f, rdsol_f, of_f = rdsolve(grid_2d(nref = nref, ε_fix = ε_fix));
+rdgrid_f, rdsol_f, of_f = rdsolve(grid_2d(; nref = nref, ε_fix = ε_fix));
 
 # ╔═╡ 5d407d63-8a46-4480-94b4-80510eac5166
 @test of_f ≈ -0.013466874615165499
 
 # ╔═╡ 6a6d0e94-8f0d-4119-945c-dd48ec0798fd
-scalarplot(rdgrid_f, rdsol_f, resolution = (500, 200))
+scalarplot(rdgrid_f, rdsol_f; resolution = (500, 200))
 
 # ╔═╡ c0fc1f71-52ba-41a9-92d1-74e82ac7826c
-rdgrid_r, rdsol_r, of_r = rdsolve(grid_2d(nref = nref), R = [0, 0.1]);
+rdgrid_r, rdsol_r, of_r = rdsolve(grid_2d(; nref = nref); R = [0, 0.1]);
 
 # ╔═╡ 43622531-b7d0-44d6-b840-782021eb2ef0
 @test of_r ≈ -0.013495959676764535

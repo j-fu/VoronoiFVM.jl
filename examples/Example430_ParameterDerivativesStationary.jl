@@ -1,7 +1,7 @@
 #=
 
 # 430: Parameter Derivatives (stationary)
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Explore different ways to calculate sensitivities.
 This is still experimental. 

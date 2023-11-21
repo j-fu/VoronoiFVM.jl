@@ -1,5 +1,6 @@
-# # 002: check edge reaction
-# ([source code](SOURCE_URL))
+#=
+ # 002: check edge reaction
+=#
 
 module Example002_EdgeReaction
 

@@ -1,11 +1,11 @@
 #=
 # 001: New linear solver API
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 =#
 
 module Example001_Solvers
 
-# under development
+## under development
 
 using Printf
 using VoronoiFVM

@@ -1,7 +1,7 @@
 #=
 
 # 103: 1D Convection-diffusion equation
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 Solve the equation
 

@@ -1,7 +1,7 @@
 #=
 
 # 410: Many Species
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Test stationary diffusion for 50 species.
 
