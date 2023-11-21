@@ -1,5 +1,5 @@
 # # 110: 1D Reaction Diffusion equation with two species
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 #
 # Solve the nonlinear coupled reaction diffusion problem
 # 
@@ -22,7 +22,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise)
+function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise)
     h = 1 / n
     grid = VoronoiFVM.Grid(collect(0:h:1))
 
@@ -78,12 +78,13 @@ function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :
     return u5
 end
 
-function test()
+using Test
+function runtests()
     testval = 0.7117546972922056
 
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 end

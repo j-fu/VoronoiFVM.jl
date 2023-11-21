@@ -1,7 +1,7 @@
 #=
 
 # 405: Generic operator
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Handle an operator which does not fit into the storage/flux/reaction API.
 This uses automatic sparsity detection.
@@ -71,10 +71,11 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     return sum(solution)
 end
 
-function test()
+using Test
+function runtests()
     testval = 1.099999999614456
-    main(; unknown_storage = :sparse) ≈ testval &&
-        main(; unknown_storage = :dense) ≈ testval
+    @test main(; unknown_storage = :sparse) ≈ testval &&
+          main(; unknown_storage = :dense) ≈ testval
 end
 
 end

@@ -1,7 +1,7 @@
 #=
 
 # 424: Initialization of Abstract quantities
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 =#
 module Example424_AbstractQuantitiesInit
@@ -11,7 +11,7 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
-function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly=:edgewise)
+function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly = :edgewise)
     if 2 * (N ÷ 2) == N
         N = N + 1
     end
@@ -19,7 +19,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly=:e
     xcoord = range(0, 2; length = N) |> collect
     grid = simplexgrid(xcoord)
     cellmask!(grid, [1], [2], 2)
-    system = VoronoiFVM.System(grid; unknown_storage = unknown_storage, assembly=assembly)
+    system = VoronoiFVM.System(grid; unknown_storage = unknown_storage, assembly = assembly)
 
     ## First, we introduce a continuous quantity which we name "cspec". Note that the "species number" can be assigned automatically if not given explicitly.
     cspec = ContinuousQuantity(system, 1:2)
@@ -67,11 +67,12 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly=:e
     check(u) && check(v) && check(w)
 end
 
-function test()
-    main(; unknown_storage = :sparse, assembly=:edgewise)  &&
-        main(; unknown_storage = :dense, assembly=:edgewise) &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) &&
-        main(; unknown_storage = :dense, assembly=:cellwise) 
+using Test
+function runtests()
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) &&
+          main(; unknown_storage = :dense, assembly = :edgewise) &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) &&
+          main(; unknown_storage = :dense, assembly = :cellwise)
 end
 
 end

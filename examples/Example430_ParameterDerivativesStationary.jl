@@ -1,7 +1,7 @@
 #=
 
 # 430: Parameter Derivatives (stationary)
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Explore different ways to calculate sensitivities.
 This is still experimental. 
@@ -226,16 +226,17 @@ function runh(; Plotter = nothing, n = 10)
     sum(DH)
 end
 
-function test()
+using Test
+function runtests()
     testval = 489.3432830184927
     xf = runf()
     xg = rung()
     xh = runh()
     #    xg2 = rung(; factorization = :ilu0, iteration = :cg)
-    xf ≈ testval &&
-        xg ≈ testval &&
-        #       xg2 ≈ testval &&
-        xh ≈ testval
+    @test xf ≈ testval &&
+          xg ≈ testval &&
+          #       xg2 ≈ testval &&
+          xh ≈ testval
 end
 
 end

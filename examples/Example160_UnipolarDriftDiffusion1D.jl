@@ -1,7 +1,7 @@
 #=
 
 # 160: Unipolar degenerate drift-diffusion
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 See: C. Cancès, C. Chainais-Hillairet, J. Fuhrmann, and B. Gaudeul, "A numerical-analysis-focused comparison of several finite volume schemes for a unipolar degenerate drift-diffusion model" IMA Journal of Numerical Analysis, vol. 41, no. 1, pp. 271–314, 2021.  
 
@@ -80,13 +80,12 @@ function bcondition!(f, u, bnode, data)
 end
 
 function main(;
-    n = 20,
-    Plotter = nothing,
-    dlcap = false,
-    verbose = false,
-    unknown_storage = :sparse,
-    assembly = :edgewise,
-)
+              n = 20,
+              Plotter = nothing,
+              dlcap = false,
+              verbose = false,
+              unknown_storage = :sparse,
+              assembly = :edgewise,)
     h = 1.0 / convert(Float64, n)
     grid = VoronoiFVM.Grid(collect(0:h:1))
 
@@ -100,20 +99,17 @@ function main(;
     iphi = data.iphi
 
     physics = VoronoiFVM.Physics(;
-        data = data,
-        flux = sedanflux!,
-        reaction = reaction!,
-        breaction = bcondition!,
-        storage = storage!,
-    )
+                                 data = data,
+                                 flux = sedanflux!,
+                                 reaction = reaction!,
+                                 breaction = bcondition!,
+                                 storage = storage!,)
 
-    sys = VoronoiFVM.System(
-        grid,
-        physics;
-        unknown_storage = unknown_storage,
-        species = [1, 2],
-        assembly = assembly,
-    )
+    sys = VoronoiFVM.System(grid,
+                            physics;
+                            unknown_storage = unknown_storage,
+                            species = [1, 2],
+                            assembly = assembly,)
 
     inival = unknowns(sys)
     @views inival[iphi, :] .= 0
@@ -131,36 +127,30 @@ function main(;
         control.Δu_opt = 0.1
         control.damp_initial = 0.5
 
-        tsol = solve(
-            sys;
-            method_linear = UMFPACKFactorization(),
-            inival,
-            times = [0.0, 10],
-            control = control,
-        )
+        tsol = solve(sys;
+                     method_linear = UMFPACKFactorization(),
+                     inival,
+                     times = [0.0, 10],
+                     control = control,)
 
         vis = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
         for log10t = -4:0.025:0
             time = 10^(log10t)
             sol = tsol(time)
-            scalarplot!(
-                vis[1, 1],
-                grid,
-                sol[iphi, :];
-                label = "ϕ",
-                title = @sprintf("time=%.3g", time),
-                flimits = (0, 5),
-                color = :green,
-            )
-            scalarplot!(
-                vis[1, 1],
-                grid,
-                sol[ic, :];
-                label = "c",
-                flimits = (0, 5),
-                clear = false,
-                color = :red,
-            )
+            scalarplot!(vis[1, 1],
+                        grid,
+                        sol[iphi, :];
+                        label = "ϕ",
+                        title = @sprintf("time=%.3g", time),
+                        flimits = (0, 5),
+                        color = :green,)
+            scalarplot!(vis[1, 1],
+                        grid,
+                        sol[ic, :];
+                        label = "c",
+                        flimits = (0, 5),
+                        clear = false,
+                        color = :red,)
             reveal(vis)
         end
         return sum(tsol[end])
@@ -192,25 +182,21 @@ function main(;
                 data.V = dir * phi + delta
                 U = solve(sys; inival = U, control, time = 1.0)
 
-                scalarplot!(
-                    vis[1, 1],
-                    grid,
-                    U[iphi, :];
-                    label = "ϕ",
-                    title = @sprintf("Δϕ=%.3g", phi),
-                    flimits = (-5, 5),
-                    clear = true,
-                    color = :green,
-                )
-                scalarplot!(
-                    vis[1, 1],
-                    grid,
-                    U[ic, :];
-                    label = "c",
-                    flimits = (0, 5),
-                    clear = false,
-                    color = :red,
-                )
+                scalarplot!(vis[1, 1],
+                            grid,
+                            U[iphi, :];
+                            label = "ϕ",
+                            title = @sprintf("Δϕ=%.3g", phi),
+                            flimits = (-5, 5),
+                            clear = true,
+                            color = :green,)
+                scalarplot!(vis[1, 1],
+                            grid,
+                            U[ic, :];
+                            label = "c",
+                            flimits = (0, 5),
+                            clear = false,
+                            color = :red,)
 
                 Qdelta = integrate(sys, physics.reaction, U)
                 cdl = (Qdelta[iphi] - Q[iphi]) / delta
@@ -226,14 +212,12 @@ function main(;
                 v = vcat(reverse(vminus), vplus)
                 c = vcat(reverse(cdlminus), cdlplus)
                 if length(v) >= 2
-                    scalarplot!(
-                        vis[2, 1],
-                        v,
-                        c;
-                        color = :green,
-                        clear = false,
-                        title = "C_dl",
-                    )
+                    scalarplot!(vis[2, 1],
+                                v,
+                                c;
+                                color = :green,
+                                clear = false,
+                                title = "C_dl",)
                 end
 
                 phi += dphi
@@ -245,53 +229,38 @@ function main(;
     end
 end
 
-function test()
-        return true
+using Test
+function runtests()
+    return true
     if Sys.isapple()
         # skip this test - FP seems to behave differently
         @info "test skipped"
         return true
     else
-        isapprox(
-                main(; unknown_storage = :sparse, dlcap = false, assembly = :edgewise),
-                18.721369939561963;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :sparse, dlcap = true, assembly = :edgewise),
-                0.010759276468375045;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :dense, dlcap = false, assembly = :edgewise),
-                18.721369939561963;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :dense, dlcap = true, assembly = :edgewise),
-                0.010759276468375045;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :sparse, dlcap = false, assembly = :cellwise),
-                18.721369939561963;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :sparse, dlcap = true, assembly = :cellwise),
-                0.010759276468375045;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :dense, dlcap = false, assembly = :cellwise),
-                18.721369939561963;
-                rtol = 1.0e-5,
-            ) &&
-            isapprox(
-                main(; unknown_storage = :dense, dlcap = true, assembly = :cellwise),
-                0.010759276468375045;
-                rtol = 1.0e-5,
-            )
+        @test isapprox(main(; unknown_storage = :sparse, dlcap = false, assembly = :edgewise),
+                       18.721369939561963;
+                       rtol = 1.0e-5,) &&
+              isapprox(main(; unknown_storage = :sparse, dlcap = true, assembly = :edgewise),
+                       0.010759276468375045;
+                       rtol = 1.0e-5,) &&
+              isapprox(main(; unknown_storage = :dense, dlcap = false, assembly = :edgewise),
+                       18.721369939561963;
+                       rtol = 1.0e-5,) &&
+              isapprox(main(; unknown_storage = :dense, dlcap = true, assembly = :edgewise),
+                       0.010759276468375045;
+                       rtol = 1.0e-5,) &&
+              isapprox(main(; unknown_storage = :sparse, dlcap = false, assembly = :cellwise),
+                       18.721369939561963;
+                       rtol = 1.0e-5,) &&
+              isapprox(main(; unknown_storage = :sparse, dlcap = true, assembly = :cellwise),
+                       0.010759276468375045;
+                       rtol = 1.0e-5,) &&
+              isapprox(main(; unknown_storage = :dense, dlcap = false, assembly = :cellwise),
+                       18.721369939561963;
+                       rtol = 1.0e-5,) &&
+              isapprox(main(; unknown_storage = :dense, dlcap = true, assembly = :cellwise),
+                       0.010759276468375045;
+                       rtol = 1.0e-5,)
     end
 end
 end

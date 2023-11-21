@@ -1,7 +1,7 @@
 #=
 
 # 203: Various coordinate systems 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 =#
 
 module Example203_CoordinateSystems
@@ -59,13 +59,12 @@ on disk of radius r2, exact solution is `(r_2^2-r^2)/4`.
 In this case, the discretization appears to be exact.
 """
 function maincylinder(;
-    nref = 0,
-    r2 = 5.0,
-    z1 = 0.0,
-    z2 = 1.0,
-    Plotter = nothing,
-    assembly = :edgewise,
-)
+                      nref = 0,
+                      r2 = 5.0,
+                      z1 = 0.0,
+                      z2 = 1.0,
+                      Plotter = nothing,
+                      assembly = :edgewise,)
     h = 0.1 * 2.0^(-nref)
     R = collect(0:h:r2)
     Z = collect(z1:h:z2)
@@ -90,9 +89,8 @@ In this case, the discretization appears to be exact.
 """
 function maincylinder_unstruct(;
                                Plotter = nothing,
-                               assembly = :edgewise
-                               )
-    if VERSION<v"1.7"
+                               assembly = :edgewise)
+    if VERSION < v"1.7"
         # no pkdir
         return true
     end
@@ -101,7 +99,7 @@ function maincylinder_unstruct(;
     z1 = 0.0
     z2 = 1.0
     h = 0.1 * 2.0^(-nref)
-    grid = simplexgrid(joinpath(pkgdir(VoronoiFVM),"assets","cyl_unstruct.sg"))
+    grid = simplexgrid(joinpath(pkgdir(VoronoiFVM), "assets", "cyl_unstruct.sg"))
     circular_symmetric!(grid)
     source(f, node) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
@@ -111,7 +109,6 @@ function maincylinder_unstruct(;
     plot(grid, sol, exact, Plotter)
     norm(sol[1, :] - exact, Inf) < 0.0012
 end
-
 
 """
     symlapring(r,r1,r2)
@@ -149,14 +146,13 @@ of Dirichlet problem `-Δu=0` on cylindershell between radii r1 and r2,
 with boundary value 1 at r1 and 0 at r2. Test of quadratic convergence.
 """
 function maincylindershell(;
-    nref = 0,
-    r1 = 1.0,
-    r2 = 5.0,
-    z1 = 0.0,
-    z2 = 1.0,
-    Plotter = nothing,
-    assembly = :edgewise,
-)
+                           nref = 0,
+                           r1 = 1.0,
+                           r2 = 5.0,
+                           z1 = 0.0,
+                           z2 = 1.0,
+                           Plotter = nothing,
+                           assembly = :edgewise,)
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
     Z = collect(z1:h:z2)
@@ -216,12 +212,11 @@ of Dirichlet problem `-Δu=0` on sphereshell between radii r1 and r2,
 with boundary value 1 at r1 and 0 at r2. Test of quadratic convergence.
 """
 function mainsphereshell(;
-    nref = 0,
-    r1 = 1.0,
-    r2 = 5.0,
-    Plotter = nothing,
-    assembly = :edgewise,
-)
+                         nref = 0,
+                         r1 = 1.0,
+                         r2 = 5.0,
+                         Plotter = nothing,
+                         assembly = :edgewise,)
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
     grid = VoronoiFVM.Grid(R)
@@ -238,22 +233,23 @@ end
 
 #
 # Called by unit test
-#
-function test()
-    maindisk(assembly = :edgewise) &&
-        mainring(assembly = :edgewise) &&
-        maincylinder(assembly = :edgewise) &&
-        maincylinder_unstruct(assembly = :edgewise) &&
-        maincylindershell(assembly = :edgewise) &&
-        mainsphere(assembly = :edgewise) &&
-        mainsphereshell(assembly = :edgewise) &&
-        maindisk(assembly = :cellwise) &&
-        mainring(assembly = :cellwise) &&
-        maincylinder(assembly = :cellwise) &&
-        maincylinder_unstruct(assembly = :cellwise) &&
-        maincylindershell(assembly = :cellwise) &&
-        mainsphere(assembly = :cellwise) &&
-        mainsphereshell(assembly = :cellwise)
+
+using Test#
+function runtests()
+    @test maindisk(; assembly = :edgewise) &&
+          mainring(; assembly = :edgewise) &&
+          maincylinder(; assembly = :edgewise) &&
+          maincylinder_unstruct(; assembly = :edgewise) &&
+          maincylindershell(; assembly = :edgewise) &&
+          mainsphere(; assembly = :edgewise) &&
+          mainsphereshell(; assembly = :edgewise) &&
+          maindisk(; assembly = :cellwise) &&
+          mainring(; assembly = :cellwise) &&
+          maincylinder(; assembly = :cellwise) &&
+          maincylinder_unstruct(; assembly = :cellwise) &&
+          maincylindershell(; assembly = :cellwise) &&
+          mainsphere(; assembly = :cellwise) &&
+          mainsphereshell(; assembly = :cellwise)
 end
 
 end

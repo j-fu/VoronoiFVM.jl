@@ -1,7 +1,7 @@
 #=
 
 # 101: 1D Laplace equation 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 Let $\Omega=(\gamma_1,\gamma_2)$ with $\gamma_1=0$, $\gamma_2=1$.
 This is the simplest second order boundary value problem (BVP)
@@ -120,10 +120,9 @@ function main()
     return sum(solution)
 end
 
-## Called by unit test
-
-function test()
-    main() ≈ 3.0
+using Test
+function runtests()
+    @test main() ≈ 3.0
 end
 
 end

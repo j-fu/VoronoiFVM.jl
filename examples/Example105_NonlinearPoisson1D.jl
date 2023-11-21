@@ -1,6 +1,6 @@
 #=
 # 105: 1D Nonlinear Poisson equation 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 Solve the nonlinear Poisson equation
 
@@ -27,7 +27,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise)
+function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise)
 
     ## Create a one-dimensional discretization
     h = 1.0 / convert(Float64, n)
@@ -66,7 +66,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     ## The difference is in the way the solution object
     ## is stored - as dense or as sparse matrix
 
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly=assembly)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly = assembly)
 
     ## Add species 1 to region 1
     enable_species!(sys, 1, [1])
@@ -86,12 +86,13 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     return sum(solution)
 end
 
-function test()
+using Test
+function runtests()
     testval = 1.5247901344230088
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

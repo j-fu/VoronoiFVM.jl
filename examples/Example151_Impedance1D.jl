@@ -1,5 +1,5 @@
 # # 151: Impedance calculation
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 
 #  Same as Example150, but with new and more generic way of
 #  passing the parameter.
@@ -35,7 +35,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise,
+function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise,
               L = 1.0, R = 1.0, D = 1.0, C = 1.0,
               ω0 = 1.0e-3, ω1 = 5.0e1)
 
@@ -83,7 +83,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
                             reaction = reaction,
                             bcondition = bc,
                             nparams = 1,
-                            species = 1,assembly=assembly)
+                            species = 1, assembly = assembly)
 
     # Create test functions for current measurement
 
@@ -159,12 +159,13 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
     sum(allIL)
 end
 
-function test()
+using Test
+function runtests()
     testval = 57.92710286186797 + 23.163945443946027im
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

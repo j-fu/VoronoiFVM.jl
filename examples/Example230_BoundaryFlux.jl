@@ -1,7 +1,7 @@
 #=
 
 # 103: Boundary flux
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 We consider two test problems.
 
@@ -33,7 +33,7 @@ function main(; n = 2 * 10, # n musst be an even number
               d1 = 5.0, db = 5.0, # prefactors (before diffusive part)
               kmax = 2.0, cmax = 3.0,
               Plotter = nothing,
-              unknown_storage = :sparse,assembly=:edgewise)
+              unknown_storage = :sparse, assembly = :edgewise)
 
     ###########################################################################
     ######################          1D problem           ######################
@@ -151,7 +151,7 @@ function main(; n = 2 * 10, # n musst be an even number
                                                   source = source2D!,
                                                   bflux = bflux!, breaction = breaction!,
                                                   bsource = bsource!);
-                               unknown_storage = unknown_storage, assembly=assembly)
+                               unknown_storage = unknown_storage, assembly = assembly)
 
     # enable species in only region 
     enable_species!(sys_2D, ispec_2D, [bulk_2D])
@@ -176,11 +176,12 @@ function main(; n = 2 * 10, # n musst be an even number
     return errorsol
 end # main
 
-function test()
-    main(; unknown_storage = :dense, assembly=:edgewise) < 1.0e-14 &&
-        main(; unknown_storage = :sparse, assembly=:edgewise) < 1.0e-14 &&
-    main(; unknown_storage = :dense, assembly=:cellwise) < 1.0e-14 &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) < 1.0e-14
+using Test
+function runtests()
+    @test main(; unknown_storage = :dense, assembly = :edgewise) < 1.0e-14 &&
+          main(; unknown_storage = :sparse, assembly = :edgewise) < 1.0e-14 &&
+          main(; unknown_storage = :dense, assembly = :cellwise) < 1.0e-14 &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) < 1.0e-14
 end
 
 end # module

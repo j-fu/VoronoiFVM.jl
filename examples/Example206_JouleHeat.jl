@@ -1,5 +1,5 @@
 # # 206: 2D Joule heating
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 #=
 
 ```math
@@ -24,7 +24,7 @@ using LinearAlgebra
 using SimplexGridFactory
 using Triangulate
 
-function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = :sparse, assembly=:edgewise,
+function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = :sparse, assembly = :edgewise,
               ythin = 0.25)
 
     ## Create grid
@@ -87,7 +87,7 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
 
     sys = VoronoiFVM.System(grid; bcondition = bcondition!, flux = flux!,
                             edgereaction = jouleheat!, storage = storage!,
-                            species = [iϕ, iT],assembly=assembly)
+                            species = [iϕ, iT], assembly = assembly)
 
     sol = solve(sys; verbose)
 
@@ -98,9 +98,10 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
     norm(sol, Inf)
 end
 
-function test()
+using Test
+function runtests()
     testval = 24.639120035942938
-    main(assembly=:edgewise) ≈ testval &&
-        main(assembly=:cellwise) ≈ testval
+    @test main(; assembly = :edgewise) ≈ testval &&
+          main(; assembly = :cellwise) ≈ testval
 end
 end

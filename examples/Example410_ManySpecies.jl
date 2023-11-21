@@ -1,7 +1,7 @@
 #=
 
 # 410: Many Species
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Test stationary diffusion for 50 species.
 
@@ -14,7 +14,7 @@ using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
 
-function main(; n = 11, nspec = 50, Plotter = nothing, unknown_storage = :dense, assembly=:edgewise)
+function main(; n = 11, nspec = 50, Plotter = nothing, unknown_storage = :dense, assembly = :edgewise)
     grid = simplexgrid(range(0, 1; length = n))
 
     function flux(f, u, edge)
@@ -23,7 +23,7 @@ function main(; n = 11, nspec = 50, Plotter = nothing, unknown_storage = :dense,
         end
     end
     physics = VoronoiFVM.Physics(; flux = flux)
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly=assembly)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly = assembly)
     for ispec = 1:nspec
         enable_species!(sys, ispec, [1])
         boundary_dirichlet!(sys, ispec, 1, 0)
@@ -33,12 +33,13 @@ function main(; n = 11, nspec = 50, Plotter = nothing, unknown_storage = :dense,
     norm(sol)
 end
 
-function test()
+using Test
+function runtests()
     testval = 13.874436925511608
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

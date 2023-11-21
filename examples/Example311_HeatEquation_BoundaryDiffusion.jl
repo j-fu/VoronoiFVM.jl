@@ -1,7 +1,7 @@
 #=
 
 # 311: Heat Equation with boundary diffusion 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 =#
 
@@ -21,7 +21,7 @@ using ExtendableGrids
           v(0)   = 0.5          on   {0} × Γ_1  
 """
 
-function main(n = 1; assembly=:edgewise)
+function main(n = 1; assembly = :edgewise)
     breg = 5 # boundary region number for surface diffusion
 
     hmin = 0.05 * 2.0^(-n + 1)
@@ -103,10 +103,11 @@ function main(n = 1; assembly=:edgewise)
     sum(U_surf)
 end
 
-function test()
-    testval=1509.8109057757858
-    isapprox(main(assembly=:edgewise), testval; rtol = 1.0e-12) &&
-    isapprox(main(assembly=:cellwise), testval; rtol = 1.0e-12)
+using Test
+function runtests()
+    testval = 1509.8109057757858
+    @test isapprox(main(; assembly = :edgewise), testval; rtol = 1.0e-12) &&
+          isapprox(main(; assembly = :cellwise), testval; rtol = 1.0e-12)
 end
 
 end

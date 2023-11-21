@@ -1,5 +1,5 @@
 # # 510: Mixture
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 #=
 
 Test mixture diffusion flux. The problem is here that in the flux function we need to
@@ -63,7 +63,7 @@ using GridVisualize
 using LinearAlgebra
 using Random
 using StrideArraysCore: @gc_preserve, StrideArray, StaticInt, PtrArray
-using LinearSolve,ExtendableSparse
+using LinearSolve, ExtendableSparse
 using StaticArrays
 using ExtendableSparse
 
@@ -110,17 +110,15 @@ function flux_strided(f, u, edge, data)
     end
 end
 
-
 function flux_marray(f, u, edge, data)
     T = eltype(u)
-    n=nspec(data)
+    n = nspec(data)
 
-    M=MMatrix{nspec(data),nspec(data),T}(undef)
-    au=MVector{nspec(data),T}(undef)
-    du=MVector{nspec(data),T}(undef)
-    ipiv=MVector{nspec(data),Int}(undef)
+    M = MMatrix{nspec(data), nspec(data), T}(undef)
+    au = MVector{nspec(data), T}(undef)
+    du = MVector{nspec(data), T}(undef)
+    ipiv = MVector{nspec(data), Int}(undef)
 
-    
     for ispec = 1:nspec(data)
         M[ispec, ispec] = 1.0 / data.DKnudsen[ispec]
         du[ispec] = u[ispec, 1] - u[ispec, 2]
@@ -139,13 +137,12 @@ function flux_marray(f, u, edge, data)
     ## Here, we also could use @gc_preserve.
     ## As this function is inlined one can avoid StrideArrays.jl
     ## Starting with Julia 1.8 one also can use callsite @inline.
-    inplace_linsolve!(M,du)
+    inplace_linsolve!(M, du)
 
     for ispec = 1:nspec(data)
         f[ispec] = du[ispec]
     end
 end
-
 
 function bcondition(f, u, node, data)
     for species = 1:nspec(data)
@@ -161,19 +158,17 @@ function main(; n = 11, nspec = 5,
               Plotter = nothing,
               verbose = false,
               unknown_storage = :dense,
-              flux=:flux_strided,
-              strategy=nothing,
-              assembly=:cellwise
-              )
-    
-    h = 1.0 / convert(Float64, n-1)
+              flux = :flux_strided,
+              strategy = nothing,
+              assembly = :cellwise)
+    h = 1.0 / convert(Float64, n - 1)
     X = collect(0.0:h:1.0)
     DBinary = Symmetric(fill(0.1, nspec, nspec))
     for ispec = 1:nspec
         DBinary[ispec, ispec] = 0
     end
 
-    DKnudsen = fill(1.0,nspec)
+    DKnudsen = fill(1.0, nspec)
 
     if dim == 1
         grid = VoronoiFVM.Grid(X)
@@ -190,63 +185,59 @@ function main(; n = 11, nspec = 5,
         f .= u
     end
 
-    _flux= flux==:flux_strided ? flux_strided : flux_marray
+    _flux = flux == :flux_strided ? flux_strided : flux_marray
 
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
-    sys = VoronoiFVM.System(grid; flux=_flux, storage, bcondition, species = 1:nspec, data, assembly)
+    sys = VoronoiFVM.System(grid; flux = _flux, storage, bcondition, species = 1:nspec, data, assembly)
 
     @info "Strategy: $(strategy)"
-    control=SolverControl(strategy,sys)
-    control.maxiters=500
+    control = SolverControl(strategy, sys)
+    control.maxiters = 500
     @info control.method_linear
-    u=solve(sys;verbose,control ,log=true)
+    u = solve(sys; verbose, control, log = true)
     @show norm(u)
     norm(u)
 end
 
-
-
-function test()
+using Test
+function runtests()
     # Legacy strategy list (only in 1.5)
-    strat1=[direct_umfpack(),gmres_umfpack(),gmres_eqnblock_umfpack(),
-            gmres_iluzero(),
-#            gmres_eqnblock_iluzero(),
-#            gmres_pointblock_iluzero()
-            ]
+    strat1 = [direct_umfpack(), gmres_umfpack(), gmres_eqnblock_umfpack(),
+        gmres_iluzero(),
+        #            gmres_eqnblock_iluzero(),
+        #            gmres_pointblock_iluzero()
+    ]
 
     # Equivalent up-to-date list
-    strat2=[DirectSolver(UMFPACKFactorization()),
-            GMRESIteration(UMFPACKFactorization()),
-            GMRESIteration(UMFPACKFactorization(), EquationBlock()),
-            GMRESIteration(ILUZeroPreconditioner()),
-#            GMRESIteration(ILUZeroPreconditioner(), EquationBlock()),
-#            GMRESIteration(ILUZeroPreconditioner(), PointBlock())
-            ]
+    strat2 = [DirectSolver(UMFPACKFactorization()),
+        GMRESIteration(UMFPACKFactorization()),
+        GMRESIteration(UMFPACKFactorization(), EquationBlock()),
+        GMRESIteration(ILUZeroPreconditioner()),
+        #            GMRESIteration(ILUZeroPreconditioner(), EquationBlock()),
+        #            GMRESIteration(ILUZeroPreconditioner(), PointBlock())
+    ]
 
+    val1D = 4.788926530387466
+    val2D = 15.883072449873742
+    val3D = 52.67819183426213
 
-    val1D=4.788926530387466
-    val2D=15.883072449873742
-    val3D=52.67819183426213
+    res1 = main(; dim = 1, assembly = :edgewise) ≈ val1D &&
+           main(; dim = 2, assembly = :edgewise) ≈ val2D &&
+           main(; dim = 3, assembly = :edgewise) ≈ val3D &&
+           main(; dim = 1, flux = :flux_marray, assembly = :edgewise) ≈ val1D &&
+           main(; dim = 2, flux = :flux_marray, assembly = :edgewise) ≈ val2D &&
+           main(; dim = 3, flux = :flux_marray, assembly = :edgewise) ≈ val3D &&
+           all(map(strategy -> main(; dim = 2, flux = :flux_marray, strategy) ≈ val2D, strat1))
 
-    
-    res1=  main(; dim = 1, assembly=:edgewise) ≈ val1D &&
-        main(; dim = 2, assembly=:edgewise) ≈    val2D &&
-        main(; dim = 3, assembly=:edgewise) ≈    val3D &&
-        main(; dim = 1, flux=:flux_marray, assembly=:edgewise) ≈ val1D &&
-        main(; dim = 2, flux=:flux_marray, assembly=:edgewise) ≈ val2D &&
-        main(; dim = 3, flux=:flux_marray, assembly=:edgewise) ≈ val3D &&
-        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ val2D, strat1))
-    
-
-    res2= main(; dim = 1, assembly=:cellwise) ≈  val1D &&
-        main(; dim = 2, assembly=:cellwise) ≈    val2D &&
-        main(; dim = 3, assembly=:cellwise) ≈    val3D &&
-        main(; dim = 1, flux=:flux_marray, assembly=:cellwise) ≈  val1D &&
-        main(; dim = 2, flux=:flux_marray, assembly=:cellwise) ≈  val2D &&
-        main(; dim = 3, flux=:flux_marray, assembly=:cellwise) ≈  val3D &&
-        all(map(strategy-> main(; dim = 2, flux=:flux_marray,strategy) ≈ val2D ,strat2))
+    res2 = main(; dim = 1, assembly = :cellwise) ≈ val1D &&
+           main(; dim = 2, assembly = :cellwise) ≈ val2D &&
+           main(; dim = 3, assembly = :cellwise) ≈ val3D &&
+           main(; dim = 1, flux = :flux_marray, assembly = :cellwise) ≈ val1D &&
+           main(; dim = 2, flux = :flux_marray, assembly = :cellwise) ≈ val2D &&
+           main(; dim = 3, flux = :flux_marray, assembly = :cellwise) ≈ val3D &&
+           all(map(strategy -> main(; dim = 2, flux = :flux_marray, strategy) ≈ val2D, strat2))
     @show res1, res2
-    
-    res1 && res2
+
+    @test res1 && res2
 end
 end

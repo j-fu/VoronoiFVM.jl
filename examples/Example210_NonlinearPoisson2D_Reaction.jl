@@ -1,5 +1,5 @@
 # # 210: 2D Nonlinear Poisson with reaction
-# ([source code](SOURCE_URL))
+# ([source code](@__SOURCE_URL__))
 
 module Example210_NonlinearPoisson2D_Reaction
 
@@ -8,7 +8,7 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 
-function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly=:edgewise)
+function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
@@ -43,7 +43,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
                                  reaction = reaction!,
                                  source = source!)
 
-    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly=assembly)
+    sys = VoronoiFVM.System(grid, physics; unknown_storage = unknown_storage, assembly = assembly)
 
     enable_species!(sys, 1, [1])
     enable_species!(sys, 2, [1])
@@ -74,12 +74,13 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     return u15
 end
 
-function test()
-    testval=0.014566189535134827 
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+using Test
+function runtests()
+    testval = 0.014566189535134827
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

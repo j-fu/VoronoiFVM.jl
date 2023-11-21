@@ -1,7 +1,7 @@
 #=
 
 # 421: Current Calculation for AbstractQuantities
- ([source code](SOURCE_URL))
+ ([source code](@__SOURCE_URL__))
 
 Test current calculation for jumping species. Here, we have three cases:
     a. Problem initialized as usual
@@ -24,7 +24,7 @@ mutable struct Data
     Data() = new()
 end
 
-function main(; N = 3, Plotter = nothing, unknown_storage = :sparse, assembly=:edgewise)
+function main(; N = 3, Plotter = nothing, unknown_storage = :sparse, assembly = :edgewise)
     XX = collect(0:0.1:1)
     xcoord = XX
     for i = 1:(N - 1)
@@ -161,12 +161,13 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse, assembly=:e
     return errorIV
 end
 
-function test()
-    testval=6.085802139465579e-7
-    main(; unknown_storage = :sparse, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:edgewise) ≈ testval &&
-        main(; unknown_storage = :sparse, assembly=:cellwise) ≈ testval &&
-        main(; unknown_storage = :dense, assembly=:cellwise) ≈ testval
+using Test
+function runtests()
+    testval = 6.085802139465579e-7
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
+          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
+          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
 end

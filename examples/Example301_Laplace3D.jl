@@ -1,7 +1,7 @@
 #=
 
 # 301: 3D Laplace equation 
-([source code](SOURCE_URL))
+([source code](@__SOURCE_URL__))
 
 =#
 
@@ -21,13 +21,13 @@ function s(f, node)
     f[1] = n[1] * sin(5.0 * n[2]) * exp(n[3])
 end
 
-function main(; Plotter = nothing, n = 5, assembly=:edgewise)
+function main(; Plotter = nothing, n = 5, assembly = :edgewise)
     nspecies = 1
     ispec = 1
     X = collect(0:(1 / n):1)
     grid = VoronoiFVM.Grid(X, X, X)
     physics = VoronoiFVM.Physics(; flux = g!, source = s)
-    sys = VoronoiFVM.System(grid, physics, assembly=assembly)
+    sys = VoronoiFVM.System(grid, physics; assembly = assembly)
     enable_species!(sys, ispec, [1])
     boundary_dirichlet!(sys, ispec, 5, 0.0)
     boundary_dirichlet!(sys, ispec, 6, 0.0)
@@ -38,10 +38,11 @@ end
 
 ## Called by unit test
 
-function test()
-    testval=0.012234524449380824
-    main(assembly=:edgewise) ≈ testval &&
-    main(assembly=:cellwise) ≈ testval
+using Test
+function runtests()
+    testval = 0.012234524449380824
+    @test main(; assembly = :edgewise) ≈ testval &&
+          main(; assembly = :cellwise) ≈ testval
 end
 
 end
