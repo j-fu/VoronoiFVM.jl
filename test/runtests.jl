@@ -1,8 +1,4 @@
 using Test
-using Pluto
-using Pkg
-using UUIDs
-using VoronoiFVM
 import ExampleJuggler
 using ExampleJuggler: cleanexamples, @testmodules, @testscripts
 
