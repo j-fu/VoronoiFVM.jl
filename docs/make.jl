@@ -15,7 +15,7 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
         "Nonlinear solver control" => "nonlinear-solvers.jl",
         "API Updates" => "api-update.jl",
     ]
-    notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
+    notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=true)
     notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
 
     modules = filter(ex -> splitext(ex)[2] == ".jl", basename.(readdir(exampledir)))
