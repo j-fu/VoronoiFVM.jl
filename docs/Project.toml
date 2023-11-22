@@ -27,4 +27,4 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 Documenter = "1"
-ExampleJuggler = "0.3.2"
+ExampleJuggler = "0.3.3"
