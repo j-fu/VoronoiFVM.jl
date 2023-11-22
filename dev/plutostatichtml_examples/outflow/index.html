@@ -25,7 +25,7 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "f1520f310fc57d2d238578550282d8c54aa71b9cbbaf8d7907e98dc3ce7acacc"
+    input_sha = "d169653dc353892d0f9bf21d816f8918f8b50a2711a1932bdac261e546bcea47"
     julia_version = "1.9.4"
 -->
 <pre class='language-julia'><code class='language-julia'>begin
@@ -93,10 +93,9 @@ end</code></pre>
 <pre class="code-output documenter-example-output" id="var-flux">flux (generic function with 1 method)</pre>
 
 <pre class='language-julia'><code class='language-julia'>function bcondition(y, u, bnode, data)
-    (; ic, ip, Γ_in, Γ_out, v_in, c_in) = data
-    boundary_neumann!(y, u, bnode; species = ip, region = Γ_in, value = v_in)
-    boundary_dirichlet!(y, u, bnode; species = ip, region = Γ_out, value = 0)
-    boundary_dirichlet!(y, u, bnode; species = ic, region = Γ_in, value = c_in)
+    boundary_neumann!(y, u, bnode; species = data.ip, region = data.Γ_in, value = data.v_in)
+    boundary_dirichlet!(y, u, bnode; species = data.ip, region = data.Γ_out, value = 0)
+    boundary_dirichlet!(y, u, bnode; species = data.ic, region = data.Γ_in, value = data.c_in)
 end</code></pre>
 <pre class="code-output documenter-example-output" id="var-bcondition">bcondition (generic function with 1 method)</pre>
 
@@ -276,4 +275,4 @@ Triangulate 2.2.0<br>
 VoronoiFVM 1.11.0
 </div>
 
-<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../notebooks/">« About the notebooks</a><a class="docs-footer-nextpage" href="../flux-reconstruction/">Obtaining vector fields »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Wednesday 22 November 2023 08:39">Wednesday 22 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../notebooks/">« About the notebooks</a><a class="docs-footer-nextpage" href="../flux-reconstruction/">Obtaining vector fields »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Wednesday 22 November 2023 09:55">Wednesday 22 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
