@@ -90,10 +90,9 @@ end
 
 # ╔═╡ addf62a3-9a71-49b8-b54a-441f65a01d01
 function bcondition(y, u, bnode, data)
-    (; ic, ip, Γ_in, Γ_out, v_in, c_in) = data
-    boundary_neumann!(y, u, bnode; species = ip, region = Γ_in, value = v_in)
-    boundary_dirichlet!(y, u, bnode; species = ip, region = Γ_out, value = 0)
-    boundary_dirichlet!(y, u, bnode; species = ic, region = Γ_in, value = c_in)
+    boundary_neumann!(y, u, bnode; species = data.ip, region = data.Γ_in, value = data.v_in)
+    boundary_dirichlet!(y, u, bnode; species = data.ip, region = data.Γ_out, value = 0)
+    boundary_dirichlet!(y, u, bnode; species = data.ic, region = data.Γ_in, value = data.c_in)
 end
 
 # ╔═╡ e087d35c-47ca-47f4-ab20-32a7adf94f00

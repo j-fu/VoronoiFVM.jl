@@ -16,29 +16,31 @@ function run_tests_from_directory(testdir, prefix)
     @testmodules(testdir, examples)
 end
 
-function run_all_tests(; run_notebooks = false)
-    @testset "basictest" begin
-        run_tests_from_directory(@__DIR__, "test_")
-    end
+function run_all_tests(; run_notebooks = false, notebooksonly = false)
+    if !notebooksonly
+        @testset "basictest" begin
+            run_tests_from_directory(@__DIR__, "test_")
+        end
 
-    @testset "Development Examples" begin
-        run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example0")
-    end
-    @testset "MultiD Examples" begin
-        run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example5")
-    end
-    @testset "1D Examples" begin
-        run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example1")
-    end
-    @testset "2D Examples" begin
-        run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example2")
-    end
-    @testset "3D Examples" begin
-        run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example3")
-    end
+        @testset "Development Examples" begin
+            run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example0")
+        end
+        @testset "MultiD Examples" begin
+            run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example5")
+        end
+        @testset "1D Examples" begin
+            run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example1")
+        end
+        @testset "2D Examples" begin
+            run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example2")
+        end
+        @testset "3D Examples" begin
+            run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example3")
+        end
 
-    @testset "Misc Examples" begin
-        run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example4")
+        @testset "Misc Examples" begin
+            run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example4")
+        end
     end
 
     if run_notebooks
