@@ -1,6 +1,12 @@
 # Changes
+## v1.14.0 Nov 27, 2023
+- Add `Δu_max_factor` and `Δt_decrease` to [`VoronoiFVM.SolverControl`](@ref). Formerly (with values 2.0 and 0.5, respectively) the were fixed. New `Δu_max_factor=1.2`
+- Add history to [`VoronoiFVM.TransientSolution`](@ref), prepare deprecation of `system.history`
+- Add [`plothistory`](@ref) method
+
+# Changes
 ## v1.13.0 July 24, 2023
-- Add `nodevolumes(sys)` method
+- Add [`nodevolumes`](@ref) method
 
 ## v1.12.0 July 22, 2023
 - Add functionality for outflow boundary conditions

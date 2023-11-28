@@ -32,22 +32,24 @@ end
 Print error when catching exceptions
 """
 function _print_error(err, st)
-    println()
-    println(err)
+    io=IOBuffer()
+    println(io)
+    println(io,err)
     nlines = 5
     for i = 1:min(nlines, length(st))
         line = @sprintf("%s", st[i])
         L = length(line)
         if L < 80
-            println(line)
+            println(io,line)
         else
-            print(line[1:35])
-            print(" ... ")
-            println(line[(L-35):L])
+            print(io,line[1:35])
+            print(io," ... ")
+            println(io,line[(L-35):L])
         end
     end
     if length(st) > nlines
-        println("...")
+        println(io,"...")
     end
-    println()
+    println(io)
+    @warn String(take!(io))
 end

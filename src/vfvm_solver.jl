@@ -301,16 +301,16 @@ function CommonSolve.solve(
     if !called_from_API && doprint(control, 'd')
         @warn "[d]eprecated: solve(inival,system,times;kwargs...)"
     end
+    rd(x)=round(x,sigdigits=5)
     λstr = "t"
     if !transient
         λstr = "p"
     end
-
     allhistory = TransientSolverHistory()
 
     solution = copy(inival)
     oldsolution = copy(inival)
-    _initialize_dirichlet!(inival, system; time, λ = Float64(lambdas[1]), params)
+    _initialize_dirichlet!(solution, system; time, λ = Float64(lambdas[1]), params)
     Δλ = Δλ_val(control, transient)
 
     t0 = @elapsed if !transient
@@ -328,7 +328,7 @@ function CommonSolve.solve(
             kwargs...,
         )
         control.post(solution, oldsolution, lambdas[1], 0)
-        if control.log
+        if control.log            
             push!(allhistory, system.history)
             push!(allhistory.times, lambdas[1])
             Δu = control.delta(system, solution, oldsolution, lambdas[1], 0)
@@ -388,6 +388,9 @@ function CommonSolve.solve(
                         )
                     end
                 catch err
+                    if transient
+                        err="Problem at $(λstr)=$(λ|>rd), Δ$(λstr)=$(Δλ|>rd):\n$(err)"
+                    end
                     if (control.handle_exceptions)
                         _print_error(err, stacktrace(catch_backtrace()))
                     else
@@ -404,12 +407,11 @@ function CommonSolve.solve(
                 if !solved
                     # reduce time step and retry  solution
                     Δλ = Δλ * control.Δt_decrease
-                    rd(x)=round(x,sigdigits=5)
                     if Δλ < Δλ_min(control, transient)
                         if !(control.force_first_step && istep == 0)
-                            err="At $(λstr)=$(λ|>rd): Δ$(λstr)_min=$(Δλ_min(control,transient)|>rd) reached while Δu=$(Δu|>rd) and Δu_opt=$(control.Δu_opt|>rd) "
+                            err="At $(λstr)=$(λ|>rd): Δ$(λstr)_min=$(Δλ_min(control,transient)|>rd) reached while Δu=$(Δu|>rd) and Δu_opt=$(control.Δu_opt|>rd)\n Returning prematurely before $(λstr)=$(lambdas[end]|>rd) "
                             if control.handle_exceptions
-                                @warn  err
+                                   @warn  err
                             else
                                 throw(DomainError(err))
                             end

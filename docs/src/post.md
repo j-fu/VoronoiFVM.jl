@@ -10,6 +10,7 @@ GridVisualize.gridplot
 GridVisualize.gridplot!
 GridVisualize.scalarplot
 GridVisualize.scalarplot!
+VoronoiFVM.plothistory
 ```
 
 ## Norms & volumes

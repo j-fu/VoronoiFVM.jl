@@ -42,11 +42,12 @@ export dof
 export getdof
 export setdof!
 
+include("vfvm_history.jl")
+export NewtonSolverHistory, TransientSolverHistory, details
+
 include("vfvm_transientsolution.jl")
 export transient_solution, TransientSolution
 
-include("vfvm_history.jl")
-export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmetric!
@@ -128,7 +129,7 @@ include("vfvm_diffeq_interface.jl")
 export eval_rhs!, eval_jacobian!, mass_matrix, prepare_diffeq!
 
 include("gridvisualize.jl")
-
+export plothistory
 #include("precompile.jl")
 
 end
