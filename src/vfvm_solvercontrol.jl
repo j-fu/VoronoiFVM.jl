@@ -184,11 +184,22 @@ Base.@kwdef mutable struct SolverControl
     Δt_grow::Float64 = 1.2
 
     """
-    Optimal size of update for time stepping and embeding.
+    Time step decrease factor upon rejection
+    """
+    Δt_decrease::Float64 = 0.5
+
+    """
+    Optimal size of update for time stepping and embedding.
     The algorithm tries to keep the difference in norm between "old" and "new" 
     solutions  approximately at this value.
     """
     Δu_opt::Float64 = 0.1
+
+    """
+    Control maximum  sice of update `Δu` for time stepping and embeding relative to
+    `Δu_opt`. Time steps with `Δu > Δu_max_factor*Δu_opt` will be rejected.
+    """
+    Δu_max_factor::Float64 = 1.2
 
     """
     Force first timestep.
@@ -242,7 +253,8 @@ Base.@kwdef mutable struct SolverControl
     sample::Function = function (sol, t) end
 
     """
-    Time step error estimator
+    Time step error estimator. A function `Δu=delta(system,u,uold,t,Δt)` to
+    calculate `Δu`.
     """
     delta::Function = (system, u, v, t, Δt) -> norm(system, u - v, Inf)
 

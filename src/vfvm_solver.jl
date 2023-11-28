@@ -397,13 +397,13 @@ function CommonSolve.solve(
                 end
                 if solved
                     Δu = control.delta(system, solution, oldsolution, λ, Δλ)
-                    if Δu > 2.0 * control.Δu_opt
+                    if Δu > control.Δu_max_factor * control.Δu_opt
                         solved = false
                     end
                 end
                 if !solved
                     # reduce time step and retry  solution
-                    Δλ = Δλ * 0.5
+                    Δλ = Δλ * control.Δt_decrease
                     rd(x)=round(x,sigdigits=5)
                     if Δλ < Δλ_min(control, transient)
                         if !(control.force_first_step && istep == 0)
@@ -478,6 +478,7 @@ function CommonSolve.solve(
     end
 
     system.history = allhistory
+    tsol.history = allhistory
     return tsol
 end
 
@@ -486,8 +487,8 @@ end
                                    t=0.0, tstep=Inf,embed=0.0)
 
 Evaluate residual and jacobian at solution value u.
-Returns a solution vector containing the residual, and an ExendableSparseMatrix
-containing the linearization at u.
+Returns a solution vector containing a copy of  residual, and an ExendableSparseMatrix
+containing a copy of the linearization at u.
 
 """
 function evaluate_residual_and_jacobian(sys, u; t = 0.0, tstep = Inf, embed = 0.0)
