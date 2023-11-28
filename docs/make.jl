@@ -1,4 +1,5 @@
-using Documenter, ExampleJuggler, VoronoiFVM, ExtendableGrids
+using Documenter, ExampleJuggler, VoronoiFVM
+using ExtendableGrids, GridVisualize, LinearAlgebra
 
 function make_all(; with_examples = true, with_notebooks = true, example = nothing)
     ExampleJuggler.verbose!(true)

@@ -76,3 +76,37 @@ function GridVisualize.scalarplot!(vis, sys::AbstractSystem, sol::AbstractTransi
         GridVisualize.scalarplot!(vis, simplexgrid(X, T), f; aspect = 1 / xtaspect, ylabel = tlabel, kwargs...)
     end
 end
+
+"""
+    plothistory(sys, tsol; 
+                plots=[:timesteps,:newtonsteps,:updates], 
+                size=(700,400), 
+                Plotter=GridVisualize.default_plotter(),
+                kwargs...)
+
+Plot solution history stored in `tsol`. The `plots` argument allows to choose which plots are shown.
+"""
+function plothistory(sys, tsol; plots=[:timesteps,:newtonsteps,:updates], size=(700,400), Plotter=GridVisualize.default_plotter(), kwargs...)
+    hist=history(tsol)
+    t=hist.times
+    if length(t)==0
+        error("Empty history. Did you pass `log=true` to the `solve()` method ?")
+    end
+    nplots=length(plots)
+    vis=GridVisualize.GridVisualizer(;layout=(nplots,1), size, Plotter, kwargs...)
+
+    for iplot in eachindex(plots)
+        if plots[iplot]==:timesteps
+            GridVisualize.scalarplot!(vis[iplot,1],t[1:(end - 1)], t[2:end] - t[1:(end - 1)];
+                                      title = "Time step sizes",  xlabel = "t/s", ylabel = "Δt/s", color=:red, kwargs...)
+        elseif plots[iplot]==:newtonsteps
+            newtons=map(h->length(h.updatenorm),hist.histories)
+            GridVisualize.scalarplot!(vis[iplot,1],t, newtons,xlabel = "t/s", ylabel = "n",
+                        title="Newton iterations", color=:red, limits=(0,maximum(newtons)+1), kwargs...)
+        elseif plots[iplot]==:updates
+            GridVisualize.scalarplot!(vis[iplot,1],t, hist.updates,xlabel = "t/s", ylabel = "du",
+                        title="Time step updates", color=:red, kwargs...)
+        end
+    end
+    GridVisualize.reveal(vis)
+end
