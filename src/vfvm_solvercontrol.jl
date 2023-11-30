@@ -164,6 +164,11 @@ Base.@kwdef mutable struct SolverControl
     Δp_grow::Float64 = 1.0
 
     """
+    Parameter step decrease factor upon rejection
+    """
+    Δp_decrease::Float64 = 0.5
+
+    """
     Initial time step  size.
     """
     Δt::Float64 = 0.1

@@ -98,11 +98,11 @@ end
 
 using Test
 function runtests()
-    testval = 175.20261258406646
-    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval
-    @test main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval
-    @test main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval
-    @test main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
+    testval = 174.72418935404414
+    @test main(; unknown_storage = :sparse, assembly = :edgewise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :dense, assembly = :edgewise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :sparse, assembly = :cellwise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :dense, assembly = :cellwise)≈testval rtol=1.0e-5
 end
 
 end

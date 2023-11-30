@@ -281,6 +281,7 @@ function CommonSolve.solve(inival,
         Δλ_min = control.Δt_min
         Δλ_max = control.Δt_max
         Δλ_grow = control.Δt_grow
+        Δλ_decrease = control.Δt_decrease
     else  # λ is embedding parameter
         Δλ = control.Δp
         Δλ_min = control.Δp_min
@@ -350,6 +351,7 @@ function CommonSolve.solve(inival,
             # Try to solve, possibly with stepsize decrease
             while !solved
                 solved = true
+                forced = false
                 try # check for non-converging newton
                     λ = λ0 + Δλ
                     control.pre(solution, λ)
@@ -392,29 +394,31 @@ function CommonSolve.solve(inival,
                     end
                 end
                 if !solved
-                    # reduce time step 
-                    Δλ = Δλ * Δt_decrease
-                    if Δλ < Δλ_min
+                    if Δλ ≈ Δλ_min
                         if !(control.force_first_step && istep == 0)
                             err = """
-    At $(λstr)=$(λ|>rd): Δ$(λstr)_min=$(Δλ_min|>rd) reached while Δu=$(Δu|>rd) and Δu_opt=$(control.Δu_opt|>rd).
-    Returning prematurely before $(λstr)=$(lambdas[end]|>rd) 
+    At $(λstr)=$(λ|>rd): Δ$(λstr)_min=$(Δλ_min|>rd) reached while Δu/Δu_opt=$(Δu/Δu_opt|>rd).
+    Returning prematurely before $(λstr)[end]=$(lambdas[end]|>rd) 
     """
                             if control.handle_exceptions
                                 @warn err
                             else
-                                throw(DomainError(err))
+                                throw(ErrorException(err))
                             end
                             break # give up lowering stepsize, break out if "while !solved" loop
                         else
                             if doprint(control, 'e')
-                                println("[e]volution: forced first timestep: Δ$(λstr)=$(Δλ), Δu=$(Δu|>rd), Δu_opt=$(control.Δu_opt|>rd)")
+                                println("[e]volution:  forced first timestep: Δu/Δu_opt=$(Δu/Δu_opt|>rd)")
                             end
+                            forced = true
                             solved = true
                         end
-                    end
-                    if doprint(control, 'e')
-                        @printf("[e]volution:  Δu=%.3e => retry: Δ%s=%.3e\n", Δu, λstr, Δλ)
+                    else
+                        # reduce time step 
+                        Δλ = max(Δλ_min, Δλ * Δλ_decrease)
+                        if doprint(control, 'e')
+                            @printf("[e]volution:  Δu/Δu_opt=%.3e => retry: Δ%s=%.3e\n", Δu/Δu_opt, λstr, Δλ)
+                        end
                     end
                 end
             end # while !solved
