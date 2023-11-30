@@ -84,6 +84,8 @@ function main(;
               Plotter = nothing,
               dlcap = false,
               verbose = false,
+              phimax = 1,
+              dphi = 1.0e-1,
               unknown_storage = :sparse,
               assembly = :edgewise,)
     h = 1.0 / convert(Float64, n)
@@ -164,8 +166,6 @@ function main(;
         @views inival[ic, :] .= 0.5
         sys.boundary_values[iphi, 1] = 0
 
-        dphi = 1.0e-2
-        phimax = 5
         delta = 1.0e-4
         vplus = zeros(0)
         cdlplus = zeros(0)
@@ -181,25 +181,26 @@ function main(;
                 Q = integrate(sys, physics.reaction, U)
                 data.V = dir * phi + delta
                 U = solve(sys; inival = U, control, time = 1.0)
-
-                scalarplot!(vis[1, 1],
-                            grid,
-                            U[iphi, :];
-                            label = "ϕ",
-                            title = @sprintf("Δϕ=%.3g", phi),
-                            flimits = (-5, 5),
-                            clear = true,
-                            color = :green,)
-                scalarplot!(vis[1, 1],
-                            grid,
-                            U[ic, :];
-                            label = "c",
-                            flimits = (0, 5),
-                            clear = false,
-                            color = :red,)
-
                 Qdelta = integrate(sys, physics.reaction, U)
                 cdl = (Qdelta[iphi] - Q[iphi]) / delta
+
+                if Plotter != nothing
+                    scalarplot!(vis[1, 1],
+                                grid,
+                                U[iphi, :];
+                                label = "ϕ",
+                                title = @sprintf("Δϕ=%.3g", phi),
+                                flimits = (-5, 5),
+                                clear = true,
+                                color = :green,)
+                    scalarplot!(vis[1, 1],
+                                grid,
+                                U[ic, :];
+                                label = "c",
+                                flimits = (0, 5),
+                                clear = false,
+                                color = :red,)
+                end
                 if dir == 1
                     push!(vplus, dir * phi)
                     push!(cdlplus, cdl)
@@ -208,7 +209,9 @@ function main(;
                     push!(cdlminus, cdl)
                 end
 
-                scalarplot!(vis[2, 1], [0, 1.0e-1], [0, 0.05]; color = :white, clear = true)
+                if Plotter != nothing
+                    scalarplot!(vis[2, 1], [0, 1.0e-1], [0, 0.05]; color = :white, clear = true)
+                end
                 v = vcat(reverse(vminus), vplus)
                 c = vcat(reverse(cdlminus), cdlplus)
                 if length(v) >= 2
@@ -231,36 +234,32 @@ end
 
 using Test
 function runtests()
-    return true
-    if Sys.isapple()
-        # skip this test - FP seems to behave differently
-        @info "test skipped"
-        return true
-    else
-        @test isapprox(main(; unknown_storage = :sparse, dlcap = false, assembly = :edgewise),
-                       18.721369939561963;
-                       rtol = 1.0e-5,) &&
-              isapprox(main(; unknown_storage = :sparse, dlcap = true, assembly = :edgewise),
-                       0.010759276468375045;
-                       rtol = 1.0e-5,) &&
-              isapprox(main(; unknown_storage = :dense, dlcap = false, assembly = :edgewise),
-                       18.721369939561963;
-                       rtol = 1.0e-5,) &&
-              isapprox(main(; unknown_storage = :dense, dlcap = true, assembly = :edgewise),
-                       0.010759276468375045;
-                       rtol = 1.0e-5,) &&
-              isapprox(main(; unknown_storage = :sparse, dlcap = false, assembly = :cellwise),
-                       18.721369939561963;
-                       rtol = 1.0e-5,) &&
-              isapprox(main(; unknown_storage = :sparse, dlcap = true, assembly = :cellwise),
-                       0.010759276468375045;
-                       rtol = 1.0e-5,) &&
-              isapprox(main(; unknown_storage = :dense, dlcap = false, assembly = :cellwise),
-                       18.721369939561963;
-                       rtol = 1.0e-5,) &&
-              isapprox(main(; unknown_storage = :dense, dlcap = true, assembly = :cellwise),
-                       0.010759276468375045;
-                       rtol = 1.0e-5,)
-    end
+    evolval = 18.721369939565655
+    dlcapval = 0.025657355479449806
+    rtol = 1.0e-5
+    @test isapprox(main(; unknown_storage = :sparse, dlcap = false, assembly = :edgewise),
+                   evolval;
+                   rtol = rtol,)
+    @test isapprox(main(; unknown_storage = :sparse, dlcap = true, assembly = :edgewise),
+                   dlcapval;
+                   rtol = rtol,)
+    @test isapprox(main(; unknown_storage = :dense, dlcap = false, assembly = :edgewise),
+                   evolval;
+                   rtol = rtol,)
+    @test isapprox(main(; unknown_storage = :dense, dlcap = true, assembly = :edgewise),
+                   dlcapval;
+                   rtol = rtol,)
+    @test isapprox(main(; unknown_storage = :sparse, dlcap = false, assembly = :cellwise),
+                   evolval;
+                   rtol = rtol,)
+    @test isapprox(main(; unknown_storage = :sparse, dlcap = true, assembly = :cellwise),
+                   dlcapval;
+                   rtol = rtol,)
+    @test isapprox(main(; unknown_storage = :dense, dlcap = false, assembly = :cellwise),
+                   evolval;
+                   rtol = rtol,)
+    @test isapprox(main(; unknown_storage = :dense, dlcap = true, assembly = :cellwise),
+                   dlcapval;
+                   rtol = rtol,)
 end
 end
