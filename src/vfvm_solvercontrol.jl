@@ -1,11 +1,11 @@
 ################################################
-const FactorizationStrategy= Union{Nothing, Function, Type, ExtendableSparse.AbstractFactorization, LinearSolve.AbstractFactorization,LinearSolve.SciMLLinearSolveAlgorithm}
+const FactorizationStrategy = Union{Nothing, Function, Type, ExtendableSparse.AbstractFactorization,
+                                    LinearSolve.AbstractFactorization, LinearSolve.SciMLLinearSolveAlgorithm}
 
 struct Identity end
-Identity(A)=Identity()
-LinearAlgebra.ldiv!(u,I::Identity,v)=u.=v
-LinearAlgebra.ldiv!(I::Identity,u)=nothing
-
+Identity(A) = Identity()
+LinearAlgebra.ldiv!(u, I::Identity, v) = u .= v
+LinearAlgebra.ldiv!(I::Identity, u) = nothing
 
 """
     SolverControl
@@ -106,7 +106,7 @@ Base.@kwdef mutable struct SolverControl
     Users should experiment with what works best for their problem.
 
     For easy access to this functionality, see see also [`VoronoiFVM.LinearSolverStrategy`](@ref).
-    
+
     """
     method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
 
@@ -136,7 +136,7 @@ Base.@kwdef mutable struct SolverControl
 
     For easy access to this functionality, see see also [`VoronoiFVM.LinearSolverStrategy`](@ref).
     """
-    precon_linear::FactorizationStrategy= A -> Identity()
+    precon_linear::FactorizationStrategy = A -> Identity()
 
     """
     Update preconditioner in each Newton step ?
@@ -205,6 +205,12 @@ Base.@kwdef mutable struct SolverControl
     Force first timestep.
     """
     force_first_step::Bool = false
+
+    """
+    Number of final steps to adjust at end of time interval in order 
+    to prevent breakdown of step size.
+    """
+    num_final_steps::Int = 5
 
     """
     Handle exceptions during transient solver and parameter embedding. 
@@ -335,5 +341,3 @@ end
 Legacy name of SolverControl
 """
 const NewtonControl = SolverControl
-
-

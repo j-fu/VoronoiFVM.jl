@@ -395,7 +395,7 @@ grid_n, sol_n, bt_n = trsolve(grid_2d(; nref = nref); tend = tend);
 sum(bt_n)
 
 # ╔═╡ c52ed973-2250-423a-b427-e91972f7ce74
-@test sum(bt_n) ≈ 17.643110936180495
+@test sum(bt_n) ≈ 18.143158169851787
 
 # ╔═╡ 732e79fa-5b81-4401-974f-37ea3427e770
 scalarplot(grid_n, sol_n(t)[ic, :]; resolution = (500, 200), show = true)
@@ -404,7 +404,7 @@ scalarplot(grid_n, sol_n(t)[ic, :]; resolution = (500, 200), show = true)
 grid_1, sol_1, bt_1 = trsolve(grid_1d(; nref = nref); tend = tend);
 
 # ╔═╡ 02330841-fdf9-4ebe-9da6-cf96529b223c
-@test sum(bt_1) ≈ 20.412099101959157
+@test sum(bt_1) ≈ 20.66209910195916
 
 # ╔═╡ e36d2aef-1b5a-45a7-9289-8d1e544bcedd
 scalarplot(grid_1,
@@ -419,7 +419,7 @@ scalarplot(grid_1,
 grid_f, sol_f, bt_f = trsolve(grid_2d(; nref = nref, ε_fix = ε_fix); tend = tend);
 
 # ╔═╡ d23d6634-266c-43e3-9493-b61fb390bbe7
-@test sum(bt_f) ≈ 20.411131554885404
+@test sum(bt_f) ≈ 20.661131375044135
 
 # ╔═╡ f42d4eb6-3e07-40c9-a8b3-dc772e674222
 scalarplot(grid_f, sol_f(t)[ic, :]; resolution = (500, 200), show = true)
@@ -428,7 +428,7 @@ scalarplot(grid_f, sol_f(t)[ic, :]; resolution = (500, 200), show = true)
 grid_ϕ, sol_ϕ, bt_ϕ = trsolve(grid_2d(; nref = nref); ϕ = [1.0e-3, 1], tend = tend);
 
 # ╔═╡ b260df8a-3721-4203-bc0c-a23bcab9a311
-@test sum(bt_ϕ) ≈ 20.4122562994476
+@test sum(bt_ϕ) ≈ 20.412256299447236
 
 # ╔═╡ ce49bb25-b2d0-4d17-a8fe-d7b62e9b20be
 begin
