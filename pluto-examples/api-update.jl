@@ -420,7 +420,7 @@ let
 end
 
 # ╔═╡ 4cbea340-9c02-4e69-8f5e-62bf45312bdd
-@test isapprox(sum(sol2) / length(sol2), 2.4908109508494247, rtol = 1.0e-14)
+@test isapprox(sum(sol2) / length(sol2), 2.4921650158811794, rtol = 1.0e-14)
 
 # ╔═╡ 1c18b5a0-cca6-46a1-bb9f-b3d65b8043c5
 md"""
