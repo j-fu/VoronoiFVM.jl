@@ -4,26 +4,21 @@
 #
 is_precompiling() = ccall(:jl_generating_output, Cint, ()) == 1
 
-
-
-
 """
 $(SIGNATURES)
 
 Solve time step problem. This is the core routine
-for implicit Euler and stationary solve
+for implicit Euler and stationary solve.
 """
-function _solve_timestep!(
-    solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-    system::AbstractSystem{Tv,Tc,Ti,Tm}, # Finite volume system
-    control::SolverControl,
-    time,
-    tstep,
-    embedparam,
-    params;
-    called_from_API = false,
-) where {Tv,Tc,Ti,Tm}
+function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
+                          oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
+                          system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
+                          control::SolverControl,
+                          time,
+                          tstep,
+                          embedparam,
+                          params;
+                          called_from_API = false,) where {Tv, Tc, Ti, Tm}
     _complete!(system; create_newtonvectors = true)
     nlhistory = NewtonSolverHistory()
     tasm = 0.0
@@ -71,17 +66,15 @@ function _solve_timestep!(
         while niter <= control.maxiters
             # Create Jacobi matrix and RHS for Newton iteration
             try
-                tasm += @elapsed nca, nba, nev = eval_and_assemble(
-                    system,
-                    solution,
-                    oldsol,
-                    residual,
-                    time,
-                    tstep,
-                    embedparam,
-                    params;
-                    edge_cutoff = control.edge_cutoff,
-                )
+                tasm += @elapsed nca, nba, nev = eval_and_assemble(system,
+                                                                   solution,
+                                                                   oldsol,
+                                                                   residual,
+                                                                   time,
+                                                                   tstep,
+                                                                   embedparam,
+                                                                   params;
+                                                                   edge_cutoff = control.edge_cutoff,)
                 ncalloc += nca
                 nballoc += nba
                 neval += nev
@@ -94,18 +87,16 @@ function _solve_timestep!(
                 end
             end
 
-            tlinsolve += @elapsed _solve_linear!(
-                values(update),
-                system,
-                nlhistory,
-                control,
-                method_linear,
-                system.matrix,
-                values(residual),
-            )
+            tlinsolve += @elapsed _solve_linear!(values(update),
+                                                 system,
+                                                 nlhistory,
+                                                 control,
+                                                 method_linear,
+                                                 system.matrix,
+                                                 values(residual))
 
             values(solution) .-= damp * values(update)
-            
+
             # "incremental collection may only sweep   so-called young objects"
             GC.gc(false)
 
@@ -142,16 +133,14 @@ function _solve_timestep!(
                     itstring = @sprintf("it=% 3d", niter)
                 end
                 if control.max_round > 0
-                    @printf(
-                        "%s %.3e %.3e %.3e % 2d\n",
-                        itstring,
-                        norm,
-                        norm / oldnorm,
-                        dnorm,
-                        nround
-                    )
+                    @printf("%s %.3e %.3e %.3e % 2d\n",
+                            itstring,
+                            norm,
+                            norm/oldnorm,
+                            dnorm,
+                            nround)
                 else
-                    @printf("%s %.3e %.3e\n", itstring, norm, norm / oldnorm)
+                    @printf("%s %.3e %.3e\n", itstring, norm, norm/oldnorm)
                 end
             end
             if niter > 1 && norm / oldnorm > 1.0 / control.tol_mono
@@ -187,15 +176,11 @@ function _solve_timestep!(
     end
 
     if doprint(control, 'n') && !system.is_linear
-        println(
-            "  [n]ewton: $(round(t,sigdigits=3)) seconds asm: $(round(100*tasm/t,sigdigits=3))%, linsolve: $(round(100*tlinsolve/t,sigdigits=3))%",
-        )
+        println("  [n]ewton: $(round(t,sigdigits=3)) seconds asm: $(round(100*tasm/t,sigdigits=3))%, linsolve: $(round(100*tlinsolve/t,sigdigits=3))%")
     end
 
     if doprint(control, 'l') && system.is_linear
-        println(
-            "  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds",
-        )
+        println("  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds")
     end
 
     system.history = nlhistory
@@ -210,32 +195,28 @@ solve!(solution, inival, system;
 ````
 Mutating version of [`solve(inival,system)`](@ref)
 """
-function VoronoiFVM.solve!(
-    solution, # Solution
-    inival,   # Initial value 
-    system::VoronoiFVM.AbstractSystem;     # Finite volume system
-    control = SolverControl(),      # Newton solver control information
-    time = Inf,
-    tstep = Inf,                # Time step size. Inf means  stationary solution
-    embedparam = 0.0,
-    params = zeros(0),
-    called_from_API = false,
-)
+function VoronoiFVM.solve!(solution, # Solution
+                           inival,   # Initial value 
+                           system::VoronoiFVM.AbstractSystem;     # Finite volume system
+                           control = SolverControl(),      # Newton solver control information
+                           time = Inf,
+                           tstep = Inf,                # Time step size. Inf means  stationary solution
+                           embedparam = 0.0,
+                           params = zeros(0),
+                           called_from_API = false,)
     fix_deprecations!(control)
     if !called_from_API && doprint(control, 'd')
         @warn "[d]eprecated: solve(inival,solution, system; kwargs...)"
     end
-    _solve_timestep!(
-        solution,
-        inival,
-        system,
-        control,
-        time,
-        tstep,
-        embedparam,
-        params;
-        called_from_API = true,
-    )
+    _solve_timestep!(solution,
+                     inival,
+                     system,
+                     control,
+                     time,
+                     tstep,
+                     embedparam,
+                     params;
+                     called_from_API = true,)
     return solution
 end
 
@@ -249,36 +230,27 @@ Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the
 Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
 value. Returns a solution array.
 """
-function CommonSolve.solve(
-    inival,   # Initial value 
-    system::AbstractSystem;     # Finite volume system
-    control = SolverControl(),      # Newton solver control information
-    time = Inf,
-    tstep = Inf,                # Time step size. Inf means  stationary solution
-    params = zeros(0),
-    called_from_API = false,
-)
+function CommonSolve.solve(inival,   # Initial value 
+                           system::AbstractSystem;     # Finite volume system
+                           control = SolverControl(),      # Newton solver control information
+                           time = Inf,
+                           tstep = Inf,                # Time step size. Inf means  stationary solution
+                           params = zeros(0),
+                           called_from_API = false,)
     fix_deprecations!(control)
     if !called_from_API && doprint(control, 'd')
         @warn "[d]eprecated: solve(inival,system; kwargs...)"
     end
 
-    solve!(
-        unknowns(system),
-        inival,
-        system;
-        control = control,
-        time = time,
-        tstep = tstep,
-        params = params,
-        called_from_API = true,
-    )
+    solve!(unknowns(system),
+           inival,
+           system;
+           control = control,
+           time = time,
+           tstep = tstep,
+           params = params,
+           called_from_API = true,)
 end
-
-Δλ_val(control, transient) = transient ? control.Δt : control.Δp
-Δλ_min(control, transient) = transient ? control.Δt_min : control.Δp_min
-Δλ_max(control, transient) = transient ? control.Δt_max : control.Δp_max
-Δλ_grow(control, transient) = transient ? control.Δt_grow : control.Δp_grow
 
 """
         solve(inival, system, times; kwargs...)
@@ -286,49 +258,65 @@ end
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
 """
-function CommonSolve.solve(
-    inival,
-    system::VoronoiFVM.AbstractSystem,
-    lambdas;
-    control = SolverControl(),
-    transient = true, # choose between transient and stationary (embedding) case
-    time = 0.0,
-    params = zeros(0),
-    called_from_API = false,
-    kwargs...,
-)
+function CommonSolve.solve(inival,
+                           system::VoronoiFVM.AbstractSystem,
+                           lambdas;
+                           control = SolverControl(),
+                           transient = true, # choose between transient and stationary (embedding) case
+                           time = 0.0,
+                           params = zeros(0),
+                           called_from_API = false,
+                           kwargs...,)
     fix_deprecations!(control)
     if !called_from_API && doprint(control, 'd')
         @warn "[d]eprecated: solve(inival,system,times;kwargs...)"
     end
-    rd(x)=round(x,sigdigits=5)
-    λstr = "t"
-    if !transient
-        λstr = "p"
+    # rounding in output
+    rd(x) = round(x; sigdigits = 5)
+
+    # Set initial value of Δλ etc
+    if transient # λ is time
+        λstr = "t"
+        Δλ = control.Δt
+        Δλ_min = control.Δt_min
+        Δλ_max = control.Δt_max
+        Δλ_grow = control.Δt_grow
+        Δλ_decrease = control.Δt_decrease
+    else  # λ is embedding parameter
+        Δλ = control.Δp
+        Δλ_min = control.Δp_min
+        Δλ_max = control.Δp_max
+        Δλ_grow = control.Δp_grow
     end
+    Δu_opt = control.Δu_opt
+    Δu_max_factor = control.Δu_max_factor
+    Δt_decrease = control.Δt_decrease
+
     allhistory = TransientSolverHistory()
 
     solution = copy(inival)
-    oldsolution = copy(inival)
-    _initialize_dirichlet!(solution, system; time, λ = Float64(lambdas[1]), params)
-    Δλ = Δλ_val(control, transient)
+    oldsolution = copy(inival) # we need a copy as it is later overwritten
 
+    # Initialize Dirichlet boundary values
+    _initialize_dirichlet!(solution, system; time, λ = Float64(lambdas[1]), params)
+
+    # If not transient, solve for first embedding lambdas[1]
     t0 = @elapsed if !transient
         control.pre(solution, Float64(lambdas[1]))
-        solution = solve!(
-            solution,
-            oldsolution,
-            system;
-            called_from_API = true,
-            control = control,
-            time = time,
-            tstep = Inf,
-            embedparam = Float64(lambdas[1]),
-            params = params,
-            kwargs...,
-        )
+        solution = solve!(solution,
+                          oldsolution,
+                          system;
+                          called_from_API = true,
+                          control = control,
+                          time = time,
+                          tstep = Inf,
+                          embedparam = Float64(lambdas[1]),
+                          params = params,
+                          kwargs...,)
+
         control.post(solution, oldsolution, lambdas[1], 0)
-        if control.log            
+
+        if control.log
             push!(allhistory, system.history)
             push!(allhistory.times, lambdas[1])
             Δu = control.delta(system, solution, oldsolution, lambdas[1], 0)
@@ -337,6 +325,7 @@ function CommonSolve.solve(
         oldsolution .= solution
     end
 
+    # Initialize transient solution struct
     tsol = TransientSolution(Float64(lambdas[1]), solution; in_memory = control.in_memory)
 
     if doprint(control, 'e')
@@ -346,50 +335,50 @@ function CommonSolve.solve(
     λ0 = 0
     istep = 0
     solved = false
-    t1 = @elapsed for i = 1:(length(lambdas)-1)
-        Δλ = max(Δλ, Δλ_min(control, transient))
+    # Outer loop over embedding params/ time values
+    t1 = @elapsed for i = 1:(length(lambdas) - 1)
+        Δλ = max(Δλ, Δλ_min)
         λstart = lambdas[i]
-        λend = lambdas[i+1]
+        λend = lambdas[i + 1]
         λ = Float64(λstart)
 
+        # Inner loop between two embedding params/time values
         while λ < λend
             solved = false
             λ0 = λ
             Δu = 0.0
+
+            # Try to solve, possibly with stepsize decrease
             while !solved
                 solved = true
-                try
+                forced = false
+                try # check for non-converging newton
                     λ = λ0 + Δλ
                     control.pre(solution, λ)
-                    if transient
-                        solution = solve!(
-                            solution,
-                            oldsolution,
-                            system;
-                            called_from_API = true,
-                            control = control,
-                            time = λ,
-                            tstep = Δλ,
-                            params = params,
-                            kwargs...,
-                        )
-                    else
-                        solution = solve!(
-                            solution,
-                            oldsolution,
-                            system;
-                            called_from_API = true,
-                            control = control,
-                            time = time,
-                            tstep = Inf,
-                            embedparam = λ,
-                            params = params,
-                            kwargs...,
-                        )
+
+                    if transient # λ is time
+                        _time = λ
+                        _tstep = Δλ
+                        _embedparam = 0.0
+                    else # λ is embedding parameter
+                        _time = time
+                        _tstep = Inf
+                        _embedparam = λ
                     end
+
+                    solution = solve!(solution,
+                                      oldsolution,
+                                      system;
+                                      called_from_API = true,
+                                      control = control,
+                                      time = _time,
+                                      tstep = _tstep,
+                                      embedparam = _embedparam,
+                                      params = params,
+                                      kwargs...,)
                 catch err
                     if transient
-                        err="Problem at $(λstr)=$(λ|>rd), Δ$(λstr)=$(Δλ|>rd):\n$(err)"
+                        err = "Problem at $(λstr)=$(λ|>rd), Δ$(λstr)=$(Δλ|>rd):\n$(err)"
                     end
                     if (control.handle_exceptions)
                         _print_error(err, stacktrace(catch_backtrace()))
@@ -400,44 +389,51 @@ function CommonSolve.solve(
                 end
                 if solved
                     Δu = control.delta(system, solution, oldsolution, λ, Δλ)
-                    if Δu > control.Δu_max_factor * control.Δu_opt
+                    if Δu > Δu_max_factor * Δu_opt
                         solved = false
                     end
                 end
                 if !solved
-                    # reduce time step and retry  solution
-                    Δλ = Δλ * control.Δt_decrease
-                    if Δλ < Δλ_min(control, transient)
+                    if Δλ ≈ Δλ_min
                         if !(control.force_first_step && istep == 0)
-                            err="At $(λstr)=$(λ|>rd): Δ$(λstr)_min=$(Δλ_min(control,transient)|>rd) reached while Δu=$(Δu|>rd) and Δu_opt=$(control.Δu_opt|>rd)\n Returning prematurely before $(λstr)=$(lambdas[end]|>rd) "
+                            err = """
+    At $(λstr)=$(λ|>rd): Δ$(λstr)_min=$(Δλ_min|>rd) reached while Δu/Δu_opt=$(Δu/Δu_opt|>rd).
+    Returning prematurely before $(λstr)[end]=$(lambdas[end]|>rd) 
+    """
                             if control.handle_exceptions
-                                   @warn  err
+                                @warn err
                             else
-                                throw(DomainError(err))
+                                throw(ErrorException(err))
                             end
-                            break
+                            break # give up lowering stepsize, break out if "while !solved" loop
                         else
-                            solved=true
+                            if doprint(control, 'e')
+                                println("[e]volution:  forced first timestep: Δu/Δu_opt=$(Δu/Δu_opt|>rd)")
+                            end
+                            forced = true
+                            solved = true
                         end
-                    end
-                    if doprint(control, 'e')
-                        @printf("[e]volution:  Δu=%.3e => retry: Δ%s=%.3e\n", Δu, λstr, Δλ)
+                    else
+                        # reduce time step 
+                        Δλ = max(Δλ_min, Δλ * Δλ_decrease)
+                        if doprint(control, 'e')
+                            @printf("[e]volution:  Δu/Δu_opt=%.3e => retry: Δ%s=%.3e\n", Δu/Δu_opt, λstr, Δλ)
+                        end
                     end
                 end
             end # while !solved
 
-            if solved 
+            # Advance step
+            if solved
                 istep = istep + 1
                 if doprint(control, 'e')
-                    @printf(
-                        "[e]volution: step=%d %s=%.3e Δ%s=%.3e Δu=%.3e\n",
-                        istep,
-                        λstr,
-                        λ,
-                        λstr,
-                        Δλ,
-                        Δu
-                    )
+                    @printf("[e]volution: step=%d %s=%.3e Δ%s=%.3e Δu=%.3e\n",
+                            istep,
+                            λstr,
+                            λ,
+                            λstr,
+                            Δλ,
+                            Δu)
                 end
                 if control.log
                     push!(allhistory, system.history)
@@ -449,31 +445,47 @@ function CommonSolve.solve(
                 end
                 control.post(solution, oldsolution, λ, Δλ)
                 oldsolution .= solution
-                if λ < λend
-                    Δλ = min(
-                        Δλ_max(control, transient),
-                        Δλ * Δλ_grow(control, transient),
-                        Δλ * control.Δu_opt / (Δu + 1.0e-14),
-                        λend - λ,
-                    )
+
+                # Adjust last timesteps, so there will be no accidental
+                # very small timestep
+                steps_to_go = ceil((λend - λ) / Δλ)
+                λ_predict = λend - λ
+                if steps_to_go < control.num_final_steps
+                    λ_predict = (λend - λ) / steps_to_go
                 end
-            else 
-                break
+
+                # see fixed_timesteps!()
+                if Δλ_max ≈ Δλ_min
+                    λ_predict = Δλ_max
+                end
+
+                if λ < λend
+                    #  ### account for close last timestep
+                    Δλ = min(Δλ_max,
+                             Δλ * Δλ_grow,
+                             Δλ * Δu_opt / (Δu + 1.0e-14),
+                             λ_predict,
+                             λend - λ)
+                end
+            else
+                break # break out of inner loop overt timestep
             end # if solved            
         end # while λ<λ_end
 
-        if !control.store_all # store last solutionobtained
+        if !control.store_all # store last solution obtained
             append!(tsol, λ0, solution)
         end
-        control.sample(solution,  λ0)
+
+        control.sample(solution, λ0)
+
         if solved
-            if !(λ≈lambdas[i+1])
+            if !(λ ≈ lambdas[i + 1]) # check end of interval has been reached in inner loop
                 @warn "λ=$(λ), lambdas[i+1]=$(lambdas[i+1])"
             end
         else
-            break
+            break # emergency exit
         end
-    end # for i = 1:(length(lambdas)-1)
+    end # for i = 1:(length(lambdas)-1), end outer loop
 
     if doprint(control, 'e')
         println("[e]volution:  $(round(t0+t1,sigdigits=3)) seconds")
@@ -549,15 +561,13 @@ Keyword arguments:
   - `tstep`: time step
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
-function CommonSolve.solve(
-    sys::VoronoiFVM.AbstractSystem;
-    inival = 0,
-    params = zeros(0),
-    control = VoronoiFVM.SolverControl(),
-    time = 0.0,
-    tstep = Inf,
-    kwargs...,
-)
+function CommonSolve.solve(sys::VoronoiFVM.AbstractSystem;
+                           inival = 0,
+                           params = zeros(0),
+                           control = VoronoiFVM.SolverControl(),
+                           time = 0.0,
+                           tstep = Inf,
+                           kwargs...,)
     fix_deprecations!(control)
 
     if isa(inival, Number)
@@ -577,27 +587,23 @@ function CommonSolve.solve(
     sys.linear_cache = nothing
 
     if haskey(kwargs, :times) && !isnothing(kwargs[:times])
-        solve(
-            inival,
-            sys,
-            kwargs[:times];
-            control,
-            transient = true,
-            params,
-            time = kwargs[:times][1],
-            called_from_API = true,
-        )
+        solve(inival,
+              sys,
+              kwargs[:times];
+              control,
+              transient = true,
+              params,
+              time = kwargs[:times][1],
+              called_from_API = true,)
     elseif haskey(kwargs, :embed) && !isnothing(kwargs[:embed])
-        solve(
-            inival,
-            sys,
-            kwargs[:embed];
-            called_from_API = true,
-            transient = false,
-            control,
-            params,
-            time,
-        )
+        solve(inival,
+              sys,
+              kwargs[:embed];
+              called_from_API = true,
+              transient = false,
+              control,
+              params,
+              time,)
     else
         solve(inival, sys; called_from_API = true, control, params, time, tstep)
     end
