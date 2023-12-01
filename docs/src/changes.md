@@ -2,7 +2,7 @@
 ## v1.15.0 Dec 1, 2023
 - Adjusted time/embedding stepping scheme, added `num_final_steps` to  [`VoronoiFVM.SolverControl`](@ref). This may lead to
   sligthly different results when solving time dependent problems. Some unit test values have been adapted. Before,
-  accidentally very small time steps at the end of an evolution were possible.
+  accidentally, very small time steps at the end of an evolution were possible.
   
 ## v1.14.0 Nov 27, 2023
 - Add `Δu_max_factor` and `Δt_decrease` to [`VoronoiFVM.SolverControl`](@ref). 
@@ -10,7 +10,6 @@
 - Add history to [`VoronoiFVM.TransientSolution`](@ref), prepare deprecation of `system.history`
 - Add [`plothistory`](@ref) method
 
-# Changes
 ## v1.13.0 July 24, 2023
 - Add [`nodevolumes`](@ref) method
 
