@@ -67,27 +67,28 @@ function main(; n = 20, m = 2.0, Plotter = nothing, verbose = false,
     control.force_first_step = true
     tsol = solve(sys; inival, times = [t0, tend], control)
 
-    p = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
-    for i = 1:length(tsol)
-        time = tsol.t[i]
-        scalarplot!(p[1, 1], grid, tsol[1, :, i]; title = @sprintf(&quot;t=%.3g&quot;, time),
-                    color = :red, label = &quot;numerical&quot;)
-        scalarplot!(p[1, 1], grid, map(x -&gt; barenblatt(x, time, m)^m, grid); clear = false,
-                    color = :green, label = &quot;exact&quot;)
-        reveal(p)
-        sleep(1.0e-2)
+    if Plotter != nothing
+        p = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
+        for i = 1:length(tsol)
+            time = tsol.t[i]
+            scalarplot!(p[1, 1], grid, tsol[1, :, i]; title = @sprintf(&quot;t=%.3g&quot;, time),
+                        color = :red, label = &quot;numerical&quot;)
+            scalarplot!(p[1, 1], grid, map(x -&gt; barenblatt(x, time, m)^m, grid); clear = false,
+                        color = :green, label = &quot;exact&quot;)
+            reveal(p)
+            sleep(1.0e-2)
+        end
     end
-
     return sum(tsol[end])
 end
 
 using Test
 function runtests()
-    testval = 175.20261258406686
-    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &amp;&amp;
-          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &amp;&amp;
-          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &amp;&amp;
-          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
+    testval = 174.72418935404414
+    @test main(; unknown_storage = :sparse, assembly = :edgewise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :dense, assembly = :edgewise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :sparse, assembly = :cellwise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :dense, assembly = :cellwise)≈testval rtol=1.0e-5
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example106_NonlinearDiffusion1D/">« Example106_NonlinearDiffusion1D</a><a class="docs-footer-nextpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">Example110<em>ReactionDiffusion1D</em>TwoSpecies »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.0 on <span class="colophon-date" title="Wednesday 29 November 2023 11:28">Wednesday 29 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example106_NonlinearDiffusion1D/">« Example106_NonlinearDiffusion1D</a><a class="docs-footer-nextpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">Example110<em>ReactionDiffusion1D</em>TwoSpecies »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.0 on <span class="colophon-date" title="Friday 1 December 2023 08:54">Friday 1 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

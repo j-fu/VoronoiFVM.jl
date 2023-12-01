@@ -5,10 +5,10 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
-using LinearSolve
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
-              unknown_storage = :sparse, tend = 10, rely_on_corrections = false, assembly = :edgewise)
+              unknown_storage = :sparse, tend = 10,
+              rely_on_corrections = false, assembly = :edgewise)
     h = 3.0 / (n - 1)
     X = collect(0:h:3.0)
     grid = VoronoiFVM.Grid(X)
@@ -98,30 +98,20 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
 
-    U = unknowns(sys)
-    U .= 0
-
-    control = VoronoiFVM.NewtonControl()
-    control.verbose = verbose
-    control.method_linear = SparspakFactorization()
-    tstep = 0.01
-    time = 0.0
-    istep = 0
     testval = 0
     p = GridVisualizer(; Plotter = Plotter, layout = (1, 1))
-    while time &lt; tend
-        time = time + tstep
-        U = solve(sys; inival = U, control, tstep)
-        if verbose
-            @printf(&quot;time=%g\n&quot;, time)
-        end
-        tstep *= 1.1
-        istep = istep + 1
-        testval = U[2, 5]
 
+    testval = 0.0
+    function plot_timestep(U, Uold, time, Δt)
         U1 = view(U[1, :], subgrid1)
         U2 = view(U[2, :], subgrid2)
         U3 = view(U[3, :], subgrid3)
+
+        testval += sum(U2)
+
+        if Plotter == nothing
+            return
+        end
 
         scalarplot!(p[1, 1], subgrid1, U1; label = &quot;spec1&quot;, color = (0.5, 0, 0),
                     xlimits = (0, 3), flimits = (0, 1e-3),
@@ -130,16 +120,16 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
                     clear = false)
         scalarplot!(p[1, 1], subgrid3, U3; label = &quot;spec3&quot;, color = (0.0, 0.0, 0.5),
                     clear = false, show = true)
-        if Plotter != nothing
-            sleep(1.0e-2)
-        end
     end
+
+    tsol = solve(sys; inival = 0, times = (0, tend), post = plot_timestep, verbose = verbose, Δu_opt = 1.0e-5)
+
     return testval
 end
 
 using Test
 function runtests()
-    testval = 0.0005967243505359461
+    testval = 0.359448515181824
     @test main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :edgewise) ≈ testval &amp;&amp;
           main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :edgewise) ≈ testval &amp;&amp;
           main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :edgewise) ≈ testval &amp;&amp;
@@ -150,4 +140,4 @@ function runtests()
           main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :cellwise) ≈ testval
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« Example115_HeterogeneousCatalysis1D</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">Example121_PoissonPointCharge1D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.0 on <span class="colophon-date" title="Wednesday 29 November 2023 11:28">Wednesday 29 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example115_HeterogeneousCatalysis1D/">« Example115_HeterogeneousCatalysis1D</a><a class="docs-footer-nextpage" href="../Example121_PoissonPointCharge1D/">Example121_PoissonPointCharge1D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.0 on <span class="colophon-date" title="Friday 1 December 2023 08:54">Friday 1 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

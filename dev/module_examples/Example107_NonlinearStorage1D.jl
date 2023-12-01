@@ -81,27 +81,28 @@ function main(; n = 20, m = 2.0, Plotter = nothing, verbose = false,
     control.force_first_step = true
     tsol = solve(sys; inival, times = [t0, tend], control)
 
-    p = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
-    for i = 1:length(tsol)
-        time = tsol.t[i]
-        scalarplot!(p[1, 1], grid, tsol[1, :, i]; title = @sprintf("t=%.3g", time),
-                    color = :red, label = "numerical")
-        scalarplot!(p[1, 1], grid, map(x -> barenblatt(x, time, m)^m, grid); clear = false,
-                    color = :green, label = "exact")
-        reveal(p)
-        sleep(1.0e-2)
+    if Plotter != nothing
+        p = GridVisualizer(; Plotter = Plotter, layout = (1, 1), fast = true)
+        for i = 1:length(tsol)
+            time = tsol.t[i]
+            scalarplot!(p[1, 1], grid, tsol[1, :, i]; title = @sprintf("t=%.3g", time),
+                        color = :red, label = "numerical")
+            scalarplot!(p[1, 1], grid, map(x -> barenblatt(x, time, m)^m, grid); clear = false,
+                        color = :green, label = "exact")
+            reveal(p)
+            sleep(1.0e-2)
+        end
     end
-
     return sum(tsol[end])
 end
 
 using Test
 function runtests()
-    testval = 175.20261258406686
-    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
-          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
+    testval = 174.72418935404414
+    @test main(; unknown_storage = :sparse, assembly = :edgewise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :dense, assembly = :edgewise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :sparse, assembly = :cellwise)≈testval rtol=1.0e-5
+    @test main(; unknown_storage = :dense, assembly = :cellwise)≈testval rtol=1.0e-5
 end
 
 end
