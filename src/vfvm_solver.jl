@@ -352,6 +352,7 @@ function CommonSolve.solve(inival,
             while !solved
                 solved = true
                 forced = false
+                errored = false
                 try # check for non-converging newton
                     λ = λ0 + Δλ
                     control.pre(solution, λ)
@@ -377,15 +378,14 @@ function CommonSolve.solve(inival,
                                       params = params,
                                       kwargs...,)
                 catch err
-                    if transient
-                        err = "Problem at $(λstr)=$(λ|>rd), Δ$(λstr)=$(Δλ|>rd):\n$(err)"
-                    end
+                    err = "Problem at $(λstr)=$(λ|>rd), Δ$(λstr)=$(Δλ|>rd):\n$(err)"
                     if (control.handle_exceptions)
                         _print_error(err, stacktrace(catch_backtrace()))
                     else
                         rethrow(err)
                     end
                     solved = false
+                    errored = true
                 end
                 if solved
                     Δu = control.delta(system, solution, oldsolution, λ, Δλ)
@@ -406,12 +406,21 @@ function CommonSolve.solve(inival,
                                 throw(ErrorException(err))
                             end
                             break # give up lowering stepsize, break out if "while !solved" loop
-                        else
+                        elseif !errored
                             if doprint(control, 'e')
                                 println("[e]volution:  forced first timestep: Δu/Δu_opt=$(Δu/Δu_opt|>rd)")
                             end
                             forced = true
                             solved = true
+                        else
+                            err = "Convergence problem in first timestep"
+                            if control.handle_exceptions
+                                @warn err
+                            else
+                                throw(ErrorException(err))
+                            end
+
+                            break
                         end
                     else
                         # reduce time step 

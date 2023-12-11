@@ -23,7 +23,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     Array of boundary condition factors 
     """
     boundary_factors::Array{Tv, 2}
-
+    6
     """
     Matrix containing species numbers for inner regions
     """
@@ -93,13 +93,13 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Precomputed form factors for bulk  assembly
     """
-    assembly_data::Union{Nothing,AbstractAssemblyData{Tc,Ti}}
+    assembly_data::Union{Nothing, AbstractAssemblyData{Tc, Ti}}
 
     """
     Precomputed form factors for boundary assembly
     """
-    boundary_assembly_data::AbstractAssemblyData{Tc,Ti}
-    
+    boundary_assembly_data::AbstractAssemblyData{Tc, Ti}
+
     """
     :edgewise or :cellwise
     """
@@ -113,8 +113,8 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Outflow nodes with their region numbers.
     """
-    outflownoderegions::Union{SparseMatrixCSC{Bool,Int},Nothing}
-    
+    outflownoderegions::Union{SparseMatrixCSC{Bool, Int}, Nothing}
+
     """
     Sparse matrix for generic operator handling
     """
@@ -138,16 +138,14 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}() where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = new()
 end
 
-function Base.getproperty(sys::System,sym::Symbol)
-    if sym==:bfacenodefactors
+function Base.getproperty(sys::System, sym::Symbol)
+    if sym == :bfacenodefactors
         @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
         return sys.boundary_assembly_data.nodefactors
     else # fallback to getfield
         return getfield(sys, sym)
     end
 end
-
-
 
 """
     const DenseSystem
@@ -272,13 +270,13 @@ function System(grid::ExtendableGrid;
     system.boundary_values = zeros(Tv, maxspec, num_bfaceregions(grid))
     system.boundary_factors = zeros(Tv, maxspec, num_bfaceregions(grid))
     system.species_homogeneous = false
-    system.assembly_type=assembly
+    system.assembly_type = assembly
     system.num_quantities = 0
     system.uhash = 0x0
     system.matrixtype = matrixtype
-    system.outflownoderegions=nothing
+    system.outflownoderegions = nothing
     system.linear_cache = nothing
-    system.assembly_data=nothing
+    system.assembly_data = nothing
     system.history = nothing
     system.num_parameters = nparams
     system.is_linear = is_linear
@@ -535,7 +533,7 @@ end
 
 # Create matrix in system and figure out if species
 # distribution is homgeneous
-function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors = false) where {Tv, Tc, Ti, Tm}
+function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors = true) where {Tv, Tc, Ti, Tm}
     if isdefined(system, :matrix)
         return
     end
@@ -608,7 +606,9 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
                 error("Sparsity detection failed: no pattern found")
             end
         end
-        tdetect = @elapsed begin system.generic_matrix_colors = matrix_colors(system.generic_matrix) end
+        tdetect = @elapsed begin
+            system.generic_matrix_colors = matrix_colors(system.generic_matrix)
+        end
         println("matrix coloring for generic operator: $(tdetect) s")
     end
 end
@@ -622,7 +622,6 @@ function generic_operator_sparsity!(system::AbstractSystem, sparsematrix::Sparse
     system.generic_matrix = sparsematrix
 end
 
-
 """
 ````
 update_grid!(system; grid=system.grid)
@@ -630,19 +629,17 @@ update_grid!(system; grid=system.grid)
 
 Update grid (e.g. after rescaling of coordinates).
 """
-function update_grid!(system::AbstractSystem;grid=system.grid)
-    system.assembly_type==:cellwise ? update_grid_cellwise!(system,grid) :  update_grid_edgewise!(system,grid)
+function update_grid!(system::AbstractSystem; grid = system.grid)
+    system.assembly_type == :cellwise ? update_grid_cellwise!(system, grid) : update_grid_edgewise!(system, grid)
 
-    if length(system.physics.outflowboundaries)>0
+    if length(system.physics.outflowboundaries) > 0
         bfacenodes = system.grid[BFaceNodes]
         bfaceregions = system.grid[BFaceRegions]
-        outflownoderegions = ExtendableSparseMatrix{Bool,Int}(
-            num_bfaceregions(system.grid),
-            num_nodes(system.grid),
-        )
+        outflownoderegions = ExtendableSparseMatrix{Bool, Int}(num_bfaceregions(system.grid),
+                                                               num_nodes(system.grid))
         for ibface = 1:num_bfaces(system.grid)
             for ibn = 1:dim_space(system.grid)
-                if bfaceregions[ibface]∈ system.physics.outflowboundaries
+                if bfaceregions[ibface] ∈ system.physics.outflowboundaries
                     outflownoderegions[bfaceregions[ibface], bfacenodes[ibn, ibface]] = true
                 end
             end
@@ -661,15 +658,12 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     nbfaces = num_bfaces(grid)
     ncells = num_cells(grid)
 
-    
     cellnodefactors = zeros(Tv, num_nodes(geom), ncells)
     celledgefactors = zeros(Tv, num_edges(geom), ncells)
     bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
 
-
     function cellwise_factors!(csys::Type{T}) where {T}
-   
         nalloc = @allocated for icell = 1:ncells
             @views cellfactors!(geom, csys, coord, cellnodes, icell,
                                 cellnodefactors[:, icell], celledgefactors[:, icell])
@@ -685,8 +679,8 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     cellwise_factors!(csys)
 
-    system.assembly_data=CellwiseAssemblyData{Tc,Ti}(cellnodefactors, celledgefactors)
-    system.boundary_assembly_data=CellwiseAssemblyData{Tc,Ti}(bfacenodefactors, bfaceedgefactors)
+    system.assembly_data = CellwiseAssemblyData{Tc, Ti}(cellnodefactors, celledgefactors)
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors)
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -701,37 +695,33 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     nbfaces = num_bfaces(grid)
     ncells = num_cells(grid)
 
-    celledges=grid[CellEdges]
+    celledges = grid[CellEdges]
     grid[EdgeNodes] # !!!workaround for bug in extendablegrids: sets num_edges right.
     bfacenodefactors = zeros(Tv, num_nodes(bgeom), nbfaces)
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
-    cnf=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_nodes(grid))
-    cef=ExtendableSparseMatrix{Tv,Ti}(num_cellregions(grid),num_edges(grid))
-    
-    
-    
+    cnf = ExtendableSparseMatrix{Tv, Ti}(num_cellregions(grid), num_nodes(grid))
+    cef = ExtendableSparseMatrix{Tv, Ti}(num_cellregions(grid), num_edges(grid))
+
     nn::Int = num_nodes(geom)
     ne::Int = num_edges(geom)
-    
-    
+
     function edgewise_factors!(csys::Type{T}) where {T}
-        cellnodefactors=zeros(Tv,nn)
-        celledgefactors=zeros(Tv,ne)
-            
+        cellnodefactors = zeros(Tv, nn)
+        celledgefactors = zeros(Tv, ne)
+
         for icell = 1:ncells
-           @views cellfactors!(geom, csys, coord, cellnodes, icell,cellnodefactors, celledgefactors)
-            ireg=cellregions[icell]
-            for inode=1:nn
-                cnf[ireg,cellnodes[inode,icell]]+=cellnodefactors[inode]
+            @views cellfactors!(geom, csys, coord, cellnodes, icell, cellnodefactors, celledgefactors)
+            ireg = cellregions[icell]
+            for inode = 1:nn
+                cnf[ireg, cellnodes[inode, icell]] += cellnodefactors[inode]
             end
-            
-            for iedge=1:ne
-                cef[ireg,celledges[iedge,icell]]+=celledgefactors[iedge]
+
+            for iedge = 1:ne
+                cef[ireg, celledges[iedge, icell]] += celledgefactors[iedge]
             end
         end
 
-
-#        nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
+        #        nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
 
         nalloc = @allocated for ibface = 1:nbfaces
             @views bfacefactors!(bgeom, csys, coord, bfacenodes, ibface,
@@ -741,12 +731,10 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     end
 
     edgewise_factors!(csys)
-    
-    system.assembly_data=EdgewiseAssemblyData{Tc,Ti}(SparseMatrixCSC(cnf),SparseMatrixCSC(cef))
-    system.boundary_assembly_data=CellwiseAssemblyData{Tc,Ti}(bfacenodefactors, bfaceedgefactors)
+
+    system.assembly_data = EdgewiseAssemblyData{Tc, Ti}(SparseMatrixCSC(cnf), SparseMatrixCSC(cef))
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors)
 end
-
-
 
 ################################################################################################
 # Degree of freedom handling
@@ -1017,8 +1005,7 @@ num_species(a::AbstractArray) = size(a, 1)
 #
 function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc, Ti, Tm}; time = 0.0, λ = 0.0,
                                 params::Vector{Tp} = Float64[]) where {Tv, Tp, Tc, Ti, Tm}
-
-    _complete!(system, create_newtonvectors=true)
+    _complete!(system; create_newtonvectors = true)
     nspecies = num_species(system)
 
     # set up bnode
@@ -1041,9 +1028,9 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
 
     # loop over all boundary faces
     for item in nodebatch(system.boundary_assembly_data)
-        for ibnode in noderange(system.boundary_assembly_data,item)
-            _fill!(bnode,system.boundary_assembly_data,ibnode,item)
-            
+        for ibnode in noderange(system.boundary_assembly_data, item)
+            _fill!(bnode, system.boundary_assembly_data, ibnode, item)
+
             bnode.dirichlet_value .= Inf
             # set up solution vector, call boundary reaction
             @views UK[1:nspecies] .= U[:, bnode.index]
@@ -1174,10 +1161,10 @@ struct Equationwise end
 
 Calculate partitioning of system unknowns.
 """
-function partitioning(system::DenseSystem;mode=Equationwise())
-    len=length(system.node_dof)
-    nspec=size(system.node_dof,1)
-    [i:nspec:len for i=1:nspec]
+function partitioning(system::DenseSystem; mode = Equationwise())
+    len = length(system.node_dof)
+    nspec = size(system.node_dof, 1)
+    [i:nspec:len for i = 1:nspec]
 end
 
 function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
@@ -1226,8 +1213,8 @@ function Base.map!(inifunc::TF,
     UK = Array{Tu, 1}(undef, nspecies)
 
     for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             @views UK .= U[:, node.index]
             inifunc(unknowns(node, UK), node)
             K = node.index
@@ -1268,7 +1255,6 @@ function Base.reshape(v::AbstractVector, system::SparseSystem)
                                         system.node_dof.rowval,
                                         Vector(v)))
 end
-
 
 ######################################
 # History

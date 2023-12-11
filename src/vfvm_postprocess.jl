@@ -16,6 +16,7 @@ The result is an `nspec x nregion` vector.
 """
 function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
                    boundary = false) where {Tu, Tv, Tc, Ti, Tm}
+    _complete!(system)
     grid = system.grid
     data = system.physics.data
     nspecies = num_species(system)
@@ -35,8 +36,8 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
         integral = zeros(Tu, nspecies, nbfaceregions)
 
         for item in nodebatch(system.boundary_assembly_data)
-            for ibnode in noderange(system.boundary_assembly_data,item)
-                _fill!(bnode,system.boundary_assembly_data,ibnode,item)
+            for ibnode in noderange(system.boundary_assembly_data, item)
+                _fill!(bnode, system.boundary_assembly_data, ibnode, item)
                 res .= zero(Tv)
                 @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnodeparams...)
                 asm_res(idof, ispec) = integral[ispec, bnode.region] += bnode.fac * res[ispec]
@@ -55,8 +56,8 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
         ncellregions = maximum(cellregions)
         integral = zeros(Tu, nspecies, ncellregions)
         for item in nodebatch(system.assembly_data)
-            for inode in noderange(system.assembly_data,item)
-                _fill!(node,system.assembly_data,inode,item)
+            for inode in noderange(system.assembly_data, item)
+                _fill!(node, system.assembly_data, inode, item)
                 res .= zero(Tv)
                 @views F(rhs(node, res), unknowns(node, U[:, node.index]), nodeparams...)
                 asm_res(idof, ispec) = integral[ispec, node.region] += node.fac * res[ispec]
@@ -77,8 +78,9 @@ The result is an `nspec x nregion` vector.
 """
 function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
                        boundary = false) where {Tu, Tv, Tc, Ti, Tm}
+    _complete!(system)
     grid = system.grid
-    dim=dim_space(grid)
+    dim = dim_space(grid)
     data = system.physics.data
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
@@ -98,16 +100,16 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
         ncellregions = maximum(cellregions)
         integral = zeros(Tu, nspecies, ncellregions)
         for item in edgebatch(system.assembly_data)
-            for iedge in edgerange(system.assembly_data,item)
-                _fill!(edge,system.assembly_data,iedge,item) 
+            for iedge in edgerange(system.assembly_data, item)
+                _fill!(edge, system.assembly_data, iedge, item)
                 @views UKL[1:nspecies] .= U[:, edge.node[1]]
-                @views UKL[(nspecies+1):(2*nspecies)] .= U[:, edge.node[2]]
+                @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
                 res .= zero(Tv)
-                @views F(rhs(edge, res), unknowns(edge,UKL), edgeparams...)
+                @views F(rhs(edge, res), unknowns(edge, UKL), edgeparams...)
                 function asm_res(idofK, idofL, ispec)
-                    h=meas(edge)
+                    h = meas(edge)
                     # This corresponds to the multiplication with the diamond volume.
-                    integral[ispec,edge.region] += h^2*edge.fac*res[ispec]/dim
+                    integral[ispec, edge.region] += h^2 * edge.fac * res[ispec] / dim
                 end
                 assemble_res(edge, system, asm_res)
             end
@@ -115,7 +117,6 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
     end
     return SolutionIntegral(integral)
 end
-
 
 ############################################################################
 """
@@ -147,6 +148,7 @@ corners in the code. Please see any potential boundary artifacts as a manifestat
 of this issue and report them.
 """
 function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2}) where {Tu, Tv, Tc, Ti, Tm}
+    _complete!(system)
     grid = system.grid
     dim = dim_space(grid)
     nnodes = num_nodes(grid)
@@ -161,14 +163,13 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
     edge = Edge(system)
     node = Node(system)
 
-    
     # !!! TODO Parameter handling here
     UKL = Array{Tu, 1}(undef, 2 * nspecies)
     flux_eval = ResEvaluator(system.physics, :flux, UKL, edge, nspecies)
 
     for item in edgebatch(system.assembly_data)
-        for iedge in edgerange(system.assembly_data,item)
-            _fill!(edge,system.assembly_data,iedge,item) 
+        for iedge in edgerange(system.assembly_data, item)
+            _fill!(edge, system.assembly_data, iedge, item)
             K = edge.node[1]
             L = edge.node[2]
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
@@ -182,20 +183,19 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
             assemble_res(edge, system, asm_res)
         end
     end
-    
+
     for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)        
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             nodevol[node.index] += node.fac
         end
     end
-    
+
     for inode = 1:nnodes
         @views nodeflux[:, :, inode] /= nodevol[inode]
     end
     nodeflux
 end
-
 
 #####################################################################################
 """
@@ -203,25 +203,26 @@ end
 
 Calculate Euklidean norm of the degree of freedom vector.
 """
-function LinearAlgebra.norm(system::AbstractSystem, u, p::Number=2) end
+function LinearAlgebra.norm(system::AbstractSystem, u, p::Number = 2) end
 
-function LinearAlgebra.norm(system::DenseSystem, u, p::Number=2)
+function LinearAlgebra.norm(system::DenseSystem, u, p::Number = 2)
     _initialize_inactive_dof!(u, system)
+    _complete!(system)
     norm(u, p)
 end
 
-
-LinearAlgebra.norm(system::SparseSystem, u::SparseSolutionArray, p::Number=2) = LinearAlgebra.norm(u.node_dof.nzval, p)
+LinearAlgebra.norm(system::SparseSystem, u::SparseSolutionArray, p::Number = 2) = LinearAlgebra.norm(u.node_dof.nzval, p)
 
 """
     $(SIGNATURES)
 
 Calculate weighted discrete ``L^p`` norm of a solution vector.
 """
-function lpnorm(sys,u,p,species_weights=ones(num_species(sys)))
-    nspec=num_species(sys)
-    II=integrate(sys, (y,u,node,data=nothing)->y.=u.^p,u)
-    (sum([sum(II[i,:]) for i=1:nspec].*species_weights))^(1/p)
+function lpnorm(sys, u, p, species_weights = ones(num_species(sys)))
+    _complete!(sys)
+    nspec = num_species(sys)
+    II = integrate(sys, (y, u, node, data = nothing) -> y .= u .^ p, u)
+    (sum([sum(II[i, :]) for i = 1:nspec] .* species_weights))^(1 / p)
 end
 
 """
@@ -229,8 +230,9 @@ end
 
 Calculate weigthed discrete ``L^2(\\Omega)`` norm of a solution vector. 
 """
-function l2norm(sys,u,species_weights=ones(num_species(sys)))
-    lpnorm(sys,u,2,species_weights)
+function l2norm(sys, u, species_weights = ones(num_species(sys)))
+    _complete!(sys)
+    lpnorm(sys, u, 2, species_weights)
 end
 
 """
@@ -238,17 +240,18 @@ end
 
 Calculate weighted discrete ``W^{1,p}(\\Omega)`` seminorm of a solution vector.
 """
-function w1pseminorm(sys,u,p,species_weights=ones(num_species(sys)))
-    nspec=num_species(sys)
-    dim=dim_space(sys.grid)
-    function f(y,u,edge,data=nothing)
-        h=meas(edge)
-        for ispec=1:nspec
-            y[ispec]=dim*((u[ispec,1]-u[ispec,2])/h)^p
+function w1pseminorm(sys, u, p, species_weights = ones(num_species(sys)))
+    _complete!(sys)
+    nspec = num_species(sys)
+    dim = dim_space(sys.grid)
+    function f(y, u, edge, data = nothing)
+        h = meas(edge)
+        for ispec = 1:nspec
+            y[ispec] = dim * ((u[ispec, 1] - u[ispec, 2]) / h)^p
         end
     end
-    II=edgeintegrate(sys,f,u)
-    (sum([sum(II[i,:]) for i=1:nspec].*species_weights))^(1/p)
+    II = edgeintegrate(sys, f, u)
+    (sum([sum(II[i, :]) for i = 1:nspec] .* species_weights))^(1 / p)
 end
 
 """
@@ -256,8 +259,9 @@ end
 
 Calculate weighted discrete ``H^1(\\Omega)`` seminorm of a solution vector.
 """
-function h1seminorm(sys,u,species_weights=ones(num_species(sys)))
-    w1pseminorm(sys,u,2,species_weights)
+function h1seminorm(sys, u, species_weights = ones(num_species(sys)))
+    _complete!(sys)
+    w1pseminorm(sys, u, 2, species_weights)
 end
 
 """
@@ -265,8 +269,9 @@ end
 
 Calculate weighted discrete ``W^{1,p}(\\Omega)`` norm of a solution vector.
 """
-function w1pnorm(sys,u,p,species_weights=ones(num_species(sys)))
-    lpnorm(sys,u,p,species_weights)+w1pseminorm(sys,u,p,species_weights)
+function w1pnorm(sys, u, p, species_weights = ones(num_species(sys)))
+    _complete!(sys)
+    lpnorm(sys, u, p, species_weights) + w1pseminorm(sys, u, p, species_weights)
 end
 
 """
@@ -274,18 +279,20 @@ end
 
 Calculate weighted discrete ``H^1(\\Omega)`` norm of a solution vector.
 """
-function h1norm(sys,u,species_weights=ones(num_species(sys)))
-    w1pnorm(sys,u,2,species_weights)
+function h1norm(sys, u, species_weights = ones(num_species(sys)))
+    _complete!(sys)
+    w1pnorm(sys, u, 2, species_weights)
 end
 
-function _bochnernorm(sys,u::TransientSolution,p,species_weights,spatialnorm::F) where F
-    n=length(u.t)
-    nrm=spatialnorm(sys,u.u[1],p,species_weights)^p*(u.t[2]-u.t[1])/2
-    for i=2:n-1
-        nrm+=spatialnorm(sys,u.u[i],p,species_weights)^p*(u.t[i+1]-u.t[i-1])/2
+function _bochnernorm(sys, u::TransientSolution, p, species_weights, spatialnorm::F) where {F}
+    _complete!(sys)
+    n = length(u.t)
+    nrm = spatialnorm(sys, u.u[1], p, species_weights)^p * (u.t[2] - u.t[1]) / 2
+    for i = 2:(n - 1)
+        nrm += spatialnorm(sys, u.u[i], p, species_weights)^p * (u.t[i + 1] - u.t[i - 1]) / 2
     end
-    nrm+=spatialnorm(sys,u.u[n],p,species_weights)^p*(u.t[end]-u.t[end-1])/2
-    nrm^(1/p)
+    nrm += spatialnorm(sys, u.u[n], p, species_weights)^p * (u.t[end] - u.t[end - 1]) / 2
+    nrm^(1 / p)
 end
 
 """
@@ -293,41 +300,36 @@ end
 
 Calculate weighted discrete ``L^p([0,T];W^{1,p}(\\Omega))`` norm of a transient solution.
 """
-function lpw1pnorm(sys,u::TransientSolution,p,species_weights=ones(num_species(sys)))
-    _bochnernorm(sys,u,p,species_weights,w1pnorm)
+function lpw1pnorm(sys, u::TransientSolution, p, species_weights = ones(num_species(sys)))
+    _bochnernorm(sys, u, p, species_weights, w1pnorm)
 end
-
 
 """
     $(SIGNATURES)
 
 Calculate weighted discrete ``L^p([0,T];W^{1,p}(\\Omega))`` seminorm of a transient solution.
 """
-function lpw1pseminorm(sys,u::TransientSolution,p,species_weights=ones(num_species(sys)))
-    _bochnernorm(sys,u,p,species_weights,w1pseminorm)
+function lpw1pseminorm(sys, u::TransientSolution, p, species_weights = ones(num_species(sys)))
+    _bochnernorm(sys, u, p, species_weights, w1pseminorm)
 end
-
-
 
 """
     $(SIGNATURES)
 
 Calculate weighted discrete ``L^2([0,T];H^1(\\Omega))`` seminorm of a transient solution.
 """
-function l2h1seminorm(sys,u::TransientSolution,species_weights=ones(num_species(sys)))
-    lpw1pseminorm(sys,u,2,species_weights)
+function l2h1seminorm(sys, u::TransientSolution, species_weights = ones(num_species(sys)))
+    lpw1pseminorm(sys, u, 2, species_weights)
 end
-
 
 """
     $(SIGNATURES)
 
 Calculate weighted discrete ``L^2([0,T];H^1(\\Omega))`` norm of a transient solution.
 """
-function l2h1norm(sys,u::TransientSolution,species_weights=ones(num_species(sys)))
-    lpw1pnorm(sys,u,2,species_weights)
+function l2h1norm(sys, u::TransientSolution, species_weights = ones(num_species(sys)))
+    lpw1pnorm(sys, u, 2, species_weights)
 end
-
 
 """
     $(SIGNATURES)
@@ -335,18 +337,17 @@ end
 Calculate volumes of Voronoi cells.
 """
 function nodevolumes(system)
+    _complete!(system)
     if isnothing(system.assembly_data)
         update_grid!(system)
     end
-    node= Node(system)
+    node = Node(system)
     nodevol = zeros(num_nodes(system.grid))
     for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)        
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             nodevol[node.index] += node.fac
         end
     end
     nodevol
 end
-
-
