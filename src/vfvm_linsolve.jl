@@ -228,25 +228,28 @@ function LinearAlgebra.ldiv!(u, cache::LinearSolve.LinearCache, b)
     copyto!(u, sol.u)
 end
 
+canonical_matrix(A)=A
+canonical_matrix(A::ExtendableSparseMatrix)=SparseMatrixCSC(A)
+
 function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
     if isnothing(system.linear_cache)
-        Pl = control.precon_linear(SparseMatrixCSC(A))
+        Pl = control.precon_linear(canonical_matrix(A))
         nlhistory.nlu += 1
-        p = LinearProblem(SparseMatrixCSC(A), b)
+        p = LinearProblem(canonical_matrix(A), b)
         system.linear_cache = init(
-            p,
-            method_linear;
+            p;
+            method_linear
             abstol = control.abstol_linear,
             reltol = control.reltol_linear,
             verbose = doprint(control, 'l'),
             Pl,
         )
     else
-        system.linear_cache.A=SparseMatrixCSC(A)
+        system.linear_cache.A=canonical_matrix(A)
         system.linear_cache.b=b
         if control.keepcurrent_linear
             nlhistory.nlu += 1
-            system.linear_cache.Pl=control.precon_linear(SparseMatrixCSC(A))
+            system.linear_cache.Pl=control.precon_linear(canonical_matrix(A))
         end
     end
 
