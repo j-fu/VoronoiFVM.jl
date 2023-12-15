@@ -1,10 +1,11 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>", "Dilara Abdel", "Jan Weidner", "Alexander Seiler", "Patricio Farrell", "Matthias Liero"]
-version = "1.15.1"
+version = "1.16.0"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
 CommonSolve = "38540f10-b2f7-11e9-35d8-d573e4eb0ff2"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
@@ -28,6 +29,7 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
 BandedMatrices = "0.17,1"
+Colors = "0.12"
 CommonSolve = "0.2"
 DiffResults = "1"
 DocStringExtensions = "0.8,0.9"
