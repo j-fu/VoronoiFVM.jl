@@ -237,8 +237,8 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
         nlhistory.nlu += 1
         p = LinearProblem(canonical_matrix(A), b)
         system.linear_cache = init(
-            p;
-            method_linear
+            p,
+            method_linear;
             abstol = control.abstol_linear,
             reltol = control.reltol_linear,
             verbose = doprint(control, 'l'),
