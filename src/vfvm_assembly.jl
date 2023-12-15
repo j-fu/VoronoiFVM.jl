@@ -273,7 +273,7 @@ function eval_and_assemble(
                             system.matrix,
                             idofK,
                             jdofL,
-                            -jac_outflow[ispec, jspec+nspecies],
+                            jac_outflow[ispec, jspec+nspecies],
                             edge.fac
                         )
                     end
@@ -283,7 +283,7 @@ function eval_and_assemble(
                             system.matrix,
                             idofL,
                             jdofK,
-                            +jac_outflow[ispec, jspec],
+                            -jac_outflow[ispec, jspec],
                             edge.fac
                         )
                         _addnz(
