@@ -1,5 +1,6 @@
 # Extend GridVisualize methods
 import GridVisualize
+import Colors
 
 """
     $(TYPEDSIGNATURES)
@@ -79,14 +80,18 @@ end
 
 """
     plothistory(sys, tsol; 
-                plots=[:timesteps,:newtonsteps,:updates], 
-                size=(700,400), 
+                plots=[:timestepsizes,
+                       :timestepupdates,
+                       :newtonsteps,
+                       :newtonupdates], 
+                size=(700,600), 
                 Plotter=GridVisualize.default_plotter(),
                 kwargs...)
 
 Plot solution history stored in `tsol`. The `plots` argument allows to choose which plots are shown.
 """
-function plothistory(sys, tsol; plots=[:timesteps,:newtonsteps,:updates], size=(700,400), Plotter=GridVisualize.default_plotter(), kwargs...)
+function plothistory(tsol::TransientSolution; plots=[:timestepsizes,:timestepupdates,:newtonsteps,:newtonupdates],
+                     size=(700,150*length(plots)), Plotter=GridVisualize.default_plotter(), kwargs...)
     hist=history(tsol)
     t=hist.times
     if length(t)==0
@@ -96,17 +101,37 @@ function plothistory(sys, tsol; plots=[:timesteps,:newtonsteps,:updates], size=(
     vis=GridVisualize.GridVisualizer(;layout=(nplots,1), size, Plotter, kwargs...)
 
     for iplot in eachindex(plots)
-        if plots[iplot]==:timesteps
+        if plots[iplot]==:timestepsizes
             GridVisualize.scalarplot!(vis[iplot,1],t[1:(end - 1)], t[2:end] - t[1:(end - 1)];
                                       title = "Time step sizes",  xlabel = "t/s", ylabel = "Δt/s", color=:red, kwargs...)
+        elseif plots[iplot]==:timestepupdates
+            GridVisualize.scalarplot!(vis[iplot,1],t, hist.updates,xlabel = "t/s", ylabel = "du",
+                                      title="Time step updates", color=:red, kwargs...)
         elseif plots[iplot]==:newtonsteps
             newtons=map(h->length(h.updatenorm),hist.histories)
             GridVisualize.scalarplot!(vis[iplot,1],t, newtons,xlabel = "t/s", ylabel = "n",
-                        title="Newton iterations", color=:red, limits=(0,maximum(newtons)+1), kwargs...)
-        elseif plots[iplot]==:updates
-            GridVisualize.scalarplot!(vis[iplot,1],t, hist.updates,xlabel = "t/s", ylabel = "du",
-                        title="Time step updates", color=:red, kwargs...)
+                        title="Newton steps", color=:red, limits=(0,maximum(newtons)+1), kwargs...)
+        elseif plots[iplot]==:newtonupdates
+	    nhist=length(hist)
+	    dc=1/nhist
+	    r=0.0
+	    b=1.0
+	    g=0.0
+	    for h in hist
+   	        GridVisualize.scalarplot!(vis[iplot,1],
+                                          1:length(h),h,
+                                          xlabel="step",
+                                          ylabel="du",
+                                          clear=false,
+                                          yscale=:log,
+                                          color=Colors.RGB(r,g,b),
+                                          linewidth=0.5, title="Newton updates")
+		r+=dc
+		b-=dc
+	    end
         end
     end
     GridVisualize.reveal(vis)
 end
+
+plothistory(sys,tsol;kwargs...)=plothistory(tsol,kwargs...)
