@@ -7,6 +7,7 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+using LinearSolve
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
               unknown_storage = :sparse, tend = 10,
@@ -124,22 +125,24 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
                     clear = false, show = true)
     end
 
-    tsol = solve(sys; inival = 0, times = (0, tend), post = plot_timestep, verbose = verbose, Δu_opt = 1.0e-5)
+    tsol = solve(sys; inival = 0, times = (0, tend), post = plot_timestep, verbose = verbose, Δu_opt = 1.0e-5,
+                 method_linear=KLUFactorization())
 
     return testval
 end
 
 using Test
+
 function runtests()
     testval = 0.359448515181824
-    @test main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :cellwise) ≈ testval &&
-          main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :cellwise) ≈ testval &&
-          main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :cellwise) ≈ testval &&
-          main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :edgewise) ≈ testval
+    @test main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :edgewise) ≈ testval
+    @test main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :edgewise) ≈ testval
+    @test main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :edgewise) ≈ testval
+    @test main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :cellwise) ≈ testval
+    @test main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :cellwise) ≈ testval
+    @test main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :cellwise) ≈ testval
 end
 
 end

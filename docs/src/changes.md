@@ -1,4 +1,9 @@
 # Changes
+## v1.16.0 Dec 15, 2023
+- Bugfix for assembly of outflow bc
+- Bugfix for matrixtype=:banded
+- Updated [`plothistory`](@ref): 
+
 ## v1.15.0 Dec 1, 2023
 - Adjusted time/embedding stepping scheme, added `num_final_steps` to  [`VoronoiFVM.SolverControl`](@ref). This may lead to
   sligthly different results when solving time dependent problems. Some unit test values have been adapted. Before,
