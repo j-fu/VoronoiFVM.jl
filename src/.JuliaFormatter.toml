@@ -1,4 +1,7 @@
 style = "sciml"
+pipe_to_function_call=false
 always_for_in = false
 separate_kwargs_with_semicolon = true
 margin = 132
+yas_style_nesting=true
+ignore = "examples/PlutoGridFactory.jl"
