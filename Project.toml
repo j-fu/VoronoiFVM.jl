@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>", "Dilara Abdel", "Jan Weidner", "Alexander Seiler", "Patricio Farrell", "Matthias Liero"]
-version = "1.16.0"
+version = "1.16.1"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -42,7 +42,7 @@ LinearAlgebra = "1.6"
 LinearSolve = "2.2"
 Printf = "1.6"
 Random = "1.6"
-RecursiveArrayTools = "^2.14.2,3"
+RecursiveArrayTools = "2.14.2 - 3.4.1"
 RecursiveFactorization = "0.2.18"
 SparseArrays = "1.6"
 SparseDiffTools = "^1.19, 2"
