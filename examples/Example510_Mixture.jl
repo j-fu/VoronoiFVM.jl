@@ -61,6 +61,7 @@ using VoronoiFVM.SolverStrategies
 using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
+using AMGCLWrap
 using Random
 using StrideArraysCore: @gc_preserve, StrideArray, StaticInt, PtrArray
 using LinearSolve, ExtendableSparse
@@ -212,6 +213,8 @@ function runtests()
     strat2 = [DirectSolver(UMFPACKFactorization()),
         GMRESIteration(UMFPACKFactorization()),
         GMRESIteration(UMFPACKFactorization(), EquationBlock()),
+        GMRESIteration(AMGSolverAlgorithm(),EquationBlock()),
+        BICGstabIteration(AMGSolverAlgorithm(),EquationBlock()),
         GMRESIteration(ILUZeroPreconditioner()),
         #            GMRESIteration(ILUZeroPreconditioner(), EquationBlock()),
         #            GMRESIteration(ILUZeroPreconditioner(), PointBlock())

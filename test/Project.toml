@@ -1,4 +1,5 @@
 [deps]
+AMGCLWrap = "4f76b812-4ba5-496d-b042-d70715554288"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 ExampleJuggler = "3bbe58f8-ed81-4c4e-a134-03e85fcf4a1a"
