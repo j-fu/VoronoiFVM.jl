@@ -159,7 +159,7 @@ BICGstabIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kw
 
 function VoronoiFVM.SolverControl(strat::BICGstabIteration, sys; kwargs...)
     SolverControl(;
-        method_linear = KrylovJL_BICGstab(),
+        method_linear = KrylovJL_BICGSTAB(),
         precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
         kwargs...,
     )
