@@ -213,8 +213,8 @@ function runtests()
     strat2 = [DirectSolver(UMFPACKFactorization()),
         GMRESIteration(UMFPACKFactorization()),
         GMRESIteration(UMFPACKFactorization(), EquationBlock()),
-        GMRESIteration(AMGSolverAlgorithm(),EquationBlock()),
-        BICGstabIteration(AMGSolverAlgorithm(),EquationBlock()),
+        GMRESIteration(AMGCL_AMGPreconditioner(),EquationBlock()),
+        BICGstabIteration(AMGCL_AMGPreconditioner(),EquationBlock()),
         GMRESIteration(ILUZeroPreconditioner()),
         #            GMRESIteration(ILUZeroPreconditioner(), EquationBlock()),
         #            GMRESIteration(ILUZeroPreconditioner(), PointBlock())
