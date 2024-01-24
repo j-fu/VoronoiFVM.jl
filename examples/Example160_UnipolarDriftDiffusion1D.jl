@@ -235,7 +235,7 @@ end
 using Test
 function runtests()
 
-    if Sys.isapple
+    if Sys.isapple()
         @test true
         return
     end
