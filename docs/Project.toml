@@ -1,4 +1,5 @@
 [deps]
+AMGCLWrap = "4f76b812-4ba5-496d-b042-d70715554288"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
@@ -27,4 +28,4 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 Documenter = "1"
-ExampleJuggler = "0.3.3"
+ExampleJuggler = "0.4.1"
