@@ -61,13 +61,13 @@ function reaction!(f, u, node, data)
     f[iphi] = data.z * (1 - 2 * u[ic])
     f[ic] = 0
 end
-
+const eps_reg=1.0e-10
 function sedanflux!(f, u, edge, data)
     ic = data.ic
     iphi = data.iphi
     f[iphi] = data.eps * (u[iphi, 1] - u[iphi, 2])
-    mu1 = -log1p(-u[ic, 1])
-    mu2 = -log1p(-u[ic, 2])
+    mu1 = -log1p(-u[ic, 1]+eps_reg)
+    mu2 = -log1p(-u[ic, 2]+eps_reg)
     bp, bm = fbernoulli_pm(data.z * 2 * (u[iphi, 1] - u[iphi, 2]) + (mu1 - mu2))
     f[ic] = bm * u[ic, 1] - bp * u[ic, 2]
 end
@@ -234,11 +234,6 @@ end
 
 using Test
 function runtests()
-
-    if Sys.isapple()
-        @test true
-        return
-    end
 
     
     evolval = 18.721369939565655
