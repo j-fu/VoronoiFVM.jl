@@ -46,7 +46,7 @@ mutable struct TransientSolution{T, N, A, B} <: AbstractTransientSolution{T, N, 
 end
 
 function TransientSolution(vec::AbstractVector{T}, ts, ::NTuple{N}) where {T, N}
-    TransientSolution{T, N, typeof(vec), typeof(ts)}(vec, ts, TransientSolverHistory())
+    TransientSolution{eltype(T), N, typeof(vec), typeof(ts)}(vec, ts, TransientSolverHistory())
 end
 
 TransientSolution(vec::AbstractVector, ts::AbstractVector) = TransientSolution(vec, ts, (size(vec[1])..., length(vec)))
