@@ -1167,6 +1167,52 @@ function partitioning(system::DenseSystem; mode = Equationwise())
     [i:nspec:len for i = 1:nspec]
 end
 
+function partitioning(system::SparseSystem; mode = Equationwise())
+    node_dof=system.node_dof
+    nspec = size(node_dof, 1)
+    nnodes = size(node_dof, 2)
+    count=zeros(Int,nspec)
+    colptr=node_dof.colptr
+    rowval=node_dof.rowval
+    nzval=node_dof.nzval
+
+    # how many unknowns are there for each species ?
+    # to make things fast we want to avoid push!
+    for i=1:nnodes
+        for j=colptr[i]:colptr[i+1]-1
+            ispec=rowval[j]
+            @assert ispec==nzval[j]
+            if ispec==nzval[j]
+                count[ispec]+=1
+            end
+        end
+    end
+
+    #
+    # We no know how many parts are there
+    # and can allocate
+    #
+    parts=[zeros(Int,c) for c in count]
+    partcount=ones(Int,nspec)
+
+    #
+    # Sort unknown numbers into partitions
+    #
+    for i=1:nnodes
+        for j=colptr[i]:colptr[i+1]-1
+            ispec=rowval[j]
+            @assert ispec==nzval[j]
+            if ispec==nzval[j]
+                parts[ispec][partcount[ispec]]=j
+                partcount[ispec]+=1
+            end
+        end
+    end
+    parts
+end
+
+
+
 function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
     a = Array{Tu}(undef, size(system.node_dof)...)
     if inival != undef
