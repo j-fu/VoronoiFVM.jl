@@ -175,8 +175,6 @@ Create a factorizations strategy from preconditioner and block information
 factorizationstrategy(p::FactorizationStrategy, ::NoBlock, sys) = p
 
 function factorizationstrategy(strat::FactorizationStrategy, ::EquationBlock, sys)
-    !isdensesystem(sys) ?
-    error("Equation block preconditioner currently needs dense system") : nothing
     BlockPreconditioner(;
         partitioning = partitioning(sys),
         factorization = factorizationstrategy(strat, NoBlock(), sys),
