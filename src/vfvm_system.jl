@@ -1161,13 +1161,13 @@ struct Equationwise end
 
 Calculate partitioning of system unknowns.
 """
-function partitioning(system::DenseSystem; mode = Equationwise())
+function partitioning(system::DenseSystem,::Equationwise)
     len = length(system.node_dof)
     nspec = size(system.node_dof, 1)
     [i:nspec:len for i = 1:nspec]
 end
 
-function partitioning(system::SparseSystem; mode = Equationwise())
+function partitioning(system::SparseSystem,::Equationwise)
     node_dof=system.node_dof
     nspec = size(node_dof, 1)
     nnodes = size(node_dof, 2)
