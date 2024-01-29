@@ -314,15 +314,19 @@ function bfacefactors!(T::Type{Triangle2D}, ::Type{<:Cartesian3D}, coord, bfacen
 
     d = 1.0 / (8 * vol)
 
-    # Knoten-Flaechenanteile (ohne Abschneiden)
-    npar[1] = (epar[3] + epar[2]) * d * 0.25
-    npar[2] = (epar[1] + epar[3]) * d * 0.25
-    npar[3] = (epar[2] + epar[1]) * d * 0.25
 
-    # Kantengewichte 
+    # Knoten-Flaechenanteile (ohne Abschneiden)
+    npar .= 0.0
+    for i = 1:3
+        npar[en[1, i]] += epar[i] * d * 0.25
+        npar[en[2, i]] += epar[i] * d * 0.25
+    end
+
+    # Kantengewichte
     epar[1] = epar[1] * d / dd[1]
     epar[2] = epar[2] * d / dd[2]
     epar[3] = epar[3] * d / dd[3]
+    
     nothing
 end
 
