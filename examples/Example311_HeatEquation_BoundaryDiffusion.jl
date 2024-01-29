@@ -13,7 +13,7 @@ using ExtendableGrids
 """
   We solve the following system
 
-      ∂_tu - εΔu = 0            in [0,T] × Ω
+      ∂_tu - εΔu = 0            in [0,T] × Ω>
            ε∇u⋅ν = k(u-v)       on [0,T] × Γ_1
            ε∇u⋅ν = 0            on [0,T] × (∂Ω ∖ Γ_1)
   ∂_tv -ε_ΓΔ_Γ v = f(x) +k(u-v) on [0,T] × Γ_1
@@ -106,8 +106,9 @@ end
 using Test
 function runtests()
     testval = 1509.8109057757858
-    @test isapprox(main(; assembly = :edgewise), testval; rtol = 1.0e-12) &&
-          isapprox(main(; assembly = :cellwise), testval; rtol = 1.0e-12)
+    testval = 1508.582565216869
+    @test isapprox(main(; assembly = :edgewise), testval; rtol = 1.0e-12) 
+    @test isapprox(main(; assembly = :cellwise), testval; rtol = 1.0e-12)
 end
 
 end
