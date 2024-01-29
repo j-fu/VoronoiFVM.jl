@@ -56,7 +56,6 @@ struct NoBlock <: BlockStrategy end
     EquationBlock()
 
 Equation-wise blocking. Can be combined with any preconditioner resp. factorization including direct solvers.
-In the moment, this requires a system with `unknown_storage=:dense`.
 """
 struct EquationBlock <: BlockStrategy end
 
@@ -176,7 +175,7 @@ factorizationstrategy(p::FactorizationStrategy, ::NoBlock, sys) = p
 
 function factorizationstrategy(strat::FactorizationStrategy, ::EquationBlock, sys)
     BlockPreconditioner(;
-        partitioning = partitioning(sys),
+        partitioning = partitioning(sys,Equationwise()),
         factorization = factorizationstrategy(strat, NoBlock(), sys),
     )
 end
