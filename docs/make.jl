@@ -1,5 +1,5 @@
 using Documenter, ExampleJuggler, VoronoiFVM
-using ExtendableGrids, GridVisualize, LinearAlgebra
+using ExtendableGrids, GridVisualize, LinearAlgebra, OrdinaryDiffEq, RecursiveArrayTools, SciMLBase
 
 function make_all(; with_examples = true, with_notebooks = true, example = nothing)
     ExampleJuggler.verbose!(true)
@@ -9,6 +9,7 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
     exampledir = joinpath(@__DIR__, "..", "examples")
 
     notebooks = [
+        "OrdinaryDiffEq.jl nonlinear diffusion" =>   "ode-diffusion1d.jl",
         "Outflow boundary conditions" => "outflow.jl",
         "Obtaining vector fields" => "flux-reconstruction.jl",
         "Internal interfaces (1D)" => "interfaces1d.jl",
@@ -16,8 +17,8 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
         "Nonlinear solver control" => "nonlinear-solvers.jl",
         "API Updates" => "api-update.jl",
     ]
-    notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
-    notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
+   notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
+   notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
 
     modules = filter(ex -> splitext(ex)[2] == ".jl", basename.(readdir(exampledir)))
     module_examples = @docmodules(exampledir, modules)
@@ -33,7 +34,7 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
              repo = "https://github.com/j-fu/VoronoiFVM.jl",
              format = Documenter.HTML(; size_threshold_ignore = last.(notebook_examples),
                                       mathengine = MathJax3()),
-             pages = [
+            pages = [
                  "Home" => "index.md",
                  "changes.md",
                  "method.md",
@@ -42,6 +43,7 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
                      "physics.md",
                      "solutions.md",
                      "solver.md",
+                     "odesolver.md",
                      "post.md",
                      "quantities.md",
                      "misc.md",
@@ -49,7 +51,7 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
                      "allindex.md",
                      "devel.md",
                  ],
-                 "Tutorial Notebooks" => notebook_examples,
+                "Tutorial Notebooks" => notebook_examples,
                  "Examples" => module_examples,
              ])
 

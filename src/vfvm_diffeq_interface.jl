@@ -1,9 +1,3 @@
-#
-# Interface to VoronoiFVMDiffEq.jl
-#
-# For VoronoiFVM v0.18, v0.19 we allow breaking changes on
-# this part of the API in patch revisions.
-#
 """
     $(TYPEDEF)
 
@@ -42,7 +36,7 @@ end
 $(SIGNATURES)
 
 Interpret the  discrete problem as an ODE/DAE problem. Provide the 
-rhs function for DifferentialEquations.jl.
+rhs function for [`ODEFunction`](@ref).
 """
 function eval_rhs!(du, u, sys, t)
     _eval_res_jac!(sys, u, t)
@@ -55,7 +49,7 @@ end
 $(SIGNATURES)
 
 Interpret the  discrete problem as an ODE/DAE problem. Provide the 
-jacobi matrix calculation function for DifferentialEquations.jl.
+jacobi matrix calculation function for [`ODEFunction`](@ref)
 """
 function eval_jacobian!(J, u, sys, t)
     _eval_res_jac!(sys, u, t)
@@ -68,7 +62,7 @@ end
 """
 $(SIGNATURES)
 
-Calculate the mass matrix for use with DifferentialEquations.jl.
+Calculate the mass matrix for use with [`ODEFunction`](@ref).
 Return a Diagonal matrix if it occurs to be diagonal, otherwise return a SparseMatrixCSC.
 """
 function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, Tm}
@@ -131,3 +125,77 @@ function prepare_diffeq!(sys, jacval, tjac)
     flush!(sys.matrix)
     sys.matrix.cscmatrix
 end
+
+
+###################################################################################################
+# API
+
+
+"""
+     ODEFunction(system,inival=unknowns(system,inival=0),t0=0)
+    
+Create an [ODEPFunction](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems)
+in [mass matrix form](https://diffeq.sciml.ai/stable/solvers/dae_solve/#OrdinaryDiffEq.jl-(Mass-Matrix))
+to be handeled by ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
+
+Parameters:
+- `system`: A [`VoronoiFVM.System`](https://j-fu.github.io/VoronoiFVM.jl/stable/system/#VoronoiFVM.System-Tuple{ExtendableGrid})
+- `jacval` (optional): Initial value. Default is a zero vector. Consider to  pass a stationary solution at time `tjac`.
+- `tjac` (optional): tjac, Default: 0
+
+The `jacval` and `tjac` are passed  for a first evaluation of the Jacobian, allowing to detect
+the sparsity pattern which is passed to the solver.
+"""
+function SciMLBase.ODEFunction(sys::VoronoiFVM.AbstractSystem; jacval=unknowns(sys,0), tjac=0)
+    SciMLBase.ODEFunction(eval_rhs!;
+                          jac=eval_jacobian!,
+                          jac_prototype=prepare_diffeq!(sys,jacval, tjac),
+                          mass_matrix=mass_matrix(sys))
+end
+
+
+"""
+    ODEProblem(system,inival,tspan,callback=SciMLBase.CallbackSet())
+    
+Create an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems)
+in [mass matrix form](https://diffeq.sciml.ai/stable/solvers/dae_solve/#OrdinaryDiffEq.jl-(Mass-Matrix))
+which can  be handeled by ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
+
+Parameters:
+- `system`: A [`VoronoiFVM.System`](https://j-fu.github.io/VoronoiFVM.jl/stable/system/#VoronoiFVM.System-Tuple{ExtendableGrid})
+- `inival`: Initial value. Consider to  pass a stationary solution at `tspan[1]`.
+- `tspan`: Time interval 
+- `callback` : (optional) [callback](https://diffeq.sciml.ai/stable/features/callback_functions/#Using-Callbacks) for ODE solver 
+
+The method returns an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can be solved
+by [solve()](https://diffeq.sciml.ai/stable/basics/common_solver_opts/).
+
+The solution `sol` returned by `solve` conforms to the [ArrayInterface](https://docs.sciml.ai/DiffEqDocs/stable/basics/solution/#Array-Interface)
+but "forgot" the VoronoiFVM species structure.  Accessing `sol(t)` will return an interpolated solution vector giving
+the value of the solution at moment `t`. Using [`reshape`](@ref)`(sol(t),system)` it can be turned into into a
+sparse or dense array reflecting the species structure of `system`. The order of the [interpolation](https://docs.sciml.ai/DiffEqDocs/stable/basics/solution/#Interpolations-and-Calculating-Derivatives)
+depends on the ODE solver.
+"""
+function  SciMLBase.ODEProblem(sys::VoronoiFVM.AbstractSystem, inival, tspan, callback=SciMLBase.CallbackSet())
+    odefunction=SciMLBase.ODEFunction(sys; jacval=inival,tjac=tspan[1])
+    SciMLBase.ODEProblem(odefunction,vec(inival),tspan,sys,callback)
+end
+
+"""
+    reshape(ode_solution, system; times)
+Create a [`TransientSolution`](@ref) from the output of the ode solver which
+reflects the species structure of the probem which is not seen by the ODE solver,
+howvever the interpolation behind `reshaped_sol(t)` will be linear.
+
+If `times` is specified, the interpolated solution at the given moments of time will be returned.
+"""
+function Base.reshape(sol::AbstractDiffEqArray, sys::VoronoiFVM.AbstractSystem, times=nothing)
+    if isnothing(times)
+        TransientSolution([reshape(sol.u[i],sys) for i=1:length(sol.u)] ,sol.t)
+    else
+        isol=sol(times)
+        TransientSolution([reshape(isol[i],sys) for t=1:length(times)] ,times)
+    end
+end
+
+
