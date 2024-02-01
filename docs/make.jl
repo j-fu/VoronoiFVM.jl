@@ -10,6 +10,9 @@ function make_all(; with_examples = true, with_notebooks = true, example = nothi
 
     notebooks = [
         "OrdinaryDiffEq.jl nonlinear diffusion" =>   "ode-diffusion1d.jl",
+        "OrdinaryDiffEq.jl 1D wave equation" =>    "ode-wave1d.jl",
+        "OrdinaryDiffEq.jl changing mass matrix" =>     "ode-nlstorage1d.jl",
+        "OrdinaryDiffEq.jl brusselator"  =>   "ode-brusselator.jl",
         "Outflow boundary conditions" => "outflow.jl",
         "Obtaining vector fields" => "flux-reconstruction.jl",
         "Internal interfaces (1D)" => "interfaces1d.jl",

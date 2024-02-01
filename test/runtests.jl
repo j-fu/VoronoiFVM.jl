@@ -46,6 +46,9 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
     if run_notebooks
         notebooks = ["nbproto.jl",
             "ode-diffusion1d.jl",
+            "ode-wave1d.jl",
+            "ode-nlstorage1d.jl",
+            "ode-brusselator.jl",
             "outflow.jl",
             "flux-reconstruction.jl",
             "interfaces1d.jl",
