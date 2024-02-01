@@ -12,10 +12,9 @@ Solver for coupled nonlinear partial differential equations (elliptic-parabolic 
 It uses automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) and [DiffResults.jl](https://github.com/JuliaDiff/DiffResults.jl) to evaluate user functions along with their jacobians and calculate derivatives of solutions with respect to their parameters.
 
 ## Recent changes
-Please look up the list of recent [changes](https://j-fu.github.io/VoronoiFVM.jl/stable/changes) for some breaking changes
+Please look up the list of recent [changes](https://j-fu.github.io/VoronoiFVM.jl/stable/changes)
 
 ## Accompanying packages
-- [VoronoiFVMDiffEq.jl](https://github.com/j-fu/VoronoiFVMDiffEq.jl): Glue package for using VoronoiFVM with DifferentialEquations.jl
 - [ExtendableSparse.jl](https://github.com/j-fu/ExtendableSparse.jl): convenient and efficient sparse matrix assembly
 - [ExtendableGrids.jl](https://github.com/j-fu/ExtendableGrids.jl): unstructured grid management library
 - [SimplexGridFactory.jl](https://github.com/j-fu/SimplexGridFactory.jl): unified high level  mesh generator interface
@@ -28,9 +27,8 @@ VoronoiFVM.jl and most of these packages are  part of the meta package [PDELib.j
 
 
 
-
 ## Some alternatives
-- [GradientRobustMultiPhysics.jl](https://github.com/chmerdon/GradientRobustMultiPhysics.jl): finite element library implementing gradient robust FEM
+- [ExtendableFEM.jl](https://github.com/chmerdon/ExtendableFEM.jl): finite element library implementing gradient robust FEM
   from the same package base by Ch. Merdon
 - [SkeelBerzins.jl](https://github.com/gregoirepourtier/SkeelBerzins.jl): a Julian variation on Matlab's `pdepe` API
 - [Trixi.jl](https://github.com/trixi-framework/Trixi.jl):  numerical simulation framework for hyperbolic conservation laws 
@@ -38,6 +36,7 @@ VoronoiFVM.jl and most of these packages are  part of the meta package [PDELib.j
 - [Ferrite.jl](https://github.com/Ferrite-FEM/Ferrite.jl) Finite element toolbox for Julia
 - [FinEtools.jl](https://github.com/PetrKryslUCSD/FinEtools.jl)  Finite element tools for Julia
 - [FiniteVolumeMethod.jl](https://github.com/DanielVandH/FiniteVolumeMethod.jl/) Finite volumes with [Donald boxes](https://danielvandh.github.io/FiniteVolumeMethod.jl/stable/figures/control_volume_example.png)
+
 ## Citation
 
 If you use this package in your work, please cite it according to [CITATION.cff](https://raw.githubusercontent.com/j-fu/VoronoiFVM.jl/master/CITATION.cff)
