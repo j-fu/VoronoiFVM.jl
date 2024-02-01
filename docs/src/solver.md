@@ -74,8 +74,5 @@ NewtonControl
 VoronoiFVM.SolverStrategies
 ``` 
 
-# [DifferentialEquations.jl solver](@id diffeq)
-This solver has been being outsourced into the glue package 
-[VoronoiFVMDiffEq.jl](https://github.com/j-fu/VoronoiFVMDiffEq.jl)
 
 
