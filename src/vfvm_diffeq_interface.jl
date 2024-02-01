@@ -169,12 +169,6 @@ Parameters:
 
 The method returns an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can be solved
 by [solve()](https://diffeq.sciml.ai/stable/basics/common_solver_opts/).
-
-The solution `sol` returned by `solve` conforms to the [ArrayInterface](https://docs.sciml.ai/DiffEqDocs/stable/basics/solution/#Array-Interface)
-but "forgot" the VoronoiFVM species structure.  Accessing `sol(t)` will return an interpolated solution vector giving
-the value of the solution at moment `t`. Using [`reshape`](@ref)`(sol(t),system)` it can be turned into into a
-sparse or dense array reflecting the species structure of `system`. The order of the [interpolation](https://docs.sciml.ai/DiffEqDocs/stable/basics/solution/#Interpolations-and-Calculating-Derivatives)
-depends on the ODE solver.
 """
 function  SciMLBase.ODEProblem(sys::VoronoiFVM.AbstractSystem, inival, tspan, callback=SciMLBase.CallbackSet())
     odefunction=SciMLBase.ODEFunction(sys; jacval=inival,tjac=tspan[1])
@@ -182,12 +176,13 @@ function  SciMLBase.ODEProblem(sys::VoronoiFVM.AbstractSystem, inival, tspan, ca
 end
 
 """
-    reshape(ode_solution, system; times)
+    reshape(ode_solution, system, times=nothing)
 Create a [`TransientSolution`](@ref) from the output of the ode solver which
-reflects the species structure of the probem which is not seen by the ODE solver,
-howvever the interpolation behind `reshaped_sol(t)` will be linear.
+reflects the species structure of the system ignored by the ODE solver.
+Howvever the interpolation behind `reshaped_sol(t)` will be linear and ignores the possibility
+of higher order interpolations with `ode_sol`.
 
-If `times` is specified, the interpolated solution at the given moments of time will be returned.
+If `times` is specified, the (possibly higher ordee) interpolated solution at the given moments of time will be returned.
 """
 function Base.reshape(sol::AbstractDiffEqArray, sys::VoronoiFVM.AbstractSystem, times=nothing)
     if isnothing(times)

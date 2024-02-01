@@ -525,15 +525,13 @@ module NoModule end
 """
     solve(system; kwargs...)
     
-Solution method for [`VoronoiFVM.System`](@ref).  
-For using ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl), see
-the [VoronoiFVMDiffEq.jl](https://github.com/j-fu/VoronoiFVMDiffEq.jl) package.
+Built-in solution method for [`VoronoiFVM.System`](@ref).  
     
 Keyword arguments:
 - General for all solvers 
    - `inival` (default: 0) : Array created via [`unknowns`](@ref) or  number giving the initial value.
-   -  All elements of [`SolverControl`](@ref) can be used as kwargs.
    - `control` (default: nothing): Pass instance of [`SolverControl`](@ref)
+   -  All elements of [`SolverControl`](@ref) can be used as kwargs. Eventually overwrites values given via `control`
    - `params`: Parameters (Parameter handling is experimental and may change)
     
 - __Stationary solver__:
@@ -554,11 +552,11 @@ Keyword arguments:
   solve time dependent problem. Time step control is performed
   according to solver control data.  kwargs and default values are:
   - `times` (default: `nothing` ): vector of time values to be reached exactly
-  - `pre` (default: `(sol,t)->nothing` ):  invoked before each time step
-  - `post`  (default:  `(sol,oldsol, t, Δt)->nothing` ):  invoked after each time step
-  - `sample` (default:  `(sol,t)->nothing` ): invoked after timestep for all times in `times[2:end]`.
+  - `pre` (default: `(sol,t)->nothing` ):  callback invoked before each time step
+  - `post`  (default:  `(sol,oldsol, t, Δt)->nothing` ): callback invoked after each time step
+  - `sample` (default:  `(sol,t)->nothing` ): callback invoked after timestep for all times in `times[2:end]`.
   - `delta` (default:  `(system, u,v,t, Δt)->norm(sys,u-v,Inf)` ):  Value  used to control the time step size `Δu`
-  If `control.handle_error` is true, if step solution  throws an error,
+  If `control.handle_error` is true, if time step solution  throws an error,
   stepsize  is lowered, and  step solution is called again with a smaller time value.
   If `control.Δt<control.Δt_min`, solution is aborted with error.
   Returns a transient solution object `sol` containing the stored solution,  see [`TransientSolution`](@ref).
