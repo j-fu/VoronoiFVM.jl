@@ -54,7 +54,7 @@ end
 
 Outer range for node assembly loop. 
 """
-function Snodebatch end
+function nodebatch end
 
 """
     noderange(assemblydata, i)

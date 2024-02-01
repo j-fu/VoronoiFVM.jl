@@ -124,7 +124,7 @@ VoronoiFVM.unknowns(Tu::Type, system::VoronoiFVM.AbstractSystem; kwargs...)
 Base.map
 Base.map!
 VoronoiFVM.isunknownsof
-Base.reshape
+Base.reshape(::AbstractVector, ::VoronoiFVM.AbstractSystem)
 ```
 
 ## Types
