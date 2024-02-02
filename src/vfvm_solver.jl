@@ -281,14 +281,15 @@ function CommonSolve.solve(inival,
         Δλ_grow = control.Δt_grow
         Δλ_decrease = control.Δt_decrease
     else  # λ is embedding parameter
+        λstr = "p"
         Δλ = control.Δp
         Δλ_min = control.Δp_min
         Δλ_max = control.Δp_max
         Δλ_grow = control.Δp_grow
+        Δλ_decrease = control.Δp_decrease
     end
     Δu_opt = control.Δu_opt
     Δu_max_factor = control.Δu_max_factor
-    Δt_decrease = control.Δt_decrease
 
     allhistory = TransientSolverHistory()
 
