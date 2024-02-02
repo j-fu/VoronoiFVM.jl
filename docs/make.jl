@@ -1,8 +1,8 @@
 using Documenter, ExampleJuggler, VoronoiFVM
 using ExtendableGrids, GridVisualize, LinearAlgebra, OrdinaryDiffEq, RecursiveArrayTools, SciMLBase
 
-function make_all(; with_examples = true,
-                  with_notebooks = true)
+function make(; with_examples = true,
+              with_notebooks = true)
 
     ExampleJuggler.verbose!(true)
 
@@ -11,30 +11,6 @@ function make_all(; with_examples = true,
     exampledir = joinpath(@__DIR__, "..", "examples")
 
     size_threshold_ignore=[]
-    
-    if with_notebooks
-        notebooks = [
-            "OrdinaryDiffEq.jl nonlinear diffusion" =>   "ode-diffusion1d.jl",
-            "OrdinaryDiffEq.jl 1D wave equation" =>    "ode-wave1d.jl",
-            "OrdinaryDiffEq.jl changing mass matrix" =>     "ode-nlstorage1d.jl",
-            "OrdinaryDiffEq.jl brusselator"  =>   "ode-brusselator.jl",
-            "Outflow boundary conditions" => "outflow.jl",
-            "Obtaining vector fields" => "flux-reconstruction.jl",
-            "Internal interfaces (1D)" => "interfaces1d.jl",
-            "A case for caution" => "problemcase.jl",
-            "Nonlinear solver control" => "nonlinear-solvers.jl",
-            "API Updates" => "api-update.jl",
-        ]
-        notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
-        notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
-        size_threshold_ignore = last.(notebook_examples)
-    end
-
-    if with_examples
-        modules = filter(ex -> splitext(ex)[2] == ".jl", basename.(readdir(exampledir)))
-        module_examples = @docmodules(exampledir, modules)
-        module_examples = vcat(["About the examples" => "runexamples.md"], module_examples)
-    end
 
     pages = [
         "Home" => "index.md",
@@ -52,9 +28,33 @@ function make_all(; with_examples = true,
             "allindex.md",
             "devel.md",]
     ]
+
     
-    with_notebooks &&  push!(pages, "Tutorial Notebooks" => notebook_examples)
-    with_examples   &&   push!(pages, "Examples" => module_examples)
+    if with_notebooks
+        notebooks = [
+            "OrdinaryDiffEq.jl nonlinear diffusion" =>   "ode-diffusion1d.jl",
+            "OrdinaryDiffEq.jl 1D wave equation" =>    "ode-wave1d.jl",
+            "OrdinaryDiffEq.jl changing mass matrix" =>     "ode-nlstorage1d.jl",
+            "OrdinaryDiffEq.jl brusselator"  =>   "ode-brusselator.jl",
+            "Outflow boundary conditions" => "outflow.jl",
+            "Obtaining vector fields" => "flux-reconstruction.jl",
+            "Internal interfaces (1D)" => "interfaces1d.jl",
+            "A case for caution" => "problemcase.jl",
+            "Nonlinear solver control" => "nonlinear-solvers.jl",
+            "API Updates" => "api-update.jl",
+        ]
+        notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
+        notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
+        size_threshold_ignore = last.(notebook_examples)
+        push!(pages, "Tutorial Notebooks" => notebook_examples)
+    end
+
+    if with_examples
+        modules = filter(ex -> splitext(ex)[2] == ".jl", basename.(readdir(exampledir)))
+        module_examples = @docmodules(exampledir, modules, use_module_titles=true)
+        module_examples = vcat(["About the examples" => "runexamples.md"], module_examples)
+        push!(pages, "Examples" => module_examples)
+    end
     
     makedocs(; sitename = "VoronoiFVM.jl",
              modules = [VoronoiFVM, VoronoiFVM.SolverStrategies],
@@ -76,7 +76,7 @@ function make_all(; with_examples = true,
 end
 
 if isinteractive()
-    make_all(; with_examples = false, with_notebooks = false)
+    make(; with_examples = false, with_notebooks = false)
 else
-    make_all(; with_examples = true, with_notebooks = true)
+    make(; with_examples = true, with_notebooks = true)
 end
