@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 authors = ["Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>", "Dilara Abdel", "Jan Weidner", "Alexander Seiler", "Patricio Farrell", "Matthias Liero"]
-version = "1.18.1"
+version = "1.18.2"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -50,5 +50,5 @@ SparseArrays = "1.6"
 SparseDiffTools = "^1.19, 2"
 StaticArrays = "0.12,1"
 Statistics = "1.6"
-Symbolics = "4.2 - 5.15"
+Symbolics = "4.2,5"
 julia = "^1.6"
