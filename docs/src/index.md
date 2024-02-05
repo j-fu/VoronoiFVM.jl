@@ -5,5 +5,13 @@ $(read("../../README.md",String))
 """)
 ````
 
+# Papers and preprints using this package
+
+Please consider a pull request if you have published work which could be added to this list.
+
+
+```@bibliography
+*
+```
 
 

@@ -1,9 +1,14 @@
-using Documenter, ExampleJuggler, VoronoiFVM
+using Documenter, ExampleJuggler, VoronoiFVM, DocumenterCitations
 using ExtendableGrids, GridVisualize, LinearAlgebra, OrdinaryDiffEq, RecursiveArrayTools, SciMLBase
 
 function make(; with_examples = true,
               with_notebooks = true)
 
+    bib = CitationBibliography(
+        joinpath(@__DIR__, "src", "citations.bib");
+        style=:numeric
+    )
+    
     ExampleJuggler.verbose!(true)
 
     cleanexamples()
@@ -58,13 +63,16 @@ function make(; with_examples = true,
     
     makedocs(; sitename = "VoronoiFVM.jl",
              modules = [VoronoiFVM, VoronoiFVM.SolverStrategies],
+             plugins = [bib],
              checkdocs = :all,
              clean = false,
              doctest = false,
              warnonly = true,
              authors = "J. Fuhrmann",
              repo = "https://github.com/j-fu/VoronoiFVM.jl",
-             format = Documenter.HTML(; size_threshold_ignore,  mathengine = MathJax3()),
+             format = Documenter.HTML(; size_threshold_ignore,
+                                       assets=String["assets/citations.css"],
+                                      mathengine = MathJax3()),
              pages)
 
     
