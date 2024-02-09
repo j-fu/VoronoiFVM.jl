@@ -1,4 +1,13 @@
 # Changes
+## v1.18.0 Feb 01 2024
+- Re-shoring of OrdinaryDiffEq interface, no need of VoronoiFVMDiffEq.jl anymore
+  It appeared that it is sufficient to depend on SciMLBase for this, and
+  all tests can be done with OrdinaryDiffEq.jl
+
+## v1.17.1 Jan 30, 2024
+- Bugfix for boundary node factors
+- Bugfix with types for RecursiveArrayTools
+
 ## v1.16.0 Dec 15, 2023
 - Bugfix for assembly of outflow bc
 - Bugfix for matrixtype=:banded

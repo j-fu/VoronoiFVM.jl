@@ -593,13 +593,7 @@ end
 
 ###############################################################
 # Deprecation warnings here ?
-"""
-$(TYPEDEF)
-
-Wrapper struct for viewing unknowns passed to callback functions
-    
-$(TYPEDFIELDS)
-"""
+# Wrapper struct for viewing unknowns passed to callback functions
 struct VectorUnknowns{Tv} <: AbstractVector{Tv}
     val::Vector{Tv}
     n::Int64

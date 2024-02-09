@@ -6,7 +6,8 @@ using Printf
 using DocStringExtensions
 using LinearAlgebra
 using SparseArrays
-using CommonSolve
+import CommonSolve, SciMLBase
+
 
 using InteractiveUtils
 using BandedMatrices

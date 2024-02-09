@@ -1281,7 +1281,7 @@ $(SIGNATURES)
 
 Reshape vector to fit as solution to system.
 """
-function Base.reshape(v, system::AbstractSystem) end
+function Base.reshape(v::AbstractVector, system::AbstractSystem) end
 
 Base.reshape(v::DenseSolutionArray, system::DenseSystem) = v
 
