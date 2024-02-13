@@ -1,4 +1,7 @@
 # Changes
+## v1.19.0 Feb 01 2024
+- Enable equation block preconditioning for sparse unknown storage
+
 ## v1.18.0 Feb 01 2024
 - Re-shoring of OrdinaryDiffEq interface, no need of VoronoiFVMDiffEq.jl anymore
   It appeared that it is sufficient to depend on SciMLBase for this, and

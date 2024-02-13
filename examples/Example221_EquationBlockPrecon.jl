@@ -1,14 +1,15 @@
 #=
 
-# 221: Equationwise preconditioning
+# 221: Equation block preconditioning
 ([source code](@__SOURCE_URL__))
 
 =#
 
-module Example221_EquationwisePrecon
+module Example221_EquationBlockPrecon
 
 using VoronoiFVM, GridVisualize, ExtendableGrids, Printf
-
+using AMGCLWrap, ExtendableSparse
+using Test
 
 function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = false,
               unknown_storage = :sparse, assembly = :edgewise,strategy = nothing)
@@ -104,9 +105,7 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
     end
-    @info "Strategy: $(strategy)"
-    control = SolverControl(strategy, sys)
-    @info control.method_linear
+    control = SolverControl(strategy, sys, verbose="l")
     @time "solve" U=solve(sys;control)
     @info num_dof(U)
     GC.gc()
@@ -123,6 +122,16 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
     scalarplot!(p[3, 1], subgrid3, U3; title = "spec3", color = (0.0, 0.0, 0.5))
     reveal(p)
     U
+end
+
+function runtests()
+    strategy=BICGstabIteration(AMGCL_AMGPreconditioner())
+    @test sum(main(;dim=1,strategy, unknown_storage=:dense)[2,:]) ≈ 0.014100861021046823
+    @test sum(main(;dim=1,strategy, unknown_storage=:sparse)[2,:]) ≈ 0.014100861021046823
+    @test sum(main(;dim=2,strategy, unknown_storage=:dense)[2,:]) ≈ 0.12690774918944653
+    @test sum(main(;dim=2,strategy, unknown_storage=:sparse)[2,:]) ≈ 0.12690774918944653
+    @test sum(main(;dim=3,strategy, unknown_storage=:dense)[2,:]) ≈ 1.1423244466533444
+    @test sum(main(;dim=3,strategy, unknown_storage=:sparse)[2,:]) ≈ 1.1423244466533444
 end
 
 end
