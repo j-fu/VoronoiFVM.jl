@@ -1110,6 +1110,10 @@ num_dof(system::SparseSystem) = nnz(system.node_dof)
 
 num_dof(system::DenseSystem) = length(system.node_dof)
 
+num_dof(a::DenseSolutionArray)=length(a)
+
+num_dof(a::SparseSolutionArray)=nnz(a.node_dof)
+
 """
 $(SIGNATURES)
 
