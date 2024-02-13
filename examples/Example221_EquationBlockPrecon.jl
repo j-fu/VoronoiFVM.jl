@@ -37,11 +37,9 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
     cellmask!(grid, [2.0,-0.5,-0.5], [3.0,0.5,0.5], 3)
 
     
-    @time "masks" begin
-        subgrid1 = subgrid(grid, [1])
-        subgrid2 = subgrid(grid, [1, 2, 3])
-        subgrid3 = subgrid(grid, [3])
-    end
+    subgrid1 = subgrid(grid, [1])
+    subgrid2 = subgrid(grid, [1, 2, 3])
+    subgrid3 = subgrid(grid, [3])
         
     if plot_grid
         return gridplot(grid; Plotter = Plotter)
@@ -50,7 +48,6 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
     eps = [1, 1, 1]
     k = [1, 1, 1]
 
-    @time "funcs" begin
     function reaction(f, u, node)
         if node.region == 1
             f[1] = k[1] * u[1]
@@ -92,23 +89,20 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
             f[3] = u[3]
         end
     end
-    end
 
-    @time "sys" begin
     sys = VoronoiFVM.System(grid; flux, reaction, storage, source,
                             unknown_storage , assembly, is_linear=true)
-    end
-    @time "species" begin
+
     enable_species!(sys, 1, [1])
     enable_species!(sys, 2, [1, 2, 3])
     enable_species!(sys, 3, [3])
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
-    end
+
     control = SolverControl(strategy, sys, verbose="l")
-    @time "solve" U=solve(sys;control)
+    U=solve(sys;control)
     @info num_dof(U)
-    GC.gc()
+
     p = GridVisualizer(; Plotter = Plotter, layout = (3,1),
                        limits = (0, 1e-3),
                        xlimits=(0,3))
