@@ -189,7 +189,7 @@ function main(; n = 11, nspec = 5,
     _flux = flux == :flux_strided ? flux_strided : flux_marray
 
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
-    sys = VoronoiFVM.System(grid; flux = _flux, storage, bcondition, species = 1:nspec, data, assembly)
+    sys = VoronoiFVM.System(grid; flux = _flux, storage, bcondition, species = 1:nspec, data, assembly,unknown_storage)
 
     @info "Strategy: $(strategy)"
     control = SolverControl(strategy, sys)
