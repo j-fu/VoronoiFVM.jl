@@ -9,12 +9,22 @@ An linear solver strategy provides the possibility to construct [`SolverControl`
 ```,
 e.g.
 ```
-    SolverControl(GMRESIteration(UMFPackFactorization(), EquationBlock()),sys;kwargs...)
+    SolverControl(GMRESIteration(UMFPackFactorization(), EquationBlock()),sys; kwargs...)
 ```
 
-A linear solver strategy combines a Krylov method  with an (incomplete) factorization
+A linear solver strategy combines a Krylov method  with a preconditioner
 which by default is calculated from the linearization of the initial value of the
-Newton iteration.
+Newton iteration. For coupled systems, a blocking strategy can be chosen. The [`EquationBlock`](@ref) strategy
+calculates preconditioners or LU factorization  separately for each species equation and combines them
+to a block Jacobi preconditioner.  The [`PointBlock`](@ref) strategy treats the linear system as consisting
+of `nspecies x nspecies` blocks. 
+
+Which is the best strategy, depends on the space dimension. The following is a rule of thumb for choosing strategies
+- For 1D problems use direct solvers
+- For 2D stationary problems, use direct solvers, for transient problems consider iterative solvers which 
+  can take advantage of the diagonal dominance of the implicit timestep problem
+- For 3D problems avoid direct solvers
+
 
 Currently available strategies are:
 - [`DirectSolver`](@ref)
@@ -22,17 +32,30 @@ Currently available strategies are:
 - [`BICGstabIteration`](@ref)
 - [`GMRESIteration`](@ref)
 
+Notable LU Factorizations/direct solvers are:
+- [`UMFPACKFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl)  (`using LinearSolve`)
+- [`KLUFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl) (`using LinearSolve`)
+- [`SparspakFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#Sparspak.jl)  (`using LinearSolve`), [`SparspakLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.SparspakLU) (`using ExtendableSparse,Sparspak`)
+- [`MKLPardisoLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.MKLPardisoLU) (`using ExtendableSparse, Pardiso`), openmp parallel
+- [`AMGSolver`](https://j-fu.github.io/AMGCLWrap.jl/stable/solvers/#AMGCLWrap.AMGSolver) (`using AMGCLWrap`), openmp parallel
+- [`RLXSolver`](https://j-fu.github.io/AMGCLWrap.jl/stable/solvers/#AMGCLWrap.RLXSolver) (`using AMGCLWrap`), openmp parallel
 
-Notable LU Factorizations are:
-- [`UMFPACKFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl)
-- [`KLUFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#SuiteSparse.jl)
-- [`SparspakFactorization`](https://docs.sciml.ai/LinearSolve/stable/solvers/solvers/#Sparspak.jl), [`SparspakLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.SparspakLU)
-- [`MKLPardisoLU`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.MKLPardisoLU)
 
-Notable incomplete factorizations are:
-- [`ILUZeroPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUZeroPreconditioner)
-- [`AMGPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.AMGPreconditioner),
-- [`ILUTPrecondidtioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUTPreconditioner)
+Notable incomplete factorizations/preconditioners
+- Incomplete LU factorizations written in Julia:
+    - [`ILUZeroPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUZeroPreconditioner)
+    - [`ILUTPrecondidtioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.ILUTPreconditioner) (`using ExtendableSparse, IncompleteLU`)
+- Algebraic multigrid written in Julia: (`using ExtendableSparse, AlgebraicMultigrid`)
+    - [`RS_AMGPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.RS_AMGPreconditioner)
+    - [`SA_AMGPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.SA_AMGPreconditioner)
+- AMGCL based preconditioners (`using ExtendableSparse, AMGCLWrap`), openmp parallel
+    - [`AMGCL_AMGPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.AMGCL_AMGPreconditioner)
+    - [`AMGCL_RLXPreconditioner`](https://j-fu.github.io/ExtendableSparse.jl/stable/iter/#ExtendableSparse.AMGCL_RLXPreconditioner)
+
+Blocking strategies are:
+- [`NoBlock`](@ref)
+- [`EquationBlock`](@ref)
+- [`PointBlock`](@ref)
 
 """
 abstract type LinearSolverStrategy<:AbstractStrategy end

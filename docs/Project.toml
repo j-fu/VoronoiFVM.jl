@@ -1,5 +1,6 @@
 [deps]
 AMGCLWrap = "4f76b812-4ba5-496d-b042-d70715554288"
+AlgebraicMultigrid = "2169fc97-5a83-5252-b627-83903c6c433c"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
