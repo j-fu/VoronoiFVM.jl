@@ -1,4 +1,4 @@
-using Documenter, ExampleJuggler, VoronoiFVM, DocumenterCitations
+using Documenter, ExampleJuggler, PlutoStaticHTML, VoronoiFVM, DocumenterCitations
 using ExtendableGrids, GridVisualize, LinearAlgebra, OrdinaryDiffEq, RecursiveArrayTools, SciMLBase
 
 function make(; with_examples = true,

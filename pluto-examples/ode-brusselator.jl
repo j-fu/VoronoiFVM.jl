@@ -139,7 +139,7 @@ end
 t_run=@elapsed bruss_tsol=ODESolver(bruss_system,inival,diffeqmethods[bruss_method]());
 
 # ╔═╡ c1da7d8e-2921-4366-91f0-dc8e1834595b
-(t_run=t_run,details(bruss_system.history)...)
+(t_run=t_run,VoronoiFVM.details(bruss_system.history)...)
 
 # ╔═╡ e7a8aae1-8e7a-4b7d-8ce6-701ea586b89a
 let

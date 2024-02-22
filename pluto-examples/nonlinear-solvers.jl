@@ -127,7 +127,7 @@ History can be explored in detail:
 """
 
 # ╔═╡ fcd7beb6-51b2-4ca8-a184-43ba6b5d2c1a
-details(hist)
+VoronoiFVM.details(hist)
 
 # ╔═╡ baed6e43-747b-4557-95c3-d4805f12b3a1
 md"""
@@ -160,7 +160,7 @@ end
 plothistory(history(system))
 
 # ╔═╡ 35971019-fa07-4033-aebf-7872030a0cef
-details(hist1)
+VoronoiFVM.details(hist1)
 
 # ╔═╡ 63ce84fc-e81b-4768-8122-36bfbd789727
 summary(hist1)
