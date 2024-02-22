@@ -34,7 +34,6 @@ jobs:
           - os: macOS-13 # intel
             arch: aarch64
           - os: macOS-14
-            arch: x64
             version: 1.6
     steps:
       - uses: actions/checkout@v4
