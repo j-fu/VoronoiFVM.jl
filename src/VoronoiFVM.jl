@@ -65,7 +65,6 @@ include("vfvm_assemblydata.jl")
 include("vfvm_system.jl")
 export unknowns
 export num_species
-export partitioning, Equationwise
 export enable_species!
 export enable_boundary_species!
 export enable_discontinuous_species!
@@ -81,6 +80,12 @@ export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
 export hasoutflownode,isoutflownode, outflownode
+
+
+# export to be deprecated
+export partitioning, Equationwise
+
+
 
 include("vfvm_formfactors.jl")
 export meas, project

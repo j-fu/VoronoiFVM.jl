@@ -13,7 +13,10 @@ using ExtendableGrids
 using GridVisualize
 using LinearSolve
 using ExtendableSparse
+using AMGCLWrap
+using AlgebraicMultigrid
 using LinearAlgebra
+using Test
 
 function main(; n = 10, Plotter = nothing, assembly = :edgwwise, kwargs...)
     h = 1.0 / convert(Float64, n)
@@ -60,67 +63,87 @@ function main(; n = 10, Plotter = nothing, assembly = :edgwwise, kwargs...)
 
     sys = VoronoiFVM.System(grid; reaction, flux, source, storage, bcondition, assembly,
                             species = [1])
-
-    @info "KLU:"
-
-    klu_sol = solve(sys; inival = 0.5, method_linear = KLUFactorization(), kwargs...)
-
     @info "UMFPACK:"
     umf_sol = solve(sys; inival = 0.5, method_linear = UMFPACKFactorization(), kwargs...)
 
+    @info "KLU:"
+    sol = solve(sys; inival = 0.5, method_linear = KLUFactorization(), kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
+    
     @info "Sparspak:"
-    spk_sol = solve(sys; inival = 0.5, method_linear = SparspakFactorization(), kwargs...)
+    sol = solve(sys; inival = 0.5, method_linear = SparspakFactorization(), kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
 
     @info "Krylov-ilu0:"
-    kryil0_sol = solve(sys;
-                       inival = 0.5,
-                       method_linear = KrylovJL_BICGSTAB(),
-                       precon_linear = ILUZeroPreconditioner(),
-                       kwargs...)
+    sol = solve(sys;
+                inival = 0.5,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = ILUZeroPreconditioner(),
+                kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
 
-    @show [1:(nn ÷ 2), (nn ÷ 2 + 1):nn]
     @info "Krylov-block1"
-    kryb1_sol = solve(sys;
-                      inival = 0.5,
-                      method_linear = KrylovJL_BICGSTAB(),
-                      precon_linear = BlockPreconditioner(; partitioning = [1:(nn ÷ 2), (nn ÷ 2 + 1):nn],
-                                                          factorization = ILU0Preconditioner()),
+    sol = solve(sys;
+                inival = 0.5,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = BlockPreconditioner(; partitioning = [1:(nn ÷ 2), (nn ÷ 2 + 1):nn],
+                                                    factorization = ILU0Preconditioner()),
                       kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
 
     @info "Krylov-block2"
-    kryb2_sol = solve(sys;
-                      inival = 0.5,
-                      method_linear = KrylovJL_BICGSTAB(),
-                      precon_linear = BlockPreconditioner(; partitioning = [1:2:nn, 2:2:nn],
-                                                          factorization = UMFPACKFactorization()),
+    sol = solve(sys;
+                inival = 0.5,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = BlockPreconditioner(; partitioning = [1:2:nn, 2:2:nn],
+                                                    factorization = UMFPACKFactorization()),
                       kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
 
     @info "Krylov - delayed factorization:"
-    krydel_sol = solve(sys;
-                       inival = 0.5,
-                       method_linear = KrylovJL_BICGSTAB(),
-                       precon_linear = SparspakFactorization(),
-                       kwargs...)
+    sol = solve(sys;
+                inival = 0.5,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = SparspakFactorization(),
+                keepcurrent_linear =false,
+                kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
 
     @info "Krylov - jacobi:"
-    kryjac_sol = solve(sys;
-                       inival = 0.5,
-                       method_linear = KrylovJL_BICGSTAB(),
-                       precon_linear = JacobiPreconditioner(),
-                       keepcurrent_linear = true,
-                       kwargs...)
+    sol = solve(sys;
+                inival = 0.5,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = JacobiPreconditioner(),
+                keepcurrent_linear = true,
+                kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
+    
+    @info "Krylov - SA_AMG:"
+    sol = solve(sys;
+                inival = 0.5,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = SA_AMGPreconditioner(),
+                keepcurrent_linear = true,
+                kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
 
-    norm(spk_sol - umf_sol, Inf) < 1.0e-7 &&
-        norm(klu_sol - umf_sol, Inf) < 1.0e-7 &&
-        norm(kryil0_sol - umf_sol, Inf) < 1.0e-7 &&
-        norm(kryb1_sol - umf_sol, Inf) < 1.0e-7 &&
-        norm(kryb2_sol - umf_sol, Inf) < 1.0e-7 &&
-        norm(krydel_sol - umf_sol, Inf) < 1.0e-7 &&
-        norm(kryjac_sol - umf_sol, Inf) < 1.0e-7
+    @info "Krylov - AMGCL_AMG:"
+    sol = solve(sys;
+                inival = 0.5,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = AMGCL_AMGPreconditioner(),
+                keepcurrent_linear = true,
+                kwargs...)
+    @test norm(sol - umf_sol, Inf)<1.0e-7
+
 end
 
-using Test
 function runtests()
-    @test main(; assembly = :edgewise) && main(; assembly = :cellwise)
+    @testset "edgewise" begin
+        main(; assembly = :edgewise)
+    end
+    @testset "cellwise" begin
+        main(; assembly = :cellwise)
+    end
 end
 end
