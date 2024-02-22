@@ -35,6 +35,8 @@ jobs:
             arch: aarch64
           - os: macOS-14
             version: 1.6
+          - os: macOS-14
+            arch: x64
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
