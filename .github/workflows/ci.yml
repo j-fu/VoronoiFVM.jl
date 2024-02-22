@@ -20,10 +20,22 @@ jobs:
           # - 'nightly'
         os:
           - ubuntu-latest
-          - macos-latest
           - windows-latest
+          - macOS-13 # intel
+          - macOS-14 # arm
         arch:
           - x64
+          - aarch64
+        exclude:
+          - os: ubuntu-latest
+            arch: aarch64
+          - os: windows-latest
+            arch: aarch64
+          - os: macOS-13 # intel
+            arch: aarch64
+          - os: macOS-14
+            arch: x64
+            version: 1.6
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
