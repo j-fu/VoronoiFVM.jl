@@ -229,14 +229,9 @@ end
 using Test
 function runtests()
     testval = 489.3432830184927
-    xf = runf()
-    xg = rung()
-    xh = runh()
-    #    xg2 = rung(; factorization = :ilu0, iteration = :cg)
-    @test xf ≈ testval &&
-          xg ≈ testval &&
-          #       xg2 ≈ testval &&
-          xh ≈ testval
+    @test runf()  ≈ testval
+    @test rung()  ≈ testval
+    @test runh()  ≈ testval
 end
 
 end

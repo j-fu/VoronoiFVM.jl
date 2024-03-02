@@ -252,9 +252,9 @@ Assemble residual and jacobian for node functions. Parameters:
                     asm_jac(idof, jdof, ispec, jspec)
                 end
             end
-        end
-        for iparam = 1:(system.num_parameters)
-            asm_param(idof, ispec, iparam)
+            for iparam = 1:(system.num_parameters)
+                asm_param(idof, ispec, iparam)
+            end
         end
     end
 end
@@ -282,10 +282,10 @@ See [`assemble_res_jac`](@ref) for more explanations.
                 if isnodespecies(system, jspec, K)
                     asm_jac(idof, jdof, ispec, jspec)
                 end
+                for iparam = 1:(system.num_parameters)
+                    asm_param(idof, ispec, iparam)
+                end
             end
-        end
-        for iparam = 1:(system.num_parameters)
-            asm_param(idof, ispec, iparam)
         end
     end
 end
@@ -329,7 +329,7 @@ $(SIGNATURES)
 Assemble residual and jacobian for edge (flux) functions. Parameters:
 
 - `system`: System to be worked with
-- `node`: node
+- `edge`: edge
 - `asm_res(idofK,idofL,ispec)`: e.g. assemble local ispec to global degrees of freedom in unknowns
 - `asm_jac(idofK,jdofK,idofL,jdofL,ispec,jspec)`: e.g.  assemble entry `ispec,jspec` of local jacobian into entry four entries defined by `idofK` and `idofL` of global matrix
 - `asm_param(idofK,idofL,ispec,iparam)` shall assemble parameter derivatives
@@ -344,7 +344,6 @@ Assemble residual and jacobian for edge (flux) functions. Parameters:
     K = edge.node[1]
     L = edge.node[2]
     ireg = edge.region
-
     for idofK = firstnodedof(system, K):lastnodedof(system, K)
         ispec = getspecies(system, idofK)
         if isregionspecies(system, ispec, ireg)
@@ -360,12 +359,12 @@ Assemble residual and jacobian for edge (flux) functions. Parameters:
                         end
                     end
                 end
+                for iparam = 1:(system.num_parameters)
+                    asm_param(idofK, idofL, ispec, iparam)
+                end
             end
         end
 
-        for iparam = 1:(system.num_parameters)
-            asm_param(idofK, idofL, ispec, iparam)
-        end
     end
 end
 
@@ -422,13 +421,13 @@ See [`assemble_res_jac`](@ref) for more explanations.
                         end
                     end
                 end
+                for iparam = 1:(system.num_parameters)
+                    asm_param(idofK, idofL, ispec, iparam)
+                end
             end
         end
     end
 
-    for iparam = 1:(system.num_parameters)
-        asm_param(idofK, idofL, ispec, iparam)
-    end
 end
 
 """
