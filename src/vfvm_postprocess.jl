@@ -351,3 +351,17 @@ function nodevolumes(system)
     end
     nodevol
 end
+
+
+"""
+    checkdelaunay(grid;tol=1.0e-14)
+
+Check boundary conforming Delaunay property of grid.
+"""
+function checkdelaunay(grid;tol=1.0e-14)
+    sys=System(grid;unknown_storage=:dense,species=[1], assembly=:edgewise)
+    update_grid!(sys)
+    @info all(v->v>-tol,sys.assembly_data.edgefactors.nzval)
+    sys.assembly_data.edgefactors.nzval
+end
+
