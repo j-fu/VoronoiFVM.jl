@@ -201,14 +201,14 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
                           fignumber = 4)
 
     for i = 1:length(tsol)
-        sol = tsol[i]
+        sol = tsol.u[i]
         scalarplot!(vis1[1, 1], grid, sol[1, :]; flimits = (0, 1.5), clear = true)
         scalarplot!(vis1[1, 2], grid, sol[2, :]; flimits = (0, 1.5), show = true)
     end
 
     outflow_rate = Float64[]
     for i = 2:length(tsol)
-        ofr = integrate(system, T, tsol[i], tsol[i - 1], tsol.t[i] - tsol.t[i - 1])
+        ofr = integrate(system, T, tsol.u[i], tsol.u[i - 1], tsol.t[i] - tsol.t[i - 1])
         push!(outflow_rate, ofr[2])
     end
 
@@ -222,7 +222,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
         all_outflow -= outflow_rate[i] * (tsol.t[i + 1] - tsol.t[i])
     end
 
-    Uend = integrate(system, storage, tsol[end])
+    Uend = integrate(system, storage, tsol.u[end])
     isapprox(F[1], R[1]; rtol = 1.0e-12) ? true : return false
     isapprox(I[1], 0.0; atol = 1.0e-12) ? true : return false
     isapprox(R[2], I[2]; rtol = 1.0e-12) ? true : return false

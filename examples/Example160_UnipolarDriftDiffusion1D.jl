@@ -155,7 +155,7 @@ function main(;
                         color = :red,)
             reveal(vis)
         end
-        return sum(tsol[end])
+        return sum(tsol.u[end])
 
     else  # Calculate double layer capacitance
         U = unknowns(sys)

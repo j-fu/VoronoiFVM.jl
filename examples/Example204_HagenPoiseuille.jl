@@ -72,8 +72,8 @@ using Test
 function runtests()
     tsol1 = main(; assembly = :edgewise)
     tsol2 = main(; assembly = :cellwise)
-    @test all(tsol1[end] .≈ 1) &&
-          all(tsol1[end] .≈ 1)
+    @test all(tsol1.u[end] .≈ 1) 
+    @test all(tsol1.u[end] .≈ 1)
 end
 
 end

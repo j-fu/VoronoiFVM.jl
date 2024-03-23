@@ -90,7 +90,7 @@ function main(; n = 20, m = 2, Plotter = nothing, verbose = false,
         reveal(p)
         sleep(1.0e-2)
     end
-    return sum(tsol[end])
+    return sum(tsol.u[end])
 end
 
 using Test

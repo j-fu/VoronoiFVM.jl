@@ -226,7 +226,7 @@ Joint plot of solution and flux reconstruction
 # ╔═╡ 531edb71-6d32-4231-b117-5e36416d2fb1
 begin
     scalarplot!(vis, grid, sol[1, :]; levels = 9, colormap = :summer, clear = true)
-    vectorplot!(vis, grid, nf[:, 1, :]; clear = false, spacing = 0.5, vscale = 1.5)
+    vectorplot!(vis, grid, nf[:, 1, :]; clear = false, vscale = 1.5)
     reveal(vis)
 end
 

@@ -80,7 +80,7 @@ end
 using Test
 function runtests()
     tsol = main()
-    @test maximum(tsol) <= 1.0 && maximum(tsol[end]) < 1.0e-20
+    @test maximum(tsol) <= 1.0 && maximum(tsol.u[end]) < 1.0e-20
 end
 
 end
