@@ -86,7 +86,7 @@ function main(n = 1; assembly = :edgewise)
     control = VoronoiFVM.NewtonControl()
     control.verbose = false
     control.reltol_linear = 1.0e-5
-    control.max_lureuse = 10
+    control.keepcurrent_linear=false
 
     tstep = 0.1
     time = 0.0

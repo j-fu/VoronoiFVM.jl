@@ -317,7 +317,7 @@ function breakthrough(sys, tf, sol)
     t = sol.t
     of[1] = 0
     for i = 2:length(sol.t)
-        of[i] = -integrate(sys, tf, sol[i], sol[i - 1], t[i] - t[i - 1])[ic]
+        of[i] = -integrate(sys, tf, sol.u[i], sol.u[i - 1], t[i] - t[i - 1])[ic]
     end
     of
 end

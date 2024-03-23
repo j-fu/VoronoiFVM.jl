@@ -152,7 +152,7 @@ Try to use a damped version of Newton method. The damping scheme is rather simpl
 
 # ╔═╡ d961d026-0b55-46c2-8555-8ef0763d8016
 begin
-    sol1 = solve(system; log = true, inival = 1, damp = 0.15, damp_grow = 1.5)
+    sol1 = solve(system; log = true, inival = 1, damp_initial = 0.15, damp_growth = 1.5)
     hist1 = history(system)
 end
 
@@ -217,7 +217,6 @@ begin
                  log = true,
                  embed = (0, 1),
                  Δp = 0.1,
-                 max_lureuse = 0,
                  Δp_grow = 1.2,
                  Δu_opt = 15)
     history2 = history(system2)
@@ -230,10 +229,10 @@ summary(history2)
 plothistory(vcat(history2[2:end]...))
 
 # ╔═╡ 310675d5-d175-43fc-bb86-3fb1c2d3c24c
-sol2[end]
+sol2.u[end]
 
 # ╔═╡ 75ab714d-0251-42ef-a415-ba6bed4c688f
-@test check(sol2[end])
+@test check(sol2.u[end])
 
 # ╔═╡ fe22e2d8-fd70-49e2-8baf-d5ec3faead24
 md"""

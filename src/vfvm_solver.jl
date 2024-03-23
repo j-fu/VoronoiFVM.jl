@@ -204,7 +204,7 @@ function VoronoiFVM.solve!(solution, # Solution
                            called_from_API = false,)
     fix_deprecations!(control)
     if !called_from_API && doprint(control, 'd')
-        @warn "[d]eprecated: solve(inival,solution, system; kwargs...)"
+        @warn "[d]eprecated: solve!(solution,inival,system; kwargs...)"
     end
     _solve_timestep!(solution,
                      inival,

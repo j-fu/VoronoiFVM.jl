@@ -99,7 +99,7 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
 
-    control = SolverControl(strategy, sys, verbose="l")
+    control = SolverControl(strategy, sys)
     U=solve(sys;control)
     @info num_dof(U)
 
