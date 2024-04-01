@@ -59,8 +59,6 @@ end
 function nosrc2(f, node)
 end
 
-
-
 function default_storage2(f, u, node)
     f .= u
 end
@@ -159,7 +157,6 @@ struct Physics{Flux <: Function,
     """
     bstorage::BStorage
 
-
     """
     Outflow boundary term  `boutflow(f,u,edge)` or `boutflow(f,u,edge,data)` 
     This function is called for edges (including interior ones) which have at least one ode
@@ -175,7 +172,7 @@ struct Physics{Flux <: Function,
     Influences when `boutflow` is called.
     """
     outflowboundaries::Vector{Int}
-    
+
     """
     Generic operator  `generic_operator(f,u,sys)`. 
     This operator acts on the full solution `u` of a system. Sparsity
@@ -297,10 +294,7 @@ Check if physics object has data
 """
 hasdata(physics::Physics) = isdata(physics.data)
 
-
-hasoutflow(physics::Physics) = physics.boutflow !=nofunc && physics.boutflow !=nofunc2 
-
-
+hasoutflow(physics::Physics) = physics.boutflow != nofunc && physics.boutflow != nofunc2
 
 """
 $(SIGNATURES)

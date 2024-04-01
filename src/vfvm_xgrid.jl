@@ -15,7 +15,6 @@ cellnodes(grid::ExtendableGrid) = grid[CellNodes]
 bfacenodes(grid::ExtendableGrid) = grid[BFaceNodes]
 coordinates(grid::ExtendableGrid) = grid[Coordinates]
 
-
 """
    $(SIGNATURES)
 

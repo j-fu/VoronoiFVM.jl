@@ -95,7 +95,6 @@ function cellfactors!(T::Type{Triangle2D}, ::Type{Cartesian2D}, coord, cellnodes
     nothing
 end
 
-
 function cellfactors!(T::Type{Triangle2D}, ::Type{Cylindrical2D}, coord, cellnodes, icell, npar, epar)
     en = local_celledgenodes(T)
     @views n = cellnodes[:, icell]
@@ -120,42 +119,36 @@ function cellfactors!(T::Type{Triangle2D}, ::Type{Cylindrical2D}, coord, cellnod
 
     # Circumcenter; use epar as temp storage
     @views tricircumcenter!(epar, coord[:, n[1]], coord[:, n[2]], coord[:, n[3]])
-    rcc=epar[1]
-    
+    rcc = epar[1]
+
     # contributions to \sigma_kl/h_kl (cartesian)
     epar[1] = (dd[2] + dd[3] - dd[1]) * 0.125 * ivol
     epar[2] = (dd[3] + dd[1] - dd[2]) * 0.125 * ivol
     epar[3] = (dd[1] + dd[2] - dd[3]) * 0.125 * ivol
 
-    
     # contributions to \omega_k
     # for integration we multiply cartesian areas with 2\pi the average radius
     npar .= 0.0
     for i = 1:3
-
         @views r1 = coord[1, n[en[1, i]]]
         @views r2 = coord[1, n[en[2, i]]]
 
-        cylfac1=2*π*(r1+rcc+emid[1,i])/3
-        cylfac2=2*π*(r2+rcc+emid[1,i])/3
-        
+        cylfac1 = 2 * π * (r1 + rcc + emid[1, i]) / 3
+        cylfac2 = 2 * π * (r2 + rcc + emid[1, i]) / 3
+
         npar[en[1, i]] += epar[i] * dd[i] * 0.25 * cylfac1
         npar[en[2, i]] += epar[i] * dd[i] * 0.25 * cylfac2
     end
 
-
     # for angular integration we multiply interface lengths with 2\pi the average radius of the interface
     # need to do this after angular integrating volume contributions
-    for i=1:3
-        rmid=(rcc+emid[1,i])/2
-        epar[i]*=2π*rmid
+    for i = 1:3
+        rmid = (rcc + emid[1, i]) / 2
+        epar[i] *= 2π * rmid
     end
-
 
     nothing
 end
-
-
 
 function cellfactors!(T::Type{Tetrahedron3D}, ::Type{Cartesian3D}, coord, cellnodes, icell, npar, epar)
     # Transferred from WIAS/pdelib, (c) J. Fuhrmann, H. Langmach, I. Schmelzer
@@ -287,7 +280,6 @@ function bfacefactors!(T::Type{Edge1D}, ::Type{<:Cylindrical2D}, coord, bfacenod
     nothing
 end
 
-
 function bfacefactors!(T::Type{Triangle2D}, ::Type{<:Cartesian3D}, coord, bfacenodes, ibface, npar, epar)
     # Transferred from WIAS/pdelib, (c) J. Fuhrmann, H. Langmach, I. Schmelzer
 
@@ -314,7 +306,6 @@ function bfacefactors!(T::Type{Triangle2D}, ::Type{<:Cartesian3D}, coord, bfacen
 
     d = 1.0 / (8 * vol)
 
-
     # Knoten-Flaechenanteile (ohne Abschneiden)
     npar .= 0.0
     for i = 1:3
@@ -326,7 +317,7 @@ function bfacefactors!(T::Type{Triangle2D}, ::Type{<:Cartesian3D}, coord, bfacen
     epar[1] = epar[1] * d / dd[1]
     epar[2] = epar[2] * d / dd[2]
     epar[3] = epar[3] * d / dd[3]
-    
+
     nothing
 end
 
@@ -335,7 +326,7 @@ end
 #
 # TODO: this should be generalized for more quadrules
 #
-function integrate(::Type{<:Cartesian2D},coordl, coordr, hnormal, velofunc)
+function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
@@ -346,16 +337,16 @@ function integrate(::Type{<:Cartesian2D},coordl, coordr, hnormal, velofunc)
     return (wl * vxl + wm * vxm + wr * vxr) * hnormal[1] + (wl * vyl + wm * vym + wr * vyr) * hnormal[2]
 end
 
-function integrate(::Type{<:Cylindrical2D},coordl, coordr, hnormal, velofunc)
+function integrate(::Type{<:Cylindrical2D}, coordl, coordr, hnormal, velofunc)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
     coordm = 0.5 * (coordl + coordr)
 
-    rl=coordl[1]
-    rm=coordm[1]
-    rr=coordr[1]
-    
+    rl = coordl[1]
+    rm = coordm[1]
+    rr = coordr[1]
+
     if abs(coordm[1]) < eps()
         return 0
     else
@@ -363,14 +354,12 @@ function integrate(::Type{<:Cylindrical2D},coordl, coordr, hnormal, velofunc)
         (vxm, vym) = velofunc(coordm[1], coordm[2])
         (vxr, vyr) = velofunc(coordr[1], coordr[2])
 
-        vl=vxl*hnormal[1]+vyl*hnormal[2]
-        vm=vxm*hnormal[1]+vym*hnormal[2]
-        vr=vxr*hnormal[1]+vyr*hnormal[2]
+        vl = vxl * hnormal[1] + vyl * hnormal[2]
+        vm = vxm * hnormal[1] + vym * hnormal[2]
+        vr = vxr * hnormal[1] + vyr * hnormal[2]
 
-        return (wl*vl*rl + wm*vm*rm + wr*vr*rr)/rm
-        
+        return (wl * vl * rl + wm * vm * rm + wr * vr * rr) / rm
     end
-    
 end
 
 """
@@ -415,7 +404,7 @@ function edgevelocities(grid, velofunc)
                 p2 .= 0.5 * (coord[:, K] + coord[:, L])
             end
             hnormal = coord[:, K] - coord[:, L]
-            velovec[iedge] = integrate(coord_system,p1, p2, hnormal, velofunc)
+            velovec[iedge] = integrate(coord_system, p1, p2, hnormal, velofunc)
         end
     end
     return velovec
@@ -445,8 +434,8 @@ function bfacevelocities(grid, velofunc)
             p1 = coord[:, bfacenodes[1, ibface]]
             p2 = coord[:, bfacenodes[2, ibface]]
             pm = 0.5 * (p1 + p2)
-            velovec[1, ibface] = integrate(coord_system,p1, pm, bfacenormals[:, ibface], velofunc)
-            velovec[2, ibface] = integrate(coord_system,pm, p2, bfacenormals[:, ibface], velofunc)
+            velovec[1, ibface] = integrate(coord_system, p1, pm, bfacenormals[:, ibface], velofunc)
+            velovec[2, ibface] = integrate(coord_system, pm, p2, bfacenormals[:, ibface], velofunc)
         end
     end
     return velovec
@@ -460,23 +449,22 @@ the divergence of the velocity field used to obtain `evelo` and `bfvelo` via
 [`edgevelocities`](@ref) and [`bfacevelocities`](@ref) by means of summing
 all `evelos` and `bfvelos` per Voronoi cell.
 """
-function calc_divergences(sys,evelo,bfvelo)
-    boundary_assem_data=sys.boundary_assembly_data
-    grid=sys.grid
+function calc_divergences(sys, evelo, bfvelo)
+    boundary_assem_data = sys.boundary_assembly_data
+    grid = sys.grid
     div4nodes = zeros(Float64, num_nodes(grid))
-
 
     edge = Edge(sys)
     for item in edgebatch(sys.assembly_data)
-        for iedge in edgerange(sys.assembly_data,item)
-            _fill!(edge,sys.assembly_data,iedge,item) 
+        for iedge in edgerange(sys.assembly_data, item)
+            _fill!(edge, sys.assembly_data, iedge, item)
             node1 = edge.node[1]
             node2 = edge.node[2]
             div4nodes[node1] -= evelo[edge.index] * edge.fac
             div4nodes[node2] += evelo[edge.index] * edge.fac
         end
     end
-    
+
     # assem_data=sys.assembly_data
     # edgefactors = assem_data.edgefactors
     # cellnodes = grid[CellNodes]
@@ -495,22 +483,22 @@ function calc_divergences(sys,evelo,bfvelo)
 
     bfacenodes = grid[BFaceNodes]
     boundarynodefactors = boundary_assem_data.nodefactors
-    for ibface in 1:num_bfaces(grid)
+    for ibface = 1:num_bfaces(grid)
         node1 = bfacenodes[1, ibface]
         node2 = bfacenodes[2, ibface]
-        div4nodes[node1] += boundarynodefactors[1, ibface] * bfvelo[1,ibface]
-        div4nodes[node2] += boundarynodefactors[2, ibface] * bfvelo[2,ibface]
+        div4nodes[node1] += boundarynodefactors[1, ibface] * bfvelo[1, ibface]
+        div4nodes[node2] += boundarynodefactors[2, ibface] * bfvelo[2, ibface]
     end
 
     return div4nodes
 end
 
-function calc_divergences(sys,velofunc)
+function calc_divergences(sys, velofunc)
     grid = sys.grid
-    evelo = edgevelocities(grid,velofunc)
-    bfvelo = bfacevelocities(grid,velofunc)
-    
-    return calc_divergences(sys,evelo,bfvelo)
+    evelo = edgevelocities(grid, velofunc)
+    bfvelo = bfacevelocities(grid, velofunc)
+
+    return calc_divergences(sys, evelo, bfvelo)
 end
 
 """

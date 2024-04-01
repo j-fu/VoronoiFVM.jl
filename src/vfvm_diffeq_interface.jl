@@ -79,24 +79,23 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     U = unknowns(system; inival = 0)
     M = ExtendableSparseMatrix{Tv, Tm}(ndof, ndof)
 
-
     asm_res(idof, ispec) = nothing
     asm_param(idof, ispec, iparam) = nothing
 
     for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             @views evaluate!(stor_eval, U[:, node.index])
             jac_stor = jac(stor_eval)
             asm_jac(idof, jdof, ispec, jspec) = _addnz(M, idof, jdof, jac_stor[ispec, jspec], node.fac)
             assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
         end
     end
-    
+
     if isnontrivial(bstor_eval)
         for item in nodebatch(system.boundary_assembly_data)
-            for ibnode in noderange(system.boundary_assembly_data,item)
-                _fill!(bnode,system.boundary_assembly_data,ibnode,item)
+            for ibnode in noderange(system.boundary_assembly_data, item)
+                _fill!(bnode, system.boundary_assembly_data, ibnode, item)
                 K = bnode.index
                 @views evaluate!(bstor_eval, U[:, K])
                 jac_bstor = jac(bstor_eval)
@@ -126,10 +125,8 @@ function prepare_diffeq!(sys, jacval, tjac)
     sys.matrix.cscmatrix
 end
 
-
 ###################################################################################################
 # API
-
 
 """
      ODEFunction(system,inival=unknowns(system,inival=0),t0=0)
@@ -146,13 +143,12 @@ Parameters:
 The `jacval` and `tjac` are passed  for a first evaluation of the Jacobian, allowing to detect
 the sparsity pattern which is passed to the solver.
 """
-function SciMLBase.ODEFunction(sys::VoronoiFVM.AbstractSystem; jacval=unknowns(sys,0), tjac=0)
+function SciMLBase.ODEFunction(sys::VoronoiFVM.AbstractSystem; jacval = unknowns(sys, 0), tjac = 0)
     SciMLBase.ODEFunction(eval_rhs!;
-                          jac=eval_jacobian!,
-                          jac_prototype=prepare_diffeq!(sys,jacval, tjac),
-                          mass_matrix=mass_matrix(sys))
+                          jac = eval_jacobian!,
+                          jac_prototype = prepare_diffeq!(sys, jacval, tjac),
+                          mass_matrix = mass_matrix(sys))
 end
-
 
 """
     ODEProblem(system,inival,tspan,callback=SciMLBase.CallbackSet())
@@ -170,9 +166,9 @@ Parameters:
 The method returns an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can be solved
 by [solve()](https://diffeq.sciml.ai/stable/basics/common_solver_opts/).
 """
-function  SciMLBase.ODEProblem(sys::VoronoiFVM.AbstractSystem, inival, tspan, callback=SciMLBase.CallbackSet())
-    odefunction=SciMLBase.ODEFunction(sys; jacval=inival,tjac=tspan[1])
-    SciMLBase.ODEProblem(odefunction,vec(inival),tspan,sys,callback)
+function SciMLBase.ODEProblem(sys::VoronoiFVM.AbstractSystem, inival, tspan, callback = SciMLBase.CallbackSet())
+    odefunction = SciMLBase.ODEFunction(sys; jacval = inival, tjac = tspan[1])
+    SciMLBase.ODEProblem(odefunction, vec(inival), tspan, sys, callback)
 end
 
 """
@@ -184,13 +180,11 @@ of higher order interpolations with `ode_sol`.
 
 If `times` is specified, the (possibly higher ordee) interpolated solution at the given moments of time will be returned.
 """
-function Base.reshape(sol::AbstractDiffEqArray, sys::VoronoiFVM.AbstractSystem, times=nothing)
+function Base.reshape(sol::AbstractDiffEqArray, sys::VoronoiFVM.AbstractSystem, times = nothing)
     if isnothing(times)
-        TransientSolution([reshape(sol.u[i],sys) for i=1:length(sol.u)] ,sol.t)
+        TransientSolution([reshape(sol.u[i], sys) for i = 1:length(sol.u)], sol.t)
     else
-        isol=sol(times)
-        TransientSolution([reshape(isol[i],sys) for t=1:length(times)] ,times)
+        isol = sol(times)
+        TransientSolution([reshape(isol[i], sys) for t = 1:length(times)], times)
     end
 end
-
-

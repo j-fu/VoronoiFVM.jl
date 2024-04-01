@@ -27,7 +27,6 @@ Return size of sparse solution array.
 """
 Base.size(a::SparseSolutionArray) = size(a.node_dof)
 
-
 ##################################################################
 """
 $(SIGNATURES)

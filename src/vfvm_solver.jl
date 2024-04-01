@@ -29,13 +29,13 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
         update = system.update
         _initialize!(solution, system; time, λ = embedparam, params)
 
-        method_linear = system.matrixtype == :sparse ? control.method_linear : nothing;
-        if isnothing(method_linear) &&  system.matrixtype == :sparse
+        method_linear = system.matrixtype == :sparse ? control.method_linear : nothing
+        if isnothing(method_linear) && system.matrixtype == :sparse
             if Tv != Float64
                 method_linear = SparspakFactorization()
-            elseif dim_space(system.grid)==1
+            elseif dim_space(system.grid) == 1
                 method_linear = KLUFactorization()
-            elseif dim_space(system.grid)==2
+            elseif dim_space(system.grid) == 2
                 method_linear = SparspakFactorization()
             else
                 method_linear = UMFPACKFactorization() # seems to do the best pivoting
