@@ -22,7 +22,7 @@ Base.@kwdef mutable struct NewtonSolverHistory <: AbstractVector{Float64}
 
     """ Elapsed time for linear solve """
     tlinsolve::Float64 = 0.0
-    
+
     """ History of norms of ``||u_{i+1}-u_i||``"""
     updatenorm = zeros(0)
 
@@ -41,7 +41,7 @@ Return named tuple summarizing history.
 function Base.summary(h::NewtonSolverHistory)
     (seconds = round(h.time; sigdigits = 3),
      tasm = round(h.tasm; sigdigits = 3),
-     tlinsolve = round(h.tlinsolve, sigdigits = 3),
+     tlinsolve = round(h.tlinsolve; sigdigits = 3),
      iters = length(h.updatenorm),
      absnorm = round(h.updatenorm[end]; sigdigits = 3),
      relnorm = round(h.updatenorm[end] / h.updatenorm[1]; sigdigits = 3),

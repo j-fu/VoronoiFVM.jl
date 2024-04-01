@@ -127,7 +127,6 @@ mutable struct Node{Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     """
     params::Vector{Tp}
 
-
     """
     Form factor
     """
@@ -137,14 +136,14 @@ mutable struct Node{Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     Local loop index
     """
     _idx::Ti
-    
+
     function Node{Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(zero(Ti), 0,
             num_species(sys), 0,
             coordinates(sys.grid),
             sys.grid[CellNodes],
             sys.grid[CellRegions],
-            time, embedparam, params,0.0,0)
+            time, embedparam, params, 0.0, 0)
     end
 end
 
@@ -153,7 +152,6 @@ function Node(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
 end
 
 Node(sys) = Node(sys, 0, 0, zeros(0))
-
 
 """
     $(TYPEDEF)
@@ -249,7 +247,7 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     dirichlet_value::Vector{Tv}
 
     fac::Float64
-    
+
     function BNode{Tv, Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam,
                                    params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(0, 0, 0, 0, zeros(Ti, 2),
@@ -260,14 +258,13 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
             sys.grid[CellRegions],
             sys.grid[BFaceCells],
             Dirichlet, time, embedparam, params,
-            zeros(Tv, num_species(sys)),0.0)
+            zeros(Tv, num_species(sys)), 0.0)
     end
 end
 function BNode(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
     BNode{Tv, Tc, Tp, Ti}(sys, time, embedparam, params)
 end
 BNode(sys) = BNode(sys, 0, 0, zeros(0))
-
 
 struct BNodeUnknowns{Tval, Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
     val::Vector{Tval}
@@ -349,20 +346,19 @@ mutable struct Edge{Tc, Tp, Ti} <: AbstractEdge{Tc, Tp, Ti}
     Form factor
     """
     fac::Float64
-    
-     """
-    Local loop index
+
     """
+   Local loop index
+   """
     _idx::Ti
-    
-    outflownoderegions::Union{Nothing,SparseMatrixCSC{Bool,Int}}
+
+    outflownoderegions::Union{Nothing, SparseMatrixCSC{Bool, Int}}
 
     """
     Outflow node
     """
     outflownode::Int
-    
-    
+
     Edge{Tc, Tp, Ti}(::Nothing) where {Tc, Tp, Ti} = new()
 end
 
@@ -391,13 +387,12 @@ function Edge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
     edge.time = time
     edge.embedparam = embedparam
     edge.params = params
-    edge.fac=0
-    edge.outflownode=0
-    edge._idx=0
-    edge.outflownoderegions=sys.outflownoderegions
+    edge.fac = 0
+    edge.outflownode = 0
+    edge._idx = 0
+    edge.outflownoderegions = sys.outflownoderegions
     edge
 end
-
 
 struct EdgeUnknowns{Tv, Tc, Tp, Ti} <: AbstractEdgeData{Tv}
     val::Vector{Tv}
@@ -416,7 +411,6 @@ struct EdgeRHS{Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
 end
 
 @inline rhs(edge::Edge{Tc, Tp, Ti}, f::AbstractVector{Tv}) where {Tv, Tc, Tp, Ti} = EdgeRHS{Tv, Tc, Tp, Ti}(f, edge.nspec, edge)
-
 
 """
     hasoutflownode(edge)
@@ -438,24 +432,23 @@ isoutflownode(edge, inode) = length(nzrange(edge.outflownoderegions, edge.node[i
 
 Check if inode (1 or 2) is an outflow node on boundary region `iregion`.
 """
-isoutflownode(edge, inode, iregion)= edge.outflownoderegions[iregion,edge.node[inode]]
+isoutflownode(edge, inode, iregion) = edge.outflownoderegions[iregion, edge.node[inode]]
 
 """
     outflownode(edge)
 
 Return outflow node of edge (1 or 2).
 """
-outflownode(edge)=edge.outflownode
+outflownode(edge) = edge.outflownode
 
 """
     outflownode!(edge)
 Set `edge.outflownode` entry.
 """
 function outflownode!(edge)
-    isoutflownode(edge, 1) ?  edge.outflownode=1 : true
-    isoutflownode(edge, 2) ?  edge.outflownode=2 : true
+    isoutflownode(edge, 1) ? edge.outflownode = 1 : true
+    isoutflownode(edge, 2) ? edge.outflownode = 2 : true
 end
-
 
 ##################################################################
 """
@@ -534,11 +527,9 @@ function BEdge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Ve
     bedge.time = time
     bedge.embedparam = embedparam
     bedge.params = params
-    bedge.fac=0.0
+    bedge.fac = 0.0
     bedge
 end
-
-
 
 struct BEdgeUnknowns{Tv, Tc, Tp, Ti} <: AbstractEdgeData{Tv}
     val::Vector{Tv}

@@ -8,7 +8,6 @@ using LinearAlgebra
 using SparseArrays
 import CommonSolve, SciMLBase
 
-
 using InteractiveUtils
 using BandedMatrices
 # using MultidiagonalMatrices
@@ -49,7 +48,6 @@ export NewtonSolverHistory, TransientSolverHistory, details
 include("vfvm_transientsolution.jl")
 export transient_solution, TransientSolution
 
-
 include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmetric!
 export coordinates
@@ -79,13 +77,10 @@ export history, history_summary, history_details
 export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
-export hasoutflownode,isoutflownode, outflownode
-
+export hasoutflownode, isoutflownode, outflownode
 
 # export to be deprecated
 export partitioning, Equationwise
-
-
 
 include("vfvm_formfactors.jl")
 export meas, project
@@ -99,7 +94,6 @@ export fixed_timesteps!, NewtonControl, SolverControl
 include("vfvm_linsolve.jl")
 export DirectSolver, GMRESIteration, CGIteration, BICGstabIteration, NoBlock, EquationBlock, PointBlock
 
-
 include("vfvm_exceptions.jl")
 include("vfvm_assembly.jl")
 include("vfvm_solver.jl")
@@ -110,11 +104,11 @@ export solve!, solve
 include("vfvm_postprocess.jl")
 export nodeflux
 export integrate
-export l2norm,lpnorm
-export w1pseminorm,h1seminorm
-export w1pnorm,h1norm
-export lpw1pnorm,l2h1norm
-export lpw1pseminorm,l2h1seminorm
+export l2norm, lpnorm
+export w1pseminorm, h1seminorm
+export w1pnorm, h1norm
+export lpw1pnorm, l2h1norm
+export lpw1pseminorm, l2h1seminorm
 export nodevolumes
 
 include("vfvm_testfunctions.jl")
