@@ -1,6 +1,14 @@
-using Test
+using Test, ExplicitImports
 import ExampleJuggler
 using ExampleJuggler: cleanexamples, @testmodules, @testscripts
+using VoronoiFVM
+
+
+@testset "ExplicitImports" begin
+    @test ExplicitImports.check_no_implicit_imports(VoronoiFVM) === nothing
+    @test ExplicitImports.check_no_stale_explicit_imports(VoronoiFVM) === nothing
+end
+
 
 ExampleJuggler.verbose!(true)
 #
