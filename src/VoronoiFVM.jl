@@ -1,33 +1,45 @@
-"""
-$(EXPORTS)
-"""
 module VoronoiFVM
-using Printf
-using DocStringExtensions
-using LinearAlgebra
-using SparseArrays
-import CommonSolve, SciMLBase
 
-using InteractiveUtils
-using BandedMatrices
-# using MultidiagonalMatrices
-
-using LinearSolve
-using Statistics
-
-using ForwardDiff
-using DiffResults
-using JLD2
-using RecursiveArrayTools
-
-using ExtendableSparse
-using ExtendableGrids
-
-using StaticArrays
-using SparseDiffTools
-using Symbolics
-using Random
-using RecursiveFactorization
+using BandedMatrices: BandedMatrices, BandedMatrix, Zeros
+using CommonSolve: CommonSolve, solve, solve!
+using DiffResults: DiffResults
+using DocStringExtensions: DocStringExtensions, SIGNATURES, TYPEDEF,
+                           TYPEDFIELDS, TYPEDSIGNATURES
+using ExtendableGrids: ExtendableGrids, BEdgeNodes, BFaceCells, BFaceEdges,
+                       BFaceGeometries, BFaceNodes, BFaceNormals, BFaceRegions,
+                       Cartesian1D, Cartesian2D, Cartesian3D, CellEdges,
+                       CellGeometries, CellNodes, CellRegions,
+                       CoordinateSystem, Coordinates, Cylindrical2D, Edge1D,
+                       EdgeCells, EdgeNodes, ExtendableGrid, NumBFaceRegions,
+                       NumCellRegions, Polar1D, Spherical1D, Tetrahedron3D,
+                       Triangle2D, Vertex0D, VoronoiFaceCenters, coord_type,
+                       dim_space, index_type, local_celledgenodes, num_bfaces,
+                       num_cells, num_edges, num_nodes, num_targets,
+                       simplexgrid, subgrid, tricircumcenter!
+using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
+                        ExtendableSparseMatrix,
+                        PointBlockILUZeroPreconditioner, factorize!, flush!,
+                        nnz, rawupdateindex!, sparse, updateindex!
+using ForwardDiff: ForwardDiff
+using InteractiveUtils: InteractiveUtils
+using JLD2: JLD2, jldopen
+using LinearAlgebra: LinearAlgebra, Diagonal, I, LU, Tridiagonal, isdiag, ldiv!,
+                     norm
+using LinearSolve: LinearSolve, KLUFactorization, KrylovJL_BICGSTAB,
+                   KrylovJL_CG, KrylovJL_GMRES, LinearProblem,
+                   SparspakFactorization, UMFPACKFactorization, init
+using Printf: Printf, @printf, @sprintf
+using Random: Random, AbstractRNG
+using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray
+using RecursiveFactorization: RecursiveFactorization
+using SciMLBase: SciMLBase
+using SparseArrays: SparseArrays, SparseMatrixCSC, dropzeros!, nonzeros,
+                    nzrange, spzeros
+using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
+                       matrix_colors
+using StaticArrays: StaticArrays, @MVector, @SArray, @SMatrix
+using Statistics: Statistics, mean
+using Symbolics: Symbolics
 
 include("vfvm_physics.jl")
 include("vfvm_functions.jl")

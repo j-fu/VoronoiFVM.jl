@@ -187,7 +187,7 @@ function factorizationstrategy(strat::FactorizationStrategy, ::EquationBlock, sy
                         factorization = factorizationstrategy(strat, NoBlock(), sys),)
 end
 
-function factorizationstrategy(::ILUZeroPreconditioner, ::PointBlock, sys)
+function factorizationstrategy(::ExtendableSparse.ILUZeroPreconditioner, ::PointBlock, sys)
     !isdensesystem(sys) ?
     error("Point block preconditioner needs dense system") : nothing
     PointBlockILUZeroPreconditioner(; blocksize = num_species(sys))
@@ -265,4 +265,3 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
         end
     end
 end
-
