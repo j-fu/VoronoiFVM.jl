@@ -41,7 +41,7 @@ function f(P; n = 10)
     end
 
     X = collect(0:(1.0 / n):1)
-    grid = VoronoiFVM.Grid(X, X)
+    grid = simplexgrid(X, X)
     sys = VoronoiFVM.System(grid; valuetype, species = [1], flux = flux!, reaction = r!,
                             bcondition = bc!)
     tff = VoronoiFVM.TestFunctionFactory(sys)
@@ -97,7 +97,7 @@ Same as runf, but keep one system pass parameters via data.
 """
 function rung(; Plotter = nothing, method_linear = SparspakFactorization(), n = 10)
     X = collect(0:(1.0 / n):1)
-    grid = VoronoiFVM.Grid(X, X)
+    grid = simplexgrid(X, X)
 
     # ugly but simple. By KISS we should first provide this way.
 
@@ -166,7 +166,7 @@ measurement derivative (when using testfunction based calculation) when calculat
 """
 function runh(; Plotter = nothing, n = 10)
     X = collect(0:(1.0 / n):1)
-    grid = VoronoiFVM.Grid(X, X)
+    grid = simplexgrid(X, X)
 
     sys = VoronoiFVM.System(grid; species = [1], flux = fluxh!, reaction = rh!,
                             bcondition = bch!, unknown_storage = :dense, nparams = 1)

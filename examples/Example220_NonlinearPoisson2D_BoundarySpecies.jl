@@ -13,7 +13,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
 
-    grid = VoronoiFVM.Grid(X, Y)
+    grid = simplexgrid(X, Y)
 
     k = 1.0
     eps::Float64 = 1.0

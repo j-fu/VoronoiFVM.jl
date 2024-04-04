@@ -40,7 +40,7 @@ function main(; n = 20, m = 2, Plotter = nothing, verbose = false,
     ## Create a one-dimensional discretization
     h = 1.0 / convert(Float64, n / 2)
     X = collect(-1:h:1)
-    grid = VoronoiFVM.Grid(X)
+    grid = simplexgrid(X)
 
     ## Flux function which describes the flux
     ## between neighboring control volumes

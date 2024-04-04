@@ -20,7 +20,7 @@ function main(; Plotter = nothing, n = 5, is_linear = true, assembly = :edgewise
     nspecies = 1
     ispec = 1
     X = collect(0:(1.0 / n):1)
-    grid = VoronoiFVM.Grid(X, X)
+    grid = simplexgrid(X, X)
 
     physics = VoronoiFVM.Physics(; flux = g!)
     sys = VoronoiFVM.System(grid, physics; is_linear = is_linear, assembly = assembly)

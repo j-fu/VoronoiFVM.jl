@@ -303,7 +303,6 @@ Calculate reciprocal value of impedance.
 !!! warning
    This is deprecated: use [`impedance`](@ref).
 """
-
 function freqdomain_impedance(impedance_system::ImpedanceSystem, # frequency domain system
                               ω,    # frequency 
                               U0,  # steady state slution

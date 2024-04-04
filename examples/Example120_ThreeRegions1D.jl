@@ -14,7 +14,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
               rely_on_corrections = false, assembly = :edgewise)
     h = 3.0 / (n - 1)
     X = collect(0:h:3.0)
-    grid = VoronoiFVM.Grid(X)
+    grid = simplexgrid(X)
     cellmask!(grid, [0.0], [1.0], 1)
     cellmask!(grid, [1.0], [2.1], 2)
     cellmask!(grid, [1.9], [3.0], 3)

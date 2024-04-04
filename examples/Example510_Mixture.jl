@@ -56,7 +56,6 @@ module Example510_Mixture
 
 using Printf
 using VoronoiFVM
-using VoronoiFVM.SolverStrategies
 
 using ExtendableGrids
 using GridVisualize
@@ -202,15 +201,8 @@ end
 
 using Test
 function runtests()
-    # Legacy strategy list (only in 1.5)
-    strat1 = [direct_umfpack(), gmres_umfpack(), gmres_eqnblock_umfpack(),
-        gmres_iluzero(),
-        #            gmres_eqnblock_iluzero(),
-        #            gmres_pointblock_iluzero()
-    ]
 
-    # Equivalent up-to-date list
-    strat2 = [DirectSolver(UMFPACKFactorization()),
+    strategies = [DirectSolver(UMFPACKFactorization()),
         GMRESIteration(UMFPACKFactorization()),
         GMRESIteration(UMFPACKFactorization(), EquationBlock()),
         GMRESIteration(AMGCL_AMGPreconditioner(),EquationBlock()),
@@ -224,23 +216,13 @@ function runtests()
     val2D = 15.883072449873742
     val3D = 52.67819183426213
 
-    res1 = main(; dim = 1, assembly = :edgewise) ≈ val1D &&
-           main(; dim = 2, assembly = :edgewise) ≈ val2D &&
-           main(; dim = 3, assembly = :edgewise) ≈ val3D &&
-           main(; dim = 1, flux = :flux_marray, assembly = :edgewise) ≈ val1D &&
-           main(; dim = 2, flux = :flux_marray, assembly = :edgewise) ≈ val2D &&
-           main(; dim = 3, flux = :flux_marray, assembly = :edgewise) ≈ val3D &&
-           all(map(strategy -> main(; dim = 2, flux = :flux_marray, strategy) ≈ val2D, strat1))
 
-    res2 = main(; dim = 1, assembly = :cellwise) ≈ val1D &&
-           main(; dim = 2, assembly = :cellwise) ≈ val2D &&
-           main(; dim = 3, assembly = :cellwise) ≈ val3D &&
-           main(; dim = 1, flux = :flux_marray, assembly = :cellwise) ≈ val1D &&
-           main(; dim = 2, flux = :flux_marray, assembly = :cellwise) ≈ val2D &&
-           main(; dim = 3, flux = :flux_marray, assembly = :cellwise) ≈ val3D &&
-           all(map(strategy -> main(; dim = 2, flux = :flux_marray, strategy) ≈ val2D, strat2))
-    @show res1, res2
-
-    @test res1 && res2
+    @test main(; dim = 1, assembly = :cellwise) ≈ val1D
+    @test main(; dim = 2, assembly = :cellwise) ≈ val2D
+    @test main(; dim = 3, assembly = :cellwise) ≈ val3D
+    @test main(; dim = 1, flux = :flux_marray, assembly = :cellwise) ≈ val1D
+    @test main(; dim = 2, flux = :flux_marray, assembly = :cellwise) ≈ val2D
+    @test main(; dim = 3, flux = :flux_marray, assembly = :cellwise) ≈ val3D
+    @test all(map(strategy -> main(; dim = 2, flux = :flux_marray, strategy) ≈ val2D, strategies))
 end
 end

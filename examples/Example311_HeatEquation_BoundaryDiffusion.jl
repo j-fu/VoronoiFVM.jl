@@ -32,7 +32,7 @@ function main(n = 1; assembly = :edgewise)
 
     Z = geomspace(0.0, 1.0, hmin, 2 * hmax)
 
-    grid = VoronoiFVM.Grid(X, X, Z)
+    grid = simplexgrid(X, X, Z)
 
     # parameters
     eps = 1.0e0  # bulk heat conduction coefficient
