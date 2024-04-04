@@ -66,7 +66,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     X = collect(0.0:h:1.0)
     N = length(X)
 
-    grid = VoronoiFVM.Grid(X)
+    grid = simplexgrid(X)
     ## By default, \Gamma_1 at X[1] and \Gamma_2 is at X[end]
 
     ## Species numbers

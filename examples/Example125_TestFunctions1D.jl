@@ -14,7 +14,7 @@ using GridVisualize
 
 function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise)
     h = 1 / n
-    grid = VoronoiFVM.Grid(collect(0:h:1))
+    grid = simplexgrid(collect(0:h:1))
 
     eps::Vector{Float64} = [1, 1.0e-1]
 

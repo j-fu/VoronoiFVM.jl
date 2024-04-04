@@ -43,7 +43,7 @@ function main(; n = 10, Plotter = nothing, D = 0.01, v = 1.0, tend = 100)
 
     ## Create a one-dimensional discretization
     h = 1.0 / n
-    grid = VoronoiFVM.Grid(0:h:1)
+    grid = simplexgrid(0:h:1)
 
     data = (v = [v], D = D)
 

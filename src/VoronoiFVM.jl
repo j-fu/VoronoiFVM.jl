@@ -1,3 +1,8 @@
+"""
+    VoronoiFVM
+
+$(read(joinpath(@__DIR__,"..","README.md"),String))
+"""
 module VoronoiFVM
 
 using BandedMatrices: BandedMatrices, BandedMatrix, Zeros
@@ -10,16 +15,18 @@ using ExtendableGrids: ExtendableGrids, BEdgeNodes, BFaceCells, BFaceEdges,
                        Cartesian1D, Cartesian2D, Cartesian3D, CellEdges,
                        CellGeometries, CellNodes, CellRegions,
                        CoordinateSystem, Coordinates, Cylindrical2D, Edge1D,
-                       EdgeCells, EdgeNodes, ExtendableGrid, NumBFaceRegions,
-                       NumCellRegions, Polar1D, Spherical1D, Tetrahedron3D,
+                       EdgeCells, EdgeNodes, ExtendableGrid,
+                       Polar1D, Spherical1D, Tetrahedron3D,
                        Triangle2D, Vertex0D, VoronoiFaceCenters, coord_type,
                        dim_space, index_type, local_celledgenodes, num_bfaces,
-                       num_cells, num_edges, num_nodes, num_targets,
+                       num_cells, num_edges, num_nodes, num_cellregions, num_bfaceregions, num_targets,
                        simplexgrid, subgrid, tricircumcenter!
+
 using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,
                         PointBlockILUZeroPreconditioner, factorize!, flush!,
                         nnz, rawupdateindex!, sparse, updateindex!
+
 using ForwardDiff: ForwardDiff
 using InteractiveUtils: InteractiveUtils
 using JLD2: JLD2, jldopen
@@ -58,7 +65,7 @@ include("vfvm_history.jl")
 export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_transientsolution.jl")
-export transient_solution, TransientSolution
+export TransientSolution
 
 include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmetric!
@@ -77,7 +84,6 @@ export unknowns
 export num_species
 export enable_species!
 export enable_boundary_species!
-export enable_discontinuous_species!
 export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
@@ -109,8 +115,6 @@ export DirectSolver, GMRESIteration, CGIteration, BICGstabIteration, NoBlock, Eq
 include("vfvm_exceptions.jl")
 include("vfvm_assembly.jl")
 include("vfvm_solver.jl")
-export evolve!
-export embed!
 export solve!, solve
 
 include("vfvm_postprocess.jl")

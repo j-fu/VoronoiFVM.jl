@@ -5,8 +5,26 @@ Abstract type for geometry items (node,bnode,edge, bedge)
 """
 abstract type AbstractGeometryItem{Tc <: Number, Tp <: Number, Ti <: Integer} end
 
+"""
+    time(edge_or_node)
+
+Return actual simulation time stored in node or edge
+"""
 time(item::AbstractGeometryItem) = item.time
+
+"""
+    embedparam(edge_or_node)
+
+Return embedding parameter stored in node or edge
+"""
 embedparam(item::AbstractGeometryItem) = item.embedparam
+
+
+"""
+   region(edge_or_node)
+
+Return region number node or edge is belonging to
+"""
 region(item::AbstractGeometryItem) = item.region
 
 """
@@ -39,6 +57,12 @@ end
 Base.size(p::DParameters) = (length(p.val) - p.offset, 1)
 Base.getindex(p::DParameters, i) = @inbounds p.val[p.offset + i]
 
+"""
+    parameters(edge_or_node)
+
+Return abstract vector of parameters passed via vector of unknonws. 
+This allows differentiation with respect to these parameters.
+"""
 function parameters(u::AbstractNodeData{Tv}) where {Tv <: Number}
     DParameters(u.val, u.nspec)
 end
@@ -572,8 +596,19 @@ function meas(edge::AbstractEdge)
     return sqrt(l)
 end
 
+"""
+    edgelength(edge)
+
+Return length of edge
+"""
 edgelength(edge::AbstractEdge) = meas(edge)
 
+"""
+    project(edge, vector)
+
+Project d-vector onto d-dimensional vector, i.e. calculate the dot product
+of `vector` with the difference of the edge end coordinates.
+"""
 function project(edge::Edge, vec)
     vh = zero(eltype(vec))
     for i = 1:size(edge.coord)[1]

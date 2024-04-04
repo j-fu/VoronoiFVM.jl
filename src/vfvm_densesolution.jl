@@ -14,6 +14,12 @@ Get degree of freedom number
 """
 dof(a::DenseSolutionArray{Tv}, ispec::Integer, K::Integer) where {Tv} = (K - 1) * size(a, 1) + ispec
 
+
+"""
+$(SIGNATURES)
+
+Return indices for dense solution array.
+"""
 unknown_indices(a::DenseSolutionArray{Tv}) where {Tv} = LinearIndices(a)
 
 """
