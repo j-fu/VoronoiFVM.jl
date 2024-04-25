@@ -171,13 +171,13 @@ function main(; n = 11, nspec = 5,
     DKnudsen = fill(1.0, nspec)
 
     if dim == 1
-        grid = VoronoiFVM.Grid(X)
+        grid = simplexgrid(X)
         diribc = [1, 2]
     elseif dim == 2
-        grid = VoronoiFVM.Grid(X, X)
+        grid = simplexgrid(X, X)
         diribc = [4, 2]
     else
-        grid = VoronoiFVM.Grid(X, X, X)
+        grid = simplexgrid(X, X, X)
         diribc = [4, 2]
     end
 

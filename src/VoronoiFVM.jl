@@ -49,6 +49,10 @@ using Statistics: Statistics, mean
 using Symbolics: Symbolics
 
 include("vfvm_physics.jl")
+if VERSION>v"1.10.99"
+    public Physics
+end
+
 include("vfvm_functions.jl")
 export fbernoulli
 export fbernoulli_pm
@@ -96,6 +100,10 @@ export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
+
+if VERSION>v"1.10.99"
+    public System, AbstractSystem
+end
 
 # export to be deprecated
 export partitioning, Equationwise
