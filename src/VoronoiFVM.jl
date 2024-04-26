@@ -47,11 +47,10 @@ using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
 using StaticArrays: StaticArrays, @MVector, @SArray, @SMatrix
 using Statistics: Statistics, mean
 using Symbolics: Symbolics
+using Compat: @compat
 
 include("vfvm_physics.jl")
-if VERSION>v"1.10.99"
-    public Physics
-end
+@compat public Physics
 
 include("vfvm_functions.jl")
 export fbernoulli
@@ -101,9 +100,8 @@ export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
 
-if VERSION>v"1.10.99"
-    public System, AbstractSystem
-end
+
+@compat public System, AbstractSystem
 
 # export to be deprecated
 export partitioning, Equationwise
