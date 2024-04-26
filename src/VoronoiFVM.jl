@@ -30,8 +30,7 @@ using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
 using ForwardDiff: ForwardDiff
 using InteractiveUtils: InteractiveUtils
 using JLD2: JLD2, jldopen
-using LinearAlgebra: LinearAlgebra, Diagonal, I, LU, Tridiagonal, isdiag, ldiv!,
-                     norm
+using LinearAlgebra: LinearAlgebra, Diagonal, I, Tridiagonal, isdiag, ldiv!, norm
 using LinearSolve: LinearSolve, KLUFactorization, KrylovJL_BICGSTAB,
                    KrylovJL_CG, KrylovJL_GMRES, LinearProblem,
                    SparspakFactorization, UMFPACKFactorization, init
