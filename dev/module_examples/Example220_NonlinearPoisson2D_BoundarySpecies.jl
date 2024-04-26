@@ -13,7 +13,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
 
-    grid = VoronoiFVM.Grid(X, Y)
+    grid = simplexgrid(X, Y)
 
     k = 1.0
     eps::Float64 = 1.0
@@ -61,7 +61,6 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     control.verbose = verbose
     control.reltol_linear = 1.0e-5
     control.reltol = 1.0e-5
-    control.max_lureuse = 0
     tstep = 0.01
     time = 0.0
     istep = 0

@@ -32,7 +32,7 @@ module Example151_Impedance1D
 
 using Printf
 using VoronoiFVM
-using ExtendableGrids
+using ExtendableGrids: geomspace, simplexgrid
 using GridVisualize
 
 function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise,
@@ -43,10 +43,10 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
     h0 = 0.005 / 2.0^nref
     h1 = 0.1 / 2.0^nref
 
-    X = VoronoiFVM.geomspace(0, L, h0, h1)
+    X = geomspace(0, L, h0, h1)
 
     # Create discretitzation grid
-    grid = VoronoiFVM.Grid(X)
+    grid = simplexgrid(X)
 
     # Create and fill data
     data = (R = R, D = D, C = C)

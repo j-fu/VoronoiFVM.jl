@@ -23,7 +23,7 @@ function main(; n = 10, Plotter = nothing, assembly = :edgwwise, kwargs...)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
 
-    grid = VoronoiFVM.Grid(X, Y)
+    grid = simplexgrid(X, Y)
     nn = num_nodes(grid)
 
     eps = 1.0e-2
