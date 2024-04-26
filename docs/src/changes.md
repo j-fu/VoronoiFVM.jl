@@ -1,4 +1,7 @@
 # Changes
+## v1.20.0 April 26 2024
+- Drop Julia 1.6 support, improve package quality (partial Aqua tests, explicit imports)
+
 ## v1.19.0 Feb 01 2024
 - Enable equation block preconditioning for sparse unknown storage
 
