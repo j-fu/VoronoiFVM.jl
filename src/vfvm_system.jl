@@ -50,7 +50,9 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::Union{ExtendableSparseMatrix{Tv, Tm},
+    matrix::Union{ExtendableSparseMatrixCSC{Tv, Tm},
+                  MTExtendableSparseMatrixCSC{Tv, Tm},
+                  STExtendableSparseMatrixCSC{Tv, Tm},
                   Tridiagonal{Tv, Vector{Tv}},
                   #                  MultidiagonalMatrix,
                   BandedMatrix{Tv}}
@@ -142,7 +144,7 @@ function Base.getproperty(sys::System, sym::Symbol)
     if sym == :bfacenodefactors
         @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
         return sys.boundary_assembly_data.nodefactors
-    else # fallback to getfield
+        else # fallback to getfield
         return getfield(sys, sym)
     end
 end
@@ -580,7 +582,7 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
         # elseif matrixtype==:multidiagonal
         #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
     else # :sparse
-        system.matrix = ExtendableSparseMatrix{Tv, Tm}(n, n)
+        system.matrix=ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
     end
 
     if create_newtonvectors
@@ -1068,7 +1070,7 @@ function _eval_and_assemble_inactive_species(system::DenseSystem, U, Uold, F)
             if !isnodespecies(system, ispec, inode)
                 F[ispec, inode] += U[ispec, inode] - Uold[ispec, inode]
                 idof = dof(F, ispec, inode)
-                system.matrix[idof, idof] += 1.0
+                rawupdateindex!(system.matrix, +, 1.0, idof, idof)
             end
         end
     end

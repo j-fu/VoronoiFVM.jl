@@ -24,6 +24,10 @@ using ExtendableGrids: ExtendableGrids, BEdgeNodes, BFaceCells, BFaceEdges,
 
 using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,
+                        ExtendableSparseMatrixCSC,
+                        MTExtendableSparseMatrixCSC,
+                        STExtendableSparseMatrixCSC,
+                        AbstractExtendableSparseMatrixCSC,
                         PointBlockILUZeroPreconditioner, factorize!, flush!,
                         nnz, rawupdateindex!, sparse, updateindex!
 
