@@ -1,6 +1,7 @@
-using Test
-import ExampleJuggler
-using ExampleJuggler: cleanexamples, @testmodules, @testscripts
+using Test, ExplicitImports, Aqua
+using ExampleJuggler: ExampleJuggler, cleanexamples, @testmodules, @testscripts
+using VoronoiFVM: VoronoiFVM
+
 
 ExampleJuggler.verbose!(true)
 #
@@ -60,6 +61,30 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
             @testscripts(joinpath(@__DIR__, "..", "pluto-examples"), notebooks)
         end
     end
+
+    @testset "ExplicitImports" begin
+        @test ExplicitImports.check_no_implicit_imports(VoronoiFVM) === nothing
+        @test ExplicitImports.check_no_stale_explicit_imports(VoronoiFVM) === nothing
+    end
+
+    @testset "Aqua" begin
+        #    Aqua.test_ambiguities(VoronoiFVM)
+        Aqua.test_unbound_args(VoronoiFVM)
+        Aqua.test_undefined_exports(VoronoiFVM)
+        Aqua.test_project_extras(VoronoiFVM)
+        Aqua.test_stale_deps(VoronoiFVM)
+        Aqua.test_deps_compat(VoronoiFVM)
+        #    Aqua.test_piracies(VoronoiFVM, treat_as_own=[ExtendableSparse.AbstractFactorization])
+        Aqua.test_persistent_tasks(VoronoiFVM)
+    end
+    
+    if isdefined(Docs,:undocumented_names) # >=1.11
+        @testset "UndocumentedNames" begin
+            @test isempty(Docs.undocumented_names(VoronoiFVM))
+        end
+    end
 end
 
-run_all_tests(; run_notebooks = true)
+run_all_tests(; run_notebooks = true, notebooksonly = false)
+
+

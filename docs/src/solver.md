@@ -138,7 +138,6 @@ VoronoiFVM.solve(inival, system::VoronoiFVM.AbstractSystem, times; kwargs...)
 VoronoiFVM.solve(inival, system::VoronoiFVM.AbstractSystem; kwargs...)
 VoronoiFVM.solve!(solution,inival, system::VoronoiFVM.AbstractSystem; kwargs...)
 NewtonControl
-VoronoiFVM.SolverStrategies
 ``` 
 
 

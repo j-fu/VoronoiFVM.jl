@@ -28,7 +28,7 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
     X1 = geomspace(-1.0, 0.0, hmax, hmin)
     X2 = geomspace(0.0, 1.0, hmin, hmax)
     X = glue(X1, X2)
-    grid = VoronoiFVM.Grid(X)
+    grid = simplexgrid(X)
 
     ## Edit default region numbers:
     ##   additional boundary region 3 at 0.0

@@ -32,7 +32,7 @@ function main(n = 1; assembly = :edgewise)
 
     Z = geomspace(0.0, 1.0, hmin, 2 * hmax)
 
-    grid = VoronoiFVM.Grid(X, X, Z)
+    grid = simplexgrid(X, X, Z)
 
     # parameters
     eps = 1.0e0  # bulk heat conduction coefficient
@@ -86,7 +86,7 @@ function main(n = 1; assembly = :edgewise)
     control = VoronoiFVM.NewtonControl()
     control.verbose = false
     control.reltol_linear = 1.0e-5
-    control.max_lureuse = 10
+    control.keepcurrent_linear=false
 
     tstep = 0.1
     time = 0.0

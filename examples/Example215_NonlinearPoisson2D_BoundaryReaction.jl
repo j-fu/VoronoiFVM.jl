@@ -10,12 +10,12 @@ using GridVisualize
 using ExtendableSparse
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise,
-              tend = 100, max_lureuse = 0)
+              tend = 100)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     Y = collect(0.0:h:1.0)
 
-    grid = VoronoiFVM.Grid(X, Y)
+    grid = simplexgrid(X, Y)
 
     eps = 1.0e-2
     physics = VoronoiFVM.Physics(; breaction = function (f, u, node)
@@ -45,7 +45,6 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     control = VoronoiFVM.NewtonControl()
     control.verbose = verbose
     control.reltol_linear = 1.0e-5
-    control.max_lureuse = max_lureuse
 
     tstep = 0.01
     time = 0.0

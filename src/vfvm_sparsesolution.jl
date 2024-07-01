@@ -27,7 +27,6 @@ Return size of sparse solution array.
 """
 Base.size(a::SparseSolutionArray) = size(a.node_dof)
 
-
 ##################################################################
 """
 $(SIGNATURES)
@@ -83,6 +82,11 @@ struct SparseSolutionIndices
     a::SparseSolutionArray
 end
 
+"""
+$(SIGNATURES)
+
+Return indices for sparse solution array.
+"""
 unknown_indices(a::SparseSolutionArray) = SparseSolutionIndices(a)
 
 Base.getindex(idx::SparseSolutionIndices, i, j) = dof(idx.a, i, j)

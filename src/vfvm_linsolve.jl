@@ -58,15 +58,14 @@ Blocking strategies are:
 - [`PointBlock`](@ref)
 
 """
-abstract type LinearSolverStrategy<:AbstractStrategy end
-
+abstract type LinearSolverStrategy <: AbstractStrategy end
 
 """
     VoronoiFVM.BlockStrategy
 
 Abstract supertype for various block preconditioning strategies.
 """
-abstract type BlockStrategy<:AbstractStrategy end
+abstract type BlockStrategy <: AbstractStrategy end
 
 """
     NoBlock()
@@ -90,7 +89,6 @@ This requires a system with `unknown_storage=:dense`.
 """
 struct PointBlock <: BlockStrategy end
 
-
 """
     DirectSolver(;factorization=UMFPACKFactorization())
 
@@ -101,15 +99,11 @@ Base.@kwdef struct DirectSolver <: LinearSolverStrategy
     blocking::NoBlock = NoBlock() # prevent ambiguity in constructor definition
 end
 
-DirectSolver(factorization::FactorizationStrategy; kwargs...) =
-    DirectSolver(; factorization, kwargs...)
+DirectSolver(factorization::FactorizationStrategy; kwargs...) = DirectSolver(; factorization, kwargs...)
 
 function VoronoiFVM.SolverControl(strat::DirectSolver, sys; kwargs...)
     SolverControl(; method_linear = strat.factorization, kwargs...)
 end
-
-
-
 
 """
     GMRESIteration(;factorization=ILUZeroFactorization(), memory=20, restart=true)
@@ -124,21 +118,17 @@ Base.@kwdef struct GMRESIteration <: LinearSolverStrategy
     blocking::BlockStrategy = NoBlock()
 end
 
-
-GMRESIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kwargs...) =
+function GMRESIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kwargs...)
     GMRESIteration(; factorization, blocking, kwargs...)
+end
 
 function VoronoiFVM.SolverControl(strat::GMRESIteration, sys; kwargs...)
     SolverControl(;
-        method_linear = KrylovJL_GMRES(
-            gmres_restart = strat.memory,
-            restart = strat.restart,
-        ),
-        precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
-        kwargs...,
-    )
+                  method_linear = KrylovJL_GMRES(; gmres_restart = strat.memory,
+                                                 restart = strat.restart),
+                  precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
+                  kwargs...,)
 end
-
 
 """
     CGIteration(;factorization=UMFPACKFactorization())
@@ -151,18 +141,16 @@ Base.@kwdef struct CGIteration <: LinearSolverStrategy
     blocking::BlockStrategy = NoBlock()
 end
 
-CGIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kwargs...) =
+function CGIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kwargs...)
     CGIteration(; factorization, blocking, kwargs...)
-
+end
 
 function VoronoiFVM.SolverControl(strat::CGIteration, sys; kwargs...)
     SolverControl(;
-        method_linear = KrylovJL_CG(),
-        precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
-        kwargs...,
-    )
+                  method_linear = KrylovJL_CG(),
+                  precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
+                  kwargs...,)
 end
-
 
 """
     BICGstabIteration(;factorization=UMFPACKFactorization())
@@ -175,19 +163,16 @@ Base.@kwdef struct BICGstabIteration <: LinearSolverStrategy
     blocking::BlockStrategy = NoBlock()
 end
 
-BICGstabIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kwargs...) =
+function BICGstabIteration(factorization::FactorizationStrategy, blocking = NoBlock(); kwargs...)
     BICGstabIteration(; factorization, blocking, kwargs...)
-
+end
 
 function VoronoiFVM.SolverControl(strat::BICGstabIteration, sys; kwargs...)
     SolverControl(;
-        method_linear = KrylovJL_BICGSTAB(),
-        precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
-        kwargs...,
-    )
+                  method_linear = KrylovJL_BICGSTAB(),
+                  precon_linear = factorizationstrategy(strat.factorization, strat.blocking, sys),
+                  kwargs...,)
 end
-
-
 
 """
     factorizationstrategy(preconditioner, blockstratrgy, system)
@@ -198,31 +183,26 @@ factorizationstrategy(p::FactorizationStrategy, ::NoBlock, sys) = p
 
 function factorizationstrategy(strat::FactorizationStrategy, ::EquationBlock, sys)
     BlockPreconditioner(;
-        partitioning = partitioning(sys,Equationwise()),
-        factorization = factorizationstrategy(strat, NoBlock(), sys),
-    )
+                        partitioning = partitioning(sys, Equationwise()),
+                        factorization = factorizationstrategy(strat, NoBlock(), sys),)
 end
 
-function factorizationstrategy(::ILUZeroPreconditioner, ::PointBlock, sys)
+function factorizationstrategy(::ExtendableSparse.ILUZeroPreconditioner, ::PointBlock, sys)
     !isdensesystem(sys) ?
     error("Point block preconditioner needs dense system") : nothing
     PointBlockILUZeroPreconditioner(; blocksize = num_species(sys))
 end
 
-VoronoiFVM.SolverControl(::AbstractStrategy, sys; kwargs...) = SolverControl(;kwargs...)
-VoronoiFVM.SolverControl(::Nothing, sys; kwargs...) = SolverControl(;kwargs...)
-
+VoronoiFVM.SolverControl(::AbstractStrategy, sys; kwargs...) = SolverControl(; kwargs...)
+VoronoiFVM.SolverControl(::Nothing, sys; kwargs...) = SolverControl(; kwargs...)
 
 ################################################################
 # These are needed to enable iterative solvers to work with dual numbers
 Base.Float64(x::ForwardDiff.Dual) = value(x)
-function Random.rand(
-    rng::AbstractRNG,
-    ::Random.SamplerType{ForwardDiff.Dual{T,V,N}},
-) where {T,V,N}
-    ForwardDiff.Dual{T,V,N}(rand(rng, V))
+function Random.rand(rng::AbstractRNG,
+                     ::Random.SamplerType{ForwardDiff.Dual{T, V, N}}) where {T, V, N}
+    ForwardDiff.Dual{T, V, N}(rand(rng, V))
 end
-
 
 """
     Make preconditioner constructors from methods
@@ -243,33 +223,31 @@ function (f::ExtendableSparse.AbstractFactorization)(A)
 end
 
 function LinearAlgebra.ldiv!(u, cache::LinearSolve.LinearCache, b)
-    cache.b=b
+    cache.b = b
     sol = solve!(cache)
     copyto!(u, sol.u)
 end
 
-canonical_matrix(A)=A
-canonical_matrix(A::ExtendableSparseMatrix)=SparseMatrixCSC(A)
+canonical_matrix(A) = A
+canonical_matrix(A::ExtendableSparseMatrix) = SparseMatrixCSC(A)
 
 function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
     if isnothing(system.linear_cache)
         Pl = control.precon_linear(canonical_matrix(A))
         nlhistory.nlu += 1
         p = LinearProblem(canonical_matrix(A), b)
-        system.linear_cache = init(
-            p,
-            method_linear;
-            abstol = control.abstol_linear,
-            reltol = control.reltol_linear,
-            verbose = doprint(control, 'l'),
-            Pl,
-        )
+        system.linear_cache = init(p,
+                                   method_linear;
+                                   abstol = control.abstol_linear,
+                                   reltol = control.reltol_linear,
+                                   verbose = doprint(control, 'l'),
+                                   Pl,)
     else
-        system.linear_cache.A=canonical_matrix(A)
-        system.linear_cache.b=b
+        system.linear_cache.A = canonical_matrix(A)
+        system.linear_cache.b = b
         if control.keepcurrent_linear
             nlhistory.nlu += 1
-            system.linear_cache.Pl=control.precon_linear(canonical_matrix(A))
+            system.linear_cache.Pl = control.precon_linear(canonical_matrix(A))
         end
     end
 
@@ -286,45 +264,4 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
             rethrow(err)
         end
     end
-end
-
-#################################
-"""
-    SolverStrategies
-
-!!! compat "Only available in 1.5"
-    Please replace this functionality by the new strategy API in 1.6 as follows:
-    ```                                                                                
-    direct_umfpack() = DirectSolver(UMFPACKFactorization())                            
-    gmres_umfpack() = GMRESIteration(UMFPACKFactorization())                           
-    gmres_eqnblock_umfpack() = GMRESIteration(UMFPACKFactorization(), EquationBlock()) 
-    gmres_iluzero() = GMRESIteration(ILUZeroPreconditioner())                          
-    gmres_eqnblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), EquationBlock())
-    gmres_pointblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), PointBlock()) 
-    ```                                                                                
-"""
-module SolverStrategies
-using VoronoiFVM
-using VoronoiFVM: isdensesystem, FactorizationStrategy
-using DocStringExtensions
-using LinearSolve
-using ExtendableSparse
-
-
-
-direct_umfpack() = DirectSolver(UMFPACKFactorization())
-gmres_umfpack() = GMRESIteration(UMFPACKFactorization())
-gmres_eqnblock_umfpack() = GMRESIteration(UMFPACKFactorization(), EquationBlock())
-gmres_iluzero() = GMRESIteration(ILUZeroPreconditioner())
-gmres_eqnblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), EquationBlock())
-gmres_pointblock_iluzero() = GMRESIteration(ILUZeroPreconditioner(), PointBlock())
-
-export direct_umfpack
-export gmres_umfpack
-export gmres_eqnblock_umfpack
-export gmres_iluzero
-export gmres_eqnblock_iluzero
-export gmres_pointblock_iluzero
-
-
 end

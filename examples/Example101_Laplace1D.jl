@@ -89,7 +89,7 @@ statement.
 
 module Example101_Laplace1D
 
-using VoronoiFVM
+using VoronoiFVM, ExtendableGrids
 
 function main()
     ispec = 1    ## Index of species we are working with
@@ -108,7 +108,7 @@ function main()
     ## Create a one dimensional discretization grid
     ## Each grid cell belongs to a region marked by a region number
     ## By default, there is only one region numbered with 1
-    grid = VoronoiFVM.Grid(0:0.2:1)
+    grid = simplexgrid(0:0.2:1)
 
     ## Create a finite volume system 
     sys = VoronoiFVM.System(grid; flux = flux!, breaction = bcond!, species = ispec)

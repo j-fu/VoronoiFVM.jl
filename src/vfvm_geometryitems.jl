@@ -5,8 +5,26 @@ Abstract type for geometry items (node,bnode,edge, bedge)
 """
 abstract type AbstractGeometryItem{Tc <: Number, Tp <: Number, Ti <: Integer} end
 
+"""
+    time(edge_or_node)
+
+Return actual simulation time stored in node or edge
+"""
 time(item::AbstractGeometryItem) = item.time
+
+"""
+    embedparam(edge_or_node)
+
+Return embedding parameter stored in node or edge
+"""
 embedparam(item::AbstractGeometryItem) = item.embedparam
+
+
+"""
+   region(edge_or_node)
+
+Return region number node or edge is belonging to
+"""
 region(item::AbstractGeometryItem) = item.region
 
 """
@@ -39,6 +57,12 @@ end
 Base.size(p::DParameters) = (length(p.val) - p.offset, 1)
 Base.getindex(p::DParameters, i) = @inbounds p.val[p.offset + i]
 
+"""
+    parameters(edge_or_node)
+
+Return abstract vector of parameters passed via vector of unknonws. 
+This allows differentiation with respect to these parameters.
+"""
 function parameters(u::AbstractNodeData{Tv}) where {Tv <: Number}
     DParameters(u.val, u.nspec)
 end
@@ -127,7 +151,6 @@ mutable struct Node{Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     """
     params::Vector{Tp}
 
-
     """
     Form factor
     """
@@ -137,14 +160,14 @@ mutable struct Node{Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     Local loop index
     """
     _idx::Ti
-    
+
     function Node{Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(zero(Ti), 0,
             num_species(sys), 0,
             coordinates(sys.grid),
             sys.grid[CellNodes],
             sys.grid[CellRegions],
-            time, embedparam, params,0.0,0)
+            time, embedparam, params, 0.0, 0)
     end
 end
 
@@ -153,7 +176,6 @@ function Node(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
 end
 
 Node(sys) = Node(sys, 0, 0, zeros(0))
-
 
 """
     $(TYPEDEF)
@@ -249,7 +271,7 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
     dirichlet_value::Vector{Tv}
 
     fac::Float64
-    
+
     function BNode{Tv, Tc, Tp, Ti}(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam,
                                    params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
         new(0, 0, 0, 0, zeros(Ti, 2),
@@ -260,14 +282,13 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
             sys.grid[CellRegions],
             sys.grid[BFaceCells],
             Dirichlet, time, embedparam, params,
-            zeros(Tv, num_species(sys)),0.0)
+            zeros(Tv, num_species(sys)), 0.0)
     end
 end
 function BNode(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vector{Tp}) where {Tv, Tc, Tp, Ti, Tm}
     BNode{Tv, Tc, Tp, Ti}(sys, time, embedparam, params)
 end
 BNode(sys) = BNode(sys, 0, 0, zeros(0))
-
 
 struct BNodeUnknowns{Tval, Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
     val::Vector{Tval}
@@ -349,20 +370,19 @@ mutable struct Edge{Tc, Tp, Ti} <: AbstractEdge{Tc, Tp, Ti}
     Form factor
     """
     fac::Float64
-    
-     """
-    Local loop index
+
     """
+   Local loop index
+   """
     _idx::Ti
-    
-    outflownoderegions::Union{Nothing,SparseMatrixCSC{Bool,Int}}
+
+    outflownoderegions::Union{Nothing, SparseMatrixCSC{Bool, Int}}
 
     """
     Outflow node
     """
     outflownode::Int
-    
-    
+
     Edge{Tc, Tp, Ti}(::Nothing) where {Tc, Tp, Ti} = new()
 end
 
@@ -391,13 +411,12 @@ function Edge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Vec
     edge.time = time
     edge.embedparam = embedparam
     edge.params = params
-    edge.fac=0
-    edge.outflownode=0
-    edge._idx=0
-    edge.outflownoderegions=sys.outflownoderegions
+    edge.fac = 0
+    edge.outflownode = 0
+    edge._idx = 0
+    edge.outflownoderegions = sys.outflownoderegions
     edge
 end
-
 
 struct EdgeUnknowns{Tv, Tc, Tp, Ti} <: AbstractEdgeData{Tv}
     val::Vector{Tv}
@@ -416,7 +435,6 @@ struct EdgeRHS{Tv, Tc, Tp, Ti} <: AbstractNodeData{Tv}
 end
 
 @inline rhs(edge::Edge{Tc, Tp, Ti}, f::AbstractVector{Tv}) where {Tv, Tc, Tp, Ti} = EdgeRHS{Tv, Tc, Tp, Ti}(f, edge.nspec, edge)
-
 
 """
     hasoutflownode(edge)
@@ -438,24 +456,23 @@ isoutflownode(edge, inode) = length(nzrange(edge.outflownoderegions, edge.node[i
 
 Check if inode (1 or 2) is an outflow node on boundary region `iregion`.
 """
-isoutflownode(edge, inode, iregion)= edge.outflownoderegions[iregion,edge.node[inode]]
+isoutflownode(edge, inode, iregion) = edge.outflownoderegions[iregion, edge.node[inode]]
 
 """
     outflownode(edge)
 
 Return outflow node of edge (1 or 2).
 """
-outflownode(edge)=edge.outflownode
+outflownode(edge) = edge.outflownode
 
 """
     outflownode!(edge)
 Set `edge.outflownode` entry.
 """
 function outflownode!(edge)
-    isoutflownode(edge, 1) ?  edge.outflownode=1 : true
-    isoutflownode(edge, 2) ?  edge.outflownode=2 : true
+    isoutflownode(edge, 1) ? edge.outflownode = 1 : true
+    isoutflownode(edge, 2) ? edge.outflownode = 2 : true
 end
-
 
 ##################################################################
 """
@@ -534,11 +551,9 @@ function BEdge(sys::AbstractSystem{Tv, Tc, Ti, Tm}, time, embedparam, params::Ve
     bedge.time = time
     bedge.embedparam = embedparam
     bedge.params = params
-    bedge.fac=0.0
+    bedge.fac = 0.0
     bedge
 end
-
-
 
 struct BEdgeUnknowns{Tv, Tc, Tp, Ti} <: AbstractEdgeData{Tv}
     val::Vector{Tv}
@@ -581,8 +596,19 @@ function meas(edge::AbstractEdge)
     return sqrt(l)
 end
 
+"""
+    edgelength(edge)
+
+Return length of edge
+"""
 edgelength(edge::AbstractEdge) = meas(edge)
 
+"""
+    project(edge, vector)
+
+Project d-vector onto d-dimensional vector, i.e. calculate the dot product
+of `vector` with the difference of the edge end coordinates.
+"""
 function project(edge::Edge, vec)
     vh = zero(eltype(vec))
     for i = 1:size(edge.coord)[1]

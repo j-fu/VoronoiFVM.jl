@@ -89,11 +89,11 @@ function _interpolate(sol, t)
     if t == sol.t[idx - 1]
         return sol[idx - 1]
     else
-        retval = similar(sol[idx])
+        retval = similar(sol.u[idx])
         dt = sol.t[idx] - sol.t[idx - 1]
         a = (sol.t[idx] - t) / dt
         b = (t - sol.t[idx - 1]) / dt
-        retval .= a * sol[idx - 1] + b * sol[idx]
+        retval .= a * sol.u[idx - 1] + b * sol.u[idx]
     end
 end
 

@@ -39,7 +39,7 @@ In this case, the discretization appears to be exact.
 function maindisk(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     h = 0.1 * 2.0^(-nref)
     R = collect(0:h:r2)
-    grid = VoronoiFVM.Grid(R)
+    grid = simplexgrid(R)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
@@ -68,7 +68,7 @@ function maincylinder(;
     h = 0.1 * 2.0^(-nref)
     R = collect(0:h:r2)
     Z = collect(z1:h:z2)
-    grid = VoronoiFVM.Grid(R, Z)
+    grid = simplexgrid(R, Z)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
@@ -127,7 +127,7 @@ with boundary value 1 at r1 and 0 at r2. Test of quadratic convergence.
 function mainring(; nref = 0, r1 = 1.0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
-    grid = VoronoiFVM.Grid(R)
+    grid = simplexgrid(R)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
@@ -156,7 +156,7 @@ function maincylindershell(;
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
     Z = collect(z1:h:z2)
-    grid = VoronoiFVM.Grid(R, Z)
+    grid = simplexgrid(R, Z)
     circular_symmetric!(grid)
     source(f, node) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
@@ -186,7 +186,7 @@ In this case, the discretization appears to be exact.
 function mainsphere(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     h = 0.1 * 2.0^(-nref)
     R = collect(0:h:r2)
-    grid = VoronoiFVM.Grid(R)
+    grid = simplexgrid(R)
     spherical_symmetric!(grid)
     source(f, node) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
@@ -219,7 +219,7 @@ function mainsphereshell(;
                          assembly = :edgewise,)
     h = 0.1 * 2.0^(-nref)
     R = collect(r1:h:r2)
-    grid = VoronoiFVM.Grid(R)
+    grid = simplexgrid(R)
     spherical_symmetric!(grid)
     source(f, node) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)

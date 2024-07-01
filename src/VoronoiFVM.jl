@@ -1,36 +1,56 @@
 """
-$(EXPORTS)
+    VoronoiFVM
+
+$(read(joinpath(@__DIR__,"..","README.md"),String))
 """
 module VoronoiFVM
-using Printf
-using DocStringExtensions
-using LinearAlgebra
-using SparseArrays
-import CommonSolve, SciMLBase
 
+using BandedMatrices: BandedMatrices, BandedMatrix, Zeros
+using CommonSolve: CommonSolve, solve, solve!
+using DiffResults: DiffResults
+using DocStringExtensions: DocStringExtensions, SIGNATURES, TYPEDEF,
+                           TYPEDFIELDS, TYPEDSIGNATURES
+using ExtendableGrids: ExtendableGrids, BEdgeNodes, BFaceCells, BFaceEdges,
+                       BFaceGeometries, BFaceNodes, BFaceNormals, BFaceRegions,
+                       Cartesian1D, Cartesian2D, Cartesian3D, CellEdges,
+                       CellGeometries, CellNodes, CellRegions,
+                       CoordinateSystem, Coordinates, Cylindrical2D, Edge1D,
+                       EdgeCells, EdgeNodes, ExtendableGrid,
+                       Polar1D, Spherical1D, Tetrahedron3D,
+                       Triangle2D, Vertex0D, VoronoiFaceCenters, coord_type,
+                       dim_space, index_type, local_celledgenodes, num_bfaces,
+                       num_cells, num_edges, num_nodes, num_cellregions, num_bfaceregions, num_targets,
+                       simplexgrid, subgrid, tricircumcenter!
 
-using InteractiveUtils
-using BandedMatrices
-# using MultidiagonalMatrices
+using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
+                        ExtendableSparseMatrix,
+                        PointBlockILUZeroPreconditioner, factorize!, flush!,
+                        nnz, rawupdateindex!, sparse, updateindex!
 
-using LinearSolve
-using Statistics
-
-using ForwardDiff
-using DiffResults
-using JLD2
-using RecursiveArrayTools
-
-using ExtendableSparse
-using ExtendableGrids
-
-using StaticArrays
-using SparseDiffTools
-using Symbolics
-using Random
-using RecursiveFactorization
+using ForwardDiff: ForwardDiff
+using InteractiveUtils: InteractiveUtils
+using JLD2: JLD2, jldopen
+using LinearAlgebra: LinearAlgebra, Diagonal, I, Tridiagonal, isdiag, ldiv!, norm
+using LinearSolve: LinearSolve, KLUFactorization, KrylovJL_BICGSTAB,
+                   KrylovJL_CG, KrylovJL_GMRES, LinearProblem,
+                   SparspakFactorization, UMFPACKFactorization, init
+using Printf: Printf, @printf, @sprintf
+using Random: Random, AbstractRNG
+using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray
+using RecursiveFactorization: RecursiveFactorization
+using SciMLBase: SciMLBase
+using SparseArrays: SparseArrays, SparseMatrixCSC, dropzeros!, nonzeros,
+                    nzrange, spzeros
+using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
+                       matrix_colors
+using StaticArrays: StaticArrays, @MVector, @SArray, @SMatrix
+using Statistics: Statistics, mean
+using Symbolics: Symbolics
+using Compat: @compat
 
 include("vfvm_physics.jl")
+@compat public Physics
+
 include("vfvm_functions.jl")
 export fbernoulli
 export fbernoulli_pm
@@ -47,8 +67,7 @@ include("vfvm_history.jl")
 export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_transientsolution.jl")
-export transient_solution, TransientSolution
-
+export TransientSolution
 
 include("vfvm_xgrid.jl")
 export cartesian!, circular_symmetric!, spherical_symmetric!
@@ -67,7 +86,6 @@ export unknowns
 export num_species
 export enable_species!
 export enable_boundary_species!
-export enable_discontinuous_species!
 export update_grid!
 export boundary_dirichlet!
 export boundary_neumann!
@@ -79,13 +97,13 @@ export history, history_summary, history_details
 export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
-export hasoutflownode,isoutflownode, outflownode
+export hasoutflownode, isoutflownode, outflownode
 
+
+@compat public System, AbstractSystem
 
 # export to be deprecated
 export partitioning, Equationwise
-
-
 
 include("vfvm_formfactors.jl")
 export meas, project
@@ -99,22 +117,19 @@ export fixed_timesteps!, NewtonControl, SolverControl
 include("vfvm_linsolve.jl")
 export DirectSolver, GMRESIteration, CGIteration, BICGstabIteration, NoBlock, EquationBlock, PointBlock
 
-
 include("vfvm_exceptions.jl")
 include("vfvm_assembly.jl")
 include("vfvm_solver.jl")
-export evolve!
-export embed!
 export solve!, solve
 
 include("vfvm_postprocess.jl")
 export nodeflux
 export integrate
-export l2norm,lpnorm
-export w1pseminorm,h1seminorm
-export w1pnorm,h1norm
-export lpw1pnorm,l2h1norm
-export lpw1pseminorm,l2h1seminorm
+export l2norm, lpnorm
+export w1pseminorm, h1seminorm
+export w1pnorm, h1norm
+export lpw1pnorm, l2h1norm
+export lpw1pseminorm, l2h1seminorm
 export nodevolumes
 export nondelaunay
 

@@ -89,7 +89,7 @@ function main(;
               unknown_storage = :sparse,
               assembly = :edgewise,)
     h = 1.0 / convert(Float64, n)
-    grid = VoronoiFVM.Grid(collect(0:h:1))
+    grid = simplexgrid(collect(0:h:1))
 
     data = Data()
     data.eps = 1.0e-3
@@ -155,7 +155,7 @@ function main(;
                         color = :red,)
             reveal(vis)
         end
-        return sum(tsol[end])
+        return sum(tsol.u[end])
 
     else  # Calculate double layer capacitance
         U = unknowns(sys)

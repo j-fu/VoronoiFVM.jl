@@ -25,7 +25,7 @@ function main(; Plotter = nothing, n = 5, assembly = :edgewise)
     nspecies = 1
     ispec = 1
     X = collect(0:(1 / n):1)
-    grid = VoronoiFVM.Grid(X, X, X)
+    grid = simplexgrid(X, X, X)
     physics = VoronoiFVM.Physics(; flux = g!, source = s)
     sys = VoronoiFVM.System(grid, physics; assembly = assembly)
     enable_species!(sys, ispec, [1])

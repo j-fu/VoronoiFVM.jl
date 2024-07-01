@@ -62,7 +62,7 @@ function make(; with_examples = true,
     end
     
     makedocs(; sitename = "VoronoiFVM.jl",
-             modules = [VoronoiFVM, VoronoiFVM.SolverStrategies],
+             modules = [VoronoiFVM],
              plugins = [bib],
              checkdocs = :all,
              clean = false,

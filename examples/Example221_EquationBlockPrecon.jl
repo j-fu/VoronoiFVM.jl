@@ -20,15 +20,15 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
     X = range(0,3,length=nx)
     Y = range(-0.5,0.5,length=ny)
     if dim==1
-        grid = VoronoiFVM.Grid(X)
+        grid = simplexgrid(X)
         Γ_in=1
         Γ_out=2
     elseif dim==2
-        grid = VoronoiFVM.Grid(X,Y)
+        grid = simplexgrid(X,Y)
         Γ_in=4
         Γ_out=2
     else
-        grid = VoronoiFVM.Grid(X,Y,Y)
+        grid = simplexgrid(X,Y,Y)
         Γ_in=4
         Γ_out=2
     end
@@ -99,7 +99,7 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
 
     boundary_dirichlet!(sys, 3, 2, 0.0)
 
-    control = SolverControl(strategy, sys, verbose="l")
+    control = SolverControl(strategy, sys)
     U=solve(sys;control)
     @info num_dof(U)
 

@@ -125,15 +125,14 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
     storold_eval = ResEvaluator(physics, :storage, UKold, node, nspecies + nparams)
     flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies + nparams)
 
-    
     for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)        
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             for ispec = 1:nspecies
                 UK[ispec] = U[ispec, node.index]
                 UKold[ispec] = Uold[ispec, node.index]
             end
-            
+
             evaluate!(rea_eval, UK)
             rea = res(rea_eval)
             evaluate!(stor_eval, UK)
@@ -142,35 +141,35 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
             storold = res(storold_eval)
             evaluate!(src_eval)
             src = res(src_eval)
-            
+
             function asm_res(idof, ispec)
                 integral[ispec] += node.fac *
-                    (rea[ispec] - src[ispec] + (stor[ispec] - storold[ispec]) * tstepinv) * tf[node.index]
+                                   (rea[ispec] - src[ispec] + (stor[ispec] - storold[ispec]) * tstepinv) * tf[node.index]
             end
             assemble_res(node, system, asm_res)
         end
     end
-    
+
     for item in edgebatch(system.assembly_data)
-        for iedge in edgerange(system.assembly_data,item)
-            _fill!(edge,system.assembly_data,iedge,item) 
+        for iedge in edgerange(system.assembly_data, item)
+            _fill!(edge, system.assembly_data, iedge, item)
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
             @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
-            
+
             evaluate!(flux_eval, UKL)
             flux = res(flux_eval)
-            
+
             function asm_res(idofK, idofL, ispec)
-                integral[ispec] += edge.fac*flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
+                integral[ispec] += edge.fac * flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
             end
             assemble_res(edge, system, asm_res)
-            
+
             if isnontrivial(erea_eval)
                 evaluate!(erea_eval, UKL)
                 erea = res(erea_eval)
-                
+
                 function easm_res(idofK, idofL, ispec)
-                    integral[ispec] += edge.fac* erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
+                    integral[ispec] += edge.fac * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
                 end
                 assemble_res(edge, system, easm_res)
             end
@@ -211,47 +210,45 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     UK = Array{Tu, 1}(undef, nspecies)
     geom = grid[CellGeometries][1]
 
-    
     src_eval = ResEvaluator(physics, :source, UK, node, nspecies)
     rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies)
     erea_eval = ResEvaluator(physics, :edgereaction, UK, node, nspecies)
     flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies)
 
-    
     for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)        
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             @views UK .= U[:, node.index]
-            
+
             evaluate!(rea_eval, UK)
             rea = res(rea_eval)
             evaluate!(src_eval)
             src = res(src_eval)
-            
+
             function asm_res(idof, ispec)
-                integral[ispec] +=node.fac* (rea[ispec] - src[ispec]) * tf[node.index]
+                integral[ispec] += node.fac * (rea[ispec] - src[ispec]) * tf[node.index]
             end
             assemble_res(node, system, asm_res)
         end
     end
-    
+
     for item in edgebatch(system.assembly_data)
-        for iedge in edgerange(system.assembly_data,item)
-            _fill!(edge,system.assembly_data,iedge,item) 
+        for iedge in edgerange(system.assembly_data, item)
+            _fill!(edge, system.assembly_data, iedge, item)
             @views UKL[1:nspecies] .= U[:, edge.node[1]]
             @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
             evaluate!(flux_eval, UKL)
             flux = res(flux_eval)
-            
+
             function asm_res(idofK, idofL, ispec)
                 integral[ispec] += edge.fac * flux[ispec] * (tf[edge.node[1]] - tf[edge.node[2]])
             end
             assemble_res(edge, system, asm_res)
-            
+
             if isnontrivial(erea_eval)
                 evaluate!(erea_eval, UKL)
                 erea = res(erea_eval)
-                
+
                 function easm_res(idofK, idofL, ispec)
                     integral[ispec] += edge.fac * erea[ispec] * (tf[edge.node[1]] + tf[edge.node[2]])
                 end
@@ -287,8 +284,8 @@ function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     stor_eval = ResEvaluator(physics, :storage, UK, node, nspecies)
 
     for item in nodebatch(system.assembly_data)
-        for inode in noderange(system.assembly_data,item)
-            _fill!(node,system.assembly_data,inode,item)        
+        for inode in noderange(system.assembly_data, item)
+            _fill!(node, system.assembly_data, inode, item)
             @views UK .= U[:, node.index]
             evaluate!(stor_eval, UK)
             stor = res(stor_eval)
@@ -296,6 +293,6 @@ function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
             assemble_res(node, system, asm_res)
         end
     end
-    
+
     return integral
 end
