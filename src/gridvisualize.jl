@@ -17,15 +17,6 @@ Plot grid behind system
 GridVisualize.gridplot!(vis, sys::AbstractSystem; kwargs...) = GridVisualize.gridplot!(vis, sys.grid; kwargs...)
 
 
-function delaunayplot!(vis, grid; kwargs...)
-    gridplot!(vis,grid; kwargs...)
-end
-
-function delaunayplot(grid; kwargs...)
-    gridplot!(vis,grid; kwargs...)
-end
-
-
     
 """
     $(TYPEDSIGNATURES)
