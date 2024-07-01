@@ -131,6 +131,7 @@ export w1pnorm, h1norm
 export lpw1pnorm, l2h1norm
 export lpw1pseminorm, l2h1seminorm
 export nodevolumes
+export nondelaunay
 
 include("vfvm_testfunctions.jl")
 export testfunction

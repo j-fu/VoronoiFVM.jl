@@ -23,7 +23,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     Array of boundary condition factors 
     """
     boundary_factors::Array{Tv, 2}
-    6
+
     """
     Matrix containing species numbers for inner regions
     """
