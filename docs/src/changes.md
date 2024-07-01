@@ -1,4 +1,7 @@
 # Changes
+## v1.21.0 July 1, 2024
+- Introduce nondelaunay method for checking Delaunay properties of grid
+
 ## v1.20.0 April 26 2024
 - Drop Julia 1.6 support, improve package quality (partial Aqua tests, explicit imports)
 
