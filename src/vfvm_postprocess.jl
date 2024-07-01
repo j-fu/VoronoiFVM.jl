@@ -356,27 +356,33 @@ end
 """
     nondelaunay(grid;tol=1.0e-14, verbose=true)
 
-Return non-Delaunay edges (via list of tuples of node indices and regions)
+Return non-Delaunay edges. Returns a vector of tuples:
+Each tuple consists of `(node1, node2, edge factor, region)`
+
+If the vector has length 0, the grid is boundary conforming Delaunay
+with respect to each cell region. This means that up to `tol`, all 
+edge form factors are nonnegative.
 """
-function checkdelaunay(grid;tol=1.0e-14,verbose=true)
+function nondelaunay(grid;tol=1.0e-16,verbose=true)
+    atol=abs(tol)
     sys=System(grid;unknown_storage=:dense,species=[1], assembly=:edgewise)
     update_grid!(sys)
     (;colptr, rowval, nzval)=sys.assembly_data.edgefactors
-    nondelaunay=Tuple{Int,Int,Int}[]
+    ndelaunay=Tuple{Int,Int,Int, Float64}[]
     enodes=grid[EdgeNodes]
     coord=grid[Coordinates]
     for i=1:length(colptr)-1
         delaunay=true
         for k=colptr[i]:colptr[i+1]-1
-            if nzval[k]<tol
+            if nzval[k] < -atol
                 if verbose
-                    @warn "Non-delaunay edge: $(coord[:,enodes[i,1]]), $(coord[:,enodes[i,2]]), region=$(rowval[k])"
+                    @warn "Non-Delaunay edge: $(coord[:,enodes[1,i]]), $(coord[:,enodes[2,i]]), region=$(rowval[k])"
                 end
-                push!((enodes[1,i], enodes[2,i], rowval[j]))
+                push!(ndelaunay,(enodes[1,i], enodes[2,i], rowval[k], nzval[k]))
             end
         end
     end
-    @info "checkdelaunay:  $(length(nondelaunay)) non-Delaunay edged detected"
-    nondelaunay
+    @info "nondelaunay:  $(length(ndelaunay)) non-Delaunay edges detected"
+    ndelaunay
 end
 
