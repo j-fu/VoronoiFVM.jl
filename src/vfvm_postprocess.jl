@@ -363,7 +363,7 @@ If the vector has length 0, the grid is boundary conforming Delaunay
 with respect to each cell region. This means that up to `tol`, all 
 edge form factors are nonnegative.
 """
-function nondelaunay(grid;tol=1.0e-16,verbose=true)
+function nondelaunay(grid;tol=1.0e-16,verbose=false)
     atol=abs(tol)
     sys=System(grid;unknown_storage=:dense,species=[1], assembly=:edgewise)
     update_grid!(sys)
