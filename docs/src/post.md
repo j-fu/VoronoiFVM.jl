@@ -12,6 +12,11 @@ GridVisualize.scalarplot
 GridVisualize.scalarplot!
 VoronoiFVM.plothistory
 ```
+## Grid verification
+
+```@doc
+nondelaunay
+```
 
 ## Norms & volumes
 ```@docs
