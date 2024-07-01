@@ -354,14 +354,29 @@ end
 
 
 """
-    checkdelaunay(grid;tol=1.0e-14)
+    nondelaunay(grid;tol=1.0e-14, verbose=true)
 
-Check boundary conforming Delaunay property of grid.
+Return non-Delaunay edges (via list of tuples of node indices and regions)
 """
-function checkdelaunay(grid;tol=1.0e-14)
+function checkdelaunay(grid;tol=1.0e-14,verbose=true)
     sys=System(grid;unknown_storage=:dense,species=[1], assembly=:edgewise)
     update_grid!(sys)
-    @info all(v->v>-tol,sys.assembly_data.edgefactors.nzval)
-    sys.assembly_data.edgefactors.nzval
+    (;colptr, rowval, nzval)=sys.assembly_data.edgefactors
+    nondelaunay=Tuple{Int,Int,Int}[]
+    enodes=grid[EdgeNodes]
+    coord=grid[Coordinates]
+    for i=1:length(colptr)-1
+        delaunay=true
+        for k=colptr[i]:colptr[i+1]-1
+            if nzval[k]<tol
+                if verbose
+                    @warn "Non-delaunay edge: $(coord[:,enodes[i,1]]), $(coord[:,enodes[i,2]]), region=$(rowval[k])"
+                end
+                push!((enodes[1,i], enodes[2,i], rowval[j]))
+            end
+        end
+    end
+    @info "checkdelaunay:  $(length(nondelaunay)) non-Delaunay edged detected"
+    nondelaunay
 end
 
