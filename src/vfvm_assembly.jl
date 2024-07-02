@@ -12,12 +12,12 @@ $(SIGNATURES)
 
 Add value `v*fac` to matrix if `v` is nonzero
 """
-@inline function _addnz(matrix, i, j, v::Tv, fac) where {Tv}
+@inline function _addnz(matrix, i, j, v::Tv, fac, part=1) where {Tv}
     if isnan(v)
         error("trying to assemble NaN")
     end
     if v != zero(Tv)
-        rawupdateindex!(matrix, +, v * fac, i, j)
+        rawupdateindex!(matrix, +, v * fac, i, j, part)
     end
 end
 
@@ -62,18 +62,18 @@ function assemble_nodes(system, time, tstepinv, λ, params, part,
             @views UKOld[1:nspecies] .= UOld[:, node.index]
 
             evaluate!(src_evaluator)
-            local src = res(src_evaluator)
+            src = res(src_evaluator)
 
             evaluate!(rea_evaluator, UK)
-            local res_react = res(rea_evaluator)
-            local jac_react = jac(rea_evaluator)
+            res_react = res(rea_evaluator)
+            jac_react = jac(rea_evaluator)
 
             evaluate!(stor_evaluator, UK)
-            local res_stor = res(stor_evaluator)
-            local jac_stor = jac(stor_evaluator)
+            res_stor = res(stor_evaluator)
+            jac_stor = jac(stor_evaluator)
 
             evaluate!(oldstor_evaluator, UKOld)
-            local oldstor = res(oldstor_evaluator)
+            oldstor = res(oldstor_evaluator)
 
             @inline function asm_res(idof, ispec)
                 _add(F,
@@ -87,7 +87,7 @@ function assemble_nodes(system, time, tstepinv, λ, params, part,
                        idof,
                        jdof,
                        jac_react[ispec, jspec] + jac_stor[ispec, jspec] * tstepinv,
-                       node.fac)
+                       node.fac, part)
             end
 
             @inline function asm_param(idof, ispec, iparam)
@@ -138,18 +138,18 @@ function assemble_edges(system, time, tstepinv, λ, params, part,
             end
 
             @inline function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], edge.fac)
-                _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], edge.fac)
+                _addnz(system.matrix, idofK, jdofK, +jac_flux[ispec, jspec], edge.fac, part)
+                _addnz(system.matrix, idofL, jdofK, -jac_flux[ispec, jspec], edge.fac, part)
                 _addnz(system.matrix,
                        idofK,
                        jdofL,
                        +jac_flux[ispec, jspec + nspecies],
-                       edge.fac)
+                       edge.fac, part)
                 _addnz(system.matrix,
                        idofL,
                        jdofL,
                        -jac_flux[ispec, jspec + nspecies],
-                       edge.fac)
+                       edge.fac, part)
             end
 
             @inline function asm_param(idofK, idofL, ispec, iparam)
@@ -172,18 +172,18 @@ function assemble_edges(system, time, tstepinv, λ, params, part,
                 end
 
                 @inline function ereaasm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                    _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], edge.fac)
-                    _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], edge.fac)
+                    _addnz(system.matrix, idofK, jdofK, +jac_erea[ispec, jspec], edge.fac, part)
+                    _addnz(system.matrix, idofL, jdofK, -jac_erea[ispec, jspec], edge.fac, part)
                     _addnz(system.matrix,
                            idofK,
                            jdofL,
                            -jac_erea[ispec, jspec + nspecies],
-                           edge.fac)
+                           edge.fac, part)
                     _addnz(system.matrix,
                            idofL,
                            jdofL,
                            +jac_erea[ispec, jspec + nspecies],
-                           edge.fac)
+                           edge.fac, part)
                 end
 
                 @inline function ereaasm_param(idofK, idofL, ispec, iparam)
@@ -220,12 +220,12 @@ function assemble_edges(system, time, tstepinv, λ, params, part,
                                idofK,
                                jdofK,
                                +jac_outflow[ispec, jspec],
-                               edge.fac)
+                               edge.fac, part)
                         _addnz(system.matrix,
                                idofK,
                                jdofL,
                                jac_outflow[ispec, jspec + nspecies],
-                               edge.fac)
+                               edge.fac, part)
                     end
 
                     if isoutflownode(edge, 2)
@@ -233,12 +233,12 @@ function assemble_edges(system, time, tstepinv, λ, params, part,
                                idofL,
                                jdofK,
                                -jac_outflow[ispec, jspec],
-                               edge.fac)
+                               edge.fac, part)
                         _addnz(system.matrix,
                                idofL,
                                jdofL,
                                -jac_outflow[ispec, jspec + nspecies],
-                               edge.fac)
+                               edge.fac, part)
                     end
                 end
 
@@ -315,11 +315,11 @@ function assemble_bnodes(system, time, tstepinv, λ, params, part,
 
                             # Add penalty to matrix main diagonal (without bnode factor, so penalty
                             # is independent of h)
-                            _addnz(system.matrix, idof, idof, boundary_factor, 1)
+                            _addnz(system.matrix, idof, idof, boundary_factor, 1, part)
                         else
                             # Robin boundary condition
                             F[ispec, K] += bnode.fac * (boundary_factor * U[ispec, K] - boundary_value)
-                            _addnz(system.matrix, idof, idof, boundary_factor, bnode.fac)
+                            _addnz(system.matrix, idof, idof, boundary_factor, bnode.fac, part)
                         end
                     end
                 end
@@ -337,7 +337,7 @@ function assemble_bnodes(system, time, tstepinv, λ, params, part,
 
             asm_res1(idof, ispec) = _add(F, idof, bnode.fac * (res_breact[ispec] - bsrc[ispec]))
 
-            asm_jac1(idof, jdof, ispec, jspec) = _addnz(system.matrix, idof, jdof, jac_breact[ispec, jspec], bnode.fac)
+            asm_jac1(idof, jdof, ispec, jspec) = _addnz(system.matrix, idof, jdof, jac_breact[ispec, jspec], bnode.fac, part)
 
             function asm_param1(idof, ispec, iparam)
                 dudp[iparam][ispec, idof] += jac_breact[ispec, nspecies + iparam] * bnode.fac
@@ -363,7 +363,7 @@ function assemble_bnodes(system, time, tstepinv, λ, params, part,
                            idof,
                            jdof,
                            jac_bstor[ispec, jspec],
-                           bnode.fac * tstepinv)
+                           bnode.fac * tstepinv, part)
                 end
 
                 function asm_param2(idof, ispec, iparam)
@@ -408,18 +408,18 @@ function assemble_bedges(system, time, tstepinv, λ, params, part,
                 end
 
                 function asm_jac(idofK, jdofK, idofL, jdofL, ispec, jspec)
-                    _addnz(system.matrix, idofK, jdofK, +jac_bflux[ispec, jspec], bedge.fac)
-                    _addnz(system.matrix, idofL, jdofK, -jac_bflux[ispec, jspec], bedge.fac)
+                    _addnz(system.matrix, idofK, jdofK, +jac_bflux[ispec, jspec], bedge.fac, part)
+                    _addnz(system.matrix, idofL, jdofK, -jac_bflux[ispec, jspec], bedge.fac, part)
                     _addnz(system.matrix,
                            idofK,
                            jdofL,
                            +jac_bflux[ispec, jspec + nspecies],
-                           bedge.fac)
+                           bedge.fac, part)
                     _addnz(system.matrix,
                            idofL,
                            jdofL,
                            -jac_bflux[ispec, jspec + nspecies],
-                           bedge.fac)
+                           bedge.fac, part)
                 end
 
                 function asm_param(idofK, idofL, ispec, iparam)
@@ -478,29 +478,31 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     colpart = system.assembly_data.pcolor_partitions
 
     for color in pcolors(system.assembly_data)
-        for part in pcolor_partitions(system.assembly_data,color)
-
-            local ncalloc = assemble_nodes(system, time, tstepinv, λ, params, part, U, UOld, F)
-
+       @tasks for part in pcolor_partitions(system.assembly_data,color)
+            ncalloc = assemble_nodes(system, time, tstepinv, λ, params, part, U, UOld, F)
             ncalloc += assemble_edges(system, time, tstepinv, λ, params, part, U, UOld, F)
-            
-            local nballoc = assemble_bnodes(system, time, tstepinv, λ, params, part, U, UOld, F)
-
-            nballoc += assemble_bedges(system, time, tstepinv, λ, params, part, U, UOld, F)
-
             ncallocs[part] = ncalloc
+       end
+    end
+    
+    for color in pcolors(system.boundary_assembly_data)
+       @tasks for part in pcolor_partitions(system.boundary_assembly_data,color)
+            nballoc = assemble_bnodes(system, time, tstepinv, λ, params, part, U, UOld, F)
+            nballoc += assemble_bedges(system, time, tstepinv, λ, params, part, U, UOld, F)
             nballocs[part] = nballoc
         end
     end
 
+    noallocs(m::AbstractExtendableSparseMatrixCSC)= iszero(nnznew(m))
     noallocs(m::ExtendableSparseMatrix) = isnothing(m.lnkmatrix)
     noallocs(m::AbstractMatrix) = false
-
     allncallocs = sum(ncallocs)
     allnballocs = sum(nballocs)
+    #    @info noallocs(system.matrix), allncallocs, allnballocs
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
     neval = 1
+    allnballocs=0
     if !noallocs(system.matrix)
         allncallocs = 0
         allnballocs = 0

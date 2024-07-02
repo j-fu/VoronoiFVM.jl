@@ -582,7 +582,11 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
         # elseif matrixtype==:multidiagonal
         #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
     else # :sparse
-        system.matrix=ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
+        if num_partitions(system.grid)==1 || system.assembly_type==:edgewise
+            system.matrix=ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
+        else
+            system.matrix=MTExtendableSparseMatrixCSC{Tv, Tm}(n, n, num_partitions(system.grid))
+        end
     end
 
     if create_newtonvectors
@@ -681,8 +685,8 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     cellwise_factors!(csys)
 
-    system.assembly_data = CellwiseAssemblyData{Tc, Ti}(cellnodefactors, celledgefactors, [1,2], [1,num_cells(grid)+1])
-    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, [1,2], [1,num_bfaces(grid)+1])
+    system.assembly_data = CellwiseAssemblyData{Tc, Ti}(cellnodefactors, celledgefactors, grid[PColorPartitions], grid[PartitionCells])
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, grid[PColorPartitions], grid[PartitionBFaces])
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
