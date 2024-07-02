@@ -25,6 +25,9 @@ struct CellwiseAssemblyData{Tv, Ti} <: AbstractAssemblyData{Tv, Ti}
         This is a `ncells x nedge_per_cell` full matrix.
     """
     edgefactors::Array{Tv, 2}
+
+    pcolor_partitions::Vector{Ti}
+    partition_cells::Vector{Ti}
 end
 
 """
@@ -45,7 +48,19 @@ struct EdgewiseAssemblyData{Tv, Ti} <: AbstractAssemblyData{Tv, Ti}
         This is a `nedges x nregions` sparse matrix.
     """
     edgefactors::SparseMatrixCSC{Tv, Ti}
+
+    pcolor_partitions::Vector{Ti}
+    partition_edges::Vector{Ti}
+    partition_nodes::Vector{Ti}
 end
+
+ExtendableGrids.num_pcolors(a::AbstractAssemblyData)=length(a.pcolor_partitions)-1
+ExtendableGrids.pcolors(a::AbstractAssemblyData)=1:num_pcolors(a)
+function ExtendableGrids.pcolor_partitions(a::AbstractAssemblyData,color)
+    colpart=a.pcolor_partitions
+    @inbounds colpart[color]:colpart[color+1]-1
+end
+ExtendableGrids.num_partitions(a::AbstractAssemblyData)=length(a.pcolor_partitions)-1
 
 """
     nodebatch(assemblydata)
@@ -78,14 +93,20 @@ function edgerange end
 nodebatch(asmdata::CellwiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.nodefactors, 2)
 edgebatch(asmdata::CellwiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.edgefactors, 2)
 
+nodebatch(asmdata::CellwiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_cells[ipart]:asmdata.partition_cells[ipart+1]-1
+edgebatch(asmdata::CellwiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_cells[ipart]:asmdata.partition_cells[ipart+1]-1
+
 nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.nodefactors, 2)
 edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.edgefactors, 2)
+
+nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = 1:size(asmdata.nodefactors, 2)
+edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = 1:size(asmdata.edgefactors, 2)
 
 noderange(asmdata::EdgewiseAssemblyData{Tv, Ti}, inode) where {Tv, Ti} = nzrange(asmdata.nodefactors, inode)
 edgerange(asmdata::EdgewiseAssemblyData{Tv, Ti}, iedge) where {Tv, Ti} = nzrange(asmdata.edgefactors, iedge)
 
-noderange(asmdata::CellwiseAssemblyData{Tv, Ti}, inode) where {Tv, Ti} = 1:size(asmdata.nodefactors, 1)
-edgerange(asmdata::CellwiseAssemblyData{Tv, Ti}, iedge) where {Tv, Ti} = 1:size(asmdata.edgefactors, 1)
+noderange(asmdata::CellwiseAssemblyData{Tv, Ti}, icell) where {Tv, Ti} = 1:size(asmdata.nodefactors, 1)
+edgerange(asmdata::CellwiseAssemblyData{Tv, Ti}, icell) where {Tv, Ti} = 1:size(asmdata.edgefactors, 1)
 
 """
     $(SIGNATURES)

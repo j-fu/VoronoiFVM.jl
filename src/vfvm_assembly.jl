@@ -30,59 +30,22 @@ end
 
 zero!(m::AbstractMatrix{T}) where {T} = m .= zero(T)
 
-"""
-$(SIGNATURES)
-
-Main assembly method.
-
-Evaluate solution with result in right hand side F and 
-assemble Jacobi matrix into system.matrix.
-"""
-function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
-                           U::AbstractMatrix{Tv}, # Actual solution iteration
-                           UOld::AbstractMatrix{Tv}, # Old timestep solution
-                           F::AbstractMatrix{Tv},# Right hand side
-                           time,
-                           tstep,# time step size. Inf means stationary solution
-                           λ,
-                           params::AbstractVector;
-                           edge_cutoff = 0.0,) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray}
-    _complete!(system) # needed here as well for test function system which does not use newton
-
-    grid = system.grid
+function assemble_nodes(system, time, tstepinv, λ, params, part,
+                        U::AbstractMatrix{Tv}, # Actual solution iteration
+                        UOld::AbstractMatrix{Tv}, # Old timestep solution
+                        F::AbstractMatrix{Tv}) where {Tv}
     physics = system.physics
-    node = Node(system, time, λ, params)
-    edge = Edge(system, time, λ, params)
-    nspecies::Int = num_species(system)
-
-    # Reset matrix + rhs
-    zero!(system.matrix)
-    F .= 0.0
-    nparams::Int = system.num_parameters
-
     dudp = system.dudp
-
-    for iparam = 1:nparams
-        dudp[iparam] .= 0.0
-    end
-
-    # Arrays for gathering solution data
+    nspecies::Int = num_species(system)
+    nparams::Int = system.num_parameters
+    node = Node(system, time, λ, params)
     UK = Array{Tv, 1}(undef, nspecies + nparams)
     UKOld = Array{Tv, 1}(undef, nspecies + nparams)
-    UKL = Array{Tv, 1}(undef, 2 * nspecies + nparams)
 
-    @assert length(params) == nparams
     if nparams > 0
         UK[(nspecies + 1):end] .= params
         UKOld[(nspecies + 1):end] .= params
-        UKL[(2 * nspecies + 1):end] .= params
     end
-
-    # Inverse of timestep
-    # According to Julia documentation, 1/Inf=0 which
-    # comes handy to write compact code here for the
-    # case of stationary problems.
-    tstepinv = 1.0 / tstep
 
     #
     # These wrap the different physics functions.
@@ -91,29 +54,26 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     rea_evaluator = ResJacEvaluator(physics, :reaction, UK, node, nspecies)
     stor_evaluator = ResJacEvaluator(physics, :storage, UK, node, nspecies)
     oldstor_evaluator = ResEvaluator(physics, :storage, UK, node, nspecies)
-    flux_evaluator = ResJacEvaluator(physics, :flux, UKL, edge, nspecies)
-    erea_evaluator = ResJacEvaluator(physics, :edgereaction, UKL, edge, nspecies)
-    outflow_evaluator = ResJacEvaluator(physics, :boutflow, UKL, edge, nspecies)
 
-    ncalloc = @allocated for item in nodebatch(system.assembly_data)
+    ncalloc = @allocated for item in nodebatch(system.assembly_data, part)
         for inode in noderange(system.assembly_data, item)
             _fill!(node, system.assembly_data, inode, item)
             @views UK[1:nspecies] .= U[:, node.index]
             @views UKOld[1:nspecies] .= UOld[:, node.index]
 
             evaluate!(src_evaluator)
-            src = res(src_evaluator)
+            local src = res(src_evaluator)
 
             evaluate!(rea_evaluator, UK)
-            res_react = res(rea_evaluator)
-            jac_react = jac(rea_evaluator)
+            local res_react = res(rea_evaluator)
+            local jac_react = jac(rea_evaluator)
 
             evaluate!(stor_evaluator, UK)
-            res_stor = res(stor_evaluator)
-            jac_stor = jac(stor_evaluator)
+            local res_stor = res(stor_evaluator)
+            local jac_stor = jac(stor_evaluator)
 
             evaluate!(oldstor_evaluator, UKOld)
-            oldstor = res(oldstor_evaluator)
+            local oldstor = res(oldstor_evaluator)
 
             @inline function asm_res(idof, ispec)
                 _add(F,
@@ -139,11 +99,28 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
             assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
         end
     end
+    return ncalloc
+end
 
-    if isnontrivial(outflow_evaluator)
+function assemble_edges(system, time, tstepinv, λ, params, part,
+                        U::AbstractMatrix{Tv}, # Actual solution iteration
+                        UOld::AbstractMatrix{Tv}, # Old timestep solution
+                        F::AbstractMatrix{Tv}) where {Tv}
+    physics = system.physics
+    dudp = system.dudp
+    nspecies::Int = num_species(system)
+    nparams::Int = system.num_parameters
+    edge = Edge(system, time, λ, params)
+    UKL = Array{Tv, 1}(undef, 2 * nspecies + nparams)
+    if nparams > 0
+        UKL[(2 * nspecies + 1):end] .= params
     end
 
-    ncalloc += @allocated for item in edgebatch(system.assembly_data)
+    flux_evaluator = ResJacEvaluator(physics, :flux, UKL, edge, nspecies)
+    erea_evaluator = ResJacEvaluator(physics, :edgereaction, UKL, edge, nspecies)
+    outflow_evaluator = ResJacEvaluator(physics, :boutflow, UKL, edge, nspecies)
+
+    @allocated for item in edgebatch(system.assembly_data, part)
         for iedge in edgerange(system.assembly_data, item)
             _fill!(edge, system.assembly_data, iedge, item)
 
@@ -182,7 +159,6 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
             end
 
             assemble_res_jac(edge, system, asm_res, asm_jac, asm_param)
-
             ##################################################################################
             if isnontrivial(erea_evaluator)
                 evaluate!(erea_evaluator, UKL)
@@ -284,21 +260,34 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
             end
         end
     end
+end
 
-    bnode = BNode(system, time, λ, params)
-    bedge = BEdge(system, time, λ, params)
-
+function assemble_bnodes(system, time, tstepinv, λ, params, part,
+                         U::AbstractMatrix{Tv}, # Actual solution iteration
+                         UOld::AbstractMatrix{Tv}, # Old timestep solution
+                         F::AbstractMatrix{Tv}) where {Tv}
+    physics = system.physics
+    dudp = system.dudp
+    nspecies::Int = num_species(system)
+    nparams::Int = system.num_parameters
     boundary_factors::Array{Tv, 2} = system.boundary_factors
     boundary_values::Array{Tv, 2} = system.boundary_values
     has_legacy_bc = !iszero(boundary_factors) || !iszero(boundary_values)
+    UK = Array{Tv, 1}(undef, nspecies + nparams)
+    UKOld = Array{Tv, 1}(undef, nspecies + nparams)
+
+    if nparams > 0
+        UK[(nspecies + 1):end] .= params
+        UKOld[(nspecies + 1):end] .= params
+    end
+    bnode = BNode(system, time, λ, params)
 
     bsrc_evaluator = ResEvaluator(physics, :bsource, UK, bnode, nspecies)
     brea_evaluator = ResJacEvaluator(physics, :breaction, UK, bnode, nspecies)
     bstor_evaluator = ResJacEvaluator(physics, :bstorage, UK, bnode, nspecies)
     oldbstor_evaluator = ResEvaluator(physics, :bstorage, UK, bnode, nspecies)
-    bflux_evaluator = ResJacEvaluator(physics, :bflux, UKL, bedge, nspecies)
 
-    nballoc = @allocated for item in nodebatch(system.boundary_assembly_data)
+    @allocated for item in nodebatch(system.boundary_assembly_data, part)
         for ibnode in noderange(system.boundary_assembly_data, item)
             _fill!(bnode, system.boundary_assembly_data, ibnode, item)
 
@@ -350,7 +339,9 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
 
             asm_jac1(idof, jdof, ispec, jspec) = _addnz(system.matrix, idof, jdof, jac_breact[ispec, jspec], bnode.fac)
 
-            asm_param1(idof, ispec, iparam) = dudp[iparam][ispec, idof] += jac_breact[ispec, nspecies + iparam] * bnode.fac
+            function asm_param1(idof, ispec, iparam)
+                dudp[iparam][ispec, idof] += jac_breact[ispec, nspecies + iparam] * bnode.fac
+            end
 
             assemble_res_jac(bnode, system, asm_res1, asm_jac1, asm_param1)
 
@@ -383,9 +374,25 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
             end
         end # ibnode=1:nbn
     end
+end
 
+function assemble_bedges(system, time, tstepinv, λ, params, part,
+                         U::AbstractMatrix{Tv}, # Actual solution iteration
+                         UOld::AbstractMatrix{Tv}, # Old timestep solution
+                         F::AbstractMatrix{Tv}) where {Tv}
+    physics = system.physics
+    bedge = BEdge(system, time, λ, params)
+    dudp = system.dudp
+    nspecies::Int = num_species(system)
+    nparams::Int = system.num_parameters
+    UKL = Array{Tv, 1}(undef, 2 * nspecies + nparams)
+    if nparams > 0
+        UKL[(2 * nspecies + 1):end] .= params
+    end
+    bflux_evaluator = ResJacEvaluator(physics, :bflux, UKL, bedge, nspecies)
     if isnontrivial(bflux_evaluator)
-        nballoc += @allocated for item in edgebatch(system.boundary_assembly_data)
+
+        @allocated for item in edgebatch(system.boundary_assembly_data, part)
             for ibedge in edgerange(system.boundary_assembly_data, item)
                 _fill!(bedge, system.boundary_assembly_data, ibedge, item)
                 @views UKL[1:nspecies] .= U[:, bedge.node[1]]
@@ -423,22 +430,86 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                 assemble_res_jac(bedge, system, asm_res, asm_jac, asm_param)
             end
         end
+    else
+        0
+    end
+end
+
+"""
+   $(SIGNATURES)
+
+Main assembly method.
+
+Evaluate solution with result in right hand side F and 
+assemble Jacobi matrix into system.matrix.
+"""
+function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
+                           U::AbstractMatrix{Tv}, # Actual solution iteration
+                           UOld::AbstractMatrix{Tv}, # Old timestep solution
+                           F::AbstractMatrix{Tv},# Right hand side
+                           time,
+                           tstep,# time step size. Inf means stationary solution
+                           λ,
+                           params::AbstractVector;
+                           edge_cutoff = 0.0,) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray}
+    _complete!(system) # needed here as well for test function system which does not use newton
+
+    grid = system.grid
+    physics = system.physics
+    nspecies::Int = num_species(system)
+
+    # Reset matrix + rhs
+    zero!(system.matrix)
+    F .= 0.0
+    nparams::Int = system.num_parameters
+    dudp = system.dudp
+
+    for iparam = 1:nparams
+        dudp[iparam] .= 0.0
+    end
+    @assert length(params) == nparams
+    # Inverse of timestep
+    # According to Julia documentation, 1/Inf=0 which
+    # comes handy to write compact code here for the
+    # case of stationary problems.
+    tstepinv = 1.0 / tstep
+    ncallocs = zeros(Int, num_partitions(system.assembly_data))
+    nballocs = zeros(Int, num_partitions(system.assembly_data))
+    colpart = system.assembly_data.pcolor_partitions
+
+    for color in pcolors(system.assembly_data)
+        for part in pcolor_partitions(system.assembly_data,color)
+
+            local ncalloc = assemble_nodes(system, time, tstepinv, λ, params, part, U, UOld, F)
+
+            ncalloc += assemble_edges(system, time, tstepinv, λ, params, part, U, UOld, F)
+            
+            local nballoc = assemble_bnodes(system, time, tstepinv, λ, params, part, U, UOld, F)
+
+            nballoc += assemble_bedges(system, time, tstepinv, λ, params, part, U, UOld, F)
+
+            ncallocs[part] = ncalloc
+            nballocs[part] = nballoc
+        end
     end
 
     noallocs(m::ExtendableSparseMatrix) = isnothing(m.lnkmatrix)
     noallocs(m::AbstractMatrix) = false
+
+    allncallocs = sum(ncallocs)
+    allnballocs = sum(nballocs)
     # if  no new matrix entries have been created, we should see no allocations
     # in the previous two loops
     neval = 1
     if !noallocs(system.matrix)
-        ncalloc = 0
-        nballoc = 0
+        allncallocs = 0
+        allnballocs = 0
         neval = 0
     end
     _eval_and_assemble_generic_operator(system, U, F)
     _eval_and_assemble_inactive_species(system, U, UOld, F)
 
-    ncalloc, nballoc, neval
+    allncallocs, allnballocs, neval
 end
 
 """

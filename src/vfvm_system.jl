@@ -681,8 +681,8 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     cellwise_factors!(csys)
 
-    system.assembly_data = CellwiseAssemblyData{Tc, Ti}(cellnodefactors, celledgefactors)
-    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors)
+    system.assembly_data = CellwiseAssemblyData{Tc, Ti}(cellnodefactors, celledgefactors, [1,2], [1,num_cells(grid)+1])
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, [1,2], [1,num_bfaces(grid)+1])
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -733,9 +733,9 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     end
 
     edgewise_factors!(csys)
-
-    system.assembly_data = EdgewiseAssemblyData{Tc, Ti}(SparseMatrixCSC(cnf), SparseMatrixCSC(cef))
-    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors)
+    system.assembly_data = EdgewiseAssemblyData{Tc, Ti}(SparseMatrixCSC(cnf), SparseMatrixCSC(cef),
+                                                        [1,2], [1,num_nodes(grid)+1], [1,num_edges(grid)+1])
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, [1,2], [1,num_bfaces(grid)+1])
 end
 
 ################################################################################################

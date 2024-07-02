@@ -20,8 +20,9 @@ using ExtendableGrids: ExtendableGrids, BEdgeNodes, BFaceCells, BFaceEdges,
                        Triangle2D, Vertex0D, VoronoiFaceCenters, coord_type,
                        dim_space, index_type, local_celledgenodes, num_bfaces,
                        num_cells, num_edges, num_nodes, num_cellregions, num_bfaceregions, num_targets,
-                       simplexgrid, subgrid, tricircumcenter!
-
+                       simplexgrid, subgrid, tricircumcenter!,
+                       num_partitions, pcolor_partitions, pcolors, num_pcolors
+     
 using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,
                         ExtendableSparseMatrixCSC,
