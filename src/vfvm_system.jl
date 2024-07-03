@@ -670,13 +670,13 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
 
     function cellwise_factors!(csys::Type{T}) where {T}
-        nalloc = @allocated for icell = 1:ncells
+        nalloc = @allocations for icell = 1:ncells
             @views cellfactors!(geom, csys, coord, cellnodes, icell,
                                 cellnodefactors[:, icell], celledgefactors[:, icell])
         end
         nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
 
-        nalloc = @allocated for ibface = 1:nbfaces
+        nalloc = @allocations for ibface = 1:nbfaces
             @views bfacefactors!(bgeom, csys, coord, bfacenodes, ibface,
                                  bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
         end
@@ -732,7 +732,7 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
         #        nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
 
-        nalloc = @allocated for ibface = 1:nbfaces
+        nalloc = @allocations for ibface = 1:nbfaces
             @views bfacefactors!(bgeom, csys, coord, bfacenodes, ibface,
                                  bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
         end
