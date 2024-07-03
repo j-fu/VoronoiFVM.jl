@@ -14,6 +14,9 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     Y = collect(0.0:h:1.0)
 
     grid = simplexgrid(X, Y)
+
+    grid=partition(grid, PlainMetisPartitioning(npart=20))
+    @show grid
     data = (eps = 1.0e-2, k = 1.0)
 
     function reaction!(f, u, node, data)
@@ -56,27 +59,24 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     tstep = 0.01
     time = 0.0
     istep = 0
-    u15 = 0
+    testval=0
     p = GridVisualizer(; Plotter = Plotter, layout = (2, 1))
-    while time < 1
+    @time    while time < 1
         time = time + tstep
         U = solve(sys; inival, control, tstep)
         inival .= U
-        if verbose
-            @printf("time=%g\n", time)
-        end
-        u15 = U[15]
+        testval=sum(U)
         tstep *= 1.0
         istep = istep + 1
-        scalarplot!(p[1, 1], grid, U[1, :]; clear = true)
-        scalarplot!(p[2, 1], grid, U[2, :]; show = true)
+        scalarplot!(p[1, 1], grid, U[1, :]; clear = true, limits=(0,0.5))
+        scalarplot!(p[2, 1], grid, U[2, :]; show = true, limits=(0,0.5))
     end
-    return u15
+    return testval
 end
 
 using Test
 function runtests()
-    testval = 0.014566189535134827
+    testval = 16.01812472041518
     @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
           main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
           main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&

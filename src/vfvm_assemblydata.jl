@@ -60,7 +60,9 @@ function ExtendableGrids.pcolor_partitions(a::AbstractAssemblyData,color)
     colpart=a.pcolor_partitions
     @inbounds colpart[color]:colpart[color+1]-1
 end
-ExtendableGrids.num_partitions(a::AbstractAssemblyData)=length(a.pcolor_partitions)-1
+
+ExtendableGrids.num_partitions(a::AbstractAssemblyData)=length(a.partition_cells)-1
+ExtendableGrids.num_partitions(a::EdgewiseAssemblyData)=length(a.partition_nodes)-1
 
 """
     nodebatch(assemblydata)

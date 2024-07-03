@@ -169,8 +169,10 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
         nlhistory.tasm = tasm
     end
 
-    if ncalloc + nballoc > 0 && doprint(control, 'a') && !is_precompiling()
-        @warn "[a]llocations in assembly loop: cells: $(ncalloc÷neval), bfaces: $(nballoc÷neval)"
+    if neval>0
+        if ncalloc÷neval + nballoc÷neval > 0 && doprint(control, 'a') && !is_precompiling()
+            @warn "[a]llocations in assembly loop: cells: $(ncalloc÷neval), bfaces: $(nballoc÷neval)"
+        end
     end
 
     if doprint(control, 'n') && !system.is_linear
