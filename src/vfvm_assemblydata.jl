@@ -50,8 +50,8 @@ struct EdgewiseAssemblyData{Tv, Ti} <: AbstractAssemblyData{Tv, Ti}
     edgefactors::SparseMatrixCSC{Tv, Ti}
 
     pcolor_partitions::Vector{Ti}
-    partition_edges::Vector{Ti}
     partition_nodes::Vector{Ti}
+    partition_edges::Vector{Ti}
 end
 
 ExtendableGrids.num_pcolors(a::AbstractAssemblyData)=length(a.pcolor_partitions)-1
@@ -62,7 +62,7 @@ function ExtendableGrids.pcolor_partitions(a::AbstractAssemblyData,color)
 end
 
 ExtendableGrids.num_partitions(a::AbstractAssemblyData)=length(a.partition_cells)-1
-ExtendableGrids.num_partitions(a::EdgewiseAssemblyData)=length(a.partition_nodes)-1
+ExtendableGrids.num_partitions(a::EdgewiseAssemblyData)=a.pcolor_partitions[end]-1
 
 """
     nodebatch(assemblydata)
@@ -101,8 +101,8 @@ edgebatch(asmdata::CellwiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata
 nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.nodefactors, 2)
 edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.edgefactors, 2)
 
-nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = 1:size(asmdata.nodefactors, 2)
-edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = 1:size(asmdata.edgefactors, 2)
+nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_nodes[ipart]:asmdata.partition_nodes[ipart+1]-1
+edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_edges[ipart]:asmdata.partition_edges[ipart+1]-1
 
 noderange(asmdata::EdgewiseAssemblyData{Tv, Ti}, inode) where {Tv, Ti} = nzrange(asmdata.nodefactors, inode)
 edgerange(asmdata::EdgewiseAssemblyData{Tv, Ti}, iedge) where {Tv, Ti} = nzrange(asmdata.edgefactors, iedge)

@@ -22,7 +22,7 @@ using ExtendableGrids: ExtendableGrids, BEdgeNodes, BFaceCells, BFaceEdges,
                        num_cells, num_edges, num_nodes, num_cellregions, num_bfaceregions, num_targets,
                        simplexgrid, subgrid, tricircumcenter!,
                        num_partitions, pcolor_partitions, pcolors, num_pcolors,
-                       PColorPartitions, PartitionCells, PartitionBFaces
+                       PColorPartitions, PartitionCells, PartitionBFaces, PartitionNodes, PartitionEdges
 
 using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,

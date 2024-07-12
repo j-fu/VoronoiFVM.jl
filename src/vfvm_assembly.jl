@@ -477,9 +477,8 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     ncallocs = zeros(Int, num_partitions(system.assembly_data))
     nballocs = zeros(Int, num_partitions(system.assembly_data))
     colpart = system.assembly_data.pcolor_partitions
-
     for color in pcolors(system.assembly_data)
-        for part in pcolor_partitions(system.assembly_data,color)
+        @tasks for part in pcolor_partitions(system.assembly_data,color)
             ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
             ncalloc += assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
             ncallocs[part] = ncalloc
@@ -508,14 +507,16 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
         allnballocs = 0
         neval = 0
     end
-    
-    # If allocation numbers don't scale with grid size, we can ignore them
-    if allncallocs<num_cells(system.grid)/10
-        allncallocs=0
-    end
 
-    if allnballocs<num_bfaces(system.grid)/10
-        allnballocs=0
+    if num_partitions(grid)>1
+        # If allocation numbers don't scale with grid size, we can ignore them
+        if allncallocs<num_cells(system.grid)/2
+            allncallocs=0
+        end
+        
+        if allnballocs<num_bfaces(system.grid)/2
+            allnballocs=0
+        end
     end
     _eval_and_assemble_generic_operator(system, U, F)
     _eval_and_assemble_inactive_species(system, U, UOld, F)

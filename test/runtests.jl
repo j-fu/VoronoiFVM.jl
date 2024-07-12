@@ -85,6 +85,6 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
     end
 end
 
-run_all_tests(; run_notebooks = false, notebooksonly = false)
+run_all_tests(; run_notebooks = true, notebooksonly = false)
 
 

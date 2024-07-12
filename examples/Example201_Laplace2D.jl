@@ -21,7 +21,8 @@ function main(; Plotter = nothing, n = 5, is_linear = true, assembly = :edgewise
     ispec = 1
     X = collect(0:(1.0 / n):1)
     grid = simplexgrid(X, X)
-
+    grid=partition(grid, PlainMetisPartitioning(npart=20))
+    @show grid
     physics = VoronoiFVM.Physics(; flux = g!)
     sys = VoronoiFVM.System(grid, physics; is_linear = is_linear, assembly = assembly)
     enable_species!(sys, ispec, [1])

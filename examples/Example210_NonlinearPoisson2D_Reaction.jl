@@ -15,7 +15,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 
     grid = simplexgrid(X, Y)
 
-    grid=partition(grid, PlainMetisPartitioning(npart=20))
+    grid=partition(grid, PlainMetisPartitioning(npart=10))
     @show grid
     data = (eps = 1.0e-2, k = 1.0)
 

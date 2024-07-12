@@ -49,7 +49,7 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
     facet!(b, p02, p00)
 
     grid = simplexgrid(b; maxvolume = 0.01 * 4.0^(-nref))
-    grid=partition(grid, PlainMetisPartitioning(npart=20))
+    grid=partition(grid, PlainMetisPartitioning(npart=20); nodes=true, edges=true)
     @show grid
     ## Describe problem
     iϕ::Int = 1
