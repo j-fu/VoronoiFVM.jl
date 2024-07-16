@@ -190,12 +190,18 @@ function main(; n = 11, nspec = 5,
     data = MyData{nspec}(DBinary, DKnudsen, diribc)
     sys = VoronoiFVM.System(grid; flux = _flux, storage, bcondition, species = 1:nspec, data, assembly,unknown_storage)
 
-    @info "Strategy: $(strategy)"
+    if verbose
+        @info "Strategy: $(strategy)"
+    end
     control = SolverControl(strategy, sys)
     control.maxiters = 500
-    @info control.method_linear
+    if verbose
+        @info control.method_linear
+    end
     u = solve(sys; verbose, control, log = true)
-    @show norm(u)
+    if verbose
+        @show norm(u)
+    end
     norm(u)
 end
 
