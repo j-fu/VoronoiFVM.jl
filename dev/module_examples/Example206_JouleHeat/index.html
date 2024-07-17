@@ -12,7 +12,9 @@ using ExtendableSparse
 using GridVisualize
 using LinearAlgebra
 using SimplexGridFactory
-using Triangulate
+using LinearSolve
+import Triangulate
+import Metis
 
 function main(; nref = 0, Plotter = nothing, verbose = &quot;and&quot;, unknown_storage = :sparse, assembly = :edgewise,
               ythin = 0.25)
@@ -38,7 +40,8 @@ function main(; nref = 0, Plotter = nothing, verbose = &quot;and&quot;, unknown_
     facet!(b, p02, p00)
 
     grid = simplexgrid(b; maxvolume = 0.01 * 4.0^(-nref))
-
+    grid=partition(grid, PlainMetisPartitioning(npart=20); nodes=true, edges=true)
+    @show grid
     # Describe problem
     iϕ::Int = 1
     iT::Int = 2
@@ -79,7 +82,11 @@ function main(; nref = 0, Plotter = nothing, verbose = &quot;and&quot;, unknown_
                             edgereaction = jouleheat!, storage = storage!,
                             species = [iϕ, iT], assembly = assembly)
 
-    sol = solve(sys; verbose)
+    sol = solve(sys; verbose,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = UMFPACKFactorization(),
+                keepcurrent_linear =false,
+                )
 
     vis = GridVisualizer(; Plotter, layout = (2, 1))
     scalarplot!(vis[1, 1], grid, sol[iϕ, :]; title = &quot;ϕ&quot;, colormap = :bwr)
@@ -94,4 +101,4 @@ function runtests()
     @test main(; assembly = :edgewise) ≈ testval &amp;&amp;
           main(; assembly = :cellwise) ≈ testval
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example205_StagnationPoint/">« 205: Convection in axisymmetric stagnation point flow</a><a class="docs-footer-nextpage" href="../Example207_NonlinearPoisson2D/">207: 2D Nonlinear Poisson equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 1 July 2024 22:16">Monday 1 July 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example205_StagnationPoint/">« 205: Convection in axisymmetric stagnation point flow</a><a class="docs-footer-nextpage" href="../Example207_NonlinearPoisson2D/">207: 2D Nonlinear Poisson equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Wednesday 17 July 2024 15:42">Wednesday 17 July 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
