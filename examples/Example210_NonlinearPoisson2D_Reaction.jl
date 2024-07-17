@@ -7,6 +7,7 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
+import Metis
 
 function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :sparse, assembly = :edgewise)
     h = 1.0 / convert(Float64, n)

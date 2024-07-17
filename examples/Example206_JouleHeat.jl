@@ -22,8 +22,9 @@ using ExtendableSparse
 using GridVisualize
 using LinearAlgebra
 using SimplexGridFactory
-using Triangulate
 using LinearSolve
+import Triangulate
+import Metis
 
 function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = :sparse, assembly = :edgewise,
               ythin = 0.25)

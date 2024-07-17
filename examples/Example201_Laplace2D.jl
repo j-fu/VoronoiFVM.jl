@@ -10,9 +10,11 @@ module Example201_Laplace2D
 using VoronoiFVM, ExtendableGrids
 using GridVisualize
 using LinearAlgebra
+import Metis
+
 ## Flux function which describes the flux
 ## between neighboring control volumes
-function g!(f, u, edge)isdefined(Base, :get_extension) ? 
+function g!(f, u, edge)
     f[1] = u[1, 1] - u[1, 2]
 end
 
