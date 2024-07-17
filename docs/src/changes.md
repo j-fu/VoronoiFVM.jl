@@ -1,4 +1,7 @@
 # Changes
+## v1.22 
+- Multithreaded assembly
+
 ## v1.21.0 July 1, 2024
 - Introduce nondelaunay method for checking Delaunay properties of grid
 
