@@ -12,7 +12,7 @@ using GridVisualize
 using LinearAlgebra
 ## Flux function which describes the flux
 ## between neighboring control volumes
-function g!(f, u, edge)
+function g!(f, u, edge)isdefined(Base, :get_extension) ? 
     f[1] = u[1, 1] - u[1, 2]
 end
 
