@@ -20,12 +20,18 @@ using ExtendableGrids: ExtendableGrids, BEdgeNodes, BFaceCells, BFaceEdges,
                        Triangle2D, Vertex0D, VoronoiFaceCenters, coord_type,
                        dim_space, index_type, local_celledgenodes, num_bfaces,
                        num_cells, num_edges, num_nodes, num_cellregions, num_bfaceregions, num_targets,
-                       simplexgrid, subgrid, tricircumcenter!
+                       simplexgrid, subgrid, tricircumcenter!,
+                       num_partitions, pcolor_partitions, pcolors, num_pcolors,
+                       PColorPartitions, PartitionCells, PartitionBFaces, PartitionNodes, PartitionEdges
 
 using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,
+                        ExtendableSparseMatrixCSC,
+                        MTExtendableSparseMatrixCSC,
+                        STExtendableSparseMatrixCSC,
+                        AbstractExtendableSparseMatrixCSC,
                         PointBlockILUZeroPreconditioner, factorize!, flush!,
-                        nnz, rawupdateindex!, sparse, updateindex!
+                        nnz, rawupdateindex!, sparse, updateindex!, nnznew
 
 using ForwardDiff: ForwardDiff
 using InteractiveUtils: InteractiveUtils
@@ -34,6 +40,7 @@ using LinearAlgebra: LinearAlgebra, Diagonal, I, Tridiagonal, isdiag, ldiv!, nor
 using LinearSolve: LinearSolve, KLUFactorization, KrylovJL_BICGSTAB,
                    KrylovJL_CG, KrylovJL_GMRES, LinearProblem,
                    SparspakFactorization, UMFPACKFactorization, init
+using OhMyThreads: @tasks
 using Printf: Printf, @printf, @sprintf
 using Random: Random, AbstractRNG
 using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray

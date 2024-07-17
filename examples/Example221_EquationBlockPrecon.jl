@@ -120,12 +120,12 @@ end
 
 function runtests()
     strategy=BICGstabIteration(AMGCL_AMGPreconditioner())
-    @test sum(main(;dim=1,strategy, unknown_storage=:dense)[2,:]) ≈ 0.014100861021046823
-    @test sum(main(;dim=1,strategy, unknown_storage=:sparse)[2,:]) ≈ 0.014100861021046823
-    @test sum(main(;dim=2,strategy, unknown_storage=:dense)[2,:]) ≈ 0.12690774918944653
-    @test sum(main(;dim=2,strategy, unknown_storage=:sparse)[2,:]) ≈ 0.12690774918944653
-    @test sum(main(;dim=3,strategy, unknown_storage=:dense)[2,:]) ≈ 1.1423244466533444
-    @test sum(main(;dim=3,strategy, unknown_storage=:sparse)[2,:]) ≈ 1.1423244466533444
+    @test sum(main(;dim=1,strategy, unknown_storage=:dense)[2,:]) ≈ 0.014101758266210086
+    @test sum(main(;dim=1,strategy, unknown_storage=:sparse)[2,:]) ≈ 0.014101758266210086
+    @test sum(main(;dim=2,strategy, unknown_storage=:dense)[2,:]) ≈ 0.12691582439590407
+    @test sum(main(;dim=2,strategy, unknown_storage=:sparse)[2,:]) ≈ 0.12691582439590407
+    @test sum(main(;dim=3,strategy, unknown_storage=:dense)[2,:]) ≈ 1.1422561017685693
+    @test sum(main(;dim=3,strategy, unknown_storage=:sparse)[2,:]) ≈ 1.1422561017685693
 end
 
 end

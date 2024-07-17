@@ -50,7 +50,9 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::Union{ExtendableSparseMatrix{Tv, Tm},
+    matrix::Union{ExtendableSparseMatrixCSC{Tv, Tm},
+                  MTExtendableSparseMatrixCSC{Tv, Tm},
+                  STExtendableSparseMatrixCSC{Tv, Tm},
                   Tridiagonal{Tv, Vector{Tv}},
                   #                  MultidiagonalMatrix,
                   BandedMatrix{Tv}}
@@ -142,7 +144,7 @@ function Base.getproperty(sys::System, sym::Symbol)
     if sym == :bfacenodefactors
         @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
         return sys.boundary_assembly_data.nodefactors
-    else # fallback to getfield
+        else # fallback to getfield
         return getfield(sys, sym)
     end
 end
@@ -580,7 +582,11 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
         # elseif matrixtype==:multidiagonal
         #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
     else # :sparse
-        system.matrix = ExtendableSparseMatrix{Tv, Tm}(n, n)
+        if num_partitions(system.grid)==1
+            system.matrix=ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
+        else
+            system.matrix=MTExtendableSparseMatrixCSC{Tv, Tm}(n, n, num_partitions(system.grid))
+        end
     end
 
     if create_newtonvectors
@@ -664,13 +670,13 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
     bfaceedgefactors = zeros(Tv, num_edges(bgeom), nbfaces)
 
     function cellwise_factors!(csys::Type{T}) where {T}
-        nalloc = @allocated for icell = 1:ncells
+        nalloc = @allocations for icell = 1:ncells
             @views cellfactors!(geom, csys, coord, cellnodes, icell,
                                 cellnodefactors[:, icell], celledgefactors[:, icell])
         end
         nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
 
-        nalloc = @allocated for ibface = 1:nbfaces
+        nalloc = @allocations for ibface = 1:nbfaces
             @views bfacefactors!(bgeom, csys, coord, bfacenodes, ibface,
                                  bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
         end
@@ -679,8 +685,11 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     cellwise_factors!(csys)
 
-    system.assembly_data = CellwiseAssemblyData{Tc, Ti}(cellnodefactors, celledgefactors)
-    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors)
+    system.assembly_data = CellwiseAssemblyData{Tc, Ti}(cellnodefactors,
+                                                        celledgefactors,
+                                                        grid[PColorPartitions],
+                                                        grid[PartitionCells])
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, grid[PColorPartitions], grid[PartitionBFaces])
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -723,7 +732,7 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
         #        nalloc > 0 && @warn "$nalloc allocations in cell factor calculation"
 
-        nalloc = @allocated for ibface = 1:nbfaces
+        nalloc = @allocations for ibface = 1:nbfaces
             @views bfacefactors!(bgeom, csys, coord, bfacenodes, ibface,
                                  bfacenodefactors[:, ibface], bfaceedgefactors[:, ibface])
         end
@@ -732,8 +741,15 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     edgewise_factors!(csys)
 
-    system.assembly_data = EdgewiseAssemblyData{Tc, Ti}(SparseMatrixCSC(cnf), SparseMatrixCSC(cef))
-    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors)
+    partition_nodes=grid[PartitionNodes]
+    partition_edges=grid[PartitionEdges]
+    system.assembly_data = EdgewiseAssemblyData{Tc, Ti}(SparseMatrixCSC(cnf),
+                                                        SparseMatrixCSC(cef),
+                                                        grid[PColorPartitions],
+                                                        partition_nodes,
+                                                        partition_edges)
+    
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, [1,2], [1,num_bfaces(grid)+1])
 end
 
 ################################################################################################
@@ -1068,7 +1084,7 @@ function _eval_and_assemble_inactive_species(system::DenseSystem, U, Uold, F)
             if !isnodespecies(system, ispec, inode)
                 F[ispec, inode] += U[ispec, inode] - Uold[ispec, inode]
                 idof = dof(F, ispec, inode)
-                system.matrix[idof, idof] += 1.0
+                rawupdateindex!(system.matrix, +, 1.0, idof, idof)
             end
         end
     end

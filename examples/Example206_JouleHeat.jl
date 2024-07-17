@@ -22,7 +22,9 @@ using ExtendableSparse
 using GridVisualize
 using LinearAlgebra
 using SimplexGridFactory
-using Triangulate
+using LinearSolve
+import Triangulate
+import Metis
 
 function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = :sparse, assembly = :edgewise,
               ythin = 0.25)
@@ -48,7 +50,8 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
     facet!(b, p02, p00)
 
     grid = simplexgrid(b; maxvolume = 0.01 * 4.0^(-nref))
-
+    grid=partition(grid, PlainMetisPartitioning(npart=20); nodes=true, edges=true)
+    @show grid
     ## Describe problem
     iϕ::Int = 1
     iT::Int = 2
@@ -88,8 +91,12 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
     sys = VoronoiFVM.System(grid; bcondition = bcondition!, flux = flux!,
                             edgereaction = jouleheat!, storage = storage!,
                             species = [iϕ, iT], assembly = assembly)
-
-    sol = solve(sys; verbose)
+    
+    sol = solve(sys; verbose,
+                method_linear = KrylovJL_BICGSTAB(),
+                precon_linear = UMFPACKFactorization(),
+                keepcurrent_linear =false,
+                )
 
     vis = GridVisualizer(; Plotter, layout = (2, 1))
     scalarplot!(vis[1, 1], grid, sol[iϕ, :]; title = "ϕ", colormap = :bwr)
