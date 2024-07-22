@@ -240,6 +240,7 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
                                    method_linear;
                                    abstol = control.abstol_linear,
                                    reltol = control.reltol_linear,
+                                   maxiters = control.maxiters_linear,
                                    verbose = doprint(control, 'l'),
                                    Pl,)
     else
