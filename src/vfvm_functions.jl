@@ -161,11 +161,7 @@ using LU factorization from RecursiveFactorizations.jl.
 
 After solution, `A` will contain the LU factorization, and `b` the result.
 `ipiv` must be an Int64 vector of the same length as `b`.
-
-
-!!! info
-    Needs Julia v1.9 or later
 """
-function inplace_linsolve!(A, b, ipiv)
-    ldiv!(b, RecursiveFactorization.lu!(A, ipiv, Val(true), Val(false)), b)
+@inline function inplace_linsolve!(A, b, ipiv)
+    LinearAlgebra.ldiv!(RecursiveFactorization.lu!(A, ipiv, Val(true), Val(false)),b)
 end
