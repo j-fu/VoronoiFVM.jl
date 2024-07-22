@@ -40,11 +40,10 @@ using LinearAlgebra: LinearAlgebra, Diagonal, I, Tridiagonal, isdiag, ldiv!, nor
 using LinearSolve: LinearSolve, KLUFactorization, KrylovJL_BICGSTAB,
                    KrylovJL_CG, KrylovJL_GMRES, LinearProblem,
                    SparspakFactorization, UMFPACKFactorization, init
-using OhMyThreads: @tasks
 using Printf: Printf, @printf, @sprintf
 using Random: Random, AbstractRNG
 using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray
-using RecursiveFactorization: RecursiveFactorization
+import RecursiveFactorization
 using SciMLBase: SciMLBase
 using SparseArrays: SparseArrays, SparseMatrixCSC, dropzeros!, nonzeros,
                     nzrange, spzeros

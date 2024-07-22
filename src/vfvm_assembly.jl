@@ -479,15 +479,20 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     
     if num_partitions(system.assembly_data) > 1
         for color in pcolors(system.assembly_data)
-            @tasks for part in pcolor_partitions(system.assembly_data,color)
+            Threads.@threads for part in pcolor_partitions(system.assembly_data,color)
                 ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
-                ncalloc += assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 ncallocs[part] = ncalloc
+            end
+            # If we want to have just one parallel loop we need to ensure that no edge has
+            # nodes from a different partition with the same color
+            Threads.@threads for part in pcolor_partitions(system.assembly_data,color)
+                ncalloc = assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+                ncallocs[part] += ncalloc
             end
         end
         
         for color in pcolors(system.boundary_assembly_data)
-            @tasks for part in pcolor_partitions(system.boundary_assembly_data,color)
+            Threads.@threads for part in pcolor_partitions(system.boundary_assembly_data,color)
                 nballoc = assemble_bnodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 nballoc += assemble_bedges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 nballocs[part] = nballoc
