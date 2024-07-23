@@ -54,15 +54,15 @@ struct EdgewiseAssemblyData{Tv, Ti} <: AbstractAssemblyData{Tv, Ti}
     partition_edges::Vector{Ti}
 end
 
-ExtendableGrids.num_pcolors(a::AbstractAssemblyData)=length(a.pcolor_partitions)-1
-ExtendableGrids.pcolors(a::AbstractAssemblyData)=1:num_pcolors(a)
-function ExtendableGrids.pcolor_partitions(a::AbstractAssemblyData,color)
-    colpart=a.pcolor_partitions
-    @inbounds colpart[color]:colpart[color+1]-1
+ExtendableGrids.num_pcolors(a::AbstractAssemblyData) = length(a.pcolor_partitions) - 1
+ExtendableGrids.pcolors(a::AbstractAssemblyData) = 1:num_pcolors(a)
+function ExtendableGrids.pcolor_partitions(a::AbstractAssemblyData, color)
+    colpart = a.pcolor_partitions
+    @inbounds colpart[color]:(colpart[color + 1] - 1)
 end
 
-ExtendableGrids.num_partitions(a::AbstractAssemblyData)=length(a.partition_cells)-1
-ExtendableGrids.num_partitions(a::EdgewiseAssemblyData)=a.pcolor_partitions[end]-1
+ExtendableGrids.num_partitions(a::AbstractAssemblyData) = length(a.partition_cells) - 1
+ExtendableGrids.num_partitions(a::EdgewiseAssemblyData) = a.pcolor_partitions[end] - 1
 
 """
     nodebatch(assemblydata)
@@ -95,14 +95,22 @@ function edgerange end
 nodebatch(asmdata::CellwiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.nodefactors, 2)
 edgebatch(asmdata::CellwiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.edgefactors, 2)
 
-nodebatch(asmdata::CellwiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_cells[ipart]:asmdata.partition_cells[ipart+1]-1
-edgebatch(asmdata::CellwiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_cells[ipart]:asmdata.partition_cells[ipart+1]-1
+function nodebatch(asmdata::CellwiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti}
+    asmdata.partition_cells[ipart]:(asmdata.partition_cells[ipart + 1] - 1)
+end
+function edgebatch(asmdata::CellwiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti}
+    asmdata.partition_cells[ipart]:(asmdata.partition_cells[ipart + 1] - 1)
+end
 
 nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.nodefactors, 2)
 edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}) where {Tv, Ti} = 1:size(asmdata.edgefactors, 2)
 
-nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_nodes[ipart]:asmdata.partition_nodes[ipart+1]-1
-edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti} = asmdata.partition_edges[ipart]:asmdata.partition_edges[ipart+1]-1
+function nodebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti}
+    asmdata.partition_nodes[ipart]:(asmdata.partition_nodes[ipart + 1] - 1)
+end
+function edgebatch(asmdata::EdgewiseAssemblyData{Tv, Ti}, ipart) where {Tv, Ti}
+    asmdata.partition_edges[ipart]:(asmdata.partition_edges[ipart + 1] - 1)
+end
 
 noderange(asmdata::EdgewiseAssemblyData{Tv, Ti}, inode) where {Tv, Ti} = nzrange(asmdata.nodefactors, inode)
 edgerange(asmdata::EdgewiseAssemblyData{Tv, Ti}, iedge) where {Tv, Ti} = nzrange(asmdata.edgefactors, iedge)

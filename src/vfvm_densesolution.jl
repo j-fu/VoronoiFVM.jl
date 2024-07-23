@@ -14,7 +14,6 @@ Get degree of freedom number
 """
 dof(a::DenseSolutionArray{Tv}, ispec::Integer, K::Integer) where {Tv} = (K - 1) * size(a, 1) + ispec
 
-
 """
 $(SIGNATURES)
 

@@ -12,7 +12,7 @@ $(SIGNATURES)
 
 Add value `v*fac` to matrix if `v` is nonzero
 """
-@inline function _addnz(matrix, i, j, v::Tv, fac, part=1) where {Tv}
+@inline function _addnz(matrix, i, j, v::Tv, fac, part = 1) where {Tv}
     if isnan(v)
         error("trying to assemble NaN")
     end
@@ -391,7 +391,6 @@ function assemble_bedges(system, matrix, time, tstepinv, λ, params, part,
     end
     bflux_evaluator = ResJacEvaluator(physics, :bflux, UKL, bedge, nspecies)
     if isnontrivial(bflux_evaluator)
-
         @allocations for item in edgebatch(system.boundary_assembly_data, part)
             for ibedge in edgerange(system.boundary_assembly_data, item)
                 _fill!(bedge, system.boundary_assembly_data, ibedge, item)
@@ -476,31 +475,31 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     tstepinv = 1.0 / tstep
     ncallocs = zeros(Int, num_partitions(system.assembly_data))
     nballocs = zeros(Int, num_partitions(system.assembly_data))
-    
+
     if num_partitions(system.assembly_data) == 1
-        part=1
+        part = 1
         ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
         ncalloc += assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
         ncallocs[part] = ncalloc
         nballoc = assemble_bnodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
         nballoc += assemble_bedges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
         nballocs[part] = nballoc
-    elseif system.assembly_type==:edgewise
+    elseif system.assembly_type == :edgewise
         for color in pcolors(system.assembly_data)
-            Threads.@threads for part in pcolor_partitions(system.assembly_data,color)
+            Threads.@threads for part in pcolor_partitions(system.assembly_data, color)
                 ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 ncallocs[part] = ncalloc
             end
             # If we want to have just one parallel loop we need to ensure that no edge has
             # nodes from a different partition with the same color
-            Threads.@threads for part in pcolor_partitions(system.assembly_data,color)
+            Threads.@threads for part in pcolor_partitions(system.assembly_data, color)
                 ncalloc = assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 ncallocs[part] += ncalloc
             end
         end
-        
+
         for color in pcolors(system.boundary_assembly_data)
-            Threads.@threads for part in pcolor_partitions(system.boundary_assembly_data,color)
+            Threads.@threads for part in pcolor_partitions(system.boundary_assembly_data, color)
                 nballoc = assemble_bnodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 nballoc += assemble_bedges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 nballocs[part] = nballoc
@@ -508,23 +507,23 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
         end
     else
         for color in pcolors(system.assembly_data)
-            Threads.@threads for part in pcolor_partitions(system.assembly_data,color)
+            Threads.@threads for part in pcolor_partitions(system.assembly_data, color)
                 ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
-                ncalloc+= assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
-                ncallocs[part]= ncalloc
+                ncalloc += assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+                ncallocs[part] = ncalloc
             end
         end
-        
+
         for color in pcolors(system.boundary_assembly_data)
-            Threads.@threads for part in pcolor_partitions(system.boundary_assembly_data,color)
+            Threads.@threads for part in pcolor_partitions(system.boundary_assembly_data, color)
                 nballoc = assemble_bnodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 nballoc += assemble_bedges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
                 nballocs[part] = nballoc
             end
         end
     end
-    
-    noallocs(m::AbstractExtendableSparseMatrixCSC)= iszero(nnznew(m))
+
+    noallocs(m::AbstractExtendableSparseMatrixCSC) = iszero(nnznew(m))
     noallocs(m::ExtendableSparseMatrix) = isnothing(m.lnkmatrix)
     noallocs(m::AbstractMatrix) = false
     allncallocs = sum(ncallocs)
@@ -539,14 +538,14 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
         neval = 0
     end
 
-    if num_partitions(grid)>1
+    if num_partitions(grid) > 1
         # If allocation numbers don't scale with grid size, we can ignore them
-        if allncallocs<num_cells(system.grid)/2
-            allncallocs=0
+        if allncallocs < num_cells(system.grid) / 2
+            allncallocs = 0
         end
-        
-        if allnballocs<num_bfaces(system.grid)/2
-            allnballocs=0
+
+        if allnballocs < num_bfaces(system.grid) / 2
+            allnballocs = 0
         end
     end
     _eval_and_assemble_generic_operator(system, U, F)

@@ -105,7 +105,6 @@ export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
 
-
 @compat public System, AbstractSystem
 
 # export to be deprecated

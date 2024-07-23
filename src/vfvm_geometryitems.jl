@@ -19,7 +19,6 @@ Return embedding parameter stored in node or edge
 """
 embedparam(item::AbstractGeometryItem) = item.embedparam
 
-
 """
    region(edge_or_node)
 

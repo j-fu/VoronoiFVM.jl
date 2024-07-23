@@ -16,8 +16,6 @@ Plot grid behind system
 """
 GridVisualize.gridplot!(vis, sys::AbstractSystem; kwargs...) = GridVisualize.gridplot!(vis, sys.grid; kwargs...)
 
-
-    
 """
     $(TYPEDSIGNATURES)
 

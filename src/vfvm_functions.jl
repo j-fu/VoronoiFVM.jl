@@ -163,5 +163,5 @@ After solution, `A` will contain the LU factorization, and `b` the result.
 `ipiv` must be an Int64 vector of the same length as `b`.
 """
 @inline function inplace_linsolve!(A, b, ipiv)
-    LinearAlgebra.ldiv!(RecursiveFactorization.lu!(A, ipiv, Val(true), Val(false)),b)
+    LinearAlgebra.ldiv!(RecursiveFactorization.lu!(A, ipiv, Val(true), Val(false)), b)
 end

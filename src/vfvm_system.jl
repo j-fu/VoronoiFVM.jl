@@ -144,7 +144,7 @@ function Base.getproperty(sys::System, sym::Symbol)
     if sym == :bfacenodefactors
         @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
         return sys.boundary_assembly_data.nodefactors
-        else # fallback to getfield
+    else # fallback to getfield
         return getfield(sys, sym)
     end
 end
@@ -582,10 +582,10 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
         # elseif matrixtype==:multidiagonal
         #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
     else # :sparse
-        if num_partitions(system.grid)==1
-            system.matrix=ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
+        if num_partitions(system.grid) == 1
+            system.matrix = ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
         else
-            system.matrix=MTExtendableSparseMatrixCSC{Tv, Tm}(n, n, num_partitions(system.grid))
+            system.matrix = MTExtendableSparseMatrixCSC{Tv, Tm}(n, n, num_partitions(system.grid))
         end
     end
 
@@ -689,7 +689,8 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
                                                         celledgefactors,
                                                         grid[PColorPartitions],
                                                         grid[PartitionCells])
-    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, grid[PColorPartitions], grid[PartitionBFaces])
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, grid[PColorPartitions],
+                                                                 grid[PartitionBFaces])
 end
 
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
@@ -741,15 +742,16 @@ function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
 
     edgewise_factors!(csys)
 
-    partition_nodes=grid[PartitionNodes]
-    partition_edges=grid[PartitionEdges]
+    partition_nodes = grid[PartitionNodes]
+    partition_edges = grid[PartitionEdges]
     system.assembly_data = EdgewiseAssemblyData{Tc, Ti}(SparseMatrixCSC(cnf),
                                                         SparseMatrixCSC(cef),
                                                         grid[PColorPartitions],
                                                         partition_nodes,
                                                         partition_edges)
-    
-    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, [1,2], [1,num_bfaces(grid)+1])
+
+    system.boundary_assembly_data = CellwiseAssemblyData{Tc, Ti}(bfacenodefactors, bfaceedgefactors, [1, 2],
+                                                                 [1, num_bfaces(grid) + 1])
 end
 
 ################################################################################################
