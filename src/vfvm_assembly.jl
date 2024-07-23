@@ -477,7 +477,15 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
     ncallocs = zeros(Int, num_partitions(system.assembly_data))
     nballocs = zeros(Int, num_partitions(system.assembly_data))
     
-    if num_partitions(system.assembly_data) > 1
+    if num_partitions(system.assembly_data) == 1
+        part=1
+        ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+        ncalloc += assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+        ncallocs[part] = ncalloc
+        nballoc = assemble_bnodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+        nballoc += assemble_bedges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+        nballocs[part] = nballoc
+    elseif system.assembly_type==:edgewise
         for color in pcolors(system.assembly_data)
             Threads.@threads for part in pcolor_partitions(system.assembly_data,color)
                 ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
@@ -499,13 +507,21 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
             end
         end
     else
-        part=1
-        ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
-        ncalloc += assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
-        ncallocs[part] = ncalloc
-        nballoc = assemble_bnodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
-        nballoc += assemble_bedges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
-        nballocs[part] = nballoc
+        for color in pcolors(system.assembly_data)
+            Threads.@threads for part in pcolor_partitions(system.assembly_data,color)
+                ncalloc = assemble_nodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+                ncalloc+= assemble_edges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+                ncallocs[part]= ncalloc
+            end
+        end
+        
+        for color in pcolors(system.boundary_assembly_data)
+            Threads.@threads for part in pcolor_partitions(system.boundary_assembly_data,color)
+                nballoc = assemble_bnodes(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+                nballoc += assemble_bedges(system, matrix, time, tstepinv, λ, params, part, U, UOld, F)
+                nballocs[part] = nballoc
+            end
+        end
     end
     
     noallocs(m::AbstractExtendableSparseMatrixCSC)= iszero(nnznew(m))
