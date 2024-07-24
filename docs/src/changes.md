@@ -1,5 +1,5 @@
 # Changes
-## v1.22 
+## v1.22.0 July 17, 2024 
 - Multithreaded assembly
 
 ## v1.21.0 July 1, 2024

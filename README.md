@@ -11,6 +11,8 @@ VoronoiFVM.jl
 Solver for coupled nonlinear partial differential equations (elliptic-parabolic conservation laws) based on the Voronoi finite volume method.
 It uses automatic differentiation via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) and [DiffResults.jl](https://github.com/JuliaDiff/DiffResults.jl) to evaluate user functions along with their jacobians and calculate derivatives of solutions with respect to their parameters.
 
+## [JuliaCon 2024 Lightning Talk](https://www.youtube.com/watch?v=v0RPD4eSzVE&t=5120s)
+
 ## Recent changes
 Please look up the list of recent [changes](https://j-fu.github.io/VoronoiFVM.jl/stable/changes)
 
