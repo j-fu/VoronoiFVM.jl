@@ -81,7 +81,7 @@ export coordinates
 
 """
 $(TYPEDEF)
-    
+
 Abstract type for finite volume system structure.
 """
 abstract type AbstractSystem{Tv <: Number, Tc <: Number, Ti <: Integer, Tm <: Integer} end
@@ -104,6 +104,7 @@ export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
+export update_grid_cellwise!
 
 @compat public System, AbstractSystem
 
