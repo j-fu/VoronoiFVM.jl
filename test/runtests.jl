@@ -45,18 +45,20 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
     end
 
     if run_notebooks
+        ENV["VORONOIFVM_RUNTESTS"]="1"
         notebooks = ["nbproto.jl",
-            "ode-diffusion1d.jl",
-            "ode-wave1d.jl",
-            "ode-nlstorage1d.jl",
-            "ode-brusselator.jl",
-            "outflow.jl",
-            "flux-reconstruction.jl",
-            "interfaces1d.jl",
-            "problemcase.jl",
-            "nonlinear-solvers.jl",
-            "api-update.jl",
-        ]
+                     "ode-diffusion1d.jl",
+                     "ode-wave1d.jl",
+                     "ode-nlstorage1d.jl",
+                     "ode-brusselator.jl",
+                     "outflow.jl",
+                     "flux-reconstruction.jl",
+                     "interfaces1d.jl",
+                     "problemcase.jl",
+                     "nonlinear-solvers.jl",
+                     "api-update.jl",
+                     "heterogeneous-catalysis.jl",
+                     ]
         @testset "Notebooks" begin
             @testscripts(joinpath(@__DIR__, "..", "pluto-examples"), notebooks)
         end
