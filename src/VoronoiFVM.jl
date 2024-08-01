@@ -104,7 +104,7 @@ export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
-export update_grid_cellwise!
+
 
 @compat public System, AbstractSystem
 
