@@ -47,6 +47,7 @@ function make(; with_examples = true,
             "A case for caution" => "problemcase.jl",
             "Nonlinear solver control" => "nonlinear-solvers.jl",
             "API Updates" => "api-update.jl",
+            "Coupling with Catalyst.jl" => "heterogeneous-catalysis.jl",
         ]
         notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
         notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
