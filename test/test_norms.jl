@@ -14,6 +14,16 @@ function grid(X, dim)
     end
 end
 
+function test_solint(; dim = 2, c = 1.0, assembly = :edgewise, h = 0.1)
+    X = 0:h:1
+    g = grid(X, dim)
+    sys = VoronoiFVM.System(g; species = [1], assembly)
+    VoronoiFVM._complete!(sys)
+    u = map(c, sys)
+    VoronoiFVM.integrate(sys, u)[1, 1]
+end
+
+
 function test_edgeint(; dim = 2, c = 1.0, assembly = :edgewise, h = 0.1)
     X = 0:h:1
     g = grid(X, dim)
@@ -97,6 +107,7 @@ function runtests()
     for assembly in (:edgewise, :cellwise)
         for dim = 1:3
             for c in [0.5, 1, 2.0]
+                @test test_solint(; dim, c, assembly) ≈ c
                 @test test_edgeint(; dim, c, assembly) ≈ c
                 @test test_const(; nrm = l2norm, dim, c, assembly) ≈ c
                 @test test_const(; nrm = h1seminorm, dim, c, assembly) ≈ 0

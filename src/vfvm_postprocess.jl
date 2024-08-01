@@ -12,7 +12,7 @@ Base.setindex!(I::SolutionIntegral, v, ispec::Integer, ireg) = I.value[ispec, ir
 
 Integrate node function (same signature as reaction or storage)
  `F` of  solution vector region-wise over domain or boundary.
-The result is an `nspec x nregion` vector.
+The result is an `nspec x nregion` matrix.
 """
 function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
                    boundary = false) where {Tu, Tv, Tc, Ti, Tm}
@@ -70,11 +70,25 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
 end
 
 """
+    integrate(system,F,U; boundary=false)    
+
+Integrate solution vector region-wise over domain or boundary.
+The result is an `nspec x nregion` matrix.
+"""
+function integrate(system::AbstractSystem,U::AbstractMatrix)
+    function f(f,u,node,data=nothing)
+        f.=u
+    end
+    integrate(system,f,U)
+end
+
+
+"""
     edgeintegrate(system,F,U; boundary=false)    
 
 Integrate edge function (same signature as flux function)
  `F` of  solution vector region-wise over domain or boundary.
-The result is an `nspec x nregion` vector.
+The result is an `nspec x nregion` matrix.
 """
 function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
                        boundary = false) where {Tu, Tv, Tc, Ti, Tm}
