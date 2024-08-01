@@ -3,6 +3,7 @@ AMGCLWrap = "4f76b812-4ba5-496d-b042-d70715554288"
 AlgebraicMultigrid = "2169fc97-5a83-5252-b627-83903c6c433c"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Catalyst = "479239e8-5488-4da2-87a7-35f2df7eef83"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DiffResults = "163ba53b-c6d8-5494-b064-1a9d43ac40c5"
 ExampleJuggler = "3bbe58f8-ed81-4c4e-a134-03e85fcf4a1a"
@@ -36,6 +37,7 @@ Triangulate = "f7e6ffb2-c36d-4f8f-a77e-16e897189344"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
+Catalyst = "14"
 ExampleJuggler = "2"
 
 [extras]
