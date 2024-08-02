@@ -61,7 +61,15 @@ function make(; with_examples = true,
         module_examples = vcat(["About the examples" => "runexamples.md"], module_examples)
         push!(pages, "Examples" => module_examples)
     end
-    
+
+    mathjax_config = Dict(
+        :tex => Dict(
+            "inlineMath" => [["\$","\$"], ["\\(","\\)"]],
+            "tags" => "ams",
+            "packages" => ["base", "ams", "autoload", "mhchem"],
+        ),
+    )
+
     makedocs(; sitename = "VoronoiFVM.jl",
              modules = [VoronoiFVM],
              plugins = [bib],
@@ -73,7 +81,7 @@ function make(; with_examples = true,
              repo = "https://github.com/j-fu/VoronoiFVM.jl",
              format = Documenter.HTML(; size_threshold_ignore,
                                        assets=String["assets/citations.css"],
-                                      mathengine = MathJax3()),
+                                      mathengine = MathJax3(mathjax_config,url="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js")),
              pages)
 
     

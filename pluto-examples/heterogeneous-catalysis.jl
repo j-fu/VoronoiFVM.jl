@@ -14,22 +14,33 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ f75a3225-c7bf-4031-89c7-a792a592f639
+# Some tricks helping to run the notebook during VoronoiFVM.jl CI
+begin
+	doplots=!haskey(ENV,"VORONOIFVM_RUNTESTS")
+    import Pkg as _Pkg
+    haskey(ENV, "PLUTO_PROJECT") && _Pkg.activate(ENV["PLUTO_PROJECT"])
+	using Revise
+end
+
 # ╔═╡ e04d9162-e6ed-4e9f-86ce-51b5175f8103
 begin
-    using OrdinaryDiffEq: ODEProblem, solve
+	using OrdinaryDiffEq: ODEProblem, solve
     using OrdinaryDiffEq: DP5, Rosenbrock23, Tsit5
     using Catalyst
     using VoronoiFVM: VoronoiFVM, enable_species!, enable_boundary_species!
 	using VoronoiFVM: ramp, boundary_dirichlet!
 	using ExtendableGrids: simplexgrid
 	using GridVisualize: GridVisualize, GridVisualizer, reveal, scalarplot!, gridplot, available_kwargs
-    using Plots: Plots, plot, theme
-    using PlotThemes
-    using Symbolics
-    Plots.gr()
-	Plots.theme(:dark)
-	GridVisualize.default_plotter!(Plots)
+	if doplots # defined in the Appendix
+      using Plots: Plots, plot, theme
+      using PlotThemes
+      Plots.gr()
+	  Plots.theme(:dark)
+	  GridVisualize.default_plotter!(Plots)
+	end
     import PlutoUI
+	using Test
     PlutoUI.TableOfContents(; depth = 4)
 end
 
@@ -165,7 +176,7 @@ prob1 = ODEProblem(example1, u1_ini, (0, 10), p1)
 sol1 = solve(prob1, DP5())
 
 # ╔═╡ 651e0888-a51f-4513-b31b-cde5099b45e9
-plot(sol1; size = (600, 200))
+doplots && plot(sol1; size = (600, 200))
 
 # ╔═╡ 55d14ae8-add7-49d3-abf3-a02889e4c1d9
 md"""
@@ -217,7 +228,7 @@ prob1n = ODEProblem(rn1, u1_ini, (0, 10.0), Dict(pairs(p1)))
 sol1n = solve(prob1n, Rosenbrock23())
 
 # ╔═╡ fc602274-553c-4bc0-965b-dbf72ee2420f
-plot(sol1n; idxs = [rn1.A, rn1.B, rn1.A + rn1.B], size = (600, 200))
+doplots && plot(sol1n; idxs = [rn1.A, rn1.B, rn1.A + rn1.B], size = (600, 200))
 
 # ╔═╡ 0f7fd013-c483-456f-b1e7-af80c2d05b0f
 md"""
@@ -269,7 +280,7 @@ prob1x = ODEProblem(rn1x, u1_ini, (0, 10.0), Dict(pairs(p1)))
 sol1x = solve(prob1x, Rosenbrock23())
 
 # ╔═╡ dd89b221-4360-4213-91d4-cad927ed32f7
-plot(sol1x; size = (600, 200))
+doplots && plot(sol1x; size = (600, 200))
 
 # ╔═╡ 1990a17b-38b0-46dc-a808-24ec51a50318
 md"""
@@ -300,7 +311,7 @@ prob2 = ODEProblem(rn2, Dict(pairs(u2_ini)), (0, 20.0), Dict(pairs(p2)))
 sol2 = solve(prob2, Rosenbrock23())
 
 # ╔═╡ e8efb099-439f-4f56-931a-1f8703ac3063
-plot(sol2; legend = :topleft, size = (600, 300))
+doplots && plot(sol2; legend = :topleft, size = (600, 300))
 
 # ╔═╡ c9083f59-fd97-46f2-8020-fb7e86bcbca4
 md"""
@@ -335,8 +346,11 @@ p3 = (k_0A = 0.5, k_0B = 1,
       k_3p = 10, k_3m = 0.1,
       k_4p = 10, k_4m = 0.1)
 
+# ╔═╡ 66500aa5-c2ec-4821-a926-658307614dd5
+Cini=40
+
 # ╔═╡ 9f20138a-74fd-4468-8c4d-92109f39545a
-u3_ini = (A = 0, B = 0, CA = 0, CB = 0, CAB2 = 0, AB2 = 0, C = 40)
+u3_ini = (A = 0, B = 0, CA = 0, CB = 0, CAB2 = 0, AB2 = 0, C = Cini)
 
 # ╔═╡ a7c5cb9d-99ca-4a8d-bf04-febdb7fa6a40
 t3end = 200
@@ -348,13 +362,16 @@ prob3 = ODEProblem(rn3, Dict(pairs(u3_ini)), (0, t3end), Dict(pairs(p3)))
 sol3 = solve(prob3, Rosenbrock23())
 
 # ╔═╡ 6b6be455-f57b-477d-ba52-70c839d55cf7
-plot(sol3; legend = :topleft, size = (600, 300))
+doplots && plot(sol3; legend = :topleft, size = (600, 300))
 
 # ╔═╡ 5da58dbd-b7b7-4151-b762-ccb11ecf0bd7
 ctotal = rn3.C + rn3.CA + rn3.CB + rn3.CAB2
 
-# ╔═╡ 964e8413-7689-4bcd-880d-1ea1aed345fa
-plot(sol3; idxs = (ctotal), legend = :topleft, size = (600, 300))
+# ╔═╡ 227e8773-3835-42cf-8c79-08454e404149
+sol3[ctotal]
+
+# ╔═╡ 58a527cf-2873-4d2d-ae8f-ffbfe6b10e22
+@test sol3[ctotal]≈ fill(Cini,length(sol3))
 
 # ╔═╡ 907c5c4d-e052-49ee-b96c-adcd37a9cf42
 md"""
@@ -683,7 +700,7 @@ t: $(@bind log_t_plot PlutoUI.Slider(-4:0.1:log10(tvend), default = 0.4))
 # ╔═╡ 7f50d186-fad5-413b-bbc4-2d087474a72f
 let
     t_plot = round(10^log_t_plot; sigdigits = 3)
-    vis = GridVisualizer(; Plotter = Plots, size = (600, 300), flimits = (0, 1), title = "Bulk concentrations: t=$t_plot", legend = :lt)
+    vis = GridVisualizer(;size = (600, 300), flimits = (0, 1), title = "Bulk concentrations: t=$t_plot", legend = :lt)
     sol = tsol(t_plot)
     scalarplot!(vis, grid, sol[iA, :]; color = :red, label = "A")
     scalarplot!(vis, grid, sol[iB, :]; color = :green, label = "B", clear = false)
@@ -694,9 +711,12 @@ end
 # ╔═╡ 8f8e2294-cb51-4649-a543-f6ef39384dad
 Ctotalv = tsol[iC, 1, :] + tsol[iCA, 1, :] + tsol[iCB, 1, :] + tsol[iCAB2, 1, :]
 
+# ╔═╡ a83e969e-ba25-4b6b-83e4-6febed1e8602
+@test Ctotalv≈ ones(length(tsol))
+
 # ╔═╡ 2eeb7d1a-25bc-4c09-bc86-a998a7bf3ca7
 let
-    vis = GridVisualizer(; Plotter = Plots, size = (600, 300),
+    vis = GridVisualizer(; size = (600, 300),
 	                      xlabel="t",
                          flimits = (0, 1), xlimits = (1.0e-3, tvend),
                          legend = :lt, title = "Concentrations at x=0", xscale = :log10)
@@ -713,6 +733,11 @@ let
     reveal(vis)
 end
 
+# ╔═╡ 7f083626-e1de-4028-a389-1cc09588fbf0
+md"""
+## Appendix
+"""
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -720,10 +745,12 @@ Catalyst = "479239e8-5488-4da2-87a7-35f2df7eef83"
 ExtendableGrids = "cfc395e8-590f-11e8-1f13-43a2532b2fa8"
 GridVisualize = "5eed8a63-0fb0-45eb-886d-8d5a387d12b8"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlotThemes = "ccf2f8ad-2431-5c83-bf29-c5338b663b6a"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
@@ -734,7 +761,7 @@ OrdinaryDiffEq = "~6.87.0"
 PlotThemes = "~3.2.0"
 Plots = "~1.40.5"
 PlutoUI = "~0.7.59"
-Symbolics = "~5.35.0"
+Revise = "~3.5.18"
 VoronoiFVM = "~1.22.2"
 """
 
@@ -744,7 +771,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "bc726bb5cebf83af30884a5a58f4251ef6765488"
+project_hash = "f1fecf6afc15be1786960631ced5cbdc61573c89"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "aa4d425271a914d8c4af6ad9fccb6eb3aec662c7"
@@ -957,6 +984,12 @@ deps = ["Static", "StaticArrayInterface"]
 git-tree-sha1 = "05ba0d07cd4fd8b7a39541e31a7b0254704ea581"
 uuid = "fb6a15b2-703c-40df-9091-08a04967cfa9"
 version = "0.1.13"
+
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "c0216e792f518b39b22212127d4a84dc31e4e386"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.3.5"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -1765,6 +1798,12 @@ git-tree-sha1 = "4b0b04fe63e02eed776181e14ebc1f48d787ceec"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 version = "1.0.59"
 
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "5d3a5a206297af3868151bb4a2cf27ebce46f16d"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.9.33"
+
 [[deps.JumpProcesses]]
 deps = ["ArrayInterface", "DataStructures", "DiffEqBase", "DocStringExtensions", "FunctionWrappers", "Graphs", "LinearAlgebra", "Markdown", "PoissonRandom", "Random", "RandomNumbers", "RecursiveArrayTools", "Reexport", "SciMLBase", "StaticArrays", "SymbolicIndexingInterface", "UnPack"]
 git-tree-sha1 = "f12000093078e3dea1ee15de8bb35cfdc0014d97"
@@ -2029,6 +2068,12 @@ weakdeps = ["ChainRulesCore", "ForwardDiff", "SpecialFunctions"]
     [deps.LoopVectorization.extensions]
     ForwardDiffExt = ["ChainRulesCore", "ForwardDiff"]
     SpecialFunctionsExt = "SpecialFunctions"
+
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "1ce1834f9644a8f7c011eb0592b7fd6c42c90653"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "3.0.1"
 
 [[deps.MIMEs]]
 git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
@@ -2516,6 +2561,12 @@ deps = ["StaticArrays"]
 git-tree-sha1 = "256eeeec186fa7f26f2801732774ccf277f05db9"
 uuid = "ae5879a3-cd67-5da8-be7f-38c6eb64a37b"
 version = "1.1.1"
+
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "7b7850bb94f75762d567834d7e9802fc22d62f9c"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.5.18"
 
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
@@ -3344,18 +3395,20 @@ version = "1.4.1+1"
 # ╠═335055d9-5f33-4b27-97e4-98104d19f098
 # ╠═3eb18099-fc92-4f60-8ebf-f9673c0bf0cd
 # ╠═e8efb099-439f-4f56-931a-1f8703ac3063
-# ╠═c9083f59-fd97-46f2-8020-fb7e86bcbca4
+# ╟─c9083f59-fd97-46f2-8020-fb7e86bcbca4
 # ╟─69b7757f-1856-4e46-bebd-b340acf5b757
 # ╠═4e923331-67ef-4878-9bd9-0130030ce7e2
 # ╠═7430aa42-1db3-445c-a547-961157de0d1a
 # ╠═5cb92c3c-299f-4077-9ff8-012e24d3f9e8
+# ╠═66500aa5-c2ec-4821-a926-658307614dd5
 # ╠═9f20138a-74fd-4468-8c4d-92109f39545a
 # ╠═a7c5cb9d-99ca-4a8d-bf04-febdb7fa6a40
 # ╠═c67f7488-bff8-42a8-bae2-c147b98f0ab7
 # ╠═a56637ae-709d-4802-aac7-61c4b180081f
 # ╠═6b6be455-f57b-477d-ba52-70c839d55cf7
 # ╠═5da58dbd-b7b7-4151-b762-ccb11ecf0bd7
-# ╠═964e8413-7689-4bcd-880d-1ea1aed345fa
+# ╠═227e8773-3835-42cf-8c79-08454e404149
+# ╠═58a527cf-2873-4d2d-ae8f-ffbfe6b10e22
 # ╟─907c5c4d-e052-49ee-b96c-adcd37a9cf42
 # ╟─1bb1ad0a-e89d-49ae-83ae-97b5e4e618b2
 # ╟─68a4d03f-a526-4d37-a45e-c951432e20e7
@@ -3408,6 +3461,9 @@ version = "1.4.1+1"
 # ╟─6b02ab1c-fde1-4f0b-b8f1-77e0f4a495f3
 # ╠═7f50d186-fad5-413b-bbc4-2d087474a72f
 # ╠═8f8e2294-cb51-4649-a543-f6ef39384dad
+# ╠═a83e969e-ba25-4b6b-83e4-6febed1e8602
 # ╠═2eeb7d1a-25bc-4c09-bc86-a998a7bf3ca7
+# ╟─7f083626-e1de-4028-a389-1cc09588fbf0
+# ╠═f75a3225-c7bf-4031-89c7-a792a592f639
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
