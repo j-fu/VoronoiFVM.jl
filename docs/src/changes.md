@@ -1,4 +1,7 @@
 # Changes
+## v1.23.0 August 2, 2024 
+- Add `integrate(sys,solution)` method
+
 ## v1.22.0 July 17, 2024 
 - Multithreaded assembly
 
