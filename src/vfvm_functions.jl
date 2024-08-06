@@ -5,24 +5,31 @@ $(SIGNATURES)
 Calculation of Bernoulli function via Horner scheme based on Taylor
 coefficients around 0.
 """
+const c1 = 1/ 47_900_160
+const c2 = -1 / 1_209_600
+const c3 = 1 / 30_240
+const c4 = -1 / 720
+const c5 = 1 / 12
+const c6 = -1 / 2
+
 
 function bernoulli_horner(x)
-    y = x / 47_900_160
+    y = x * c1
     y = x * y
-    y = x * (-1 / 1_209_600 + y)
+    y = x * (c2 + y)
     y = x * y
-    y = x * (1 / 30_240 + y)
+    y = x * (c3 + y)
     y = x * y
-    y = x * (-1 / 720 + y)
+    y = x * (c4 + y)
     y = x * y
-    y = x * (1 / 12 + y)
-    y = x * (-1 / 2 + y)
+    y = x * (c5 + y)
+    y = x * (c6 + y)
     y = 1 + y
 end
 
 # Bernoulli thresholds optimized for Float64
 const bernoulli_small_threshold = 0.25
-const bernoulli_large_threshold = 40.0
+const bernoulli_large_threshold = 50.0
 ##############################################################
 """
 $(SIGNATURES)
@@ -40,14 +47,10 @@ function fbernoulli(x)
         -x
     elseif x > bernoulli_large_threshold
         zero(x)
+    elseif abs(x) < bernoulli_small_threshold
+        @inline bernoulli_horner(x)
     else
-        expx = exp(x)
-        expxm1 = expx - 1.0
-        if abs(expxm1) > bernoulli_small_threshold
-            x / expxm1
-        else
-            bernoulli_horner(x)
-        end
+        x / expm1(x)
     end
 end
 
@@ -65,32 +68,24 @@ and it is cheaper to calculate them together.
 
 Returns two real numbers containing the result for argument
 `x` and argument `-x`.
-
-The error in comparison with the evaluation of the original expression
-with BigFloat is less than 1.0e-15
 """
 function fbernoulli_pm(x)
     if x < -bernoulli_large_threshold
-        return -x, zero(x)
+        -x, zero(x)
     elseif x > bernoulli_large_threshold
-        return zero(x), x
+        zero(x), x
+    elseif abs(x) < bernoulli_small_threshold
+        @inline y = bernoulli_horner(x)
+        y, x + y
     else
-        expx = exp(x)
-        expxm1 = expx - 1.0
-        if abs(expxm1) > bernoulli_small_threshold
-            bp = x / expxm1
-            bm = x / (1.0 - 1.0 / expx)
-            return bp, bm
-        else
-            y = bernoulli_horner(x)
-            return y, x + y
-        end
+        y=x / expm1(x)
+        y, x + y
     end
 end
 
 """
-$(SIGNATURES)
-
+    $(SIGNATURES)
+    
 Non-pivoting inplace LU factorization using Doolittle's method.
 Adapted from https://en.wikipedia.org/wiki/LU_decomposition#MATLAB_code_example.
 """
