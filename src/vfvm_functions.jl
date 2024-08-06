@@ -28,8 +28,8 @@ function bernoulli_horner(x)
 end
 
 # Bernoulli thresholds optimized for Float64
-const bernoulli_small_threshold = 2.0e-1
-const bernoulli_large_threshold = 40.0
+const bernoulli_small_threshold = 0.25
+const bernoulli_large_threshold = 50.0
 ##############################################################
 """
 $(SIGNATURES)
@@ -43,9 +43,11 @@ with Bernoulli from JuliaStats/Distributions.jl
 Returns a real number containing the result.
 """
 function fbernoulli(x)
-    if x < -bernoulli_small_threshold
-        x / expm1(x)
-    elseif x < bernoulli_small_threshold 
+    if x < -bernoulli_large_threshold
+        -x
+    elseif x > bernoulli_large_threshold
+        zero(x)
+    elseif abs(x) < bernoulli_small_threshold
         @inline bernoulli_horner(x)
     else
         x / expm1(x)
@@ -66,32 +68,24 @@ and it is cheaper to calculate them together.
 
 Returns two real numbers containing the result for argument
 `x` and argument `-x`.
-
-The error in comparison with the evaluation of the original expression
-with BigFloat is less than 1.0e-15
 """
 function fbernoulli_pm(x)
     if x < -bernoulli_large_threshold
-        return -x, zero(x)
+        -x, zero(x)
     elseif x > bernoulli_large_threshold
-        return zero(x), x
+        zero(x), x
+    elseif abs(x) < bernoulli_small_threshold
+        @inline y = bernoulli_horner(x)
+        y, x + y
     else
-        expxm1 = expm1(x)
-        expx = expxm1 + 1.0
-        if abs(expxm1) > bernoulli_small_threshold
-            bp = x / expxm1
-            bm = x / (1.0 - 1.0 / expx)
-            return bp, bm
-        else
-            y = bernoulli_horner(x)
-            return y, x + y
-        end
+        y=x / expm1(x)
+        y, x + y
     end
 end
 
 """
-$(SIGNATURES)
-
+    $(SIGNATURES)
+    
 Non-pivoting inplace LU factorization using Doolittle's method.
 Adapted from https://en.wikipedia.org/wiki/LU_decomposition#MATLAB_code_example.
 """

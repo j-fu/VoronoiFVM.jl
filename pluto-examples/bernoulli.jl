@@ -12,7 +12,8 @@ begin
     using Revise
     using VoronoiFVM
     using PlutoUI
-	using BenchmarkTools
+    using ForwardDiff: derivative
+    using BenchmarkTools
 end
 
 # ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
@@ -24,51 +25,68 @@ with BigFloat. This allows to optimize thresholds for switching between evaluati
 """
 
 # ╔═╡ 20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
-TableOfContents(; title = "", aside = false)
+TableOfContents()
 
-# ╔═╡ 1774defe-1939-45f9-95e5-6a9fff70f3f2
+# ╔═╡ 3c0166c1-cad7-46b3-9330-2d8b39ce6774
 md"""
-## The candidates
+Reference with BigFLoat
 """
 
 # ╔═╡ b47b781b-ec11-485a-9de6-061ad0957f46
-"""
-Benchmark implementation  using BigFloat
-"""
 function B_Big(x)
     bx = BigFloat(x)
     Float64(bx / expm1(bx))
 end
 
-# ╔═╡ 01dd7870-45a7-42e5-ad26-7933bdec0c60
-"""
+# ╔═╡ 33f6b010-e0c4-4c7b-9cbd-460b8ba0f606
+function DB_Big(x)
+    bx = BigFloat(x)
+    bone = one(BigFloat)
+    bex = exp(bx)
+    b = -(x * bex - bex + bone) / ((bex - bone) * (bex - bone))
+    Float64(b)
+end
+
+# ╔═╡ 10561eae-ed40-4ffb-a5c2-84097d04bdbd
+md"""
 Naive implementation using FLoat64
 """
+
+# ╔═╡ 01dd7870-45a7-42e5-ad26-7933bdec0c60
 B_Float64(x) = x / expm1(x)
-
-# ╔═╡ 36158a4c-4a4b-44c8-9226-448713304335
-"""
-Approximation for large positive and negative arguments
-"""
-B_large(x) = x > 0 ? 0.0 : -x
-
-# ╔═╡ 54de85ff-8d61-4d15-b7c6-939ce0ea10fc
-"""
-Taylor scheme approximation for small  positive and negative arguments
-"""
-B_taylor(x) = VoronoiFVM.bernoulli_horner(x)
-
-# ╔═╡ 8e77f24b-b3fd-4069-82ba-799dc6aa602a
-"""
-Implementation  in VoronoiFVM
-"""
-B_vfvm(x) = VoronoiFVM.fbernoulli(x)
 
 # ╔═╡ 984bd562-271b-4e7e-b289-95d95e92ec2b
 md"""
 This implementation uses `B_taylor` if  `|exp(x)-1|<` $(VoronoiFVM.bernoulli_small_threshold) and 
 `B_large` if `|x|>` $(VoronoiFVM.bernoulli_large_threshold).
 """
+
+# ╔═╡ 87c5f167-d694-49d6-b8de-376c2d8e5b8b
+B_Float64(floatmin())
+
+# ╔═╡ 527115a9-67f8-4a62-97ef-8f3c0f5eb5f8
+-B_Float64(nextfloat(0.0))
+
+# ╔═╡ c4281d94-a44f-4925-84e2-af7f146fbff1
+xx = 51
+
+# ╔═╡ b1fff281-4bf4-4aa7-b69d-d2b0a8a2896e
+(B_Big(xx) - B_Float64(xx)) / B_Big(xx)
+
+# ╔═╡ 721cb723-4edb-4085-aa3f-b16ef62014f5
+B_Big(xx)
+
+# ╔═╡ 8dc1ccb5-b3d4-40dc-8877-73457376330f
+B_Float64(xx)
+
+# ╔═╡ 847a088f-6011-4e58-9d33-bff86a5a296b
+derivative(B_Float64, xx)
+
+# ╔═╡ fbf217c9-f314-443f-9d44-c9f7b04c5517
+DB_Big(xx)
+
+# ╔═╡ 162f0e5c-307b-449c-84b1-c1b73b09b1b0
+fbernoulli(51)
 
 # ╔═╡ c3fd0ff2-7111-4165-ad93-d6d7257301fa
 md"""
@@ -86,62 +104,32 @@ let
         ; size = (600, 400),
     )
     ax = Axis(p[1, 1];
-		yscale=log10,
+        title = "|B_Big(x)-B_Float64(x)|",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(10),
+        xticks = -0.5:0.1:0.5,
+        yscale = log10,
         xlabel = "x",
         ylabel = "error")
 
-  lines!(ax,
+    lines!(ax,
         smallX,
-        abs.(B_Big.(smallX) .- B_Float64.(smallX)).+1.0e-20;
-        label = "|B_Big(x)-B_Float64(x)|"
+        abs.(B_Big.(smallX) .- B_Float64.(smallX)) .+ 1.0e-20;
     )
-	    axislegend(; position = :lt)
-ax2 = Axis(p[2,1];
-		yscale=log10,
+    ax2 = Axis(p[2, 1];
+        title = "|B_Big(x)-bernoulli_horner(x)|",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(10),
+        xticks = -0.5:0.1:0.5,
+        yscale = log10,
         xlabel = "x",
         ylabel = "error")
     lines!(ax2,
         smallX,
-        abs.(B_Big.(smallX) .- B_taylor.(smallX)).+1.0e-20;
-        label = "|B_Big(x)-B_taylor(x)|"
+        abs.(B_Big.(smallX) .- VoronoiFVM.bernoulli_horner.(smallX)) .+ 1.0e-20;
     )
-    axislegend(; position = :lt)
-    p
-end
-
-# ╔═╡ 65aecf78-f88b-4399-abac-717c3c62a285
-md"""
-## Approximation for large x
-
-
-Here, an important aspect is to prevent floating point overflow for large x.
-"""
-
-# ╔═╡ 26cdb920-291a-4b54-963f-fd9bd610662f
-largeX = -100:1.00001e-3:100;
-
-# ╔═╡ 8633969b-33cb-486a-8731-2ec7dcb881d7
-let
-    p = Figure(
-        ; size = (600, 300),
-    )
-    ax = Axis(p[1, 1];
-	yscale=log10,
-	        xlabel = "x",
-        ylabel = "error")
-    lines!(
-        ax,
-        largeX,
-        abs.(B_Big.(largeX) .- B_Float64.(largeX)).+1.0e-20,
-        label = "|B_Big(x)-B_Float64(x)|"
-    )
-    lines!(
-        ax,
-        largeX,
-        abs.(B_Big.(largeX) .- B_large.(largeX));
-        label = "|B_Big(x)-B_large(x)|"
-    )
-    axislegend(; position = :lt)
     p
 end
 
@@ -150,82 +138,168 @@ md"""
 ## Test of the Implementation in VoronoiFVM
 """
 
-# ╔═╡ f0677e9e-88be-4486-bc02-1ee1d2972e14
-VoronoiFVM.bernoulli_small_threshold
-
 # ╔═╡ d6b2f924-6d75-43f7-bebc-03f87e2fec25
 @benchmark B_Float64.(smallX)
 
 # ╔═╡ 25675b2b-3d13-4a22-b33e-5989e4b97838
 @benchmark VoronoiFVM.fbernoulli.(smallX)
 
-# ╔═╡ e3823d9e-56e9-404b-bd50-5689b6c0b2b8
-@benchmark VoronoiFVM.bernoulli_horner.(smallX)
+# ╔═╡ 69be14cb-0669-4d5d-9226-4df6d738c6e8
+@benchmark VoronoiFVM.fbernoulli_pm.(smallX)
 
-# ╔═╡ ae3e401c-dfec-41fa-9cfc-f8450395a945
-x=1010
+# ╔═╡ f0677e9e-88be-4486-bc02-1ee1d2972e14
+VoronoiFVM.bernoulli_small_threshold
 
-# ╔═╡ 60bf3792-dec9-4630-a1a9-e9e09fea4623
-x/(exp(x)-1)
+# ╔═╡ d58ba4ab-ed43-4cdf-8060-f425f7b16f5a
+VoronoiFVM.bernoulli_large_threshold
 
-# ╔═╡ d655170f-8f2c-4450-8b33-071e720f1e73
-B_Float64(x)
-
-# ╔═╡ ba100743-dd55-4c28-88de-ec41017e0839
-B_vfvm(x)
-
-# ╔═╡ f2dd992f-9f1f-4347-986e-6c0a65061cbc
-B_Big(x)
-
-# ╔═╡ ed8f172e-1d74-4514-b1e6-815ec9c87ae5
-maxerror(X) = maximum(abs.(B_Big.(X) .- B_vfvm.(X)));
+# ╔═╡ 26cdb920-291a-4b54-963f-fd9bd610662f
+largeX = -100:1.00001e-3:100;
 
 # ╔═╡ feb21ce6-0ddc-45fb-90f4-1e46261a9110
 let
-    
     p = Figure(
-        ; size = (650, 400),
+        ; size = (650, 400)
     )
-    ax1 = Axis(p[1, 1];
-               title = "Max error for small x: $(maxerror(smallX))",
-               xlabel = "x",
-               ylabel = "error")
-    
-    ax2 = Axis(p[2,1];
-               title = "Max error for large x: $(maxerror(largeX))",
-               xlabel = "x",
-               ylabel = "error")
-    
+    Label(p[0, 1], "Positive Argument"; fontsize = 15, font = :bold)
+    bf = B_Big.(smallX)
+    vf = first.(fbernoulli_pm.(smallX))
+    err = abs.(bf - vf) ./ bf
+    maxerr = maximum(err)
+    ax1 = Axis(p[1, 0:2];
+        title = "Maximum relative error for small x: $maxerr",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(10),
+        xticks = -0.5:0.1:0.5,
+        xlabel = "x",
+        ylabel = "error")
+
     lines!(ax1,
-           smallX,
-           abs.(B_Big.(smallX) .- B_vfvm.(smallX));
-           label = "|B_Big(x)-B_vfvm(x)|",
-           color = :red,
-           )
+        smallX,
+        err;
+        color = :red
+    )
+
+    bf = B_Big.(largeX)
+    vf = first.(fbernoulli_pm.(largeX))
+    err = abs.(bf - vf)
+    maxerr = maximum(err)
+
+    ax2 = Axis(p[2, 0:2];
+        title = "Maximum absolute error for large x: $maxerr",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(4),
+        xticks = -100:20:100,
+        xlabel = "x",
+        ylabel = "error")
 
     lines!(ax2,
-           largeX,
-           abs.(B_Big.(largeX) .- B_vfvm.(largeX));
-           label = "|B_Big(x)-B_vfvm(x)|",
-           color=:red)
-
+        largeX,
+        err;
+        color = :red)
+    save("bernoulli_posarg.png")
     p
 end
 
-# ╔═╡ 71232cd7-8051-42fa-bf4a-716aee18bc5f
+# ╔═╡ 3fda3dd7-1603-463c-9be4-03a217ada56f
 let
-	f = Figure()
+    p = Figure(
+        ; size = (650, 400)
+    )
+    Label(p[0, 1], "Negative Argument"; fontsize = 15, font = :bold)
 
-for (i, scale) in enumerate([identity, log10, log2, log, sqrt, Makie.logit])
-    row, col = fldmod1(i, 3)
-    Axis(f[row, col], yscale = scale, title = string(scale),
-        yminorticksvisible = true, yminorgridvisible = true,
-        yminorticks = IntervalsBetween(5))
+    bf = B_Big.(-smallX)
+    vf = last.(fbernoulli_pm.(smallX))
+    err = abs.(bf - vf) ./ bf
+    maxerr = maximum(err)
 
-    lines!(range(1.0e-20, 0.99, length = 200))
+    ax1 = Axis(p[1, 0:2];
+        title = "Maximum relative error for small x: $(maxerr)",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(10),
+        xticks = -0.5:0.1:0.5,
+        xlabel = "x",
+        ylabel = "error")
+    lines!(ax1,
+        smallX,
+        err;
+        color = :red
+    )
+
+    bf = B_Big.(-largeX)
+    vf = last.(fbernoulli_pm.(largeX))
+    err = abs.(bf - vf)
+    maxerr = maximum(err)
+    ax2 = Axis(p[2, 0:2];
+        title = "Maximum absolute error for large x: $maxerr",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(4),
+        xticks = -100:20:100,
+        xlabel = "x",
+        ylabel = "error")
+
+    lines!(ax2,
+        largeX,
+        err;
+        color = :red)
+    save("bernoulli_negarg.png")
+    p
 end
 
-f
+# ╔═╡ d3717c34-9fbf-470d-99f0-dabc3cc023fc
+md"""
+Derivative error
+"""
+
+# ╔═╡ 68481e52-31d8-4208-b687-f8002ad27232
+let
+    p = Figure(
+        ; size = (650, 400)
+    )
+
+    Label(p[0, 1], "Derivative"; fontsize = 15, font = :bold)
+    bf = DB_Big.(smallX)
+    vf = derivative.(fbernoulli, smallX)
+    err = abs.(bf - vf) ./ abs.(bf)
+    maxerr = maximum(err)
+
+    ax1 = Axis(p[1, 0:2];
+        title = "Maximum relative error for small x: $maxerr",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(10),
+        xticks = -0.5:0.1:0.5, xlabel = "x",
+        ylabel = "error")
+
+    lines!(ax1,
+        smallX,
+        err;
+        color = :red
+    )
+
+    bf = DB_Big.(largeX)
+    vf = derivative.(fbernoulli, largeX)
+    err = abs.(bf - vf)
+    maxerr = maximum(err)
+    ax2 = Axis(p[2, 0:2];
+        title = "Maximum absolute error for large x: $maxerr",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(4),
+        xticks = -100:20:100,
+        xlabel = "x",
+        ylabel = "error")
+
+    lines!(ax2,
+        largeX,
+        err;
+        color = :red)
+save("bernoulli_derivative.png")
+    p
 end
 
 # ╔═╡ 12f268d2-baa6-4c1b-bed5-e9df53b469fc
@@ -236,6 +310,7 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
@@ -244,6 +319,7 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 [compat]
 BenchmarkTools = "~1.5.0"
 CairoMakie = "~0.12.5"
+ForwardDiff = "~0.10.36"
 PlutoUI = "~0.7.59"
 Revise = "~3.5.18"
 VoronoiFVM = "~1.23.0"
@@ -255,7 +331,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.0-rc2"
 manifest_format = "2.0"
-project_hash = "222a8a027e8a587c5c46220ba0cc13e59420d39f"
+project_hash = "dd0bdabcfca68cfe0829414a78f2a6f0dc09e156"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "6778bcc27496dae5723ff37ee30af451db8b35fe"
@@ -2515,33 +2591,36 @@ version = "3.5.0+0"
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─5e13b3db-570c-4159-939a-7e2268f0a102
-# ╟─20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
-# ╟─1774defe-1939-45f9-95e5-6a9fff70f3f2
+# ╠═20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
+# ╟─3c0166c1-cad7-46b3-9330-2d8b39ce6774
 # ╠═b47b781b-ec11-485a-9de6-061ad0957f46
+# ╠═33f6b010-e0c4-4c7b-9cbd-460b8ba0f606
+# ╟─10561eae-ed40-4ffb-a5c2-84097d04bdbd
 # ╠═01dd7870-45a7-42e5-ad26-7933bdec0c60
-# ╠═36158a4c-4a4b-44c8-9226-448713304335
-# ╠═54de85ff-8d61-4d15-b7c6-939ce0ea10fc
-# ╠═8e77f24b-b3fd-4069-82ba-799dc6aa602a
 # ╟─984bd562-271b-4e7e-b289-95d95e92ec2b
+# ╠═87c5f167-d694-49d6-b8de-376c2d8e5b8b
+# ╠═527115a9-67f8-4a62-97ef-8f3c0f5eb5f8
+# ╠═c4281d94-a44f-4925-84e2-af7f146fbff1
+# ╠═b1fff281-4bf4-4aa7-b69d-d2b0a8a2896e
+# ╠═721cb723-4edb-4085-aa3f-b16ef62014f5
+# ╠═8dc1ccb5-b3d4-40dc-8877-73457376330f
+# ╠═847a088f-6011-4e58-9d33-bff86a5a296b
+# ╠═fbf217c9-f314-443f-9d44-c9f7b04c5517
+# ╠═162f0e5c-307b-449c-84b1-c1b73b09b1b0
 # ╟─c3fd0ff2-7111-4165-ad93-d6d7257301fa
 # ╠═56ff3f5c-6fe9-4d44-a5ae-449c42efca62
 # ╠═6e7c197b-8ad2-4b9d-a0bc-40a48db32387
-# ╟─65aecf78-f88b-4399-abac-717c3c62a285
-# ╠═26cdb920-291a-4b54-963f-fd9bd610662f
-# ╠═8633969b-33cb-486a-8731-2ec7dcb881d7
 # ╟─5a293797-beb9-493e-af12-d978c50d6148
-# ╠═f0677e9e-88be-4486-bc02-1ee1d2972e14
 # ╠═d6b2f924-6d75-43f7-bebc-03f87e2fec25
 # ╠═25675b2b-3d13-4a22-b33e-5989e4b97838
-# ╠═e3823d9e-56e9-404b-bd50-5689b6c0b2b8
-# ╠═ae3e401c-dfec-41fa-9cfc-f8450395a945
-# ╠═60bf3792-dec9-4630-a1a9-e9e09fea4623
-# ╠═d655170f-8f2c-4450-8b33-071e720f1e73
-# ╠═ba100743-dd55-4c28-88de-ec41017e0839
-# ╠═f2dd992f-9f1f-4347-986e-6c0a65061cbc
-# ╠═ed8f172e-1d74-4514-b1e6-815ec9c87ae5
+# ╠═69be14cb-0669-4d5d-9226-4df6d738c6e8
+# ╠═f0677e9e-88be-4486-bc02-1ee1d2972e14
+# ╠═d58ba4ab-ed43-4cdf-8060-f425f7b16f5a
+# ╠═26cdb920-291a-4b54-963f-fd9bd610662f
 # ╠═feb21ce6-0ddc-45fb-90f4-1e46261a9110
-# ╠═71232cd7-8051-42fa-bf4a-716aee18bc5f
+# ╠═3fda3dd7-1603-463c-9be4-03a217ada56f
+# ╟─d3717c34-9fbf-470d-99f0-dabc3cc023fc
+# ╠═68481e52-31d8-4208-b687-f8002ad27232
 # ╟─12f268d2-baa6-4c1b-bed5-e9df53b469fc
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
