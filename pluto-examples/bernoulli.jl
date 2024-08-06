@@ -11,9 +11,7 @@ begin
     using CairoMakie
     using Revise
     using VoronoiFVM
-    using PlutoUI
     using ForwardDiff: derivative
-    using BenchmarkTools
 end
 
 # ╔═╡ 5e13b3db-570c-4159-939a-7e2268f0a102
@@ -23,9 +21,6 @@ md"""
 We test the implementation of the Bernoulli function in VoronoiFVM against the evaluation
 with BigFloat. This allows to optimize thresholds for switching between evaluation expressions.
 """
-
-# ╔═╡ 20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
-TableOfContents()
 
 # ╔═╡ 3c0166c1-cad7-46b3-9330-2d8b39ce6774
 md"""
@@ -47,46 +42,42 @@ function DB_Big(x)
     Float64(b)
 end
 
+# ╔═╡ b4ae8be0-c03c-4573-ac99-cb91c8c0f910
+md"""
+## Approximation close to 0
+"""
+
 # ╔═╡ 10561eae-ed40-4ffb-a5c2-84097d04bdbd
 md"""
 Naive implementation using FLoat64
 """
 
-# ╔═╡ 01dd7870-45a7-42e5-ad26-7933bdec0c60
-B_Float64(x) = x / expm1(x)
+# ╔═╡ c95c09fe-ac77-4032-a455-2a13b0d7edc2
+B(x)=x/expm1(x)
 
-# ╔═╡ 984bd562-271b-4e7e-b289-95d95e92ec2b
-md"""
-This implementation uses `B_taylor` if  `|exp(x)-1|<` $(VoronoiFVM.bernoulli_small_threshold) and 
-`B_large` if `|x|>` $(VoronoiFVM.bernoulli_large_threshold).
-"""
+# ╔═╡ d8ba486e-44f3-414c-ba3b-e8f0f5e9a099
+B(0.0)
 
-# ╔═╡ 87c5f167-d694-49d6-b8de-376c2d8e5b8b
-B_Float64(floatmin())
+# ╔═╡ 827fbfb1-2e3f-402a-a0c4-a4799df5838e
+fbernoulli(0.0)
 
-# ╔═╡ 527115a9-67f8-4a62-97ef-8f3c0f5eb5f8
--B_Float64(nextfloat(0.0))
+# ╔═╡ f99ff517-3afc-469b-af34-8fd59233a1df
+B(nextfloat(0.0))
 
-# ╔═╡ c4281d94-a44f-4925-84e2-af7f146fbff1
-xx = 51
+# ╔═╡ e78571b4-6980-447b-a71d-a9609fda57b0
+fbernoulli(nextfloat(0.0))
 
-# ╔═╡ b1fff281-4bf4-4aa7-b69d-d2b0a8a2896e
-(B_Big(xx) - B_Float64(xx)) / B_Big(xx)
+# ╔═╡ cb10e915-b753-4cd5-9355-71558c83369c
+derivative(B,0.0)
 
-# ╔═╡ 721cb723-4edb-4085-aa3f-b16ef62014f5
-B_Big(xx)
+# ╔═╡ a63959f9-ed7a-47dc-b253-78c763dd359f
+derivative(fbernoulli, 0.0)
 
-# ╔═╡ 8dc1ccb5-b3d4-40dc-8877-73457376330f
-B_Float64(xx)
+# ╔═╡ 16db7f90-7d23-4864-a059-38d09f3e5d3b
+derivative(B,nextfloat(0.0))
 
-# ╔═╡ 847a088f-6011-4e58-9d33-bff86a5a296b
-derivative(B_Float64, xx)
-
-# ╔═╡ fbf217c9-f314-443f-9d44-c9f7b04c5517
-DB_Big(xx)
-
-# ╔═╡ 162f0e5c-307b-449c-84b1-c1b73b09b1b0
-fbernoulli(51)
+# ╔═╡ 7678ad35-f29b-448c-bd85-247140d42456
+derivative(fbernoulli, nextfloat(0.0))
 
 # ╔═╡ c3fd0ff2-7111-4165-ad93-d6d7257301fa
 md"""
@@ -104,7 +95,7 @@ let
         ; size = (600, 400),
     )
     ax = Axis(p[1, 1];
-        title = "|B_Big(x)-B_Float64(x)|",
+        title = "|B_Big(x)-B(x)|",
         xminorticksvisible = true,
         xminorgridvisible = true,
         xminorticks = IntervalsBetween(10),
@@ -115,10 +106,10 @@ let
 
     lines!(ax,
         smallX,
-        abs.(B_Big.(smallX) .- B_Float64.(smallX)) .+ 1.0e-20;
+        abs.(B_Big.(smallX) .- B.(smallX)) .+ 1.0e-20;
     )
     ax2 = Axis(p[2, 1];
-        title = "|B_Big(x)-bernoulli_horner(x)|",
+        title = "|B_Big(x)-VoronoiFVM.bernoulli_horner(x)|",
         xminorticksvisible = true,
         xminorgridvisible = true,
         xminorticks = IntervalsBetween(10),
@@ -133,25 +124,46 @@ let
     p
 end
 
+# ╔═╡ c035b09f-92ca-4af9-9bcc-c754650e7bb1
+let
+    p = Figure(
+        ; size = (600, 400),
+    )
+    ax = Axis(p[1, 1];
+        title = "|DB_Big(x)-derivative(B,x)|",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(10),
+        xticks = -0.5:0.1:0.5,
+        yscale = log10,
+        xlabel = "x",
+        ylabel = "error")
+
+    lines!(ax,
+        smallX,
+        abs.(DB_Big.(smallX) .- derivative.(B,smallX)) .+ 1.0e-20;
+    )
+    ax2 = Axis(p[2, 1];
+        title = "|DB_Big(x)-derivative(bernoulli_horner,x)|",
+        xminorticksvisible = true,
+        xminorgridvisible = true,
+        xminorticks = IntervalsBetween(10),
+        xticks = -0.5:0.1:0.5,
+        yscale = log10,
+        xlabel = "x",
+        ylabel = "error")
+    lines!(ax2,
+        smallX,
+        abs.(DB_Big.(smallX) .- derivative.(VoronoiFVM.bernoulli_horner,smallX)) .+ 1.0e-20;
+    )
+    p
+end
+
+
 # ╔═╡ 5a293797-beb9-493e-af12-d978c50d6148
 md"""
-## Test of the Implementation in VoronoiFVM
+## Error comparison for  VoronoiFVM implementation
 """
-
-# ╔═╡ d6b2f924-6d75-43f7-bebc-03f87e2fec25
-@benchmark B_Float64.(smallX)
-
-# ╔═╡ 25675b2b-3d13-4a22-b33e-5989e4b97838
-@benchmark VoronoiFVM.fbernoulli.(smallX)
-
-# ╔═╡ 69be14cb-0669-4d5d-9226-4df6d738c6e8
-@benchmark VoronoiFVM.fbernoulli_pm.(smallX)
-
-# ╔═╡ f0677e9e-88be-4486-bc02-1ee1d2972e14
-VoronoiFVM.bernoulli_small_threshold
-
-# ╔═╡ d58ba4ab-ed43-4cdf-8060-f425f7b16f5a
-VoronoiFVM.bernoulli_large_threshold
 
 # ╔═╡ 26cdb920-291a-4b54-963f-fd9bd610662f
 largeX = -100:1.00001e-3:100;
@@ -308,19 +320,15 @@ html"<hr>"
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
-BenchmarkTools = "~1.5.0"
 CairoMakie = "~0.12.5"
 ForwardDiff = "~0.10.36"
-PlutoUI = "~0.7.59"
 Revise = "~3.5.18"
 VoronoiFVM = "~1.23.0"
 """
@@ -331,7 +339,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.0-rc2"
 manifest_format = "2.0"
-project_hash = "dd0bdabcfca68cfe0829414a78f2a6f0dc09e156"
+project_hash = "9e25a8977ef4df8bcbdd1b87581771231c294b4d"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "6778bcc27496dae5723ff37ee30af451db8b35fe"
@@ -356,12 +364,6 @@ weakdeps = ["ChainRulesCore", "Test"]
     [deps.AbstractFFTs.extensions]
     AbstractFFTsChainRulesCoreExt = "ChainRulesCore"
     AbstractFFTsTestExt = "Test"
-
-[[deps.AbstractPlutoDingetjes]]
-deps = ["Pkg"]
-git-tree-sha1 = "6e1d2a35f2f90a4bc7c2ed98079b2ba09c35b83a"
-uuid = "6e696c72-6542-2067-7265-42206c756150"
-version = "1.3.2"
 
 [[deps.AbstractTrees]]
 git-tree-sha1 = "2d9c9a55f9c93e8887ad391fbae72f8ef55e1177"
@@ -501,12 +503,6 @@ weakdeps = ["SparseArrays"]
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
-
-[[deps.BenchmarkTools]]
-deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
-git-tree-sha1 = "f1dff6729bc61f4d49e140da1af55dcd1ac97b2f"
-uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.5.0"
 
 [[deps.Bijections]]
 git-tree-sha1 = "95f5c7e2d177b7ba1a240b0518038b975d72a8c0"
@@ -1120,12 +1116,6 @@ git-tree-sha1 = "f218fe3736ddf977e0e772bc9a586b2383da2685"
 uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
 version = "0.3.23"
 
-[[deps.Hyperscript]]
-deps = ["Test"]
-git-tree-sha1 = "179267cfa5e712760cd43dcae385d7ea90cc25a4"
-uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
-version = "0.0.5"
-
 [[deps.HypertextLiteral]]
 deps = ["Tricks"]
 git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
@@ -1137,12 +1127,6 @@ deps = ["LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "b007cfc7f9bee9a958992d2301e9c5b63f332a90"
 uuid = "88f59080-6952-5380-9ea5-54057fb9a43f"
 version = "0.2.0"
-
-[[deps.IOCapture]]
-deps = ["Logging", "Random"]
-git-tree-sha1 = "b6d6bfdd7ce25b0f9b2f6b3dd56b2673a66c8770"
-uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
-version = "0.2.5"
 
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
@@ -1556,11 +1540,6 @@ git-tree-sha1 = "1ce1834f9644a8f7c011eb0592b7fd6c42c90653"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
 version = "3.0.1"
 
-[[deps.MIMEs]]
-git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
-uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
-version = "0.1.4"
-
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "oneTBB_jll"]
 git-tree-sha1 = "f046ccd0c6db2832a9f639e2c669c6fe867e5f4f"
@@ -1803,12 +1782,6 @@ git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
 version = "1.4.1"
 
-[[deps.PlutoUI]]
-deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
-git-tree-sha1 = "ab55ee1510ad2af0ff674dbcced5e94921f867a9"
-uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.59"
-
 [[deps.Polyester]]
 deps = ["ArrayInterface", "BitTwiddlingConvenienceFunctions", "CPUSummary", "IfElse", "ManualMemory", "PolyesterWeave", "Requires", "Static", "StaticArrayInterface", "StrideArraysCore", "ThreadingUtilities"]
 git-tree-sha1 = "9ff799e8fb8ed6717710feee3be3bc20645daa97"
@@ -1853,10 +1826,6 @@ version = "1.4.3"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-version = "1.11.0"
-
-[[deps.Profile]]
-uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 version = "1.11.0"
 
 [[deps.ProgressMeter]]
@@ -2370,11 +2339,6 @@ git-tree-sha1 = "4d4ed7f294cda19382ff7de4c137d24d16adc89b"
 uuid = "981d1d27-644d-49a2-9326-4793e63143c3"
 version = "0.1.0"
 
-[[deps.URIs]]
-git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
-uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.5.1"
-
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
@@ -2591,36 +2555,30 @@ version = "3.5.0+0"
 # ╔═╡ Cell order:
 # ╠═60941eaa-1aea-11eb-1277-97b991548781
 # ╟─5e13b3db-570c-4159-939a-7e2268f0a102
-# ╠═20ce5908-7fe7-4e8f-baf8-c858d2d12ce5
 # ╟─3c0166c1-cad7-46b3-9330-2d8b39ce6774
 # ╠═b47b781b-ec11-485a-9de6-061ad0957f46
 # ╠═33f6b010-e0c4-4c7b-9cbd-460b8ba0f606
+# ╟─b4ae8be0-c03c-4573-ac99-cb91c8c0f910
 # ╟─10561eae-ed40-4ffb-a5c2-84097d04bdbd
-# ╠═01dd7870-45a7-42e5-ad26-7933bdec0c60
-# ╟─984bd562-271b-4e7e-b289-95d95e92ec2b
-# ╠═87c5f167-d694-49d6-b8de-376c2d8e5b8b
-# ╠═527115a9-67f8-4a62-97ef-8f3c0f5eb5f8
-# ╠═c4281d94-a44f-4925-84e2-af7f146fbff1
-# ╠═b1fff281-4bf4-4aa7-b69d-d2b0a8a2896e
-# ╠═721cb723-4edb-4085-aa3f-b16ef62014f5
-# ╠═8dc1ccb5-b3d4-40dc-8877-73457376330f
-# ╠═847a088f-6011-4e58-9d33-bff86a5a296b
-# ╠═fbf217c9-f314-443f-9d44-c9f7b04c5517
-# ╠═162f0e5c-307b-449c-84b1-c1b73b09b1b0
+# ╠═c95c09fe-ac77-4032-a455-2a13b0d7edc2
+# ╠═d8ba486e-44f3-414c-ba3b-e8f0f5e9a099
+# ╠═827fbfb1-2e3f-402a-a0c4-a4799df5838e
+# ╠═f99ff517-3afc-469b-af34-8fd59233a1df
+# ╠═e78571b4-6980-447b-a71d-a9609fda57b0
+# ╠═cb10e915-b753-4cd5-9355-71558c83369c
+# ╠═a63959f9-ed7a-47dc-b253-78c763dd359f
+# ╠═16db7f90-7d23-4864-a059-38d09f3e5d3b
+# ╠═7678ad35-f29b-448c-bd85-247140d42456
 # ╟─c3fd0ff2-7111-4165-ad93-d6d7257301fa
 # ╠═56ff3f5c-6fe9-4d44-a5ae-449c42efca62
-# ╠═6e7c197b-8ad2-4b9d-a0bc-40a48db32387
+# ╟─6e7c197b-8ad2-4b9d-a0bc-40a48db32387
+# ╟─c035b09f-92ca-4af9-9bcc-c754650e7bb1
 # ╟─5a293797-beb9-493e-af12-d978c50d6148
-# ╠═d6b2f924-6d75-43f7-bebc-03f87e2fec25
-# ╠═25675b2b-3d13-4a22-b33e-5989e4b97838
-# ╠═69be14cb-0669-4d5d-9226-4df6d738c6e8
-# ╠═f0677e9e-88be-4486-bc02-1ee1d2972e14
-# ╠═d58ba4ab-ed43-4cdf-8060-f425f7b16f5a
 # ╠═26cdb920-291a-4b54-963f-fd9bd610662f
-# ╠═feb21ce6-0ddc-45fb-90f4-1e46261a9110
-# ╠═3fda3dd7-1603-463c-9be4-03a217ada56f
+# ╟─feb21ce6-0ddc-45fb-90f4-1e46261a9110
+# ╟─3fda3dd7-1603-463c-9be4-03a217ada56f
 # ╟─d3717c34-9fbf-470d-99f0-dabc3cc023fc
-# ╠═68481e52-31d8-4208-b687-f8002ad27232
+# ╟─68481e52-31d8-4208-b687-f8002ad27232
 # ╟─12f268d2-baa6-4c1b-bed5-e9df53b469fc
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
