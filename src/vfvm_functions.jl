@@ -1,10 +1,4 @@
 ##############################################################
-"""
-$(SIGNATURES)
-
-Calculation of Bernoulli function via Horner scheme based on Taylor
-coefficients around 0.
-"""
 const c1 = 1/ 47_900_160
 const c2 = -1 / 1_209_600
 const c3 = 1 / 30_240
@@ -12,7 +6,12 @@ const c4 = -1 / 720
 const c5 = 1 / 12
 const c6 = -1 / 2
 
+"""
+$(SIGNATURES)
 
+Calculation of Bernoulli function via Horner scheme based on Taylor
+coefficients around 0.
+"""
 function bernoulli_horner(x)
     y = x * c1
     y = x * y
@@ -34,13 +33,18 @@ const bernoulli_large_threshold = 50.0
 """
 $(SIGNATURES)
 
-Bernoulli function ``B(x)=\\frac{x}{e^x-1}`` for exponentially
-fitted upwinding.
+Bernoulli function ``B(x)=\\frac{x}{e^x-1}`` for exponentially fitted upwinding.
 
-The name `fbernoulli` has been chosen to avoid confusion
-with Bernoulli from JuliaStats/Distributions.jl
+The name `fbernoulli` has been chosen to avoid confusion with `Bernoulli` from JuliaStats/Distributions.jl
 
 Returns a real number containing the result.
+
+While `x/expm1(x)`  appears to be sufficiently accurate for all `x!=0`, 
+it's derivative calculated via `ForwardDiff.jl` is not, 
+so we use the polynomial approximation in the  
+interval `(-bernoulli_small_threshold, bernoulli_small_threshold)`. 
+
+Also, see the discussion in [#117](https://github.com/j-fu/VoronoiFVM.jl/issues/117).
 """
 function fbernoulli(x)
     if x < -bernoulli_large_threshold
@@ -67,7 +71,9 @@ Usually, we need ``B(x), B(-x)`` together,
 and it is cheaper to calculate them together.
 
 Returns two real numbers containing the result for argument
-`x` and argument `-x`.
+`x` and argument `-x`. 
+
+For the general approach to the implementation, see the discussion in [`fbernoulli`](@ref).
 """
 function fbernoulli_pm(x)
     if x < -bernoulli_large_threshold

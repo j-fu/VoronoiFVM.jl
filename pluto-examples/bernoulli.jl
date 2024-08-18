@@ -24,7 +24,7 @@ with BigFloat. This allows to optimize thresholds for switching between evaluati
 
 # ╔═╡ 3c0166c1-cad7-46b3-9330-2d8b39ce6774
 md"""
-Reference with BigFLoat
+### Reference with BigFLoat
 """
 
 # ╔═╡ b47b781b-ec11-485a-9de6-061ad0957f46
@@ -42,18 +42,20 @@ function DB_Big(x)
     Float64(b)
 end
 
-# ╔═╡ b4ae8be0-c03c-4573-ac99-cb91c8c0f910
+# ╔═╡ a0e3bf41-e5ca-4395-a26e-941a8b897705
 md"""
-## Approximation close to 0
-"""
-
-# ╔═╡ 10561eae-ed40-4ffb-a5c2-84097d04bdbd
-md"""
-Naive implementation using FLoat64
+## Implementation using `expm1`
 """
 
 # ╔═╡ c95c09fe-ac77-4032-a455-2a13b0d7edc2
 B(x)=x/expm1(x)
+
+# ╔═╡ c3fd0ff2-7111-4165-ad93-d6d7257301fa
+md"""
+## Approximation for small x
+
+For small values of x, a Taylor approximation implemented using a Horner scheme is utilized, as the exponential expression runs into errors in the vicinity of zero and fails to evaluate at zero.. As as long as its error is large than that of the Taylor approximation calculated with the Taylor scheme, we should use the later one. 
+"""
 
 # ╔═╡ d8ba486e-44f3-414c-ba3b-e8f0f5e9a099
 B(0.0)
@@ -78,13 +80,6 @@ derivative(B,nextfloat(0.0))
 
 # ╔═╡ 7678ad35-f29b-448c-bd85-247140d42456
 derivative(fbernoulli, nextfloat(0.0))
-
-# ╔═╡ c3fd0ff2-7111-4165-ad93-d6d7257301fa
-md"""
-## Approximation for small x
-
-For small values of x, a Taylor approximation implemented using a Horner scheme is utilized, as the exponential expression runs into errors in the vicinity of zero and fails to evaluate at zero.. As as long as its error is large than that of the Taylor approximation calculated with the Taylor scheme, we should use the later one. 
-"""
 
 # ╔═╡ 56ff3f5c-6fe9-4d44-a5ae-449c42efca62
 smallX = collect(-0.5:(1.0e-4 + 1.0e-8):0.5);
@@ -211,7 +206,7 @@ let
         largeX,
         err;
         color = :red)
-    save("bernoulli_posarg.png")
+    save("bernoulli_posarg.png",p)
     p
 end
 
@@ -258,7 +253,7 @@ let
         largeX,
         err;
         color = :red)
-    save("bernoulli_negarg.png")
+    save("bernoulli_negarg.png",p)
     p
 end
 
@@ -310,7 +305,7 @@ let
         largeX,
         err;
         color = :red)
-save("bernoulli_derivative.png")
+save("bernoulli_derivative.png",p)
     p
 end
 
@@ -2558,9 +2553,9 @@ version = "3.5.0+0"
 # ╟─3c0166c1-cad7-46b3-9330-2d8b39ce6774
 # ╠═b47b781b-ec11-485a-9de6-061ad0957f46
 # ╠═33f6b010-e0c4-4c7b-9cbd-460b8ba0f606
-# ╟─b4ae8be0-c03c-4573-ac99-cb91c8c0f910
-# ╟─10561eae-ed40-4ffb-a5c2-84097d04bdbd
+# ╟─a0e3bf41-e5ca-4395-a26e-941a8b897705
 # ╠═c95c09fe-ac77-4032-a455-2a13b0d7edc2
+# ╟─c3fd0ff2-7111-4165-ad93-d6d7257301fa
 # ╠═d8ba486e-44f3-414c-ba3b-e8f0f5e9a099
 # ╠═827fbfb1-2e3f-402a-a0c4-a4799df5838e
 # ╠═f99ff517-3afc-469b-af34-8fd59233a1df
@@ -2569,7 +2564,6 @@ version = "3.5.0+0"
 # ╠═a63959f9-ed7a-47dc-b253-78c763dd359f
 # ╠═16db7f90-7d23-4864-a059-38d09f3e5d3b
 # ╠═7678ad35-f29b-448c-bd85-247140d42456
-# ╟─c3fd0ff2-7111-4165-ad93-d6d7257301fa
 # ╠═56ff3f5c-6fe9-4d44-a5ae-449c42efca62
 # ╟─6e7c197b-8ad2-4b9d-a0bc-40a48db32387
 # ╟─c035b09f-92ca-4af9-9bcc-c754650e7bb1

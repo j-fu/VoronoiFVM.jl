@@ -37,17 +37,18 @@ function make(; with_examples = true,
     
     if with_notebooks
         notebooks = [
-            # "OrdinaryDiffEq.jl nonlinear diffusion" =>   "ode-diffusion1d.jl",
-            # "OrdinaryDiffEq.jl 1D wave equation" =>    "ode-wave1d.jl",
-            # "OrdinaryDiffEq.jl changing mass matrix" =>     "ode-nlstorage1d.jl",
-            # "OrdinaryDiffEq.jl brusselator"  =>   "ode-brusselator.jl",
-            # "Outflow boundary conditions" => "outflow.jl",
-            # "Obtaining vector fields" => "flux-reconstruction.jl",
-            # "Internal interfaces (1D)" => "interfaces1d.jl",
-            # "A case for caution" => "problemcase.jl",
-            # "Nonlinear solver control" => "nonlinear-solvers.jl",
-            # "API Updates" => "api-update.jl",
+            "OrdinaryDiffEq.jl nonlinear diffusion" =>   "ode-diffusion1d.jl",
+            "OrdinaryDiffEq.jl 1D wave equation" =>    "ode-wave1d.jl",
+            "OrdinaryDiffEq.jl changing mass matrix" =>     "ode-nlstorage1d.jl",
+            "OrdinaryDiffEq.jl brusselator"  =>   "ode-brusselator.jl",
             "Coupling with Catalyst.jl" => "heterogeneous-catalysis.jl",
+            "Outflow boundary conditions" => "outflow.jl",
+            "Obtaining vector fields" => "flux-reconstruction.jl",
+            "Internal interfaces (1D)" => "interfaces1d.jl",
+            "A case for caution" => "problemcase.jl",
+            "Nonlinear solver control" => "nonlinear-solvers.jl",
+            "Bernoulli function test" => "bernoulli.jl",
+            "API Updates" => "api-update.jl",
         ]
         notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
         notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
