@@ -35,8 +35,7 @@ window.MathJax = {
     "packages": [
       "base",
       "ams",
-      "autoload",
-      "mhchem"
+      "autoload"
     ],
     "inlineMath": [
       [
@@ -59,7 +58,7 @@ window.MathJax = {
 
 (function () {
     var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js';
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js';
     script.async = true;
     document.head.appendChild(script);
 })();
