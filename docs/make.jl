@@ -41,13 +41,14 @@ function make(; with_examples = true,
             "OrdinaryDiffEq.jl 1D wave equation" =>    "ode-wave1d.jl",
             "OrdinaryDiffEq.jl changing mass matrix" =>     "ode-nlstorage1d.jl",
             "OrdinaryDiffEq.jl brusselator"  =>   "ode-brusselator.jl",
+            "Coupling with Catalyst.jl" => "heterogeneous-catalysis.jl",
             "Outflow boundary conditions" => "outflow.jl",
             "Obtaining vector fields" => "flux-reconstruction.jl",
             "Internal interfaces (1D)" => "interfaces1d.jl",
             "A case for caution" => "problemcase.jl",
             "Nonlinear solver control" => "nonlinear-solvers.jl",
+            "Bernoulli function test" => "bernoulli.jl",
             "API Updates" => "api-update.jl",
-            "Coupling with Catalyst.jl" => "heterogeneous-catalysis.jl",
         ]
         notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
         notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
@@ -81,7 +82,7 @@ function make(; with_examples = true,
              repo = "https://github.com/j-fu/VoronoiFVM.jl",
              format = Documenter.HTML(; size_threshold_ignore,
                                        assets=String["assets/citations.css"],
-                                      mathengine = MathJax3(mathjax_config,url="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js")),
+                                      mathengine = MathJax3()),
              pages)
 
     
@@ -93,7 +94,7 @@ function make(; with_examples = true,
 end
 
 if isinteractive()
-    make(; with_examples = false, with_notebooks = false)
+    make(; with_examples = false, with_notebooks = true)
 else
     make(; with_examples = true, with_notebooks = true)
 end

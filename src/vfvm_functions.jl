@@ -1,53 +1,60 @@
 ##############################################################
+const c1 = 1/ 47_900_160
+const c2 = -1 / 1_209_600
+const c3 = 1 / 30_240
+const c4 = -1 / 720
+const c5 = 1 / 12
+const c6 = -1 / 2
+
 """
 $(SIGNATURES)
 
 Calculation of Bernoulli function via Horner scheme based on Taylor
 coefficients around 0.
 """
-
 function bernoulli_horner(x)
-    y = x / 47_900_160
+    y = x * c1
     y = x * y
-    y = x * (-1 / 1_209_600 + y)
+    y = x * (c2 + y)
     y = x * y
-    y = x * (1 / 30_240 + y)
+    y = x * (c3 + y)
     y = x * y
-    y = x * (-1 / 720 + y)
+    y = x * (c4 + y)
     y = x * y
-    y = x * (1 / 12 + y)
-    y = x * (-1 / 2 + y)
+    y = x * (c5 + y)
+    y = x * (c6 + y)
     y = 1 + y
 end
 
 # Bernoulli thresholds optimized for Float64
 const bernoulli_small_threshold = 0.25
-const bernoulli_large_threshold = 40.0
+const bernoulli_large_threshold = 50.0
 ##############################################################
 """
 $(SIGNATURES)
 
-Bernoulli function ``B(x)=\\frac{x}{e^x-1}`` for exponentially
-fitted upwinding.
+Bernoulli function ``B(x)=\\frac{x}{e^x-1}`` for exponentially fitted upwinding.
 
-The name `fbernoulli` has been chosen to avoid confusion
-with Bernoulli from JuliaStats/Distributions.jl
+The name `fbernoulli` has been chosen to avoid confusion with `Bernoulli` from JuliaStats/Distributions.jl
 
 Returns a real number containing the result.
+
+While `x/expm1(x)`  appears to be sufficiently accurate for all `x!=0`, 
+it's derivative calculated via `ForwardDiff.jl` is not, 
+so we use the polynomial approximation in the  
+interval `(-bernoulli_small_threshold, bernoulli_small_threshold)`. 
+
+Also, see the discussion in [#117](https://github.com/j-fu/VoronoiFVM.jl/issues/117).
 """
 function fbernoulli(x)
     if x < -bernoulli_large_threshold
         -x
     elseif x > bernoulli_large_threshold
         zero(x)
+    elseif abs(x) < bernoulli_small_threshold
+        @inline bernoulli_horner(x)
     else
-        expx = exp(x)
-        expxm1 = expx - 1.0
-        if abs(expxm1) > bernoulli_small_threshold
-            x / expxm1
-        else
-            bernoulli_horner(x)
-        end
+        x / expm1(x)
     end
 end
 
@@ -64,33 +71,27 @@ Usually, we need ``B(x), B(-x)`` together,
 and it is cheaper to calculate them together.
 
 Returns two real numbers containing the result for argument
-`x` and argument `-x`.
+`x` and argument `-x`. 
 
-The error in comparison with the evaluation of the original expression
-with BigFloat is less than 1.0e-15
+For the general approach to the implementation, see the discussion in [`fbernoulli`](@ref).
 """
 function fbernoulli_pm(x)
     if x < -bernoulli_large_threshold
-        return -x, zero(x)
+        -x, zero(x)
     elseif x > bernoulli_large_threshold
-        return zero(x), x
+        zero(x), x
+    elseif abs(x) < bernoulli_small_threshold
+        @inline y = bernoulli_horner(x)
+        y, x + y
     else
-        expx = exp(x)
-        expxm1 = expx - 1.0
-        if abs(expxm1) > bernoulli_small_threshold
-            bp = x / expxm1
-            bm = x / (1.0 - 1.0 / expx)
-            return bp, bm
-        else
-            y = bernoulli_horner(x)
-            return y, x + y
-        end
+        y=x / expm1(x)
+        y, x + y
     end
 end
 
 """
-$(SIGNATURES)
-
+    $(SIGNATURES)
+    
 Non-pivoting inplace LU factorization using Doolittle's method.
 Adapted from https://en.wikipedia.org/wiki/LU_decomposition#MATLAB_code_example.
 """
