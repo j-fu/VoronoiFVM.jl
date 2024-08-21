@@ -39,5 +39,5 @@ VoronoiFVM = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
 
 [compat]
 Catalyst = "14"
-Documenter = "1"
+Documenter = "1.6"
 ExampleJuggler = "2"

@@ -63,14 +63,6 @@ function make(; with_examples = true,
         push!(pages, "Examples" => module_examples)
     end
 
-    mathjax_config = Dict(
-        :tex => Dict(
-            "inlineMath" => [["\$","\$"], ["\\(","\\)"]],
-            "tags" => "ams",
-            "packages" => ["base", "ams", "autoload", "mhchem"],
-        ),
-    )
-
     makedocs(; sitename = "VoronoiFVM.jl",
              modules = [VoronoiFVM],
              plugins = [bib],
@@ -94,7 +86,7 @@ function make(; with_examples = true,
 end
 
 if isinteractive()
-    make(; with_examples = false, with_notebooks = true)
+    make(; with_examples = false, with_notebooks = false)
 else
     make(; with_examples = true, with_notebooks = true)
 end
