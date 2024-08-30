@@ -10,15 +10,14 @@ $(SIGNATURES)
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve.
 """
-function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
-                          oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-                          system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
-                          control::SolverControl,
-                          time,
-                          tstep,
-                          embedparam,
-                          params;
-                          called_from_API = false,) where {Tv, Tc, Ti, Tm}
+function solve_step!(solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
+                         oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
+                         system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
+                         control::SolverControl,
+                         time,
+                         tstep,
+                         embedparam,
+                         params) where {Tv, Tc, Ti, Tm}
     _complete!(system; create_newtonvectors = true)
     nlhistory = NewtonSolverHistory()
     tasm = 0.0
@@ -184,93 +183,52 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
     end
 
     system.history = nlhistory
+    solution
 end
+
 
 ################################################################
 """
 ````
-solve!(solution, inival, system; 
-    control=SolverControl(), 
-    tstep=Inf)
-````
-Mutating version of [`solve(inival,system)`](@ref)
-"""
-function VoronoiFVM.solve!(solution, # Solution
-                           inival,   # Initial value 
-                           system::VoronoiFVM.AbstractSystem;     # Finite volume system
-                           control = SolverControl(),      # Newton solver control information
-                           time = Inf,
-                           tstep = Inf,                # Time step size. Inf means  stationary solution
-                           embedparam = 0.0,
-                           params = zeros(0),
-                           called_from_API = false,)
-    fix_deprecations!(control)
-    if !called_from_API && doprint(control, 'd')
-        @warn "[d]eprecated: solve!(solution,inival,system; kwargs...)"
-    end
-    _solve_timestep!(solution,
-                     inival,
-                     system,
-                     control,
-                     time,
-                     tstep,
-                     embedparam,
-                     params;
-                     called_from_API = true,)
-    return solution
-end
-
-################################################################
-"""
-````
-    solve(inival, system; control=SolverControl(),params, tstep=Inf)
-````
+    ssolve(inival, system; control=SolverControl(),params, tstep=Inf)
+        ````
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
 Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
 value. Returns a solution array.
 """
-function CommonSolve.solve(inival,   # Initial value 
-                           system::AbstractSystem;     # Finite volume system
-                           control = SolverControl(),      # Newton solver control information
-                           time = Inf,
-                           tstep = Inf,                # Time step size. Inf means  stationary solution
-                           params = zeros(0),
-                           called_from_API = false,)
-    fix_deprecations!(control)
-    if !called_from_API && doprint(control, 'd')
-        @warn "[d]eprecated: solve(inival,system; kwargs...)"
-    end
+function solve_step(inival,  # Initial value 
+                    system;     # Finite volume system
+                    control = SolverControl(),      # Newton solver control information
+                    time = Inf,
+                    tstep = Inf,                # Time step size. Inf means  stationary solution
+                    params = zeros(0))
 
-    solve!(unknowns(system),
-           inival,
-           system;
-           control = control,
-           time = time,
-           tstep = tstep,
-           params = params,
-           called_from_API = true,)
+    solve_step!(unknowns(system),
+                inival,
+                system,
+                control,
+                time,
+                tstep,
+                0.0,
+                params)
 end
 
 """
-        solve(inival, system, times; kwargs...)
+        solve_transient(inival, system, times; kwargs...)
 
 Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
 """
-function CommonSolve.solve(inival,
-                           system::VoronoiFVM.AbstractSystem,
-                           lambdas;
-                           control = SolverControl(),
-                           transient = true, # choose between transient and stationary (embedding) case
-                           time = 0.0,
-                           params = zeros(0),
-                           called_from_API = false,
-                           kwargs...,)
-    fix_deprecations!(control)
-    if !called_from_API && doprint(control, 'd')
-        @warn "[d]eprecated: solve(inival,system,times;kwargs...)"
-    end
+function solve_transient(inival,
+                system,
+                lambdas;
+                control = SolverControl(),
+                transient = true, # choose between transient and stationary (embedding) case
+                time = 0.0,
+                params = zeros(0),
+                kwargs...,)
+
     # rounding in output
     rd(x) = round(x; sigdigits = 5)
 
@@ -300,20 +258,18 @@ function CommonSolve.solve(inival,
 
     # Initialize Dirichlet boundary values
     _initialize_dirichlet!(solution, system; time, λ = Float64(lambdas[1]), params)
-
+    
     # If not transient, solve for first embedding lambdas[1]
     t0 = @elapsed if !transient
         control.pre(solution, Float64(lambdas[1]))
-        solution = solve!(solution,
-                          oldsolution,
-                          system;
-                          called_from_API = true,
-                          control = control,
-                          time = time,
-                          tstep = Inf,
-                          embedparam = Float64(lambdas[1]),
-                          params = params,
-                          kwargs...,)
+        solution = solve_step!(solution,
+                                   oldsolution,
+                                   system,
+                                   control,
+                                   time,
+                                   Inf,
+                                   Float64(lambdas[1]),
+                                   params)
 
         control.post(solution, oldsolution, lambdas[1], 0)
 
@@ -367,17 +323,14 @@ function CommonSolve.solve(inival,
                         _tstep = Inf
                         _embedparam = λ
                     end
-
-                    solution = solve!(solution,
-                                      oldsolution,
-                                      system;
-                                      called_from_API = true,
-                                      control = control,
-                                      time = _time,
-                                      tstep = _tstep,
-                                      embedparam = _embedparam,
-                                      params = params,
-                                      kwargs...,)
+                    solution = solve_step!(solution,
+                                               oldsolution,
+                                               system,
+                                               control,
+                                               _time,
+                                               _tstep,
+                                               _embedparam,
+                                               params)
                 catch err
                     err = "Problem at $(λstr)=$(λ|>rd), Δ$(λstr)=$(Δλ|>rd):\n$(err)"
                     if (control.handle_exceptions)
@@ -583,7 +536,7 @@ function CommonSolve.solve(sys::VoronoiFVM.AbstractSystem;
     elseif !VoronoiFVM.isunknownsof(inival, sys)
         @error "wrong type of inival: $(typeof(inival))"
     end
-
+    
     for pair in kwargs
         if first(pair) != :times &&
            first(pair) != :embed &&
@@ -595,24 +548,22 @@ function CommonSolve.solve(sys::VoronoiFVM.AbstractSystem;
     sys.linear_cache = nothing
 
     if haskey(kwargs, :times) && !isnothing(kwargs[:times])
-        solve(inival,
-              sys,
-              kwargs[:times];
-              control,
-              transient = true,
-              params,
-              time = kwargs[:times][1],
-              called_from_API = true,)
+        solve_transient(inival,
+               sys,
+               kwargs[:times];
+               control,
+               transient = true,
+               params,
+               time = kwargs[:times][1])
     elseif haskey(kwargs, :embed) && !isnothing(kwargs[:embed])
-        solve(inival,
-              sys,
-              kwargs[:embed];
-              called_from_API = true,
-              transient = false,
-              control,
-              params,
-              time,)
+        solve_transient(inival,
+               sys,
+               kwargs[:embed];
+               transient = false,
+               control,
+               params,
+               time,)
     else
-        solve(inival, sys; called_from_API = true, control, params, time, tstep)
+        solve_step(inival, sys; control, params, time, tstep)
     end
 end
