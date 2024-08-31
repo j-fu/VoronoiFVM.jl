@@ -10,14 +10,14 @@ $(SIGNATURES)
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve.
 """
-function solve_step!(solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
-                         oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-                         system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
-                         control::SolverControl,
-                         time,
-                         tstep,
-                         embedparam,
-                         params) where {Tv, Tc, Ti, Tm}
+function solve_step!(solution, # old time step solution resp. initial value
+                     oldsol, # old time step solution resp. initial value
+                     system, # Finite volume system
+                     control,
+                     time,
+                     tstep,
+                     embedparam,
+                     params)
     _complete!(system; create_newtonvectors = true)
     nlhistory = NewtonSolverHistory()
     tasm = 0.0
@@ -28,6 +28,7 @@ function solve_step!(solution::AbstractMatrix{Tv}, # old time step solution resp
         update = system.update
         _initialize!(solution, system; time, λ = embedparam, params)
 
+        Tv=eltype(solution)
         method_linear = system.matrixtype == :sparse ? control.method_linear : nothing
         if isnothing(method_linear) && system.matrixtype == :sparse
             if Tv != Float64
@@ -190,10 +191,8 @@ end
 ################################################################
 """
 ````
-    ssolve(inival, system; control=SolverControl(),params, tstep=Inf)
-        ````
-Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
-
+    solve_step(inival, system; control=SolverControl(),params, tstep=Inf)
+````
 Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
 value. Returns a solution array.
 """
@@ -216,9 +215,7 @@ end
 
 """
         solve_transient(inival, system, times; kwargs...)
-
-Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
-
+Solve transient or embedding problem.
 """
 function solve_transient(inival,
                 system,
@@ -475,7 +472,6 @@ function evaluate_residual_and_jacobian(sys, u; t = 0.0, tstep = Inf, embed = 0.
     copy(sys.residual), copy(flush!(sys.matrix))
 end
 
-module NoModule end
 
 #####################################################################
 """

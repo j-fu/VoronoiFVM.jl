@@ -442,7 +442,7 @@ Main assembly method.
 Evaluate solution with result in right hand side F and 
 assemble Jacobi matrix into system.matrix.
 """
-function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
+function eval_and_assemble(system,
                            U::AbstractMatrix{Tv}, # Actual solution iteration
                            UOld::AbstractMatrix{Tv}, # Old timestep solution
                            F::AbstractMatrix{Tv},# Right hand side
@@ -450,7 +450,7 @@ function eval_and_assemble(system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray},
                            tstep,# time step size. Inf means stationary solution
                            λ,
                            params::AbstractVector;
-                           edge_cutoff = 0.0,) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray}
+                           edge_cutoff = 0.0,) where {Tv}
     _complete!(system) # needed here as well for test function system which does not use newton
 
     grid = system.grid

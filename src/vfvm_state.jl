@@ -41,7 +41,6 @@ mutable struct SystemState{Tv, Ti, TSolArray}
 
 end
 
-const sysmutatelock=ReentrantLock()
 
 """
 - `unknown_storage`: string or symbol.  

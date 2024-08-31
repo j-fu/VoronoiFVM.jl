@@ -88,6 +88,7 @@ abstract type AbstractSystem{Tv <: Number, Tc <: Number, Ti <: Integer, Tm <: In
 include("vfvm_geometryitems.jl")
 include("vfvm_assemblydata.jl")
 include("vfvm_system.jl")
+include("vfvm_state.jl")
 export unknowns
 export num_species
 export enable_species!
