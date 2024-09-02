@@ -78,19 +78,19 @@ Physics data record with the following fields:
 
 $(TYPEDFIELDS)
 """
-struct Physics{Flux <: Function,
-               Reaction <: Function,
-               EdgeReaction <: Function,
-               Storage <: Function,
-               Source <: Function,
-               BFlux <: Function,
-               BReaction <: Function,
-               BSource <: Function,
-               BStorage <: Function,
-               BOutflow <: Function,
-               GenericOperator <: Function,
-               GenericOperatorSparsity <: Function,
-               Data} <: AbstractPhysics
+mutable struct Physics{Flux <: Function,
+                       Reaction <: Function,
+                       EdgeReaction <: Function,
+                       Storage <: Function,
+                       Source <: Function,
+                       BFlux <: Function,
+                       BReaction <: Function,
+                       BSource <: Function,
+                       BStorage <: Function,
+                       BOutflow <: Function,
+                       GenericOperator <: Function,
+                       GenericOperatorSparsity <: Function,
+                       Data} <: AbstractPhysics
     """
     Flux between neighboring control volumes: `flux(f,u,edge,data)`
     should return in `f[i]` the flux of species i along the edge joining circumcenters
@@ -371,7 +371,7 @@ Constructor for ResEvaluator
 - `geom`: node, edge...
 - `nspec`: number of species
 """
-function ResEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec::Int) where {Tv}
+function ResEvaluator(physics, data, symb::Symbol, uproto::Vector{Tv}, geom, nspec::Int) where {Tv}
     func = getproperty(physics, symb)
 
     # source functions need special handling here
@@ -379,7 +379,7 @@ function ResEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec::In
         if isdata(physics.data)
             fwrap = function (y)
                 y .= 0
-                func(rhs(geom, y), geom, physics.data)
+                func(rhs(geom, y), geom, data)
                 nothing
             end
         else
@@ -394,7 +394,7 @@ function ResEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec::In
             fwrap = function (y, u)
                 y .= 0
                 ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-                func(rhs(geom, y), unknowns(geom, u), geom, physics.data)
+                func(rhs(geom, y), unknowns(geom, u), geom, data)
                 ## for ii in .. y[ii]=y[geom.speclist[ii]]
                 nothing
             end
@@ -475,14 +475,14 @@ Constructor for ResJEvaluator
 - `geom`: node, edge...
 - `nspec`: number of species
 """
-function ResJacEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec) where {Tv}
+function ResJacEvaluator(physics, data, symb::Symbol, uproto::Vector{Tv}, geom, nspec) where {Tv}
     func = getproperty(physics, symb)
 
     if isdata(physics.data)
         fwrap = function (y, u)
             y .= 0
             ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-            func(rhs(geom, y), unknowns(geom, u), geom, physics.data)
+            func(rhs(geom, y), unknowns(geom, u), geom, data)
             ## for ii in .. y[ii]=y[geom.speclist[ii]]
             nothing
         end

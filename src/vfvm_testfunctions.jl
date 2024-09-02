@@ -70,7 +70,7 @@ function testfunction(factory::TestFunctionFactory, bc0, bc1)
         factory.tfsystem.boundary_values[1, bc0[i]] = 0
     end
     _complete!(factory.tfsystem)
-    eval_and_assemble(factory.tfsystem, u, u, f, Inf, Inf, 0.0, zeros(0))
+    eval_and_assemble(factory.tfsystem, u, u, f, factory.tfsystem.matrix, factory.tfsystem.dudp, Inf, Inf,  0.0, nothing, zeros(0))
 
     _initialize!(u, factory.tfsystem)
 
@@ -92,7 +92,7 @@ $(SIGNATURES)
 Calculate test function integral for transient solution.
 """
 function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
-                   Uold::AbstractMatrix{Tv}, tstep; params = Tv[]) where {Tv}
+                   Uold::AbstractMatrix{Tv}, tstep; params = Tv[], data=system.physics.data) where {Tv}
     grid = system.grid
     nspecies = num_species(system)
     integral = zeros(Tv, nspecies)
@@ -118,12 +118,12 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
         UKL[(2 * nspecies + 1):end] .= params
     end
 
-    src_eval = ResEvaluator(physics, :source, UK, node, nspecies + nparams)
-    rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies + nparams)
-    erea_eval = ResEvaluator(physics, :edgereaction, UK, edge, nspecies + nparams)
-    stor_eval = ResEvaluator(physics, :storage, UK, node, nspecies + nparams)
-    storold_eval = ResEvaluator(physics, :storage, UKold, node, nspecies + nparams)
-    flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies + nparams)
+    src_eval = ResEvaluator(physics, data, :source, UK, node, nspecies + nparams)
+    rea_eval = ResEvaluator(physics, data, :reaction, UK, node, nspecies + nparams)
+    erea_eval = ResEvaluator(physics, data, :edgereaction, UK, edge, nspecies + nparams)
+    stor_eval = ResEvaluator(physics, data, :storage, UK, node, nspecies + nparams)
+    storold_eval = ResEvaluator(physics, data, :storage, UKold, node, nspecies + nparams)
+    flux_eval = ResEvaluator(physics, data, :flux, UKL, edge, nspecies + nparams)
 
     for item in nodebatch(system.assembly_data)
         for inode in noderange(system.assembly_data, item)
@@ -195,7 +195,7 @@ $(SIGNATURES)
 
 Steady state part of test function integral.
 """
-function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}) where {Tu, Tv}
+function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}; data=system.physics.data) where {Tu, Tv}
     grid = system.grid
     nspecies = num_species(system)
     integral = zeros(Tu, nspecies)
@@ -210,10 +210,10 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     UK = Array{Tu, 1}(undef, nspecies)
     geom = grid[CellGeometries][1]
 
-    src_eval = ResEvaluator(physics, :source, UK, node, nspecies)
-    rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies)
-    erea_eval = ResEvaluator(physics, :edgereaction, UK, node, nspecies)
-    flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies)
+    src_eval = ResEvaluator(physics, data, :source, UK, node, nspecies)
+    rea_eval = ResEvaluator(physics, data, :reaction, UK, node, nspecies)
+    erea_eval = ResEvaluator(physics, data, :edgereaction, UK, node, nspecies)
+    flux_eval = ResEvaluator(physics, data, :flux, UKL, edge, nspecies)
 
     for item in nodebatch(system.assembly_data)
         for inode in noderange(system.assembly_data, item)
@@ -266,7 +266,7 @@ $(SIGNATURES)
 
 Calculate transient part of test function integral.
 """
-function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}) where {Tu, Tv}
+function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}; data=system.physics.data) where {Tu, Tv}
     grid = system.grid
     nspecies = num_species(system)
     integral = zeros(Tu, nspecies)
@@ -281,7 +281,7 @@ function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     UK = Array{Tu, 1}(undef, nspecies)
     geom = grid[CellGeometries][1]
     csys = grid[CoordinateSystem]
-    stor_eval = ResEvaluator(physics, :storage, UK, node, nspecies)
+    stor_eval = ResEvaluator(physics, data, :storage, UK, node, nspecies)
 
     for item in nodebatch(system.assembly_data)
         for inode in noderange(system.assembly_data, item)

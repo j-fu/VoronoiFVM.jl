@@ -1,4 +1,11 @@
-mutable struct SystemState{Tv, Ti, TSolArray}
+mutable struct SystemState{Tv, Ti, TSolArray, TData}
+    system::VoronoiFVM.System
+
+    """
+    Parameter data 
+    """
+    data::TData
+
     """
     Solution vector
     """
@@ -20,12 +27,12 @@ mutable struct SystemState{Tv, Ti, TSolArray}
     dudp::Vector{TSolArray}
     
     """
-    Solution vector holding Newton update
+    Vector holding Newton update
     """
     update::TSolArray
 
     """
-    Solution vector holding Newton residual
+    Vector holding Newton residual
     """
     residual::TSolArray
 
@@ -55,7 +62,7 @@ end
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 - `matrixindextype`: Integer type. Index type for sparse matrices created in the system.
 """
-function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}) where {Tv,Tv0,Tc, Ti, Tm}
+function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}; data=nothing) where {Tv,Tv0,Tc, Ti, Tm}
     lock(sysmutatelock)
     try
         _complete!(system)
@@ -97,15 +104,17 @@ function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}) where 
         end
     end
 
+    if isnothing(data)
+        data=system.physics.data
+    end
     solution = unknowns(system)
     residual = unknowns(system)
     update = unknowns(system)
     dudp = [unknowns(system) for i = 1:(system.num_parameters)]
-    
-    SystemState(solution, matrix, dudp, residual, update, nothing, nothing)
+    SystemState(system, data, solution, matrix, dudp, residual, update, nothing, nothing)
 end
 
-SystemState(system::AbstractSystem{Tv,Tc,Ti,Tm}) where {Tv,Tc,Ti,Tm} =SystemState(Tv, system) 
+SystemState(system::AbstractSystem{Tv,Tc,Ti,Tm}; kwargs...) where {Tv,Tc,Ti,Tm} =SystemState(Tv, system; kwargs...) 
 
 
 # function _eval_and_assemble_inactive_species(system::AbstractSystem, U, Uold, F) end

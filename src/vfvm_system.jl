@@ -546,7 +546,6 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
         if isdefined(system, :matrix)
             return
         end
-        
         system.species_homogeneous = true
         species_added = false
         for inode = 1:size(system.node_dof, 2)
@@ -1088,9 +1087,9 @@ function _initialize!(U::AbstractMatrix, system::AbstractSystem; time = 0.0, λ 
     _initialize_inactive_dof!(U, system)
 end
 
-function _eval_and_assemble_inactive_species(system::AbstractSystem, U, Uold, F) end
+function _eval_and_assemble_inactive_species(system::AbstractSystem, matrix, U, Uold, F) end
 
-function _eval_and_assemble_inactive_species(system::DenseSystem, U, Uold, F)
+function _eval_and_assemble_inactive_species(system::DenseSystem, matrix, U, Uold, F)
     if system.species_homogeneous
         return
     end
@@ -1099,7 +1098,7 @@ function _eval_and_assemble_inactive_species(system::DenseSystem, U, Uold, F)
             if !isnodespecies(system, ispec, inode)
                 F[ispec, inode] += U[ispec, inode] - Uold[ispec, inode]
                 idof = dof(F, ispec, inode)
-                rawupdateindex!(system.matrix, +, 1.0, idof, idof)
+                rawupdateindex!(matrix, +, 1.0, idof, idof)
             end
         end
     end

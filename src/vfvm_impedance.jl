@@ -62,7 +62,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
     # value as the "old  timestep" value.
     # An advantage of this approach is the fact that this way, we get the
     # nonzero pattern for the iω term right (as opposite to passing Inf as time step size)
-    eval_and_assemble(system, U0, U0, residual, 0.0, 1.0e30, 0.0, params)
+    eval_and_assemble(system, U0, U0, residual, system.matrix, system.dudp, 0.0, 1.0e30, 0.0, system.physics.data, params)
 
     impedance_system = ImpedanceSystem{Tv}()
 
@@ -97,8 +97,8 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
     nspecies = num_species(system)
 
     UK = Array{Tv, 1}(undef, nspecies)
-    stor_eval = ResJacEvaluator(physics, :storage, UK, node, nspecies)
-    bstor_eval = ResJacEvaluator(physics, :bstorage, UK, node, nspecies)
+    stor_eval = ResJacEvaluator(physics, data, :storage, UK, node, nspecies)
+    bstor_eval = ResJacEvaluator(physics, data, :bstorage, UK, node, nspecies)
 
     F .= 0.0
     if system.num_parameters > 0

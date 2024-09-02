@@ -26,7 +26,7 @@ function _eval_res_jac!(sys, u, t)
     uhash = hash(u)
     if uhash != sys.uhash
         ur = reshape(u, sys)
-        eval_and_assemble(sys, ur, ur, sys.residual, value(t), Inf, 0.0, zeros(0))
+        eval_and_assemble(sys, ur, ur, sys.residual, sys.matrix, sys.dudp, value(t), Inf, 0.0, sys.physics.data, zeros(0))
         sys.uhash = uhash
         sys.history.nd += 1
     end
@@ -72,9 +72,10 @@ function mass_matrix(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, 
     bnode = BNode(system)
     nspecies = num_species(system)
     ndof = num_dof(system)
-
-    stor_eval = ResJacEvaluator(physics, :storage, zeros(Tv, nspecies), node, nspecies)
-    bstor_eval = ResJacEvaluator(physics, :bstorage, zeros(Tv, nspecies), node, nspecies)
+    data=system.physics.data
+    
+    stor_eval = ResJacEvaluator(physics, data, :storage, zeros(Tv, nspecies), node, nspecies)
+    bstor_eval = ResJacEvaluator(physics, data, :bstorage, zeros(Tv, nspecies), node, nspecies)
 
     U = unknowns(system; inival = 0)
     M = ExtendableSparseMatrix{Tv, Tm}(ndof, ndof)

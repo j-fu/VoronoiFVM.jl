@@ -15,10 +15,9 @@ Integrate node function (same signature as reaction or storage)
 The result is an `nspec x nregion` matrix.
 """
 function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
-                   boundary = false) where {Tu, Tv, Tc, Ti, Tm}
+                   boundary = false, data = system.physics.data) where {Tu, Tv, Tc, Ti, Tm}
     _complete!(system)
-    grid = system.grid
-    data = system.physics.data
+    grid = system.grid   
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
 
@@ -75,11 +74,11 @@ end
 Integrate solution vector region-wise over domain or boundary.
 The result is an `nspec x nregion` matrix.
 """
-function integrate(system::AbstractSystem,U::AbstractMatrix)
+function integrate(system::AbstractSystem,U::AbstractMatrix; kwargs...)
     function f(f,u,node,data=nothing)
         f.=u
     end
-    integrate(system,f,U)
+    integrate(system,f,U; kwargs...)
 end
 
 
@@ -91,11 +90,10 @@ Integrate edge function (same signature as flux function)
 The result is an `nspec x nregion` matrix.
 """
 function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
-                       boundary = false) where {Tu, Tv, Tc, Ti, Tm}
+                       boundary = false, data = system.physics.data) where {Tu, Tv, Tc, Ti, Tm}
     _complete!(system)
     grid = system.grid
     dim = dim_space(grid)
-    data = system.physics.data
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
     nparams = system.num_parameters
@@ -161,7 +159,7 @@ CAVEAT: there is a possible unsolved problem with the values at domain
 corners in the code. Please see any potential boundary artifacts as a manifestation
 of this issue and report them.
 """
-function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2}) where {Tu, Tv, Tc, Ti, Tm}
+function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2}; data=system.physics.data) where {Tu, Tv, Tc, Ti, Tm}
     _complete!(system)
     grid = system.grid
     dim = dim_space(grid)
@@ -179,7 +177,7 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
 
     # !!! TODO Parameter handling here
     UKL = Array{Tu, 1}(undef, 2 * nspecies)
-    flux_eval = ResEvaluator(system.physics, :flux, UKL, edge, nspecies)
+    flux_eval = ResEvaluator(system.physics, data, :flux, UKL, edge, nspecies)
 
     for item in edgebatch(system.assembly_data)
         for iedge in edgerange(system.assembly_data, item)
