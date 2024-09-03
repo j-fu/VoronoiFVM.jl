@@ -129,7 +129,7 @@ the sparsity pattern which is passed to the solver.
 function SciMLBase.ODEFunction(state::VoronoiFVM.SystemState; jacval = unknowns(sys, 0), tjac = 0)
     SciMLBase.ODEFunction(eval_rhs!;
                           jac = eval_jacobian!,
-                          jac_prototype = prepare_diffeq!(state, jacval, tjac),
+                          jac_prototype = prepare_diffeq!(state, vec(jacval), tjac),
                           mass_matrix = mass_matrix(state))
 end
 
@@ -151,7 +151,7 @@ The method returns an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overvie
 by [solve()](https://diffeq.sciml.ai/stable/basics/common_solver_opts/).
 """
 function SciMLBase.ODEProblem(state::VoronoiFVM.SystemState, inival, tspan; callback = SciMLBase.CallbackSet())
-    odefunction = SciMLBase.ODEFunction(state; jacval = inival, tjac = tspan[1])
+    odefunction = SciMLBase.ODEFunction(state; jacval = vec(inival), tjac = tspan[1])
     SciMLBase.ODEProblem(odefunction, vec(inival), tspan, state, callback)
 end
 

@@ -12,20 +12,14 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct SparseSolutionArray{Tv, Ti} <: AbstractMatrix{Tv}
+struct SparseSolutionArray{T, N, Ti} <: AbstractSolutionArray{T,N}
     """
     Sparse matrix holding actual data.
     """
-    node_dof::SparseMatrixCSC{Tv, Ti}
+    u::SparseMatrixCSC{T, Ti}
 end
 
-##################################################################
-"""
-$(SIGNATURES)
-    
-Return size of sparse solution array.
-"""
-Base.size(a::SparseSolutionArray) = size(a.node_dof)
+SparseSolutionArray(a::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti}=SparseSolutionArray{Tv,2,Ti}(a)
 
 ##################################################################
 """
@@ -33,7 +27,7 @@ $(SIGNATURES)
 
 Array of values in sparse solution array.
 """
-values(a::SparseSolutionArray) = a.node_dof.nzval
+values(a::SparseSolutionArray) = a.u.nzval
 
 ##################################################################
 """
@@ -41,25 +35,26 @@ $(SIGNATURES)
     
 Create a copy of sparse solution array
 """
-function Base.copy(this::SparseSolutionArray{Tv, Ti}) where {Tv, Ti}
-    SparseSolutionArray{Tv, Ti}(SparseMatrixCSC(this.node_dof.m,
-                                                this.node_dof.n,
-                                                this.node_dof.colptr,
-                                                this.node_dof.rowval,
-                                                Base.copy(this.node_dof.nzval)))
+function Base.copy(this::SparseSolutionArray{T,N, Ti}) where {T,N, Ti}
+    SparseSolutionArray{T,N,Ti}(SparseMatrixCSC(this.u.m,
+                                                this.u.n,
+                                                this.u.colptr,
+                                                this.u.rowval,
+                                                Base.copy(this.u.nzval)))
 end
+
 
 """
 $(SIGNATURES)
     
 Create a similar uninitialized sparse solution array
 """
-function Base.similar(this::SparseSolutionArray{Tv, Ti}) where {Tv, Ti}
-    SparseSolutionArray{Tv, Ti}(SparseMatrixCSC(this.node_dof.m,
-                                                this.node_dof.n,
-                                                this.node_dof.colptr,
-                                                this.node_dof.rowval,
-                                                Base.similar(this.node_dof.nzval)))
+function Base.similar(this::SparseSolutionArray{T,N, Ti}) where {T,N, Ti}
+    SparseSolutionArray{T,N, Ti}(SparseMatrixCSC(this.u.m,
+                                                this.u.n,
+                                                this.u.colptr,
+                                                this.u.rowval,
+                                                Base.similar(this.u.nzval)))
 end
 ##################################################################
 """
@@ -67,8 +62,8 @@ $(SIGNATURES)
 
 Get number of degree of freedom. Return 0 if species is not defined in node.
 """
-function dof(a::SparseSolutionArray{Tv, Ti}, i::Integer, j::Integer) where {Tv, Ti}
-    A = a.node_dof
+function dof(a::SparseSolutionArray, i,j)
+    A = a.u
     coljfirstk = Int(A.colptr[j])
     coljlastk = Int(A.colptr[j + 1] - 1)
     searchk = searchsortedfirst(A.rowval, i, coljfirstk, coljlastk, Base.Order.Forward)
@@ -98,7 +93,7 @@ $(SIGNATURES)
 Set value for degree of freedom.
 """
 function setdof!(a::SparseSolutionArray, v, i::Integer)
-    a.node_dof.nzval[i] = v
+    a.u.nzval[i] = v
 end
 
 ##################################################################
@@ -107,10 +102,10 @@ $(SIGNATURES)
 
 Return  value for degree of freedom.
 """
-getdof(a::SparseSolutionArray, i::Integer) = a.node_dof.nzval[i]
+getdof(a::SparseSolutionArray, i::Integer) = a.u.nzval[i]
 
-Base.:-(a::SparseSolutionArray, b::SparseSolutionArray) = SparseSolutionArray(a.node_dof - b.node_dof)
-Base.:+(a::SparseSolutionArray, b::SparseSolutionArray) = SparseSolutionArray(a.node_dof + b.node_dof)
+Base.:-(a::SparseSolutionArray, b::SparseSolutionArray) = SparseSolutionArray(a.u - b.u)
+Base.:+(a::SparseSolutionArray, b::SparseSolutionArray) = SparseSolutionArray(a.u + b.u)
 
 ##################################################################
 """
@@ -118,7 +113,7 @@ $(SIGNATURES)
 
 Accessor for sparse solution array.
 """
-function Base.setindex!(a::SparseSolutionArray, v, ispec::Integer, inode::Integer)
+function Base.setindex!(a::SparseSolutionArray, v, ispec::Int, inode::Int)
     searchk = dof(a, ispec, inode)
     if searchk > 0
         setdof!(a, v, searchk)
@@ -135,7 +130,7 @@ $(SIGNATURES)
 
 Accessor for sparse solution array.
 """
-function Base.getindex(a::SparseSolutionArray, ispec::Integer, inode::Integer)
+function Base.getindex(a::SparseSolutionArray, ispec::Int, inode::Int)
     searchk = dof(a, ispec, inode)
     if searchk > 0
         return getdof(a, searchk)
@@ -151,6 +146,6 @@ $(TYPEDSIGNATURES)
 
 Add residual value into global degree of freedom
 """
-_add(U::SparseSolutionArray, idof, val) = U.node_dof.nzval[idof] += val
+_add(U::SparseSolutionArray, idof, val) = U.u.nzval[idof] += val
 
-_set(U::SparseSolutionArray, idof, val) = U.node_dof.nzval[idof] = val
+_set(U::SparseSolutionArray, idof, val) = U.u.nzval[idof] = val

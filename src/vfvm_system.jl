@@ -1067,7 +1067,7 @@ num_dof(system::DenseSystem) = length(system.node_dof)
 
 num_dof(a::DenseSolutionArray) = length(a)
 
-num_dof(a::SparseSolutionArray) = nnz(a.node_dof)
+num_dof(a::SparseSolutionArray) = nnz(a.u)
 
 """
 $(SIGNATURES)
@@ -1099,11 +1099,13 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     if inival != undef
         fill!(a0, inival)
     end
-    u = SparseSolutionArray(SparseMatrixCSC(system.node_dof.m,
-                                            system.node_dof.n,
-                                            system.node_dof.colptr,
-                                            system.node_dof.rowval,
-                                            a0))
+    Ti=eltype(system.node_dof.colptr)
+
+    u = SparseSolutionArray{Tu,2, Ti}(SparseMatrixCSC(system.node_dof.m,
+                                                      system.node_dof.n,
+                                                      system.node_dof.colptr,
+                                                      system.node_dof.rowval,
+                                                      a0))
     isa(inifunc, Function) && map!(inifunc, u, system)
     u
 end
@@ -1171,7 +1173,7 @@ function partitioning(system::SparseSystem, ::Equationwise)
 end
 
 function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
-    a = Array{Tu}(undef, size(system.node_dof)...)
+    a = DenseSolutionArray{Tu,2}(Array{Tu,2}(undef, size(system.node_dof)...))
     if inival != undef
         fill!(a, inival)
     end
@@ -1245,7 +1247,7 @@ Base.reshape(v::SparseSolutionArray, sys::SparseSystem) = v
 function Base.reshape(v::AbstractVector, sys::DenseSystem)
     @assert length(v) == num_dof(sys)
     nspec = num_species(sys)
-    reshape(v, Int64(nspec), Int64(length(v) / nspec))
+    DenseSolutionArray(reshape(v, Int64(nspec), Int64(length(v) / nspec)))
 end
 
 function Base.reshape(v::AbstractVector, system::SparseSystem)

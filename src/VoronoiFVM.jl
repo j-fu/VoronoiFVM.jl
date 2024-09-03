@@ -44,7 +44,7 @@ using Printf: Printf, @printf, @sprintf
 using Random: Random, AbstractRNG
 using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray
 import RecursiveFactorization
-using SciMLBase: SciMLBase
+using SciMLBase: SciMLBase, AbstractNoTimeSolution
 using SparseArrays: SparseArrays, SparseMatrixCSC, dropzeros!, nonzeros,
                     nzrange, spzeros
 using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
@@ -62,6 +62,8 @@ export fbernoulli
 export fbernoulli_pm
 export inplace_linsolve!
 
+
+abstract type AbstractSolutionArray{T,N} <: AbstractNoTimeSolution{T,N} end
 include("vfvm_densesolution.jl")
 include("vfvm_sparsesolution.jl")
 export num_dof

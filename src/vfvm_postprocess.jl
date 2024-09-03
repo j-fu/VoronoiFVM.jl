@@ -223,7 +223,7 @@ function LinearAlgebra.norm(system::DenseSystem, u, p::Number = 2)
     norm(u, p)
 end
 
-LinearAlgebra.norm(system::SparseSystem, u::SparseSolutionArray, p::Number = 2) = LinearAlgebra.norm(u.node_dof.nzval, p)
+LinearAlgebra.norm(system::SparseSystem, u::SparseSolutionArray, p::Number = 2) = LinearAlgebra.norm(u.u.nzval, p)
 
 """
     $(SIGNATURES)

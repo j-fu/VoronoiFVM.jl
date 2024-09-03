@@ -5,36 +5,50 @@ const DenseSolutionArray=Matrix
 
 Dense storage of solution
 """
-const DenseSolutionArray = Matrix
+struct DenseSolutionArray{T, N}  <: AbstractSolutionArray{T,N}
+    u::Array{T,N}
+end
+
+
+Base.getindex(a::DenseSolutionArray, i::Int, j::Int)= getindex(a.u,i,j )
+Base.setindex!(a::DenseSolutionArray,v, i::Int, j::Int) = setindex!(a.u,v,i,j)
 
 """
-$(SIGNATURES)
-
+ $(SIGNATURES)
+    
 Get degree of freedom number
 """
-dof(a::DenseSolutionArray{Tv}, ispec::Integer, K::Integer) where {Tv} = (K - 1) * size(a, 1) + ispec
+dof(a::DenseSolutionArray, ispec, K) = (K - 1) * size(a, 1) + ispec
 
 """
 $(SIGNATURES)
 
 Return indices for dense solution array.
 """
-unknown_indices(a::DenseSolutionArray{Tv}) where {Tv} = LinearIndices(a)
+unknown_indices(a::DenseSolutionArray) = LinearIndices(a)
+
+
+
+Base.vec(a::DenseSolutionArray) = vec(a.u)
+
+Base.copy(a::DenseSolutionArray) = DenseSolutionArray(copy(a.u))
+
+Base.similar(a::DenseSolutionArray) = DenseSolutionArray(similar(a.u))
 
 """
 $(SIGNATURES)
 
 Array of values in solution array.
 """
-values(a::DenseSolutionArray{Tv}) where {Tv} = vec(a)
+values(a::DenseSolutionArray) = vec(a)
 
 """
 $(TYPEDSIGNATURES)
 
 Add residual value into global degree of freedom
 """
-_add(U::DenseSolutionArray{Tv}, idof, val) where {Tv} = U[CartesianIndices(U)[idof]] += val
+_add(U::DenseSolutionArray, idof, val) = U[CartesianIndices(U)[idof]] += val
 
-_set(U::DenseSolutionArray{Tv}, idof, val) where {Tv} = U[CartesianIndices(U)[idof]] = val
+_set(U::DenseSolutionArray, idof, val) = U[CartesianIndices(U)[idof]] = val
 
 ##################################################################
