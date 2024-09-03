@@ -110,11 +110,11 @@ begin
         flux=flux!,
         storage=storage!)
     sys=VoronoiFVM.System(grid,physics,species=1)
-	    inival=unknowns(sys)
-	inival[1,:]=u0
-	control=VoronoiFVM.SolverControl()
+    inival=unknowns(sys)
+    inival[1,:]=u0
+    control=VoronoiFVM.SolverControl()
     tsol=VoronoiFVM.solve(sys;inival,times=(t0,tend),Δt_min=1.0e-4,Δt=1.0e-4,Δu_opt=0.1,force_first_step=true,log=true)
-	summary(sys.history)
+    summary(tsol.history)
 end
 
 # ╔═╡ 101754f3-8e05-4cf0-8770-e17efbbf4f82
@@ -163,7 +163,7 @@ begin
 	dae_inival[2,:].=u0.^(1/m)
 	dae_control=VoronoiFVM.SolverControl()
     dae_tsol=VoronoiFVM.solve(dae_sys;inival=dae_inival,times=(t0,tend),Δt_min=1.0e-4,Δt=1.0e-4,Δu_opt=0.1,force_first_step=true,log=true)
-	summary(dae_sys.history)
+    summary(dae_tsol.history)
 end
 
 # ╔═╡ b4f4baa2-64a2-464c-9e19-a39b490d210a
@@ -189,16 +189,16 @@ method: $(@bind method Select([keys(diffeqmethods)...]))
 
 # ╔═╡ da7645c2-d254-4886-b2b6-28289368fc22
 begin
-	de_sys=VoronoiFVM.System(grid,dae_physics,species=[1,2])
-	problem = ODEProblem(de_sys,dae_inival,(t0,tend))
+    de_sys=VoronoiFVM.System(grid,dae_physics,species=[1,2])
+    problem = ODEProblem(de_sys,dae_inival,(t0,tend))
     de_odesol=solve(problem,
-		diffeqmethods[method](),
-		adaptive=true,
-        reltol=1.0e-3,
-		abstol=1.0e-3,
-		initializealg=NoInit()
-		)          
-		de_tsol=reshape(de_odesol,de_sys)
+		    diffeqmethods[method](),
+		    adaptive=true,
+                    reltol=1.0e-3,
+		    abstol=1.0e-3,
+		    initializealg=NoInit()
+		    )          
+    de_tsol=reshape(de_odesol,de_sys)
 end;
 
 # ╔═╡ f00b9313-518b-4f5e-93eb-1b1b2afc2599

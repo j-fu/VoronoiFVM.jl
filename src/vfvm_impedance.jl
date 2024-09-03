@@ -54,29 +54,29 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
     else
         params = zeros(0)
     end
-
-    # Ensure that system.matrix contains the jacobian at U0
+    state=SystemState(system)
+    # Ensure that matrix contains the jacobian at U0
     # Moreover, here we use the fact that for large time step sizes,
     # the contribution from the time derivative (which should not belong to the
     # main part of the impedance matrix) is small. We also pass the steady state
     # value as the "old  timestep" value.
     # An advantage of this approach is the fact that this way, we get the
     # nonzero pattern for the iω term right (as opposite to passing Inf as time step size)
-    eval_and_assemble(system, U0, U0, residual, system.matrix, system.dudp, 0.0, 1.0e30, 0.0, system.physics.data, params)
+    eval_and_assemble(system, U0, U0, residual, state.matrix, state.dudp, 0.0, 1.0e30, 0.0, system.physics.data, params)
 
     impedance_system = ImpedanceSystem{Tv}()
 
     # catch the nonzero values of the system matrix
-    impedance_system.sysnzval = complex(nonzeros(system.matrix))
-    m, n = size(system.matrix)
+    impedance_system.sysnzval = complex(nonzeros(state.matrix))
+    m, n = size(state.matrix)
 
     # initialize storage derivative with zero
     impedance_system.storderiv = spzeros(Tv, m, n)
 
     # create sparse matrix with the same nonzero pattern of original matrix
     impedance_system.matrix = SparseMatrixCSC(m, n,
-                                              SparseArrays.getcolptr(system.matrix),
-                                              SparseArrays.getrowval(system.matrix),
+                                              SparseArrays.getcolptr(state.matrix),
+                                              SparseArrays.getrowval(state.matrix),
                                               copy(impedance_system.sysnzval))
     impedance_system.U0 = U0
 
@@ -102,7 +102,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix;
 
     F .= 0.0
     if system.num_parameters > 0
-        F .-= system.dudp[1]
+        F .-= state.dudp[1]
     end
 
     asm_res(idof, ispec) = nothing

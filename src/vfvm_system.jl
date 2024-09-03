@@ -3,7 +3,7 @@ $(TYPEDEF)
 
 Structure holding data for finite volume system.
 """
-mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: AbstractMatrix} <: AbstractSystem{Tv, Tc, Ti, Tm}
+mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix} <: AbstractSystem{Tv, Tc, Ti, Tm}
     """
     Grid
     """
@@ -48,21 +48,6 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     matrixtype::Symbol
 
     """
-    Jacobi matrix for nonlinear problem
-    """
-    matrix::Union{ExtendableSparseMatrixCSC{Tv, Tm},
-                  MTExtendableSparseMatrixCSC{Tv, Tm},
-                  STExtendableSparseMatrixCSC{Tv, Tm},
-                  Tridiagonal{Tv, Vector{Tv}},
-                  #                  MultidiagonalMatrix,
-                  BandedMatrix{Tv}}
-
-    """
-    Linear solver cache
-    """
-    linear_cache::Union{Nothing, LinearSolve.LinearCache}
-
-    """
     Flag which says if the number of unknowns per node is constant
     """
     species_homogeneous::Bool
@@ -76,21 +61,6 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     Number of parameter the system depends on.
     """
     num_parameters::Ti
-
-    """
-    Parameter derivative (vector of solution arrays)
-    """
-    dudp::Vector{TSolArray}
-
-    """
-    Solution vector holding Newton update
-    """
-    update::TSolArray
-
-    """
-    Solution vector holding Newton residual
-    """
-    residual::TSolArray
 
     """
     Precomputed form factors for bulk  assembly
@@ -112,6 +82,8 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     is_linear::Bool
 
+    is_complete::Bool
+    
     """
     Outflow nodes with their region numbers.
     """
@@ -127,17 +99,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     generic_matrix_colors::Vector
 
-    """
-    Hash value of latest unknowns vector the assembly was called with
-    """
-    uhash::UInt64
-
-    """
-    History record for last solution process
-    """
-    history::Any
-
-    System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}() where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = new()
+    System{Tv, Tc, Ti, Tm, TSpecMat}() where {Tv, Tc, Ti, Tm, TSpecMat} = new()
 end
 
 function Base.getproperty(sys::System, sym::Symbol)
@@ -155,9 +117,9 @@ end
 Type alias for system with dense matrix based species management
 
 """
-const DenseSystem = System{Tv, Tc, Ti, Tm, Matrix{Ti}, Matrix{Tv}} where {Tv, Tc, Ti, Tm}
+const DenseSystem = System{Tv, Tc, Ti, Tm, Matrix{Ti}} where {Tv, Tc, Ti, Tm}
 
-isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = TSolArray <: Matrix
+isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat}) where {Tv, Tc, Ti, Tm, TSpecMat} = TSpecMat <: Matrix
 
 """
     const SparseSystem
@@ -165,7 +127,7 @@ isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti,
 Type alias for system with sparse matrix based species management
 
 """
-const SparseSystem = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}, SparseSolutionArray{Tv, Ti}} where {Tv, Tc, Ti, Tm}
+const SparseSystem = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}} where {Tv, Tc, Ti, Tm}
 
 ##################################################################
 """
@@ -257,9 +219,9 @@ function System(grid::ExtendableGrid;
     Tm = matrixindextype
 
     if Symbol(unknown_storage) == :dense
-        system = System{Tv, Tc, Ti, Tm, Matrix{Ti}, Matrix{Tv}}()
+        system = System{Tv, Tc, Ti, Tm, Matrix{Ti}}()
     elseif Symbol(unknown_storage) == :sparse
-        system = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}, SparseSolutionArray{Tv, Ti}}()
+        system = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}}()
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
@@ -274,14 +236,12 @@ function System(grid::ExtendableGrid;
     system.species_homogeneous = false
     system.assembly_type = assembly
     system.num_quantities = 0
-    system.uhash = 0x0
     system.matrixtype = matrixtype
     system.outflownoderegions = nothing
-    system.linear_cache = nothing
     system.assembly_data = nothing
-    system.history = nothing
     system.num_parameters = nparams
     system.is_linear = is_linear
+    system.is_complete = false
     physics!(system; kwargs...)
     enable_species!(system; species)
     return system
@@ -538,14 +498,14 @@ const sysmutatelock=ReentrantLock()
 # Create matrix in system and figure out if species
 # distribution is homgeneous
 function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors = true) where {Tv, Tc, Ti, Tm}
+    if system.is_complete
+        return
+    end
     update_grid!(system)
 
     lock(sysmutatelock)
 
     try
-        if isdefined(system, :matrix)
-            return
-        end
         system.species_homogeneous = true
         species_added = false
         for inode = 1:size(system.node_dof, 2)
@@ -564,43 +524,7 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
         
         nspec = size(system.node_dof, 1)
         n = num_dof(system)
-        
-        matrixtype = system.matrixtype
-        #    matrixtype=:sparse
-        # Sparse even in 1D is not bad, 
-        
-        if matrixtype == :default
-            if !isdensesystem(system)
-                matrixtype = :sparse
-            else
-                if nspec == 1
-                    matrixtype = :tridiagonal
-                else
-                    matrixtype = :banded
-                end
-            end
-        end
-        
-        if matrixtype == :tridiagonal
-            system.matrix = Tridiagonal(zeros(Tv, n - 1), zeros(Tv, n), zeros(Tv, n - 1))
-        elseif matrixtype == :banded
-            system.matrix = BandedMatrix{Tv}(Zeros(n, n), (2 * nspec - 1, 2 * nspec - 1))
-            # elseif matrixtype==:multidiagonal
-        #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
-        else # :sparse
-            if num_partitions(system.grid) == 1
-                system.matrix = ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
-            else
-                system.matrix = MTExtendableSparseMatrixCSC{Tv, Tm}(n, n, num_partitions(system.grid))
-            end
-        end
-        
-        if create_newtonvectors
-        system.residual = unknowns(system)
-            system.update = unknowns(system)
-        end
-        system.dudp = [unknowns(system) for i = 1:(system.num_parameters)]
-        
+                
         if has_generic_operator(system)
             if has_generic_operator_sparsity(system)
                 system.generic_matrix = system.physics.generic_operator_sparsity(system)
@@ -625,6 +549,7 @@ function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors
     finally
         unlock(sysmutatelock)
     end
+    system.is_complete=true
 end
 
 """
@@ -1260,8 +1185,7 @@ $(SIGNATURES)
 Create a solution vector for system using the callback `inifunc` which has the same
 signature as a source term.
 """
-function Base.map(inifunc::TF,
-                  sys::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF <: Function}
+function Base.map(inifunc::TF,sys::System) where {TF <: Function}
     unknowns(sys; inifunc)
 end
 
@@ -1270,8 +1194,7 @@ $(SIGNATURES)
 
 Create a solution vector for system using a constant initial value
 """
-function Base.map(inival::TI,
-                  sys::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TI <: Number}
+function Base.map(inival::TI, sys::System) where {TI <: Number}
     unknowns(sys; inival)
 end
 
@@ -1282,7 +1205,7 @@ Map `inifunc` onto solution array `U`
 """
 function Base.map!(inifunc::TF,
                    U::AbstractMatrix{Tu},
-                   system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tu, Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF}
+                   system::System{Tv, Tc, Ti, Tm, TSpecMat}) where {Tu, Tv, Tc, Ti, Tm, TSpecMat, TF}
     isunknownsof(U, system) || error("U is not unknowns of system")
     _complete!(system)
     grid = system.grid
@@ -1334,30 +1257,6 @@ function Base.reshape(v::AbstractVector, system::SparseSystem)
                                         Vector(v)))
 end
 
-######################################
-# History
-"""
-    history(sys)
-
-Return solver history from last `solve` call, if `log` was set to true.
-See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
-"""
-history(sys::AbstractSystem) = sys.history
-
-"""
-    history_details(sys)
-
-Return details of solver history from last `solve` call, if `log` was set to true.
-See [`details`](@ref).
-"""
-history_details(sys::AbstractSystem) = details(sys.history)
-
-"""
-    history_summary(sys)
-
-Return summary of solver history from last `solve` call, if `log` was set to true.
-"""
-history_summary(sys::AbstractSystem) = summary(sys.history)
 
 ####################################################################
 # LEGACY

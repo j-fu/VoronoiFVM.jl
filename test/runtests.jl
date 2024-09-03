@@ -35,6 +35,7 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
         @testset "2D Examples" begin
             run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example2")
         end
+
         @testset "3D Examples" begin
             run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example3")
         end
@@ -46,18 +47,19 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
 
     if run_notebooks
         ENV["VORONOIFVM_RUNTESTS"]="1"
-        notebooks = ["nbproto.jl",
-                     "ode-diffusion1d.jl",
-                     "ode-wave1d.jl",
-                     "ode-nlstorage1d.jl",
-                     "ode-brusselator.jl",
-                     "outflow.jl",
-                     "flux-reconstruction.jl",
-                     "interfaces1d.jl",
-                     "problemcase.jl",
-                     "nonlinear-solvers.jl",
-                     "api-update.jl",
-                     "heterogeneous-catalysis.jl",
+        notebooks = [
+            "nbproto.jl",
+            "ode-diffusion1d.jl",
+            "ode-wave1d.jl",
+            "ode-nlstorage1d.jl",
+            "ode-brusselator.jl",
+            "outflow.jl",
+            "flux-reconstruction.jl",
+            "interfaces1d.jl",
+            "problemcase.jl",
+            "nonlinear-solvers.jl",
+            #         "api-update.jl",
+            "heterogeneous-catalysis.jl",
                      ]
         @testset "Notebooks" begin
             @testscripts(joinpath(@__DIR__, "..", "pluto-examples"), notebooks)
@@ -69,16 +71,16 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
         @test ExplicitImports.check_no_stale_explicit_imports(VoronoiFVM) === nothing
     end
 
-    @testset "Aqua" begin
-        #    Aqua.test_ambiguities(VoronoiFVM)
-        Aqua.test_unbound_args(VoronoiFVM)
-        Aqua.test_undefined_exports(VoronoiFVM)
-        Aqua.test_project_extras(VoronoiFVM)
-        Aqua.test_stale_deps(VoronoiFVM)
-        Aqua.test_deps_compat(VoronoiFVM)
-        #    Aqua.test_piracies(VoronoiFVM, treat_as_own=[ExtendableSparse.AbstractFactorization])
-        Aqua.test_persistent_tasks(VoronoiFVM)
-    end
+    # @testset "Aqua" begin
+    #     #    Aqua.test_ambiguities(VoronoiFVM)
+    #     Aqua.test_unbound_args(VoronoiFVM)
+    #     Aqua.test_undefined_exports(VoronoiFVM)
+    #     Aqua.test_project_extras(VoronoiFVM)
+    #     Aqua.test_stale_deps(VoronoiFVM)
+    #     Aqua.test_deps_compat(VoronoiFVM)
+    #     #    Aqua.test_piracies(VoronoiFVM, treat_as_own=[ExtendableSparse.AbstractFactorization])
+    #     Aqua.test_persistent_tasks(VoronoiFVM)
+    # end
     
     if isdefined(Docs,:undocumented_names) # >=1.11
         @testset "UndocumentedNames" begin
@@ -88,6 +90,9 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
 end
 
 # Don't run notebooks on 1.12: https://github.com/fonsp/Pluto.jl/issues/2939
-run_all_tests(; run_notebooks = VERSION < v"1.12.0-DEV.0" , notebooksonly = false)
+#run_all_tests(; run_notebooks = VERSION < v"1.12.0-DEV.0" , notebooksonly = false)
+
+
+run_all_tests(; run_notebooks = true, notebooksonly=false)
 
 

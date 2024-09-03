@@ -46,6 +46,10 @@ mutable struct SystemState{Tv, Ti, TSolArray, TData}
     """
     linear_cache::Union{Nothing, LinearSolve.LinearCache}
 
+    """
+    Hash value of latest unknowns vector the assembly was called with
+    """
+    uhash::UInt64
 end
 
 
@@ -62,7 +66,7 @@ end
      - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
 - `matrixindextype`: Integer type. Index type for sparse matrices created in the system.
 """
-function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}; data=nothing) where {Tv,Tv0,Tc, Ti, Tm}
+function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}; data=system.physics.data) where {Tv,Tv0,Tc, Ti, Tm}
     lock(sysmutatelock)
     try
         _complete!(system)
@@ -104,14 +108,11 @@ function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}; data=n
         end
     end
 
-    if isnothing(data)
-        data=system.physics.data
-    end
     solution = unknowns(system)
     residual = unknowns(system)
     update = unknowns(system)
     dudp = [unknowns(system) for i = 1:(system.num_parameters)]
-    SystemState(system, data, solution, matrix, dudp, residual, update, nothing, nothing)
+    SystemState(system, data, solution, matrix, dudp, residual, update, nothing, nothing, zero(UInt64))
 end
 
 SystemState(system::AbstractSystem{Tv,Tc,Ti,Tm}; kwargs...) where {Tv,Tc,Ti,Tm} =SystemState(Tv, system; kwargs...) 

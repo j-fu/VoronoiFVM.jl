@@ -185,7 +185,7 @@ function solve_step!(state,
         println("  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds")
     end
 
-    state.system.history = nlhistory
+    state.history = nlhistory
     solution
 end
 
@@ -251,7 +251,7 @@ function solve_transient!(state,
         if control.log
             push!(allhistory, state.history)
             push!(allhistory.times, lambdas[1])
-            Δu = control.delta(system, solution, oldsolution, lambdas[1], 0)
+            Δu = control.delta(state.system, solution, oldsolution, lambdas[1], 0)
             push!(allhistory.updates, Δu)
         end
         oldsolution .= solution

@@ -106,20 +106,21 @@ diffeqmethods=OrderedDict(
 
 # ╔═╡ 9239409b-6de0-4157-8a35-412c909efa96
 begin
-	function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01,solver=nothing)
-    sys,X=create_porous_medium_problem(n,m)
-    inival=unknowns(sys)
-    inival[1,:].=map(x->barenblatt(x,t0,m),X)
-    problem = ODEProblem(sys,inival,(t0,tend))
-    odesol = solve(problem,solver)
-    sol=reshape(odesol,sys)
-    err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
-    sol, sys,err
+    function run_diffeq(;n=20,m=2, t0=0.001,tend=0.01,solver=nothing)
+        sys,X=create_porous_medium_problem(n,m)
+        inival=unknowns(sys)
+        inival[1,:].=map(x->barenblatt(x,t0,m),X)
+        state=VoronoiFVM.SystemState(sys)
+        problem = ODEProblem(state,inival,(t0,tend))
+        odesol = solve(problem,solver)
+        sol=reshape(odesol,sys; state)
+        err=norm(sol[1,:,end]-map(x->barenblatt(x,tend,m),X))
+        sol, sys,err
     end
-for method in diffeqmethods
-    run_diffeq(m=2,n=10,solver=method.second()) # "Precompile"
-end
-	end;
+    for method in diffeqmethods
+        run_diffeq(m=2,n=10,solver=method.second()) # "Precompile"
+    end
+end;
 
 # ╔═╡ 3a004ab9-2705-4f5c-8e6e-10d508cc9a1b
 md"""
@@ -130,10 +131,10 @@ method: $(@bind method Select([keys(diffeqmethods)...]))
 m=2; n=50;
 
 # ╔═╡ 12ab322c-60ae-419f-9334-82f2f7ee7b59
-t1=@elapsed sol1,sys1,err1=run_vfvm(m=m,n=n);history_summary(sys1)
+t1=@elapsed sol1,sys1,err1=run_vfvm(m=m,n=n);history_summary(sol1)
 
 # ╔═╡ 604898ba-1e8f-4c7c-9711-9958a8351854
-t2=@elapsed sol2,sys2,err2=run_diffeq(m=m,n=n,solver=diffeqmethods[method]());history_summary(sys2)
+t2=@elapsed sol2,sys2,err2=run_diffeq(m=m,n=n,solver=diffeqmethods[method]());history_summary(sol2)
 
 # ╔═╡ 0676e28e-4e4e-4976-ab57-fb2d2e062625
 let

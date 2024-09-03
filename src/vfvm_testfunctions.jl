@@ -15,9 +15,9 @@ mutable struct TestFunctionFactory
     system::AbstractSystem
 
     """
-    Test function system
+    Test function system state
     """
-    tfsystem::DenseSystem
+    state::SystemState
 
     """
     Solver control
@@ -40,7 +40,8 @@ function TestFunctionFactory(system::AbstractSystem; control = SolverControl())
                       end)
     tfsystem = System(system.grid, physics; unknown_storage = :dense)
     enable_species!(tfsystem, 1, [i for i = 1:num_cellregions(system.grid)])
-    return TestFunctionFactory(system, tfsystem, control)
+    state=SystemState(tfsystem)
+    return TestFunctionFactory(system, state, control)
 end
 
 ############################################################################
@@ -52,34 +53,34 @@ regions in bc0 and Dirichlet one boundary conditions  for boundary
 regions in bc1.
 """
 function testfunction(factory::TestFunctionFactory, bc0, bc1)
-    u = unknowns(factory.tfsystem)
-    f = unknowns(factory.tfsystem)
+    u = unknowns(factory.state.system)
+    f = unknowns(factory.state.system)
     u .= 0
     f .= 0
 
-    factory.tfsystem.boundary_factors .= 0
-    factory.tfsystem.boundary_values .= 0
+    factory.state.system.boundary_factors .= 0
+    factory.state.system.boundary_values .= 0
 
     for i = 1:length(bc1)
-        factory.tfsystem.boundary_factors[1, bc1[i]] = Dirichlet
-        factory.tfsystem.boundary_values[1, bc1[i]] = -1
+        factory.state.system.boundary_factors[1, bc1[i]] = Dirichlet
+        factory.state.system.boundary_values[1, bc1[i]] = -1
     end
 
     for i = 1:length(bc0)
-        factory.tfsystem.boundary_factors[1, bc0[i]] = Dirichlet
-        factory.tfsystem.boundary_values[1, bc0[i]] = 0
+        factory.state.system.boundary_factors[1, bc0[i]] = Dirichlet
+        factory.state.system.boundary_values[1, bc0[i]] = 0
     end
-    _complete!(factory.tfsystem)
-    eval_and_assemble(factory.tfsystem, u, u, f, factory.tfsystem.matrix, factory.tfsystem.dudp, Inf, Inf,  0.0, nothing, zeros(0))
 
-    _initialize!(u, factory.tfsystem)
+    eval_and_assemble(factory.state.system, u, u, f, factory.state.matrix, factory.state.dudp, Inf, Inf,  0.0, nothing, zeros(0))
+
+    _initialize!(u, factory.state.system)
 
     method_linear = factory.control.method_linear
     if isnothing(method_linear)
         method_linear = UMFPACKFactorization()
     end
 
-    p = LinearProblem(SparseMatrixCSC(factory.tfsystem.matrix), vec(f))
+    p = LinearProblem(SparseMatrixCSC(factory.state.matrix), vec(f))
     sol = solve(p, method_linear)
     sol.u
 end

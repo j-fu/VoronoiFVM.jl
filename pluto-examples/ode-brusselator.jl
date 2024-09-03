@@ -89,12 +89,13 @@ diffeqmethods=OrderedDict(
 # ╔═╡ 95be1da7-5f98-4a15-bd8e-7db1ee324768
 begin
 	
-function ODESolver(system,inival,solver)
-	problem = ODEProblem(system,inival,(0,bruss_tend))
+    function ODESolver(system,inival,solver)
+        state=VoronoiFVM.SystemState(system)
+	problem = ODEProblem(state,inival,(0,bruss_tend))
 	odesol = solve(problem,
-		                                 solver,
-			                             dt=1.0e-5,reltol=1.0e-4)
-    reshape(odesol,system)
+		       solver,
+		       dt=1.0e-5,reltol=1.0e-4)
+    reshape(odesol,system;state)
 end;
 
 	sys0=VoronoiFVM.System(simplexgrid(0:0.1:1),species=[1,2],flux=bruss_diffusion, storage=bruss_storage, reaction=bruss_reaction);
@@ -139,7 +140,7 @@ end
 t_run=@elapsed bruss_tsol=ODESolver(bruss_system,inival,diffeqmethods[bruss_method]());
 
 # ╔═╡ c1da7d8e-2921-4366-91f0-dc8e1834595b
-(t_run=t_run,VoronoiFVM.details(bruss_system.history)...)
+(t_run=t_run,VoronoiFVM.history_details(bruss_tsol)...)
 
 # ╔═╡ e7a8aae1-8e7a-4b7d-8ce6-701ea586b89a
 let

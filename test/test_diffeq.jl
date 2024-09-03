@@ -1,5 +1,6 @@
 module test_diffeq
 using VoronoiFVM
+using VoronoiFVM: SystemState
 using ExtendableGrids
 using LinearAlgebra
 using Test
@@ -19,7 +20,8 @@ function test_matrices(nspec)
     end
 
     sys = VoronoiFVM.System(grid; flux, storage, species = collect(1:nspec))
-    jac_proto = prepare_diffeq!(sys, unknowns(sys), 0)
+    state=SystemState(sys)
+    jac_proto = prepare_diffeq!(state, unknowns(sys), 0)
     nd = num_nodes(grid) * nspec
     d = zeros(nd)
     j = 1
@@ -34,10 +36,10 @@ function test_matrices(nspec)
             j = j + 1
         end
     end
-    m = mass_matrix(sys)
+    m = mass_matrix(state)
     u = unknowns(sys)
     J = similar(jac_proto)
-    eval_jacobian!(J, u, sys, 0.0)
+    eval_jacobian!(J, u, state, 0.0)
     @test jac_proto == -J
 end
 

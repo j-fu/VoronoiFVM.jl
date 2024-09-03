@@ -76,8 +76,9 @@ md"""
 
 # ╔═╡ 050ed807-1bca-4015-85f3-d7347ecb7e6b
 begin
-    sol = solve(system; log = true)
-    hist = history(system)
+    state=VoronoiFVM.SystemState(system)
+    sol = solve!(state; log = true)
+    hist = history(state)
 end;
 
 # ╔═╡ b9bb8020-5470-4964-818c-7f9b3bf2a8b4
@@ -131,7 +132,7 @@ VoronoiFVM.details(hist)
 
 # ╔═╡ baed6e43-747b-4557-95c3-d4805f12b3a1
 md"""
-With default solver settings, for this particular problem, Newton's method needs $(length(history(system))) iteration steps.
+With default solver settings, for this particular problem, Newton's method needs $(length(history(state))) iteration steps.
 """
 
 # ╔═╡ ccef0590-d5f8-4ee2-bb7a-d48ccfbd4d99
@@ -152,12 +153,12 @@ Try to use a damped version of Newton method. The damping scheme is rather simpl
 
 # ╔═╡ d961d026-0b55-46c2-8555-8ef0763d8016
 begin
-    sol1 = solve(system; log = true, inival = 1, damp_initial = 0.15, damp_growth = 1.5)
-    hist1 = history(system)
+    sol1 = solve!(state; log = true, inival = 1, damp_initial = 0.15, damp_growth = 1.5)
+    hist1 = history(state)
 end
 
 # ╔═╡ e66d20f0-4987-471b-82ee-0c56160f9b01
-plothistory(history(system))
+plothistory(hist1)
 
 # ╔═╡ 35971019-fa07-4033-aebf-7872030a0cef
 VoronoiFVM.details(hist1)
@@ -212,14 +213,15 @@ system2 = VoronoiFVM.System(X;
 
 # ╔═╡ cb382145-c4f1-4222-aed7-32fa1e3bd7e4
 begin
-    sol2 = solve(system2;
+    state2=VoronoiFVM.SystemState(system2)
+    sol2 = solve!(state2;
                  inival = 0,
                  log = true,
                  embed = (0, 1),
                  Δp = 0.1,
                  Δp_grow = 1.2,
                  Δu_opt = 15)
-    history2 = history(system2)
+    history2 = history(state2)
 end
 
 # ╔═╡ a0b2aaf5-f7b1-40eb-ac4e-9790a8bbf09d

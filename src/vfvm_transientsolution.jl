@@ -42,7 +42,7 @@ mutable struct TransientSolution{T, N, A, B} <: AbstractTransientSolution{T, N, 
     """
     History
     """
-    history::TransientSolverHistory
+    history::Union{TransientSolverHistory, DiffEqHistory}
 end
 
 function TransientSolution(vec::AbstractVector{T}, ts, ::NTuple{N}) where {T, N}
@@ -54,29 +54,6 @@ TransientSolution(vec::AbstractVector, ts::AbstractVector) = TransientSolution(v
 Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, copy(sol))
 
 (sol::AbstractTransientSolution)(t) = _interpolate(sol, t)
-
-"""
-    history(tsol)
-
-Return solver history if `log` was set to true.
-See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
-"""
-history(tsol::AbstractTransientSolution) = tsol.history
-
-"""
-    history_details(tsol)
-
-Return details of solver history from last `solve` call, if `log` was set to true.
-See [`details`](@ref).
-"""
-history_details(tsol::AbstractTransientSolution) = details(tsol.history)
-
-"""
-    history_summary(tsol)
-
-Return summary of solver history from last `solve` call, if `log` was set to true.
-"""
-history_summary(tsol::AbstractTransientSolution) = summary(tsol.history)
 
 function _interpolate(sol, t)
     if isapprox(t, sol.t[1]; atol = 1.0e-10 * abs(sol.t[2] - sol.t[1]))

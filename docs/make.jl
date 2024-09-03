@@ -48,7 +48,7 @@ function make(; with_examples = true,
             "A case for caution" => "problemcase.jl",
             "Nonlinear solver control" => "nonlinear-solvers.jl",
             "Bernoulli function test" => "bernoulli.jl",
-            "API Updates" => "api-update.jl",
+#            "API Updates" => "api-update.jl",
         ]
         notebook_examples = @docplutonotebooks(notebookdir, notebooks, iframe=false)
         notebook_examples = vcat(["About the notebooks" => "notebooks.md"], notebook_examples)
