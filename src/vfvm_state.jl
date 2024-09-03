@@ -37,9 +37,9 @@ mutable struct SystemState{Tv, Ti, TSolArray, TData}
     residual::TSolArray
 
     """
-    History record for last solution process
+    History record for diffeq solution process
     """
-    history::Any
+    history::Union{DiffEqHistory, Nothing}
 
     """
     Linear solver cache
@@ -117,36 +117,4 @@ end
 
 SystemState(system::AbstractSystem{Tv,Tc,Ti,Tm}; kwargs...) where {Tv,Tc,Ti,Tm} =SystemState(Tv, system; kwargs...) 
 
-
-# function _eval_and_assemble_inactive_species(system::AbstractSystem, U, Uold, F) end
-
-# function _eval_and_assemble_inactive_species(system::DenseSystem, U, Uold, F)
-#     if system.species_homogeneous
-#         return
-#     end
-#     for inode = 1:size(system.node_dof, 2)
-#         for ispec = 1:size(system.node_dof, 1)
-#             if !isnodespecies(system, ispec, inode)
-#                 F[ispec, inode] += U[ispec, inode] - Uold[ispec, inode]
-#                 idof = dof(F, ispec, inode)
-#                 rawupdateindex!(system.matrix, +, 1.0, idof, idof)
-#             end
-#         end
-#     end
-# end
-# xX
-# function _initialize_inactive_dof!(U::AbstractMatrix, system::AbstractSystem) end
-
-# function _initialize_inactive_dof!(U::DenseSolutionArray, system::DenseSystem)
-#     if system.species_homogeneous
-#         return
-#     end
-#     for inode = 1:size(system.node_dof, 2)
-#         for ispec = 1:size(system.node_dof, 1)
-#             if !isnodespecies(system, ispec, inode)
-#                 U[ispec, inode] = 0
-#             end
-#         end
-#     end
-# end
 

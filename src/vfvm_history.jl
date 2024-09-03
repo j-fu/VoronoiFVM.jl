@@ -147,28 +147,26 @@ end
 details(h::DiffEqHistory) = (nd = h.nd, njac = h.njac, nf = h.nf)
 Base.summary(h::DiffEqHistory) = details(h)
 
-
-
 """
-    history(tsol)
+    history(sol)
 
 Return solver history if `log` was set to true.
-See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
+See  see [`NewtonSolverHistory`](@ref), [`TransiensolverHistory`](@ref).
 """
-history(tsol) = tsol.history
+history(sol) = sol.history
 
 """
-    history_details(tsol)
+    history_details(sol)
 
 Return details of solver history from last `solve` call, if `log` was set to true.
 See [`details`](@ref).
 """
-history_details(tsol) = details(tsol.history)
+history_details(sol) = details(sol.history)
 
 """
-    history_summary(tsol)
+    history_summary(sol)
 
 Return summary of solver history from last `solve` call, if `log` was set to true.
 """
-history_summary(tsol) = summary(tsol.history)
+history_summary(sol) = summary(sol.history)
 

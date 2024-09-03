@@ -1101,11 +1101,11 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     end
     Ti=eltype(system.node_dof.colptr)
 
-    u = SparseSolutionArray{Tu,2, Ti}(SparseMatrixCSC(system.node_dof.m,
-                                                      system.node_dof.n,
-                                                      system.node_dof.colptr,
-                                                      system.node_dof.rowval,
-                                                      a0))
+    u = SparseSolutionArray(SparseMatrixCSC(system.node_dof.m,
+                                            system.node_dof.n,
+                                            system.node_dof.colptr,
+                                            system.node_dof.rowval,
+                                            a0))
     isa(inifunc, Function) && map!(inifunc, u, system)
     u
 end
@@ -1173,7 +1173,7 @@ function partitioning(system::SparseSystem, ::Equationwise)
 end
 
 function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
-    a = DenseSolutionArray{Tu,2}(Array{Tu,2}(undef, size(system.node_dof)...))
+    a = DenseSolutionArray(Array{Tu,2}(undef, size(system.node_dof)...))
     if inival != undef
         fill!(a, inival)
     end

@@ -45,6 +45,7 @@ mutable struct TransientSolution{T, N, A, B} <: AbstractTransientSolution{T, N, 
     history::Union{TransientSolverHistory, DiffEqHistory}
 end
 
+
 function TransientSolution(vec::AbstractVector{T}, ts, ::NTuple{N}) where {T, N}
     TransientSolution{eltype(T), N, typeof(vec), typeof(ts)}(vec, ts, TransientSolverHistory())
 end
@@ -52,6 +53,8 @@ end
 TransientSolution(vec::AbstractVector, ts::AbstractVector) = TransientSolution(vec, ts, (size(vec[1])..., length(vec)))
 
 Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, copy(sol))
+
+Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractSolutionArray) = append!(s,t,sol.u)
 
 (sol::AbstractTransientSolution)(t) = _interpolate(sol, t)
 
@@ -160,3 +163,5 @@ function TransientSolution(t0::Number,
         TransientSolution([copy(inival)], [t0])
     end
 end
+
+TransientSolution(t0::Number,inival::AbstractSolutionArray{T,N};kwargs...) where{T,N} = TransientSolution(t0,inival.u; kwargs...)

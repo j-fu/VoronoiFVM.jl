@@ -5,10 +5,12 @@ const DenseSolutionArray=Matrix
 
 Dense storage of solution
 """
-struct DenseSolutionArray{T, N}  <: AbstractSolutionArray{T,N}
+mutable struct DenseSolutionArray{T, N}  <: AbstractSolutionArray{T,N}
     u::Array{T,N}
+    history::Union{NewtonSolverHistory, Nothing}
 end
 
+DenseSolutionArray(u::Matrix{T}) where {T} =DenseSolutionArray{T,2}(u,nothing)
 
 Base.getindex(a::DenseSolutionArray, i::Int, j::Int)= getindex(a.u,i,j )
 Base.setindex!(a::DenseSolutionArray,v, i::Int, j::Int) = setindex!(a.u,v,i,j)

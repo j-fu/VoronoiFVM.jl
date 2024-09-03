@@ -62,8 +62,11 @@ export fbernoulli
 export fbernoulli_pm
 export inplace_linsolve!
 
-
 abstract type AbstractSolutionArray{T,N} <: AbstractNoTimeSolution{T,N} end
+
+include("vfvm_history.jl")
+export NewtonSolverHistory, TransientSolverHistory, details
+
 include("vfvm_densesolution.jl")
 include("vfvm_sparsesolution.jl")
 export num_dof
@@ -71,8 +74,6 @@ export dof
 export getdof
 export setdof!
 
-include("vfvm_history.jl")
-export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_transientsolution.jl")
 export TransientSolution
@@ -109,7 +110,7 @@ export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
 
 
-@compat public System, AbstractSystem
+@compat public System, AbstractSystem, SystemState
 
 # export to be deprecated
 export partitioning, Equationwise

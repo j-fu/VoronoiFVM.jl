@@ -26,7 +26,7 @@ function solve_step!(state,
         residual = state.residual
         update = state.update
         _initialize!(solution, state.system; time, λ = embedparam, params)
-
+        
         Tv=eltype(solution)
         method_linear = state.system.matrixtype == :sparse ? control.method_linear : nothing
         if isnothing(method_linear) && state.system.matrixtype == :sparse
@@ -40,7 +40,7 @@ function solve_step!(state,
                 method_linear = UMFPACKFactorization() # seems to do the best pivoting
             end
         end
-
+        
         oldnorm = 1.0
         converged = false
         damp = 1.0
@@ -51,7 +51,7 @@ function solve_step!(state,
             damp = control.damp_initial
             rnorm = control.rnorm(solution)
         end
-
+        
         nlu_reuse = 0
         nround = 0
         tolx = 0.0
@@ -59,7 +59,7 @@ function solve_step!(state,
         nballoc = 0
         neval = 0
         niter = 1
-
+        
         while niter <= control.maxiters
             # Create Jacobi matrix and RHS for Newton iteration
             try
@@ -86,7 +86,7 @@ function solve_step!(state,
                     rethrow(err)
                 end
             end
-
+            
             tlinsolve += @elapsed _solve_linear!(values(update),
                                                  state,
                                                  nlhistory,
@@ -96,15 +96,15 @@ function solve_step!(state,
                                                  values(residual))
 
             values(solution) .-= damp * values(update)
-
+            
             # "incremental collection may only sweep   so-called young objects"
             GC.gc(false)
-
+            
             if state.system.is_linear
                 converged = true
                 break
             end
-
+            
             damp = min(damp * control.damp_growth, 1.0)
             norm = control.unorm(update)
             if tolx == 0.0
@@ -115,13 +115,13 @@ function solve_step!(state,
             if rnorm > 1.0e-50
                 dnorm = abs((rnorm - rnorm_new) / rnorm)
             end
-
+            
             if dnorm < control.tol_round
                 nround = nround + 1
             else
                 nround = 0
             end
-
+            
             if control.log
                 push!(nlhistory.l1normdiff, dnorm)
                 push!(nlhistory.updatenorm, norm)
@@ -147,14 +147,14 @@ function solve_step!(state,
                 converged = false
                 break
             end
-
+            
             if norm < control.abstol || norm < tolx
                 converged = true
                 break
             end
             oldnorm = norm
             rnorm = rnorm_new
-
+            
             if nround > control.max_round
                 converged = true
                 break
@@ -162,7 +162,7 @@ function solve_step!(state,
             niter = niter + 1
         end
         if !converged
-            throw(ConvergenceError())
+          throw(ConvergenceError())
         end
     end
     if control.log
@@ -185,7 +185,7 @@ function solve_step!(state,
         println("  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds")
     end
 
-    state.history = nlhistory
+    solution.history=nlhistory
     solution
 end
 
@@ -249,7 +249,7 @@ function solve_transient!(state,
         control.post(solution, oldsolution, lambdas[1], 0)
 
         if control.log
-            push!(allhistory, state.history)
+            push!(allhistory, solution.history)
             push!(allhistory.times, lambdas[1])
             Δu = control.delta(state.system, solution, oldsolution, lambdas[1], 0)
             push!(allhistory.updates, Δu)
@@ -374,7 +374,7 @@ function solve_transient!(state,
                             Δu)
                 end
                 if control.log
-                    push!(allhistory, state.history)
+                    push!(allhistory, solution.history)
                     push!(allhistory.updates, Δu)
                     push!(allhistory.times, λ)
                 end

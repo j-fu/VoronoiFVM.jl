@@ -12,14 +12,16 @@ Fields:
 
 $(TYPEDFIELDS)
 """
-struct SparseSolutionArray{T, N, Ti} <: AbstractSolutionArray{T,N}
+mutable struct SparseSolutionArray{T, N, Ti} <: AbstractSolutionArray{T,N}
     """
     Sparse matrix holding actual data.
     """
     u::SparseMatrixCSC{T, Ti}
+
+    history::Union{NewtonSolverHistory,Nothing}
 end
 
-SparseSolutionArray(a::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti}=SparseSolutionArray{Tv,2,Ti}(a)
+SparseSolutionArray(a::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti}=SparseSolutionArray{Tv,2,Ti}(a,nothing)
 
 ##################################################################
 """
@@ -40,7 +42,7 @@ function Base.copy(this::SparseSolutionArray{T,N, Ti}) where {T,N, Ti}
                                                 this.u.n,
                                                 this.u.colptr,
                                                 this.u.rowval,
-                                                Base.copy(this.u.nzval)))
+                                                Base.copy(this.u.nzval)),this.history)
 end
 
 
@@ -54,7 +56,7 @@ function Base.similar(this::SparseSolutionArray{T,N, Ti}) where {T,N, Ti}
                                                 this.u.n,
                                                 this.u.colptr,
                                                 this.u.rowval,
-                                                Base.similar(this.u.nzval)))
+                                                Base.similar(this.u.nzval)),nothing)
 end
 ##################################################################
 """
