@@ -52,7 +52,18 @@ end
 
 TransientSolution(vec::AbstractVector, ts::AbstractVector) = TransientSolution(vec, ts, (size(vec[1])..., length(vec)))
 
-Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, copy(sol))
+@doc """
+    append!(tsol::AbstractTransientSolution, t, sol)
+
+Append time step solution `sol` as solution at time `t` to tsol. 
+`sol` will be directly references in `tsol`. This method does not copy `sol`.
+If during a time steping process it is the same vector, a `copy` should appended.
+
+Defined in VoronoiFVM.jl.
+"""
+Base.append! 
+
+Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, sol)
 
 Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractSolutionArray) = append!(s,t,sol.u)
 
@@ -160,7 +171,7 @@ function TransientSolution(t0::Number,
     if !in_memory && !isa(inival, SparseSolutionArray)
         TransientSolution(VectorOfDiskArrays(inival; keep_open = keep_open, fname = fname), [t0])
     else
-        TransientSolution([copy(inival)], [t0])
+        TransientSolution([inival], [t0])
     end
 end
 

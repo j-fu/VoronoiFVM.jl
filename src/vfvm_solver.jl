@@ -258,7 +258,7 @@ function solve_transient!(state,
     end
 
     # Initialize transient solution struct
-    tsol = TransientSolution(Float64(lambdas[1]), solution; in_memory = control.in_memory)
+    tsol = TransientSolution(Float64(lambdas[1]), copy(solution); in_memory = control.in_memory)
 
     if doprint(control, 'e')
         println("[e]volution: start in $(extrema(lambdas))")
@@ -379,7 +379,7 @@ function solve_transient!(state,
                     push!(allhistory.times, λ)
                 end
                 if control.store_all
-                    append!(tsol, λ, solution)
+                    append!(tsol, λ, copy(solution))
                 end
                 control.post(solution, oldsolution, λ, Δλ)
                 oldsolution .= solution
@@ -411,7 +411,7 @@ function solve_transient!(state,
         end # while λ<λ_end
 
         if !control.store_all # store last solution obtained
-            append!(tsol, λ0, solution)
+            append!(tsol, λ0, copy(solution))
         end
 
         control.sample(solution, λ0)
