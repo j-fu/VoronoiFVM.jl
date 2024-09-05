@@ -239,13 +239,13 @@ md"""
 src(x) = exp(-x^2 / 0.01)
 
 # ╔═╡ aec97834-1612-49ab-a19b-7fd74c83228f
-source1d(y, node) = y[1] = src(node[1])
+source1d(y, node, data) = y[1] = src(node[1])
 
 # ╔═╡ 387f52d0-926e-445d-9e3e-afebbc7207f6
-flux1d(y, u, edge) = y[1] = u[1, 1]^2 - u[1, 2]^2
+flux1d(y, u, edge, data) = y[1] = u[1, 1]^2 - u[1, 2]^2
 
 # ╔═╡ 3793696c-c934-4e56-a1e7-887fc2181970
-function bc1d(y, u, bnode)
+function bc1d(y, u, bnode, data)
     boundary_dirichlet!(y, u, bnode; region = 1, value = 0.01)
     boundary_dirichlet!(y, u, bnode; region = 2, value = 0.01)
 end

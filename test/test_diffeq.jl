@@ -6,13 +6,13 @@ using Test
 
 function test_matrices(nspec)
     grid = simplexgrid(0:1.0:5)
-    function flux(y, u, edge)
+    function flux(y, u, edge, data)
         for i = 1:length(y)
             y[i] = u[i, 1] - u[i, 2]
         end
     end
 
-    function storage(y, u, node)
+    function storage(y, u, node, data)
         for i = 1:length(y)
             y[i] = i * u[i]
         end

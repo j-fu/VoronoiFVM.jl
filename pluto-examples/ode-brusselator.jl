@@ -61,19 +61,19 @@ end;
 
 
 # ╔═╡ 2fb1c53a-7ff8-4ac9-ae78-83bcbc57c926
-function bruss_storage(f,u,node)
+function bruss_storage(f,u,node,data)
 	f[1]=u[1]
 	f[2]=u[2]
 end;
 
 # ╔═╡ 71b7e770-5cd4-4671-a76a-8e29eda04eec
-function bruss_diffusion(f,u,edge)
+function bruss_diffusion(f,u,edge,data)
 	f[1]=bruss_D_1*(u[1,1]-u[1,2])
-	f[2]=bruss_D_2*(u[2,1]-u[2,2])	
+	f[2]=bruss_D_2*(u[2,1]-u[2,2])
 end;
 
 # ╔═╡ f1e7a242-d631-4624-b0c0-ac44f139d77c
-function bruss_reaction(f,u,node)
+function bruss_reaction(f,u,node,data)
     f[1]= (bruss_B+1.0)*u[1]-bruss_A-u[1]^2*u[2]
     f[2]= u[1]^2*u[2]-bruss_B*u[1]
 end;

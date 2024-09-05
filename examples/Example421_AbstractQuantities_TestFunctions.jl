@@ -67,7 +67,7 @@ function main(; N = 3, Plotter = nothing, unknown_storage = :sparse, assembly = 
     ##########################################################
     icc = 1 # for system without AbstractQuantities
 
-    function flux!(f, u, edge) # analogous as for other system
+    function flux!(f, u, edge, data) # analogous as for other system
         f[icc] = u[icc, 1] - u[icc, 2]
     end
 

@@ -43,23 +43,13 @@ Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = showstruct(io, this)
 #
 # Dummy callbacks
 #
-function nofunc(f, u, node, data)
+function nofunc(f, u, node, data=nothing)
 end
 
-function nosrc(f, node, data)
+function nosrc(f, node, data=nothing)
 end
 
-function default_storage(f, u, node, data)
-    f .= u
-end
-
-function nofunc2(f, u, node)
-end
-
-function nosrc2(f, node)
-end
-
-function default_storage2(f, u, node)
+function default_storage(f, u, node, data=nothing)
     f .= u
 end
 
@@ -67,6 +57,15 @@ function nofunc_generic(f, u, sys)
 end
 
 function nofunc_generic_sparsity(sys)
+end
+
+
+#
+# Dummy data type that represents data or not
+# We need this for the `data` deprecation phase
+#
+@kwdef mutable struct MaybeData
+    isdata=false
 end
 
 ##########################################################
@@ -93,7 +92,7 @@ struct Physics{Flux <: Function,
                GenericOperatorSparsity <: Function,
                Data} <: AbstractPhysics
     """
-    Flux between neighboring control volumes: `flux(f,u,edge)` or `flux(f,u,edge,data)`
+    Flux between neighboring control volumes: `flux(f,u,edge,data)`
     should return in `f[i]` the flux of species i along the edge joining circumcenters
     of neighboring control volumes.  u is a  2D array such that for species i,
     `u[i,1]` and `u[i,2]` contain the unknown values at the corresponding ends of the edge.
@@ -101,7 +100,7 @@ struct Physics{Flux <: Function,
     flux::Flux
 
     """
-    Storage term (term under time derivative): `storage(f,u,node)` or `storage(f,u,node,data)` 
+    Storage term (term under time derivative): `storage(f,u,node,data)`
 
     It should return in `f[i]` the storage term for the i-th equation. `u[i]` contains the value of
     the i-th unknown.
@@ -109,7 +108,7 @@ struct Physics{Flux <: Function,
     storage::Storage
 
     """
-    Reaction term:  `reaction(f,u,node)` or `reaction(f,u,node,data)` 
+    Reaction term: `reaction(f,u,node,data)`
 
     It should return in `f[i]` the reaction term for the i-th equation. `u[i]` contains the value of
     the i-th unknown.
@@ -117,7 +116,7 @@ struct Physics{Flux <: Function,
     reaction::Reaction
 
     """
-    Edge reaction term:  `edgereaction(f,u,edge)` or `edgereaction(f,u,edge,data)` 
+    Edge reaction term: `edgereaction(f,u,edge,data)`
 
     It should return in `f[i]` the reaction term for the i-th equation. `u[i]` contains the value of
     the i-th unknown.  u is a  2D array such that for species i,
@@ -126,7 +125,7 @@ struct Physics{Flux <: Function,
     edgereaction::EdgeReaction
 
     """
-    Source term: `source(f,node)` or `source(f,node,data)`.
+    Source term: `source(f,node,data)`.
 
     It should return the in `f[i]` the value of the source term for the i-th equation.
     """
@@ -134,31 +133,31 @@ struct Physics{Flux <: Function,
 
     """
     Flux between neighboring control volumes on the boundary. Called on edges
-    fully adjacent to the boundary: `bflux(f,u,bedge)` or `bflux(f,u,bedge,data)
+    fully adjacent to the boundary: `bflux(f,u,bedge,data)
     """
     bflux::BFlux
 
     """
-    Boundary reaction term:  `breaction(f,u,node)` or `breaction(f,u,node,data)` 
+    Boundary reaction term: `breaction(f,u,node,data)`
     Similar to reaction, but restricted to the inner or outer boundaries.
     """
     breaction::BReaction
 
     """
-    Boundary source term: `bsource(f,node)` or `bsource(f,node,data)`.
+    Boundary source term: `bsource(f,node,data)`.
 
     It should return in `f[i]` the value of the source term for the i-th equation.
     """
     bsource::BSource
 
     """
-    Boundary storage term: `bstorage(f,u,node)` or `bstorage(f,u,node,data)` 
+    Boundary storage term: `bstorage(f,u,node,data)`
     Similar to storage, but restricted to the inner or outer boundaries.
     """
     bstorage::BStorage
 
     """
-    Outflow boundary term  `boutflow(f,u,edge)` or `boutflow(f,u,edge,data)` 
+    Outflow boundary term  `boutflow(f,u,edge,data)`
     This function is called for edges (including interior ones) which have at least one ode
     on one of the outflow boundaries. Within this function,
     [`outflownode`](@ref) and  [`isoutflownode`](@ref) can be used to identify
@@ -201,6 +200,7 @@ end
 ##########################################################
 
 isdata(::Nothing) = false
+isdata(d::MaybeData) = d.isdata
 isdata(::Any) = true
 
 """
@@ -224,7 +224,7 @@ Physics(;num_species=0,
 Constructor for physics data. For the meaning of the optional keyword arguments, see [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
 function Physics(; num_species = 0,
-                 data = nothing,
+                 data = MaybeData(isdata=false),
                  flux::Function = nofunc,
                  reaction::Function = nofunc,
                  edgereaction::Function = nofunc,
@@ -240,16 +240,27 @@ function Physics(; num_species = 0,
                  generic_sparsity::Function = nofunc_generic_sparsity,
                  kwargs...)
     if !isdata(data)
-        flux == nofunc ? flux = nofunc2 : true
-        reaction == nofunc ? reaction = nofunc2 : true
-        edgereaction == nofunc ? edgereaction = nofunc2 : true
-        storage == default_storage ? storage = default_storage2 : true
-        source == nosrc ? source = nosrc2 : true
-        bflux == nofunc ? bflux = nofunc2 : true
-        breaction == nofunc ? breaction = nofunc2 : true
-        bsource == nosrc ? bsource = nosrc2 : true
-        bstorage == nofunc ? bstorage = nofunc2 : true
-        boutflow == nofunc ? boutflow = nofunc2 : true
+        # deprecation check: callbacks without a `data` argument are not supported in future versions
+        callbacks = [flux, reaction, edgereaction, storage, source, bflux, breaction, bsource, bstorage, boutflow]
+        callbacks_seem_fine = true
+        for f in callbacks
+            # ignore dummy functions
+            if !(f in [nofunc, default_storage, nosrc])
+                # check whether the callbacks have a method with 3 or 4 arguments, respectively
+                nn = nothing
+                if ( f in [flux, reaction, edgereaction, storage, bflux, breaction, bstorage, boutflow] && applicable(f,nn,nn,nn) ) ||
+                   ( f in [source, bsource] && applicable(f,nn,nn) )
+                    @warn "using VoronoiFVM.Physics callback $(nameof(f)) without a `data` argument is now deprecated"
+                    callbacks_seem_fine = false
+                end
+            end
+        end
+
+        # it looks like all callbacks can be called with a `data` argument ⇒ enable a dummy data attribute
+        if callbacks_seem_fine
+            data.isdata = true
+        end
+
     end
 
     return Physics(flux,
@@ -294,7 +305,7 @@ Check if physics object has data
 """
 hasdata(physics::Physics) = isdata(physics.data)
 
-hasoutflow(physics::Physics) = physics.boutflow != nofunc && physics.boutflow != nofunc2
+hasoutflow(physics::Physics) = physics.boutflow != nofunc
 
 """
 $(SIGNATURES)
@@ -346,7 +357,7 @@ struct ResEvaluator{Tv <: Number, Func <: Function, G} <: AbstractEvaluator
     """ number of species """
     nspec::Int
 
-    """ Is the  function not one of nofunc ot nofunc2 """
+    """ Is the function not nofunc """
     isnontrivial::Bool
 end
 
@@ -397,7 +408,7 @@ function ResEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec::In
             end
         end
     end
-    isnontrivial = (func != nofunc2) && (func != nofunc)
+    isnontrivial = (func != nofunc)
     y = zeros(Tv, nspec)
     ResEvaluator(fwrap, y, geom, nspec, isnontrivial)
 end
@@ -450,7 +461,7 @@ struct ResJacEvaluator{Tv <: Number, Func <: Function, Cfg, Res, G} <: AbstractE
     geom::G
     """ number of species """
     nspec::Int
-    """ Is the  function not one of nofunc ot nofunc2 """
+    """ Is the function not nofunc """
     isnontrivial::Bool
 end
 
@@ -485,7 +496,7 @@ function ResJacEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec)
         end
     end
 
-    isnontrivial = (func != nofunc2) && (func != nofunc)
+    isnontrivial = (func != nofunc)
 
     y = zeros(Tv, nspec)
     u = zeros(Tv, length(uproto))

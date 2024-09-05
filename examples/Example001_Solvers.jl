@@ -28,25 +28,25 @@ function main(; n = 10, Plotter = nothing, assembly = :edgwwise, kwargs...)
 
     eps = 1.0e-2
 
-    function reaction(f, u, node)
+    function reaction(f, u, node, data)
         f[1] = u[1]^2
     end
 
-    function flux(f, u, edge)
+    function flux(f, u, edge, data)
         f[1] = eps * (u[1, 1]^2 - u[1, 2]^2)
     end
 
-    function source(f, node)
+    function source(f, node, data)
         x1 = node[1] - 0.5
         x2 = node[2] - 0.5
         f[1] = exp(-20.0 * (x1^2 + x2^2))
     end
 
-    function storage(f, u, node)
+    function storage(f, u, node, data)
         f[1] = u[1]
     end
 
-    function bcondition(f, u, node)
+    function bcondition(f, u, node, data)
         boundary_dirichlet!(f,
                             u,
                             node;

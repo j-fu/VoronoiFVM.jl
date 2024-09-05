@@ -12,11 +12,11 @@ using GridVisualize
 
 ## Flux function which describes the flux
 ## between neighboring control volumes
-function g!(f, u, edge)
+function g!(f, u, edge, data)
     f[1] = u[1, 1] - u[1, 2]
 end
 
-function s(f, node)
+function s(f, node, data)
     n = view(node.coord, :, node.index)
     f[1] = n[1] * sin(5.0 * n[2]) * exp(n[3])
 end

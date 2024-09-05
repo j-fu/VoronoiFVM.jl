@@ -8,7 +8,7 @@ Base.setindex!(I::SolutionIntegral, v, ispec::Integer, ireg) = I.value[ispec, ir
 
 ################################################################
 """
-    integrate(system,F,U; boundary=false)    
+    integrate(system,F,U; boundary=false)
 
 Integrate node function (same signature as reaction or storage)
  `F` of  solution vector region-wise over domain or boundary.
@@ -70,7 +70,7 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
 end
 
 """
-    integrate(system,F,U; boundary=false)    
+    integrate(system,F,U; boundary=false)
 
 Integrate solution vector region-wise over domain or boundary.
 The result is an `nspec x nregion` matrix.
@@ -84,7 +84,7 @@ end
 
 
 """
-    edgeintegrate(system,F,U; boundary=false)    
+    edgeintegrate(system,F,U; boundary=false)
 
 Integrate edge function (same signature as flux function)
  `F` of  solution vector region-wise over domain or boundary.
@@ -139,7 +139,7 @@ $(SIGNATURES)
 Reconstruction of  edge flux as  vector function  on the nodes  of the
 triangulation.  The result  can be seen as a  piecewiesw linear vector
 function in the FEM space spanned by the discretization nodes exhibiting
-the flux density.  
+the flux density.
 
 The reconstruction is based on the  "magic formula"
 R. Eymard, T. Gallouet, R. Herbin, IMA Journal of Numerical Analysis (2006)
@@ -157,7 +157,7 @@ Example:
     reveal(vis)
 ```
 
-CAVEAT: there is a possible unsolved problem with the values at domain 
+CAVEAT: there is a possible unsolved problem with the values at domain
 corners in the code. Please see any potential boundary artifacts as a manifestation
 of this issue and report them.
 """
@@ -242,7 +242,7 @@ end
 """
     $(SIGNATURES)
 
-Calculate weigthed discrete ``L^2(\\Omega)`` norm of a solution vector. 
+Calculate weigthed discrete ``L^2(\\Omega)`` norm of a solution vector.
 """
 function l2norm(sys, u, species_weights = ones(num_species(sys)))
     _complete!(sys)
@@ -373,7 +373,7 @@ Return non-Delaunay edges. Returns a vector of tuples:
 Each tuple consists of `(node1, node2, edge factor, region)`
 
 If the vector has length 0, the grid is boundary conforming Delaunay
-with respect to each cell region. This means that up to `tol`, all 
+with respect to each cell region. This means that up to `tol`, all
 edge form factors are nonnegative.
 """
 function nondelaunay(grid; tol = 1.0e-16, verbose = false)

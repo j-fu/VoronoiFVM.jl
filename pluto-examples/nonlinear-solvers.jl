@@ -51,17 +51,17 @@ Define a nonlinear Poisson equation to have an example. Let ``Ω=(0,10)`` and de
 X = 0:0.001:1
 
 # ╔═╡ c8eda836-d719-4412-895e-c3a24fec21ec
-flux(y, u, edge) = y[1] = u[1, 1] - u[1, 2];
+flux(y, u, edge, data) = y[1] = u[1, 1] - u[1, 2];
 
 # ╔═╡ c09f5dfc-fc47-4952-8051-54731ec2b00b
-function reaction(y, u, node)
+function reaction(y, u, node, data)
     eplus = exp(u[1])
     eminus = 1 / eplus
     y[1] = eplus - eminus
 end
 
 # ╔═╡ eab04557-5084-4174-b275-b4d4399238e5
-function bc(y, u, node)
+function bc(y, u, node, data)
     boundary_dirichlet!(y, u, node; region = 1, value = 100)
     boundary_dirichlet!(y, u, node; region = 2, value = 0.0)
 end;
@@ -194,7 +194,7 @@ If the solution is unsuccessful, the parameter stepsize is halved and solution i
 """
 
 # ╔═╡ a71cbcd4-310e-47a8-94f9-1159995a7711
-function pbc(y, u, node)
+function pbc(y, u, node, data)
     boundary_dirichlet!(y, u, node; region = 1, value = 100 * embedparam(node))
     boundary_dirichlet!(y, u, node; region = 2, value = 0)
 end;
@@ -202,8 +202,8 @@ end;
 # ╔═╡ 89435c65-0520-4430-8727-9d013df6182d
 system2 = VoronoiFVM.System(X;
                             flux = flux,
-                            reaction = function (y, u, node)
-                                reaction(y, u, node)
+                            reaction = function (y, u, node, data)
+                                reaction(y, u, node, data)
 
                                 y[1] = y[1] * embedparam(node)
                             end,

@@ -72,19 +72,19 @@ function main(; n = 10,
     ## Diffusion flux for species A and B
     D_A = 1.0
     D_B = 1.0e-2
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[iA] = D_A * (u[iA, 1] - u[iA, 2])
         f[iB] = D_B * (u[iB, 1] - u[iB, 2])
     end
 
     ## Storage term of species A and B
-    function storage!(f, u, node)
+    function storage!(f, u, node, data)
         f[iA] = u[iA]
         f[iB] = u[iB]
     end
 
     ## Source term for species a around 0.5
-    function source!(f, node)
+    function source!(f, node, data)
         x1 = node[1] - 0.5
         f[iA] = exp(-100 * x1^2)
     end
@@ -94,7 +94,7 @@ function main(; n = 10,
     kp_AB = 1.0
     km_AB = 0.1
 
-    function breaction!(f, u, node)
+    function breaction!(f, u, node, data)
         if node.region == 1
             R = kp_AB * exp(u[iC]) * u[iA] - exp(-u[iC]) * km_AB * u[iB]
             f[iA] += R

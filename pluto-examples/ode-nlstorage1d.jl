@@ -90,7 +90,7 @@ md"""
 """
 
 # ╔═╡ 54aef797-210b-4eea-95b4-e0bdcb478c1d
-    function flux!(f,u,edge)
+    function flux!(f,u,edge,data)
         f[1]=u[1,1]-u[1,2]
     end
 
@@ -100,7 +100,7 @@ Storage term needs to be regularized as its derivative at 0 is infinity:
 """
 
 # ╔═╡ 3790d063-8a3d-429b-8a59-05cfc35b6878
-    function storage!(f,u,node)
+    function storage!(f,u,node,data)
         f[1]=(ε+u[1])^(1.0/m)
     end
 
@@ -136,12 +136,12 @@ we see that the problem structure does not fit into the setting of that package 
 """
 
 # ╔═╡ d495a088-69dd-4f4e-964c-88638958799a
-function dae_storage!(y,u,node)
+function dae_storage!(y,u,node,data)
 	y[1]=u[2]
 end
 
 # ╔═╡ 4c09ec49-c4d6-4c5a-8f73-8a736acaff61
-function dae_reaction!(y,u,node)
+function dae_reaction!(y,u,node,data)
 	y[2]= u[2]^m-u[1]
 end
 

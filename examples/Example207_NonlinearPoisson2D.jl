@@ -22,15 +22,15 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
 
     eps = 1.0e-2
 
-    physics = VoronoiFVM.Physics(; reaction = function (f, u, node)
+    physics = VoronoiFVM.Physics(; reaction = function (f, u, node, data)
                                      f[1] = u[1]^2
-                                 end, flux = function (f, u, edge)
+                                 end, flux = function (f, u, edge, data)
                                      f[1] = eps * (u[1, 1]^2 - u[1, 2]^2)
-                                 end, source = function (f, node)
+                                 end, source = function (f, node, data)
                                      x1 = node[1] - 0.5
                                      x2 = node[2] - 0.5
                                      f[1] = exp(-20.0 * (x1^2 + x2^2))
-                                 end, storage = function (f, u, node)
+                                 end, storage = function (f, u, node, data)
                                      f[1] = u[1]
                                  end)
     sys = VoronoiFVM.System(grid, physics; unknown_storage, assembly = assembly)

@@ -46,18 +46,18 @@ function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :c
         i1 = 6
     end
 
-    function storage!(y, u, node)
+    function storage!(y, u, node, data)
         y[1] = u[1]
     end
 
-    function flux!(y, u, edge)
+    function flux!(y, u, edge, data)
         y[1] = u[1, 1] - u[1, 2]
     end
 
     # Three ways to give a constant reaction term. As a consequence,
     # these need to yield the same solution.
     # 1: classical node reaction, multiplied  by control volume size
-    function reaction!(y, u, node)
+    function reaction!(y, u, node, data)
         y[1] = -1
     end
 
@@ -76,7 +76,7 @@ function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :c
     #
     #  τ=1/h    v= s*h/2d = σ*h^2/2d 
     #                
-    function edgereaction!(y, u, edge)
+    function edgereaction!(y, u, edge, data)
         h = meas(edge)
         y[1] = -1 * h^2 / (2 * dim)
     end
@@ -88,14 +88,14 @@ function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :c
     # we had before
     ϕ = grid[Coordinates][1, :]
 
-    function edgereaction2!(y, u, edge)
+    function edgereaction2!(y, u, edge, data)
         ϕK = ϕ[edge.node[1]]
         ϕL = ϕ[edge.node[2]]
         y[1] = -(ϕK - ϕL) * (ϕK - ϕL) / 2
     end
 
     if case == :compare_max
-        function bcondition!(y, u, node)
+        function bcondition!(y, u, node, data)
             boundary_dirichlet!(y, u, node; species = 1, region = 1, value = 0)
             boundary_dirichlet!(y, u, node; species = 1, region = 2, value = 0)
             boundary_dirichlet!(y, u, node; species = 1, region = 3, value = 0)
@@ -130,7 +130,7 @@ function main(; nref = 0, dim = 2, Plotter = nothing, verbose = "and", case = :c
     end
 
     if case == :compare_flux
-        function bcondition2!(y, u, node)
+        function bcondition2!(y, u, node, data)
             boundary_dirichlet!(y, u, node; species = 1, region = i1, value = 0)
         end
 

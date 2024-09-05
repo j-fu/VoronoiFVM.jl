@@ -77,25 +77,25 @@ n = 100
 begin
     h = 1.0 / convert(Float64, n)
     const eps = 1.0e-2
-    function reaction(f, u, node)
+    function reaction(f, u, node, data)
         f[1] = u[1]^2
     end
 
-    function flux(f, u, edge)
+    function flux(f, u, edge, data)
         f[1] = eps * (u[1, 1]^2 - u[1, 2]^2)
     end
 
-    function source(f, node)
+    function source(f, node, data)
         x1 = node[1] - 0.5
         x2 = node[2] - 0.5
         f[1] = exp(-20.0 * (x1^2 + x2^2))
     end
 
-    function storage(f, u, node)
+    function storage(f, u, node, data)
         f[1] = u[1]
     end
 
-    function bcondition(f, u, node)
+    function bcondition(f, u, node, data)
         boundary_dirichlet!(f,
                             u,
                             node;
@@ -265,7 +265,7 @@ The following example gives some information in this respect:
 D = 0.1
 
 # ╔═╡ 2ff77259-7a81-4c54-a291-cbc20ee56c5d
-function xflux(f, u, edge)
+function xflux(f, u, edge, data)
     f[1] = D * (u[1, 1]^2 - u[1, 2]^2)
 end
 
@@ -300,7 +300,7 @@ But we can also look for the reasons of the allocations. Here, global values sho
 const D1 = 0.1
 
 # ╔═╡ c40f1954-4fb7-48b2-ab4c-cdf6459b7383
-function xflux1(f, u, edge)
+function xflux1(f, u, edge, data)
     f[1] = D1 * (u[1, 1]^2 - u[1, 2]^2)
 end
 
@@ -331,14 +331,14 @@ The `VoronoiFVM.Physics` struct almost never was used outside of the constructor
 grid1 = simplexgrid(0:0.1:1);
 
 # ╔═╡ 90bbf212-c6c8-44f0-8132-4a98f094750e
-function multispecies_flux(y, u, edge)
+function multispecies_flux(y, u, edge, data)
     for i = 1:(edge.nspec)
         y[i] = u[i, 1] - u[i, 2]
     end
 end
 
 # ╔═╡ adff41d1-9398-4a66-9a8e-e03809973fa6
-function test_reaction(y, u, node)
+function test_reaction(y, u, node, data)
     y[1] = u[1]
     y[2] = -u[1]
 end
@@ -376,7 +376,7 @@ space and time dependent boundary conditions. One can specify them either in `br
 """
 
 # ╔═╡ ec188c81-3374-4eed-9b7e-e22350886df2
-function bcond2(y, u, bnode)
+function bcond2(y, u, bnode, data)
     boundary_neumann!(y, u, bnode; species = 1, region = 1, value = sin(bnode.time))
     boundary_dirichlet!(y, u, bnode; species = 2, region = 2, value = 0)
 end;
@@ -429,7 +429,7 @@ This example also demonstrates position dependent boundary values.
 """
 
 # ╔═╡ a71086fa-4ec6-4842-a4e1-6a6b60441fc2
-function bcond3(y, u, bnode)
+function bcond3(y, u, bnode, data)
     boundary_dirichlet!(y, u, bnode; region = 4, value = bnode[2])
     boundary_dirichlet!(y, u, bnode; region = 2, value = -bnode[2])
 end;
@@ -469,10 +469,10 @@ Another new keyword argument is `inival` which allows to pass an initial value w
 """
 
 # ╔═╡ 1e12afcf-cf46-4672-9434-44fa8af95ef7
-reaction4(y, u, bnode) = y[1] = -bnode[1]^2 + u[1]^4;
+reaction4(y, u, bnode, data) = y[1] = -bnode[1]^2 + u[1]^4;
 
 # ╔═╡ 938ef63c-58c4-41a0-b3dd-4eb76987a4d7
-bc4(args...) = boundary_dirichlet!(args...; value = 0);
+bc4(f, u, node, data) = boundary_dirichlet!(f, u, node; value = 0);
 
 # ╔═╡ fe424654-f070-46a9-850a-738b1d4aca8f
 system4 = VoronoiFVM.System(-10:0.1:10;

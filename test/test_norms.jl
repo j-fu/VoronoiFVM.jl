@@ -30,7 +30,7 @@ function test_edgeint(; dim = 2, c = 1.0, assembly = :edgewise, h = 0.1)
     sys = VoronoiFVM.System(g; species = [1], assembly)
     VoronoiFVM._complete!(sys)
     u = map(c, sys)
-    function f(y, u, edge)
+    function f(y, u, edge, data=nothing)
         y[1] = 0.5 * (u[1, 1] + u[2, 1])
     end
     VoronoiFVM.edgeintegrate(sys, f, u)[1, 1]

@@ -14,7 +14,7 @@ import Metis
 
 ## Flux function which describes the flux
 ## between neighboring control volumes
-function g!(f, u, edge)
+function g!(f, u, edge, data)
     f[1] = u[1, 1] - u[1, 2]
 end
 

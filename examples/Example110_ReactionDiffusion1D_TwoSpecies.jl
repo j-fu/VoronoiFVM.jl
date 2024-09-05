@@ -29,20 +29,20 @@ function main(; n = 100, Plotter = nothing, verbose = false, unknown_storage = :
     eps::Vector{Float64} = [1.0, 1.0]
 
     physics = VoronoiFVM.Physics(
-                                 ; reaction = function (f, u, node)
+                                 ; reaction = function (f, u, node, data)
                                      f[1] = u[1] * u[2]
                                      f[2] = -u[1] * u[2]
                                  end,
-                                 flux = function (f, u, edge)
+                                 flux = function (f, u, edge, data)
                                      nspecies = 2
                                      f[1] = eps[1] * (u[1, 1] - u[1, 2]) *
                                             (0.01 + u[2, 1] + u[2, 2])
                                      f[2] = eps[2] * (u[2, 1] - u[2, 2]) *
                                             (0.01 + u[1, 1] + u[1, 2])
-                                 end, source = function (f, node)
+                                 end, source = function (f, node, data)
                                      f[1] = 1.0e-4 * (0.01 + node[1])
                                      f[2] = 1.0e-4 * (0.01 + 1.0 - node[1])
-                                 end, storage = function (f, u, node)
+                                 end, storage = function (f, u, node, data)
                                      f[1] = u[1]
                                      f[2] = u[2]
                                  end)
