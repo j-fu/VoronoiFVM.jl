@@ -291,7 +291,7 @@ function assemble_bnodes(system, matrix, dudp, time, tstepinv, λ, data, params,
             if has_legacy_bc
                 # Global index of node
                 K = bnode.index
-                bnode.Dirichlet = Dirichlet / bnode.fac
+                bnode.Dirichlet = Dirichlet(Tv) / bnode.fac
                 # Assemble "standard" boundary conditions: Robin or
                 # Dirichlet
                 # valid only for interior species, currently not checked
@@ -303,7 +303,7 @@ function assemble_bnodes(system, matrix, dudp, time, tstepinv, λ, data, params,
                         boundary_factor = boundary_factors[ispec, bnode.region]
                         boundary_value = boundary_values[ispec, bnode.region]
 
-                        if boundary_factor == Dirichlet
+                        if boundary_factor == Dirichlet(Tv)
                             # Dirichlet is encoded in the boundary condition factor
                             # Penalty method: scale   (u-boundary_value) by penalty=boundary_factor
 

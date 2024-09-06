@@ -8,16 +8,16 @@ test functions for boundary flux calculations.
 
 $(TYPEDFIELDS)
 """
-mutable struct TestFunctionFactory
+mutable struct TestFunctionFactory{Tv}
     """
     Original system
     """
-    system::AbstractSystem
+    system::AbstractSystem{Tv}
 
     """
     Test function system state
     """
-    state::SystemState
+    state::SystemState{Tv}
 
     """
     Solver control
@@ -31,7 +31,7 @@ $(TYPEDSIGNATURES)
 
 Constructor for TestFunctionFactory from System
 """
-function TestFunctionFactory(system::AbstractSystem; control = SolverControl())
+function TestFunctionFactory(system::AbstractSystem{Tv}; control = SolverControl()) where {Tv}
     physics = Physics(; flux = function (f, u, edge, data)
                           f[1] = u[1] - u[2]
                       end,
@@ -41,7 +41,7 @@ function TestFunctionFactory(system::AbstractSystem; control = SolverControl())
     tfsystem = System(system.grid, physics; unknown_storage = :dense)
     enable_species!(tfsystem, 1, [i for i = 1:num_cellregions(system.grid)])
     state=SystemState(tfsystem)
-    return TestFunctionFactory(system, state, control)
+    return TestFunctionFactory{Tv}(system, state, control)
 end
 
 ############################################################################
@@ -52,7 +52,7 @@ Create testfunction which has Dirichlet zero boundary conditions  for boundary
 regions in bc0 and Dirichlet one boundary conditions  for boundary
 regions in bc1.
 """
-function testfunction(factory::TestFunctionFactory, bc0, bc1)
+function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where {Tv}
     u = unknowns(factory.state.system)
     f = unknowns(factory.state.system)
     u .= 0
@@ -62,12 +62,12 @@ function testfunction(factory::TestFunctionFactory, bc0, bc1)
     factory.state.system.boundary_values .= 0
 
     for i = 1:length(bc1)
-        factory.state.system.boundary_factors[1, bc1[i]] = Dirichlet
+        factory.state.system.boundary_factors[1, bc1[i]] = Dirichlet(Tv)
         factory.state.system.boundary_values[1, bc1[i]] = -1
     end
 
     for i = 1:length(bc0)
-        factory.state.system.boundary_factors[1, bc0[i]] = Dirichlet
+        factory.state.system.boundary_factors[1, bc0[i]] = Dirichlet(Tv)
         factory.state.system.boundary_values[1, bc0[i]] = 0
     end
 
@@ -102,7 +102,7 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
     nparams = system.num_parameters
     @assert nparams == length(params)
 
-    # !!! params etc 
+    # !!! params etc
     physics = system.physics
     node = Node(system, 0.0, 1.0, params)
     bnode = BNode(system, 0.0, 1.0, params)

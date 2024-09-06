@@ -2,6 +2,16 @@
 $(TYPEDEF)
 
 Structure holding data for finite volume system.
+
+Subtype of [`AbstractSystem`](@ref).
+
+Type parameters:
+
+- TSpecMat: Type of matrix storing species information (Matrix or SparseMatrixCSC)
+
+For the other type parameters, see [`AbstractSystem`](@ref).
+
+$(TYPEDFIELDS)
 """
 mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix} <: AbstractSystem{Tv, Tc, Ti, Tm}
     """
@@ -81,8 +91,6 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix} <: AbstractSys
     Is the system linear ?
     """
     is_linear::Bool
-
-    is_complete::Bool
     
     """
     Outflow nodes with their region numbers.
@@ -99,17 +107,15 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix} <: AbstractSys
     """
     generic_matrix_colors::Vector
 
+
+    """
+    Has the system been completed (species information compiled)?
+    """
+    is_complete::Bool
+
     System{Tv, Tc, Ti, Tm, TSpecMat}() where {Tv, Tc, Ti, Tm, TSpecMat} = new()
 end
 
-function Base.getproperty(sys::System, sym::Symbol)
-    if sym == :bfacenodefactors
-        @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
-        return sys.boundary_assembly_data.nodefactors
-    else # fallback to getfield
-        return getfield(sys, sym)
-    end
-end
 
 """
     const DenseSystem
@@ -313,7 +319,11 @@ end
 
 # Constant to be used as boundary condition factor 
 # to mark Dirichlet boundary conditions.    
-const Dirichlet = 1.0e30
+Dirichlet(::Type{Tv}) where  {Tv} = 1.0e30
+
+Dirichlet(::Type{Rational{Ti}}) where Ti = 1//10000
+
+Dirichlet(::Type{Rational{BigInt}}) = 1//10000000000
 
 #################################################################
 
@@ -788,9 +798,9 @@ Set Dirichlet boundary condition for species ispec at boundary ibc:
 !!! info  
     Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
-function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
+function boundary_dirichlet!(system::AbstractSystem{Tv}, ispec, ibc, v) where {Tv}
     increase_num_species!(system, ispec)
-    system.boundary_factors[ispec, ibc] = Dirichlet
+    system.boundary_factors[ispec, ibc] = Dirichlet(Tv)
     system.boundary_values[ispec, ibc] = v
 end
 
@@ -999,7 +1009,7 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
                 end
 
                 # Dirichlet bc given after system creation (old API)
-                if system.boundary_factors[ispec, bnode.region] ≈ Dirichlet
+                if system.boundary_factors[ispec, bnode.region] ≈ Dirichlet(Tv)
                     U[ispec, bnode.index] = system.boundary_values[ispec, bnode.region]
                 end
             end

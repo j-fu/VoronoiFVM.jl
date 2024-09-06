@@ -172,7 +172,7 @@ function ImpedanceSystem(system::AbstractSystem{Tv, Tc, Ti}, U0::AbstractMatrix,
                     idof = dof(F, ispec, bnode.index)
                     if idof > 0
                         fac = system.boundary_factors[ispec, bnode.region]
-                        if fac == Dirichlet
+                        if fac == Dirichlet(Tv)
                             F[ispec, bnode.index] += fac
                         else
                             F[ispec, bnode.index] += fac * bnode.fac

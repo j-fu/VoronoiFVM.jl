@@ -1,4 +1,22 @@
+"""
+$(TYPEDEF)
+
+Structure holding state information for finite volume system.
+
+
+Type parameters:
+- Tv: element type of solution vectors and matrix
+- Ti: matrix index type
+- TSolArray: type of solution vector: (Matrix or SparseMatrixCSC)
+- TData: type of user data
+
+$(TYPEDFIELDS)
+"""
 mutable struct SystemState{Tv, Ti, TSolArray, TData}
+
+    """
+    Related finite volume system
+    """
     system::VoronoiFVM.System
 
     """
@@ -37,36 +55,38 @@ mutable struct SystemState{Tv, Ti, TSolArray, TData}
     residual::TSolArray
 
     """
-    History record for diffeq solution process
-    """
-    history::Union{DiffEqHistory, Nothing}
-
-    """
     Linear solver cache
     """
     linear_cache::Union{Nothing, LinearSolve.LinearCache}
 
     """
     Hash value of latest unknowns vector the assembly was called with
+    (used by differential equation interface)
     """
     uhash::UInt64
+
+    """
+    History record for solution process
+    (used by differential equation interface)
+    """
+    history::Union{DiffEqHistory, Nothing}
+
 end
 
 
 """
-- `unknown_storage`: string or symbol.  
-    Information  on  species  distribution  is kept  in  sparse  or  dense
-    matrices matrices and, correspondingly, the  solution argray is of type
-    SparseSolutionArray  or matrix,  respectively. In  the case  of sparse
-    unknown storage,  the system matrix  handles exactly those  degrees of
-    freedom which correspond to unknowns.  However, handling of the sparse
-    matrix  structures  for  the   bookkeeping  of  the  unknowns  creates
-    overhead.
-     - `:dense` :  solution vector is an  `nspecies` x `nnodes`  dense matrix
-     - `:sparse` :  solution vector is an `nspecies` x `nnodes`  sparse matrix
-- `matrixindextype`: Integer type. Index type for sparse matrices created in the system.
+    SystemState(Tv, system; data=system.physics.data)
+
+Create state information for finite volume system.
+
+Arguments:
+- `Tv`: value type of unknowns, matrix
+- `system`: Finite volume system
+
+Keyword arguments:
+- `data`: User data
 """
-function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}; data=system.physics.data) where {Tv,Tv0,Tc, Ti, Tm}
+function SystemState(::Type{Tu}, system::AbstractSystem{Tv, Tc, Ti, Tm}; data=system.physics.data) where {Tu,Tv,Tc, Ti, Tm}
     lock(sysmutatelock)
     try
         _complete!(system)
@@ -95,26 +115,32 @@ function SystemState(::Type{Tv}, system::AbstractSystem{Tv0, Tc, Ti, Tm}; data=s
     end
 
     if matrixtype == :tridiagonal
-        matrix = Tridiagonal(zeros(Tv, n - 1), zeros(Tv, n), zeros(Tv, n - 1))
+        matrix = Tridiagonal(zeros(Tu, n - 1), zeros(Tu, n), zeros(Tu, n - 1))
     elseif matrixtype == :banded
-        matrix = BandedMatrix{Tv}(Zeros(n, n), (2 * nspec - 1, 2 * nspec - 1))
+        matrix = BandedMatrix{Tu}(Zeros(n, n), (2 * nspec - 1, 2 * nspec - 1))
         # elseif matrixtype==:multidiagonal
         #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
     else # :sparse
         if num_partitions(system.grid) == 1
-            matrix = ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
+            matrix = ExtendableSparseMatrixCSC{Tu, Tm}(n, n)
         else
-            matrix = MTExtendableSparseMatrixCSC{Tv, Tm}(n, n, num_partitions(system.grid))
+            matrix = MTExtendableSparseMatrixCSC{Tu, Tm}(n, n, num_partitions(system.grid))
         end
     end
 
-    solution = unknowns(system)
-    residual = unknowns(system)
-    update = unknowns(system)
-    dudp = [unknowns(system) for i = 1:(system.num_parameters)]
-    SystemState(system, data, solution, matrix, dudp, residual, update, nothing, nothing, zero(UInt64))
+    solution = unknowns(Tu, system)
+    residual = unknowns(Tu, system)
+    update = unknowns(Tu, system)
+    dudp = [unknowns(Tu, system) for i = 1:(system.num_parameters)]
+    SystemState(system, data, solution, matrix, dudp, residual, update, nothing, zero(UInt64),  nothing)
 end
 
+
+"""
+    SystemState(system; kwargs...)
+
+Shortcut for creating state with value type defined by `Tv` type parameter of system
+"""
 SystemState(system::AbstractSystem{Tv,Tc,Ti,Tm}; kwargs...) where {Tv,Tc,Ti,Tm} =SystemState(Tv, system; kwargs...) 
 
 
