@@ -5,10 +5,12 @@ $(TYPEDEF)
 Data structure containing DenseSystem used to calculate
 test functions for boundary flux calculations.
 
-
+Type parameters:
+- `Tu`: value type of test functions
+- `Tv`: Default value type of system
 $(TYPEDFIELDS)
 """
-mutable struct TestFunctionFactory{Tv}
+mutable struct TestFunctionFactory{Tu, Tv}
     """
     Original system
     """
@@ -17,7 +19,7 @@ mutable struct TestFunctionFactory{Tv}
     """
     Test function system state
     """
-    state::SystemState{Tv}
+    state::SystemState{Tu}
 
     """
     Solver control
@@ -41,7 +43,7 @@ function TestFunctionFactory(system::AbstractSystem{Tv}; control = SolverControl
     tfsystem = System(system.grid, physics; unknown_storage = :dense)
     enable_species!(tfsystem, 1, [i for i = 1:num_cellregions(system.grid)])
     state=SystemState(tfsystem)
-    return TestFunctionFactory{Tv}(system, state, control)
+    return TestFunctionFactory(system, state, control)
 end
 
 ############################################################################

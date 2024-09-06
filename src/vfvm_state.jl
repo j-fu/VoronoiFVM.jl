@@ -12,7 +12,7 @@ Type parameters:
 
 $(TYPEDFIELDS)
 """
-mutable struct SystemState{Tv, Ti, TSolArray, TData}
+mutable struct SystemState{Tv, TMatrix<:AbstractMatrix{Tv}, TSolArray<:AbstractMatrix{Tv}, TData}
 
     """
     Related finite volume system
@@ -32,12 +32,7 @@ mutable struct SystemState{Tv, Ti, TSolArray, TData}
     """
     Jacobi matrix for nonlinear problem
     """
-    matrix::Union{ExtendableSparseMatrixCSC{Tv, Ti},
-                  MTExtendableSparseMatrixCSC{Tv, Ti},
-                  STExtendableSparseMatrixCSC{Tv, Ti},
-                  Tridiagonal{Tv, Vector{Tv}},
-                  #                  MultidiagonalMatrix,
-                  BandedMatrix{Tv}}
+    matrix::TMatrix
 
     """
     Parameter derivative (vector of solution arrays)

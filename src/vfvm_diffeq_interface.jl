@@ -48,7 +48,7 @@ $(SIGNATURES)
 Calculate the mass matrix for use with [`ODEFunction`](@ref).
 Return a Diagonal matrix if it occurs to be diagonal, otherwise return a SparseMatrixCSC.
 """
-function mass_matrix(state::SystemState{Tv, Ti, TSolArray, TData}) where {Tv, Ti, TSolArray, TData}
+function mass_matrix(state::SystemState{Tv, TMatrix, TSolArray, TData}) where {Tv, TMatrix, TSolArray, TData}
     physics = state.system.physics
     data = physics.data
     node = Node(state.system)
@@ -61,7 +61,7 @@ function mass_matrix(state::SystemState{Tv, Ti, TSolArray, TData}) where {Tv, Ti
     bstor_eval = ResJacEvaluator(physics, data, :bstorage, zeros(Tv, nspecies), node, nspecies)
 
     U = unknowns(state.system; inival = 0)
-    M = ExtendableSparseMatrix{Tv, Ti}(ndof, ndof)
+    M = similar(state.matrix)
 
     asm_res(idof, ispec) = nothing
     asm_param(idof, ispec, iparam) = nothing

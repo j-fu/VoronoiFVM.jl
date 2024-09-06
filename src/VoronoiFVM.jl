@@ -28,7 +28,7 @@ using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,
                         ExtendableSparseMatrixCSC,
                         MTExtendableSparseMatrixCSC,
-                        STExtendableSparseMatrixCSC,
+#                        STExtendableSparseMatrixCSC,
                         AbstractExtendableSparseMatrixCSC,
                         PointBlockILUZeroPreconditioner, factorize!, flush!,
                         nnz, rawupdateindex!, sparse, updateindex!, nnznew

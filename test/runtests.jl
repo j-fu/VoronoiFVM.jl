@@ -2,7 +2,6 @@ using Test, ExplicitImports, Aqua
 using ExampleJuggler: ExampleJuggler, cleanexamples, @testmodules, @testscripts
 using VoronoiFVM: VoronoiFVM
 
-
 ExampleJuggler.verbose!(true)
 #
 # Include all Julia files in `testdir` whose name starts with `prefix`,
@@ -71,16 +70,16 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
         @test ExplicitImports.check_no_stale_explicit_imports(VoronoiFVM) === nothing
     end
 
-    # @testset "Aqua" begin
-    #     #    Aqua.test_ambiguities(VoronoiFVM)
-    #     Aqua.test_unbound_args(VoronoiFVM)
-    #     Aqua.test_undefined_exports(VoronoiFVM)
-    #     Aqua.test_project_extras(VoronoiFVM)
-    #     Aqua.test_stale_deps(VoronoiFVM)
-    #     Aqua.test_deps_compat(VoronoiFVM)
-    #     #    Aqua.test_piracies(VoronoiFVM, treat_as_own=[ExtendableSparse.AbstractFactorization])
-    #     Aqua.test_persistent_tasks(VoronoiFVM)
-    # end
+    @testset "Aqua" begin
+        #Aqua.test_ambiguities(VoronoiFVM)
+        Aqua.test_unbound_args(VoronoiFVM)
+        Aqua.test_undefined_exports(VoronoiFVM)
+        Aqua.test_project_extras(VoronoiFVM)
+        Aqua.test_stale_deps(VoronoiFVM)
+        Aqua.test_deps_compat(VoronoiFVM)
+        #Aqua.test_piracies(VoronoiFVM)
+        Aqua.test_persistent_tasks(VoronoiFVM)
+    end
     
     if isdefined(Docs,:undocumented_names) # >=1.11
         @testset "UndocumentedNames" begin
@@ -91,6 +90,7 @@ end
 
 # Don't run notebooks on 1.12: https://github.com/fonsp/Pluto.jl/issues/2939
 run_all_tests(; run_notebooks = VERSION < v"1.12.0-DEV.0" , notebooksonly = false)
+#run_all_tests(; run_notebooks=false , notebooksonly = true)
 
 
 
