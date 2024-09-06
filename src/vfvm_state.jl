@@ -6,7 +6,7 @@ Structure holding state information for finite volume system.
 
 Type parameters:
 - Tv: element type of solution vectors and matrix
-- Ti: matrix index type
+- TMatrix:  matrix type
 - TSolArray: type of solution vector: (Matrix or SparseMatrixCSC)
 - TData: type of user data
 
