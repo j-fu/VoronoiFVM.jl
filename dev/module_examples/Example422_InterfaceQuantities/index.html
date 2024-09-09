@@ -44,7 +44,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
     NA = [10.0, 0.0]
     ND = [0.0, 10.0]
 
-    function storage!(f, u, node)
+    function storage!(f, u, node, data)
         etan = -((u[iphin] - u[ipsi]))
         etap = ((u[iphip] - u[ipsi]))
 
@@ -54,7 +54,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         f[ipsi] = 0.0
     end
 
-    function reaction!(f, u, node)
+    function reaction!(f, u, node, data)
         etan = -((u[iphin] - u[ipsi]))
         etap = ((u[iphip] - u[ipsi]))
 
@@ -67,7 +67,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         f[iphip] = recomb
     end
 
-    function flux!(f, u, node)
+    function flux!(f, u, node, data)
         f[ipsi] = -(u[ipsi, 2] - u[ipsi, 1])
 
         ########################
@@ -83,7 +83,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         f[iphip] = -(bp * exp(etap2) - bm * exp(etap1))
     end
 
-    function breaction!(f, u, bnode)
+    function breaction!(f, u, bnode, data)
         if bnode.region == bjunction</code></pre><p>left values</p><pre><code class="language-julia hljs">            nleft = exp(-((u[iphin, 1] - u[ipsi])))
             pleft = exp(((u[iphip, 1] - u[ipsi])))</code></pre><p>interface species</p><pre><code class="language-julia hljs">            n_interf = exp(-((u[iphinb] - u[ipsi])))
             p_interf = exp(((u[iphipb] - u[ipsi])))</code></pre><p>right values</p><pre><code class="language-julia hljs">            nright = exp(-((u[iphin, 2] - u[ipsi])))
@@ -95,7 +95,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         end
     end
 
-    function bstorage!(f, u, bnode)
+    function bstorage!(f, u, bnode, data)
         f[ipsi] = 0.0
 
         if bnode.region == bjunction
@@ -203,4 +203,4 @@ function runtests()
           main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
 end
 
-end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example421_AbstractQuantities_TestFunctions/">« 421: Current Calculation for AbstractQuantities</a><a class="docs-footer-nextpage" href="../Example424_AbstractQuantitiesInit/">424: Initialization of Abstract quantities »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Tuesday 27 August 2024 20:41">Tuesday 27 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example421_AbstractQuantities_TestFunctions/">« 421: Current Calculation for AbstractQuantities</a><a class="docs-footer-nextpage" href="../Example424_AbstractQuantitiesInit/">424: Initialization of Abstract quantities »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Monday 9 September 2024 13:41">Monday 9 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

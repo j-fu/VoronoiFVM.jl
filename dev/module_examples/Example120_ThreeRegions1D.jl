@@ -31,7 +31,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     eps = [1, 1, 1]
     k = [1, 1, 1]
 
-    function reaction(f, u, node)
+    function reaction(f, u, node, data)
         if node.region == 1
             f[1] = k[1] * u[1]
             f[2] = -k[1] * u[1]
@@ -43,7 +43,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
         end
     end
 
-    function source(f, node)
+    function source(f, node, data)
         if node.region == 1
             f[1] = 1.0e-4 * (3.0 - node[1])
         end
@@ -54,20 +54,20 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
         ## write into the result also where
         ## the corresponding species has not been enabled
         ## Species information is used to prevent the assembly.
-        flux = function (f, u, edge)
+        flux = function (f, u, edge, data)
             for i = 1:3
                 f[i] = eps[i] * (u[i, 1] - u[i, 2])
             end
         end
 
-        storage = function (f, u, node)
+        storage = function (f, u, node, data)
             f .= u
         end
     else
         ## This is the "old" way:
         ## Write into result only where
         ## the corresponding species has been enabled
-        flux = function (f, u, edge)
+        flux = function (f, u, edge, data)
             if edge.region == 1
                 f[1] = eps[1] * (u[1, 1] - u[1, 2])
                 f[2] = eps[2] * (u[2, 1] - u[2, 2])
@@ -79,7 +79,7 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
             end
         end
 
-        storage = function (f, u, node)
+        storage = function (f, u, node, data)
             if node.region == 1
                 f[1] = u[1]
                 f[2] = u[2]

@@ -25,8 +25,8 @@
 <!--
     # This information is used for caching.
     [PlutoStaticHTML.State]
-    input_sha = "f4ac467d11a416615ff3d6d6ac85b5c4c264745f09137367a624ac31910b8512"
-    julia_version = "1.10.4"
+    input_sha = "522dffd9e725fc184defc69811517251b464408f822c00c50eb3cf0fe79f31d8"
+    julia_version = "1.10.5"
 -->
 <pre class='language-julia'><code class='language-julia'>begin
     import Pkg as _Pkg
@@ -92,7 +92,7 @@ end;</code></pre>
 
 <div class="markdown"><p>Define the diffusion flux for the two species in their respective subdomains</p></div>
 
-<pre class='language-julia'><code class='language-julia'>function flux!(f, u, edge)
+<pre class='language-julia'><code class='language-julia'>function flux!(f, u, edge, data)
     if edge.region == 1
         f[1] = u[1, 1] - u[1, 2]
     end
@@ -172,7 +172,7 @@ end</code></pre>
 
 <div class="markdown"><h3>No interface reaction</h3><p>This means we set <span class="tex">\(f_1(u_1,u_2)=0\)</span> and <span class="tex">\(f_2(u_1,u_2)=0\)</span>. </p></div>
 
-<pre class='language-julia'><code class='language-julia'>function noreaction(f, u, node) end</code></pre>
+<pre class='language-julia'><code class='language-julia'>function noreaction(f, u, node, data) end</code></pre>
 <pre class="code-output documenter-example-output" id="var-noreaction">noreaction (generic function with 1 method)</pre>
 
 <pre class='language-julia'><code class='language-julia'>system1 = make_system(noreaction);</code></pre>
@@ -187,7 +187,7 @@ end</code></pre>
 
 <div class="markdown"><h3>Mass action law reaction <span class="tex">\(u_1 \leftrightharpoons u_2\)</span></h3><p>This is a rather general ansatz where we assume a backward-forward reaction between the two species meeting at the interface with reaction constants <span class="tex">\(k_1\)</span> and <span class="tex">\(k_2\)</span>, respectively.</p><p>According to the mass action law, this translates to a reaction rate</p><p><span class="tex">\(r(u_1,u_2)=k_1u_1 - k_2u_2\)</span></p><p>and correspondingly</p><p><span class="tex">\(f_1(u_1,u_2)=r\)</span></p><p><span class="tex">\(f_2(u_1,u_2)=-r\)</span></p><p>Note, that <span class="tex">\(f_i\)</span> is monotonically increasing in <span class="tex">\(u_i\)</span> and monotonically decreasing in the respective other argument, leading to an M-Property of the overall discretization matrix.</p><p>Note that the "no reaction" case is just a special case where <span class="tex">\(k_1,k_2=0\)</span>.</p></div>
 
-<pre class='language-julia'><code class='language-julia'>function mal_reaction(f, u, node)
+<pre class='language-julia'><code class='language-julia'>function mal_reaction(f, u, node, data)
     if node.region == 3
         react = k1 * u[1] - k2 * u[2]
         f[1] = react
@@ -215,7 +215,7 @@ end</code></pre>
 
 <div class="markdown"><h3>Penalty enforcing continuity</h3><p>Setting <span class="tex">\(k_1,k_2\)</span> to a large number leads to another special case of the above reaction - similar to the penalty method to implement the Dirichlet boundary conditions, this lets the reaction equation dominate, which in this case forces <span class="tex">\(u_1-u_2=0\)</span> at the interface, and thus continuity.</p></div>
 
-<pre class='language-julia'><code class='language-julia'>function penalty_reaction(f, u, node)
+<pre class='language-julia'><code class='language-julia'>function penalty_reaction(f, u, node, data)
     if node.region == 3
         react = 1.0e10 * (u[1] - u[2])
         f[1] = react
@@ -236,7 +236,7 @@ end</code></pre>
 <pre class='language-julia'><code class='language-julia'>const jump = 0.2</code></pre>
 <pre class="code-output documenter-example-output" id="var-const jump">0.2</pre>
 
-<pre class='language-julia'><code class='language-julia'>function penalty_jump_reaction(f, u, node)
+<pre class='language-julia'><code class='language-julia'>function penalty_jump_reaction(f, u, node, data)
     if node.region == 3
         react = 1.0e10 * (u[1] - u[2] - jump)
         f[1] = react
@@ -254,7 +254,7 @@ end</code></pre>
 
 <div class="markdown"><h3>Interface recombination</h3><p>Here, we implement an annihilation reaction <span class="tex">\(u_1 + u_2 \to \emptyset\)</span> According to the mass action law, this is implemented via</p><p><span class="tex">\(r(u_1,u_2)=k_r u_1 u_2\)</span></p><p><span class="tex">\(f_1(u_1,u_2)=r\)</span></p><p><span class="tex">\(f_2(u_1,u_2)=r\)</span></p></div>
 
-<pre class='language-julia'><code class='language-julia'>function recombination(f, u, node)
+<pre class='language-julia'><code class='language-julia'>function recombination(f, u, node, data)
     if node.region == 3
         react = k_r * (u[1] * u[2])
         f[1] = react
@@ -281,7 +281,7 @@ end;</code></pre>
 <pre class='language-julia'><code class='language-julia'>const d = 1</code></pre>
 <pre class="code-output documenter-example-output" id="var-const d">1</pre>
 
-<pre class='language-julia'><code class='language-julia'>function thinlayer(f, u, node)
+<pre class='language-julia'><code class='language-julia'>function thinlayer(f, u, node, data)
     if node.region == 3
         react = (u[1] - u[2]) / d
         f[1] = react
@@ -352,7 +352,7 @@ end</code></pre>
 
 <div class="markdown"><p>For both quantities, we define simple diffusion fluxes:</p></div>
 
-<pre class='language-julia'><code class='language-julia'>function flux2(f, u, edge)
+<pre class='language-julia'><code class='language-julia'>function flux2(f, u, edge, data)
     f[dspec] = u[dspec, 1] - u[dspec, 2]
     f[cspec] = u[cspec, 1] - u[cspec, 2]
 end</code></pre>
@@ -361,7 +361,7 @@ end</code></pre>
 
 <div class="markdown"><p>Define a thin layer interface condition for <code>dspec</code> and an interface source for <code>cspec</code>.</p></div>
 
-<pre class='language-julia'><code class='language-julia'>function breaction2(f, u, node)
+<pre class='language-julia'><code class='language-julia'>function breaction2(f, u, node, data)
     if node.region &gt; 2
         react = (u[dspec, 1] - u[dspec, 2]) / d1
         f[dspec, 1] = react
@@ -466,7 +466,7 @@ end</code></pre>
 
 <hr/>
 <div class='manifest-versions'>
-<p>Built with Julia 1.10.4 and</p>
+<p>Built with Julia 1.10.5 and</p>
 CairoMakie 0.11.5<br>
 ExtendableGrids 1.2.3<br>
 GridVisualize 1.5.0<br>
@@ -478,4 +478,4 @@ Revise 3.5.13<br>
 VoronoiFVM 1.16.0
 </div>
 
-<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../flux-reconstruction/">« Obtaining vector fields</a><a class="docs-footer-nextpage" href="../problemcase/">A case for caution »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Tuesday 27 August 2024 20:41">Tuesday 27 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<!-- PlutoStaticHTML.End --></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../flux-reconstruction/">« Obtaining vector fields</a><a class="docs-footer-nextpage" href="../problemcase/">A case for caution »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Monday 9 September 2024 13:41">Monday 9 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

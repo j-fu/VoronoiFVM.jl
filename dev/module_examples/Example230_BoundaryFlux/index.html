@@ -34,15 +34,15 @@ function main(; n = 2 * 10, # n musst be an even number
 
     #### discretization functions ####
 
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[1] = d1 * (u[1, 1] - u[1, 2])
     end
 
-    function reaction!(f, u, node)
+    function reaction!(f, u, node, data)
         f[1] = k1[node.index] * u[1]
     end
 
-    function source!(f, node::VoronoiFVM.Node)
+    function source!(f, node::VoronoiFVM.Node, data)
         f[1] = c1[node.index]
     end
 
@@ -73,26 +73,26 @@ function main(; n = 2 * 10, # n musst be an even number
     c2 = 1.0
 
     #### discretization functions for bulk species ####
-    function flux2D!(f, u, edge)
+    function flux2D!(f, u, edge, data)
         f[ispec_2D] = d2 * (u[ispec_2D, 1] - u[ispec_2D, 2])
     end
 
-    function reaction2D!(f, u, node)
+    function reaction2D!(f, u, node, data)
         f[ispec_2D] = k2 * u[ispec_2D]
     end
 
-    function source2D!(f, node)
+    function source2D!(f, node, data)
         f[ispec_2D] = c2
     end
 
     #### discretization functions for boundary species at active boundary ####
-    function bflux!(f, u, bedge)
+    function bflux!(f, u, bedge, data)
         if bedge.region == active_boundary
             f[ispec_boundary] = db * (u[ispec_boundary, 1] - u[ispec_boundary, 2])
         end
     end
 
-    function breaction!(f, u, bnode)
+    function breaction!(f, u, bnode, data)
         if bnode.region == active_boundary
             if bnode.coord[2, bnode.index] &lt;= 0.5
                 kb = kmax
@@ -104,7 +104,7 @@ function main(; n = 2 * 10, # n musst be an even number
         end
     end
 
-    function bsource!(f, bnode)
+    function bsource!(f, bnode, data)
         if bnode.region == active_boundary
             if bnode.coord[2, bnode.index] &lt;= 0.5
                 cb = 0.0
@@ -145,4 +145,4 @@ function runtests()
           main(; unknown_storage = :sparse, assembly = :cellwise) &lt; 1.0e-14
 end
 
-end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Tuesday 27 August 2024 20:41">Tuesday 27 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end # module</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example226_BoundaryIntegral/">« 226: Terminal flux calculation via test functions, nD, boundary reaction</a><a class="docs-footer-nextpage" href="../Example301_Laplace3D/">301: 3D Laplace equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Monday 9 September 2024 13:41">Monday 9 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

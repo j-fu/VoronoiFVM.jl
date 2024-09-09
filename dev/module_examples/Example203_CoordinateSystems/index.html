@@ -12,7 +12,7 @@ function plot(grid, numerical, exact, Plotter)
     scalarplot!(vis[2, 1], grid, exact; title = &quot;exact&quot;, show = true)
 end
 
-function flux(f, u, edge)
+function flux(f, u, edge, data)
     f[1] = u[1, 1] - u[1, 2]
 end
 
@@ -36,7 +36,7 @@ function maindisk(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     R = collect(0:h:r2)
     grid = simplexgrid(R)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -65,7 +65,7 @@ function maincylinder(;
     Z = collect(z1:h:z2)
     grid = simplexgrid(R, Z)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -94,7 +94,7 @@ function maincylinder_unstruct(;
     h = 0.1 * 2.0^(-nref)
     grid = simplexgrid(joinpath(pkgdir(VoronoiFVM), &quot;assets&quot;, &quot;cyl_unstruct.sg&quot;))
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -122,7 +122,7 @@ function mainring(; nref = 0, r1 = 1.0, r2 = 5.0, Plotter = nothing, assembly = 
     R = collect(r1:h:r2)
     grid = simplexgrid(R)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 0.0
+    source(f, node, data) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 1, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
@@ -151,7 +151,7 @@ function maincylindershell(;
     Z = collect(z1:h:z2)
     grid = simplexgrid(R, Z)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 0.0
+    source(f, node, data) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 4, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
@@ -181,7 +181,7 @@ function mainsphere(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewis
     R = collect(0:h:r2)
     grid = simplexgrid(R)
     spherical_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -214,7 +214,7 @@ function mainsphereshell(;
     R = collect(r1:h:r2)
     grid = simplexgrid(R)
     spherical_symmetric!(grid)
-    source(f, node) = f[1] = 0.0
+    source(f, node, data) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 1, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
@@ -240,4 +240,4 @@ function runtests()
           mainsphereshell(; assembly = :cellwise)
 end
 
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example201_Laplace2D/">« 201: 2D Laplace equation</a><a class="docs-footer-nextpage" href="../Example204_HagenPoiseuille/">204: 2D Convection in Hagen-Poiseuille flow »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.6.0 on <span class="colophon-date" title="Tuesday 27 August 2024 20:41">Tuesday 27 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example201_Laplace2D/">« 201: 2D Laplace equation</a><a class="docs-footer-nextpage" href="../Example204_HagenPoiseuille/">204: 2D Convection in Hagen-Poiseuille flow »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Monday 9 September 2024 13:41">Monday 9 September 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

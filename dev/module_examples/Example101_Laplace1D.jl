@@ -96,13 +96,13 @@ function main()
 
     ## Flux function which describes the flux
     ## between neighboring control volumes
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[1] = u[1, 1] - u[1, 2]
     end
 
-    function bcond!(args...)
-        boundary_dirichlet!(args...; region = 1, value = 0)
-        boundary_dirichlet!(args...; region = 2, value = 1)
+    function bcond!(f, u, node, data)
+        boundary_dirichlet!(f, u, node; region = 1, value = 0)
+        boundary_dirichlet!(f, u, node; region = 2, value = 1)
     end
 
     ## Create a one dimensional discretization grid

@@ -74,7 +74,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly = 
 
     ##For both quantities, we define simple diffusion fluxes:
 
-    function flux(f, u, edge)
+    function flux(f, u, edge, data)
         f[dspec] = u[dspec, 1] - u[dspec, 2]
         f[cspec] = u[cspec, 1] - u[cspec, 2]
     end
@@ -82,7 +82,7 @@ function main(; N = 5, Plotter = nothing, unknown_storage = :sparse, assembly = 
     d1 = 1
     q1 = 0.2
 
-    function breaction(f, u, bnode)
+    function breaction(f, u, bnode, data)
 
         # left outer boundary value for dspec
         if bnode.region == 1

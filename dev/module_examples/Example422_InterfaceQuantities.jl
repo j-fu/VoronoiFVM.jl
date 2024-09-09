@@ -68,7 +68,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
     NA = [10.0, 0.0]
     ND = [0.0, 10.0]
 
-    function storage!(f, u, node)
+    function storage!(f, u, node, data)
         etan = -((u[iphin] - u[ipsi]))
         etap = ((u[iphip] - u[ipsi]))
 
@@ -78,7 +78,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         f[ipsi] = 0.0
     end
 
-    function reaction!(f, u, node)
+    function reaction!(f, u, node, data)
         etan = -((u[iphin] - u[ipsi]))
         etap = ((u[iphip] - u[ipsi]))
 
@@ -91,7 +91,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         f[iphip] = recomb
     end
 
-    function flux!(f, u, node)
+    function flux!(f, u, node, data)
         f[ipsi] = -(u[ipsi, 2] - u[ipsi, 1])
 
         ########################
@@ -107,7 +107,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         f[iphip] = -(bp * exp(etap2) - bm * exp(etap1))
     end
 
-    function breaction!(f, u, bnode)
+    function breaction!(f, u, bnode, data)
         if bnode.region == bjunction
             # left values
             nleft = exp(-((u[iphin, 1] - u[ipsi])))
@@ -136,7 +136,7 @@ function main(; n = 5, Plotter = nothing, tend = 20.0, unknown_storage = :sparse
         end
     end
 
-    function bstorage!(f, u, bnode)
+    function bstorage!(f, u, bnode, data)
         f[ipsi] = 0.0
 
         if bnode.region == bjunction

@@ -27,15 +27,15 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
         Γ_where_T_equal_0 = [4]
     end
 
-    function storage(f, u, node)
+    function storage(f, u, node, data)
         f .= u
     end
 
-    function flux(f, u, edge)
+    function flux(f, u, edge, data)
         f[1] = u[1, 1] - u[1, 2]
     end
 
-    function breaction(f, u, node)
+    function breaction(f, u, node, data)
         if node.region == Γ_where_T_equal_1[1]
             f[1] = u[1]^2
         end
