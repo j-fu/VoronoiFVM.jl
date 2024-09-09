@@ -1,5 +1,5 @@
 # Changes
-## upcoming release
+## v1.25.0, Sept 9, 2024
 - [`VoronoiFVM.Physics`](@ref) callbacks (`flux`, `storage`, etc.) without `data` argument are now deprecated
 
 ## v1.24.0 August 20, 2024 
