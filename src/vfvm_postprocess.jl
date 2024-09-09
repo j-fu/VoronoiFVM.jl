@@ -23,10 +23,6 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
 
     if boundary
         bnode = BNode(system)
-        bnodeparams = (bnode,)
-        if isdata(data)
-            bnodeparams = (bnode, data)
-        end
         #!!!        bnode.time=time
         #!!!        bnode.embedparam=embedparam
 
@@ -38,17 +34,13 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
             for ibnode in noderange(system.boundary_assembly_data, item)
                 _fill!(bnode, system.boundary_assembly_data, ibnode, item)
                 res .= zero(Tv)
-                @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnodeparams...)
+                @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnode, data)
                 asm_res(idof, ispec) = integral[ispec, bnode.region] += bnode.fac * res[ispec]
                 assemble_res(bnode, system, asm_res)
             end
         end
     else
         node = Node(system)
-        nodeparams = (node,)
-        if isdata(data)
-            nodeparams = (node, data)
-        end
         #!!!        node.time=time
         #!!!        node.embedparam=embedparam
         cellregions = grid[CellRegions]
@@ -58,7 +50,7 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
             for inode in noderange(system.assembly_data, item)
                 _fill!(node, system.assembly_data, inode, item)
                 res .= zero(Tv)
-                @views F(rhs(node, res), unknowns(node, U[:, node.index]), nodeparams...)
+                @views F(rhs(node, res), unknowns(node, U[:, node.index]), node, data)
                 asm_res(idof, ispec) = integral[ispec, node.region] += node.fac * res[ispec]
                 assemble_res(node, system, asm_res)
             end
@@ -104,10 +96,6 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
         error("missing implementation of boundary edge integrals")
     else
         edge = Edge(system)
-        edgeparams = (edge,)
-        if isdata(data)
-            edgeparams = (edge, data)
-        end
         cellregions = grid[CellRegions]
         ncellregions = maximum(cellregions)
         integral = zeros(Tu, nspecies, ncellregions)
@@ -117,7 +105,7 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
                 @views UKL[1:nspecies] .= U[:, edge.node[1]]
                 @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
                 res .= zero(Tv)
-                @views F(rhs(edge, res), unknowns(edge, UKL), edgeparams...)
+                @views F(rhs(edge, res), unknowns(edge, UKL), edge, data)
                 function asm_res(idofK, idofL, ispec)
                     h = meas(edge)
                     # This corresponds to the multiplication with the diamond volume.

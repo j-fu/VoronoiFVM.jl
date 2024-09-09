@@ -12,6 +12,8 @@
     solve!(solution,inival, system::VoronoiFVM.AbstractSystem; kwargs...)
 ````
    - History is now a field of the solution but not system, to be accessed with  ``history(sol)``, both for stationary and transient solutions
+   - [`VoronoiFVM.Physics`](@ref) callbacks (`flux`, `storage`, etc.) need a provided `data` argument
+
 ### Added
   - Introduced ``SystemState`` which contains entries (matrix, residuals) which before were
     part of ``System``

@@ -975,11 +975,7 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
 
     # set up bnode
     bnode = BNode(system, time, λ, params)
-    bnodeparams = (bnode,)
     data = system.physics.data
-    if isdata(data)
-        bnodeparams = (bnode, data)
-    end
 
     # setup unknowns to be passed
     UK = zeros(Tv, num_species(system) + length(params))
@@ -999,7 +995,7 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
             bnode.dirichlet_value .= Inf
             # set up solution vector, call boundary reaction
             @views UK[1:nspecies] .= U[:, bnode.index]
-            system.physics.breaction(y, u, bnodeparams...)
+            system.physics.breaction(y, u, bnode, data)
 
             # Check for Dirichlet bc
             for ispec = 1:nspecies
