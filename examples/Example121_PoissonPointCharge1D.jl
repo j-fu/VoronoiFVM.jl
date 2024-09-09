@@ -40,16 +40,16 @@ function main(; nref = 0, Plotter = nothing, verbose = false, unknown_storage = 
 
     Q::Float64 = 0.0
 
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[1] = u[1, 1] - u[1, 2]
     end
-    function storage!(f, u, node)
+    function storage!(f, u, node, data)
         f[1] = u[1]
     end
 
     ## Define boundary reaction defining charge
     ## Note that the term  is written on  the left hand side, therefore the - sign
-    function breaction!(f, u, node)
+    function breaction!(f, u, node, data)
         if node.region == 3
             f[1] = -Q
         end

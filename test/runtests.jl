@@ -19,9 +19,9 @@ end
 
 function run_all_tests(; run_notebooks = false, notebooksonly = false)
     if !notebooksonly
-        # @testset "basictest" begin
-        #     run_tests_from_directory(@__DIR__, "test_")
-        # end
+        @testset "basictest" begin
+            run_tests_from_directory(@__DIR__, "test_")
+        end
 
         @testset "Development Examples" begin
             run_tests_from_directory(joinpath(@__DIR__, "..", "examples"), "Example0")

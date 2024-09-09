@@ -48,7 +48,7 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
     eps = [1, 1, 1]
     k = [1, 1, 1]
 
-    function reaction(f, u, node)
+    function reaction(f, u, node, data)
         if node.region == 1
             f[1] = k[1] * u[1]
             f[2] = -k[1] * u[1]
@@ -60,13 +60,13 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
         end
     end
 
-    function source(f, node)
+    function source(f, node, data)
         if node.region == 1
             f[1] = 1.0e-4 * (3.0 - node[1])
         end
     end
 
-    flux = function (f, u, edge)
+    flux = function (f, u, edge, data)
         if edge.region == 1
             f[1] = eps[1] * (u[1, 1] - u[1, 2])
             f[2] = eps[2] * (u[2, 1] - u[2, 2])
@@ -77,8 +77,8 @@ function main(;dim=1, nref=0, Plotter = nothing, plot_grid = false, verbose = fa
             f[3] = eps[3] * (u[3, 1] - u[3, 2])
         end
     end
-    
-    storage = function (f, u, node)
+
+    storage = function (f, u, node, data)
         if node.region == 1
             f[1] = u[1]
             f[2] = u[2]

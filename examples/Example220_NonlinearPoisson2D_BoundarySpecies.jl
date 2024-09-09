@@ -18,24 +18,24 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     k = 1.0
     eps::Float64 = 1.0
     physics = VoronoiFVM.Physics(;
-                                 breaction = function (f, u, node)
+                                 breaction = function (f, u, node, data)
                                      if node.region == 2
                                          f[1] = k * (u[1] - u[3])
                                          f[3] = k * (u[3] - u[1]) + k * (u[3] - u[2])
                                          f[2] = k * (u[2] - u[3])
                                      end
-                                 end, bstorage = function (f, u, node)
+                                 end, bstorage = function (f, u, node, data)
                                      if node.region == 2
                                          f[3] = u[3]
                                      end
-                                 end, flux = function (f, u, edge)
+                                 end, flux = function (f, u, edge, data)
                                      f[1] = eps * (u[1, 1] - u[1, 2])
                                      f[2] = eps * (u[2, 1] - u[2, 2])
-                                 end, source = function (f, node)
+                                 end, source = function (f, node, data)
                                      x1 = node[1] - 0.5
                                      x2 = node[2] - 0.5
                                      f[1] = exp(-20.0 * (x1^2 + x2^2))
-                                 end, storage = function (f, u, node)
+                                 end, storage = function (f, u, node, data)
                                      f[1] = u[1]
                                      f[2] = u[2]
                                  end)

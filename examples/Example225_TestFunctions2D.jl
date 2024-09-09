@@ -126,23 +126,23 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
         Γ_where_T_equal_0 = [4]
     end
 
-    function storage(f, u, node)
+    function storage(f, u, node, data)
         f .= u
     end
 
-    function flux(f, u, edge)
+    function flux(f, u, edge, data)
         f[1] = u[1, 1] - u[1, 2]
         f[2] = u[2, 1] - u[2, 2]
     end
 
     r(u1, u2) = u1 - 0.1 * u2
 
-    function reaction(f, u, node)
+    function reaction(f, u, node, data)
         f[1] = r(u[1], u[2])
         f[2] = -r(u[1], u[2])
     end
 
-    function source(f, node)
+    function source(f, node, data)
         f[1] = 1.0
     end
 
@@ -179,7 +179,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     """
     Amount of species created by source term per unit time:
     """
-    F = integrate(system, (f, u, node) -> source(f, node), sol)
+    F = integrate(system, (f, u, node, data) -> source(f, node, data), sol)
 
     """
     Amount of  reaction per unit time:

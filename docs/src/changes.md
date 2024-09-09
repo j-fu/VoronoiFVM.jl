@@ -1,9 +1,9 @@
 # Changes
+## upcoming release
+- [`VoronoiFVM.Physics`](@ref) callbacks (`flux`, `storage`, etc.) without `data` argument are now deprecated
+
 ## v1.24.0 August 20, 2024 
 - Bernoulli function using expm1 (thanks @tcaduser !)
-
-## v1.23.0 August 2, 2024 
-- Add `integrate(sys,solution)` method
 
 ## v1.23.0 August 2, 2024 
 - Add `integrate(sys,solution)` method

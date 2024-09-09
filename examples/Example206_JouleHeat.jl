@@ -61,24 +61,24 @@ function main(; nref = 0, Plotter = nothing, verbose = "and", unknown_storage = 
     λ::Float64 = 1
     c::Float64 = 1
 
-    function storage!(y, u, node)
+    function storage!(y, u, node, data)
         y[iT] = c * u[iT]
     end
 
     κ(T) = κ0 * exp(α * (T - T0))
 
-    function flux!(y, u, edge)
+    function flux!(y, u, edge, data)
         y[iϕ] = κ(y[iT]) * (u[iϕ, 1] - u[iϕ, 2])
         y[iT] = λ * (u[iT, 1] - u[iT, 2])
     end
 
     ## The convention in VoronoiFVM.jl is to have all terms depending on the solution
     ## on the left hand side of the equation. That is why we have the minus sign here.
-    function jouleheat!(y, u, edge)
+    function jouleheat!(y, u, edge, data)
         y[iT] = -κ(y[iT]) * (u[iϕ, 1] - u[iϕ, 2]) * (u[iϕ, 1] - u[iϕ, 2])
     end
 
-    function bcondition!(y, u, node)
+    function bcondition!(y, u, node, data)
         boundary_dirichlet!(y, u, node; species = iϕ, region = 1, value = -10)
         boundary_dirichlet!(y, u, node; species = iϕ, region = 2, value = 10)
 

@@ -17,7 +17,7 @@ function plot(grid, numerical, exact, Plotter)
     scalarplot!(vis[2, 1], grid, exact; title = "exact", show = true)
 end
 
-function flux(f, u, edge)
+function flux(f, u, edge, data)
     f[1] = u[1, 1] - u[1, 2]
 end
 
@@ -41,7 +41,7 @@ function maindisk(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewise)
     R = collect(0:h:r2)
     grid = simplexgrid(R)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -70,7 +70,7 @@ function maincylinder(;
     Z = collect(z1:h:z2)
     grid = simplexgrid(R, Z)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -101,7 +101,7 @@ function maincylinder_unstruct(;
     h = 0.1 * 2.0^(-nref)
     grid = simplexgrid(joinpath(pkgdir(VoronoiFVM), "assets", "cyl_unstruct.sg"))
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -129,7 +129,7 @@ function mainring(; nref = 0, r1 = 1.0, r2 = 5.0, Plotter = nothing, assembly = 
     R = collect(r1:h:r2)
     grid = simplexgrid(R)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 0.0
+    source(f, node, data) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 1, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
@@ -158,7 +158,7 @@ function maincylindershell(;
     Z = collect(z1:h:z2)
     grid = simplexgrid(R, Z)
     circular_symmetric!(grid)
-    source(f, node) = f[1] = 0.0
+    source(f, node, data) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 4, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
@@ -188,7 +188,7 @@ function mainsphere(; nref = 0, r2 = 5.0, Plotter = nothing, assembly = :edgewis
     R = collect(0:h:r2)
     grid = simplexgrid(R)
     spherical_symmetric!(grid)
-    source(f, node) = f[1] = 1.0
+    source(f, node, data) = f[1] = 1.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)
     sol = solve(sys)
@@ -221,7 +221,7 @@ function mainsphereshell(;
     R = collect(r1:h:r2)
     grid = simplexgrid(R)
     spherical_symmetric!(grid)
-    source(f, node) = f[1] = 0.0
+    source(f, node, data) = f[1] = 0.0
     sys = VoronoiFVM.System(grid; source, flux, species = [1], assembly = assembly)
     boundary_dirichlet!(sys; species = 1, region = 1, value = 1.0)
     boundary_dirichlet!(sys; species = 1, region = 2, value = 0.0)

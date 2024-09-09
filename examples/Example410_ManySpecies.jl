@@ -17,7 +17,7 @@ using LinearAlgebra
 function main(; n = 11, nspec = 50, Plotter = nothing, unknown_storage = :dense, assembly = :edgewise)
     grid = simplexgrid(range(0, 1; length = n))
 
-    function flux(f, u, edge)
+    function flux(f, u, edge, data)
         for ispec = 1:nspec
             f[ispec] = u[ispec, 1] - u[ispec, 2]
         end

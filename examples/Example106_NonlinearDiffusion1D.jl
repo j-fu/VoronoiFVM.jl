@@ -44,12 +44,12 @@ function main(; n = 20, m = 2, Plotter = nothing, verbose = false,
 
     ## Flux function which describes the flux
     ## between neighboring control volumes
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[1] = u[1, 1]^m - u[1, 2]^m
     end
 
     ## Storage term
-    function storage!(f, u, node)
+    function storage!(f, u, node, data)
         f[1] = u[1]
     end
 

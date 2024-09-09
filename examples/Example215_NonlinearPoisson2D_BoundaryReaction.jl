@@ -18,7 +18,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
     grid = simplexgrid(X, Y)
 
     eps = 1.0e-2
-    physics = VoronoiFVM.Physics(; breaction = function (f, u, node)
+    physics = VoronoiFVM.Physics(; breaction = function (f, u, node, data)
                                      if node.region == 2
                                          f[1] = 1 * (u[1] - u[2])
                                          f[2] = 1 * (u[2] - u[1])
@@ -26,10 +26,10 @@ function main(; n = 10, Plotter = nothing, verbose = false, unknown_storage = :s
                                          f[1] = 0
                                          f[2] = 0
                                      end
-                                 end, flux = function (f, u, edge)
+                                 end, flux = function (f, u, edge, data)
                                      f[1] = eps * (u[1, 1] - u[1, 2])
                                      f[2] = eps * (u[2, 1] - u[2, 2])
-                                 end, storage = function (f, u, node)
+                                 end, storage = function (f, u, node, data)
                                      f[1] = u[1]
                                      f[2] = u[2]
                                  end)

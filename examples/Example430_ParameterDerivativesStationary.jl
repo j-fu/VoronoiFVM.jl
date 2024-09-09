@@ -27,15 +27,15 @@ function f(P; n = 10)
     nspecies = 1
     ispec = 1
 
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[1] = (1 + p) * (u[1, 1]^2 - u[1, 2]^2)
     end
 
-    function r!(f, u, edge)
+    function r!(f, u, edge, data)
         f[1] = p * u[1]^5
     end
 
-    function bc!(f, u, node)
+    function bc!(f, u, node, data)
         boundary_dirichlet!(f, u, node, ispec, 1, 0.0)
         boundary_dirichlet!(f, u, node, ispec, 3, p)
     end
@@ -139,17 +139,17 @@ end
 
 #########################################################################
 
-function fluxh!(f, u, edge)
+function fluxh!(f, u, edge, data)
     p = parameters(u)[1]
     f[1] = (1 + p) * (u[1, 1]^2 - u[1, 2]^2)
 end
 
-function rh!(f, u, edge)
+function rh!(f, u, edge, data)
     p = parameters(u)[1]
     f[1] = p * u[1]^5
 end
 
-function bch!(f, u, node)
+function bch!(f, u, node, data)
     p = parameters(u)[1]
     boundary_dirichlet!(f, u, node, 1, 1, 0.0)
     boundary_dirichlet!(f, u, node, 1, 3, p)

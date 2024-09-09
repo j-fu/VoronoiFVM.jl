@@ -58,15 +58,15 @@ function main(; n = 2 * 10, # n musst be an even number
 
     #### discretization functions ####
 
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[1] = d1 * (u[1, 1] - u[1, 2])
     end
 
-    function reaction!(f, u, node)
+    function reaction!(f, u, node, data)
         f[1] = k1[node.index] * u[1]
     end
 
-    function source!(f, node::VoronoiFVM.Node)
+    function source!(f, node::VoronoiFVM.Node, data)
         f[1] = c1[node.index]
     end
 
@@ -103,26 +103,26 @@ function main(; n = 2 * 10, # n musst be an even number
     c2 = 1.0
 
     #### discretization functions for bulk species ####
-    function flux2D!(f, u, edge)
+    function flux2D!(f, u, edge, data)
         f[ispec_2D] = d2 * (u[ispec_2D, 1] - u[ispec_2D, 2])
     end
 
-    function reaction2D!(f, u, node)
+    function reaction2D!(f, u, node, data)
         f[ispec_2D] = k2 * u[ispec_2D]
     end
 
-    function source2D!(f, node)
+    function source2D!(f, node, data)
         f[ispec_2D] = c2
     end
 
     #### discretization functions for boundary species at active boundary ####
-    function bflux!(f, u, bedge)
+    function bflux!(f, u, bedge, data)
         if bedge.region == active_boundary
             f[ispec_boundary] = db * (u[ispec_boundary, 1] - u[ispec_boundary, 2])
         end
     end
 
-    function breaction!(f, u, bnode)
+    function breaction!(f, u, bnode, data)
         if bnode.region == active_boundary
             if bnode.coord[2, bnode.index] <= 0.5
                 kb = kmax
@@ -134,7 +134,7 @@ function main(; n = 2 * 10, # n musst be an even number
         end
     end
 
-    function bsource!(f, bnode)
+    function bsource!(f, bnode, data)
         if bnode.region == active_boundary
             if bnode.coord[2, bnode.index] <= 0.5
                 cb = 0.0

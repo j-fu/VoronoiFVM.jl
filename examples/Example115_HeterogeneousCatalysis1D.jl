@@ -77,19 +77,19 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     ## Diffusion flux for species A and B
     D_A = 1.0
     D_B = 1.0e-2
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[iA] = D_A * (u[iA, 1] - u[iA, 2])
         f[iB] = D_B * (u[iB, 1] - u[iB, 2])
     end
 
     ## Storage term of species A and B
-    function storage!(f, u, node)
+    function storage!(f, u, node, data)
         f[iA] = u[iA]
         f[iB] = u[iB]
     end
 
     ## Source term for species a around 0.5
-    function source!(f, node)
+    function source!(f, node, data)
         x1 = node[1] - 0.5
         f[iA] = exp(-100 * x1^2)
     end
@@ -110,7 +110,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     R_AC(u_A, u_C) = kp_AC * u_A * (1 - u_C) - km_AC * u_C
     R_BC(u_B, u_C) = kp_BC * u_B * (1 - u_C) - km_BC * u_C
 
-    function breaction!(f, u, node)
+    function breaction!(f, u, node, data)
         if node.region == 1
             f[iA] = S * R_AC(u[iA], u[iC])
             f[iB] = S * R_BC(u[iB], u[iC])
@@ -119,7 +119,7 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     end
 
     ## This is for the term \partial_t u_C at the boundary
-    function bstorage!(f, u, node)
+    function bstorage!(f, u, node, data)
         if node.region == 1
             f[iC] = u[iC]
         end

@@ -114,7 +114,7 @@ Define the diffusion flux for the two species in their respective subdomains
 """
 
 # ╔═╡ 6aabfbe1-de7d-49ba-8144-6d364b21b34f
-function flux!(f, u, edge)
+function flux!(f, u, edge, data)
     if edge.region == 1
         f[1] = u[1, 1] - u[1, 2]
     end
@@ -206,7 +206,7 @@ This means we set ``f_1(u_1,u_2)=0`` and ``f_2(u_1,u_2)=0``.
 """
 
 # ╔═╡ 8f210696-fcf4-47bc-a5a2-c561ad7efcbd
-function noreaction(f, u, node) end
+function noreaction(f, u, node, data) end
 
 # ╔═╡ 57e8515e-3be1-4478-af98-430501438ee7
 system1 = make_system(noreaction);
@@ -248,7 +248,7 @@ begin
 end
 
 # ╔═╡ 1328b4bf-2d64-4b02-a910-1995da8be28b
-function mal_reaction(f, u, node)
+function mal_reaction(f, u, node, data)
     if node.region == 3
         react = k1 * u[1] - k2 * u[2]
         f[1] = react
@@ -281,7 +281,7 @@ Setting ``k_1,k_2`` to a large number leads to another special case of the above
 """
 
 # ╔═╡ 9eaea813-2628-47d0-9d36-54c367689142
-function penalty_reaction(f, u, node)
+function penalty_reaction(f, u, node, data)
     if node.region == 3
         react = 1.0e10 * (u[1] - u[2])
         f[1] = react
@@ -306,7 +306,7 @@ Instead of enforcing continuity, one can enforce a fixed jump.
 const jump = 0.2
 
 # ╔═╡ 7331db49-7ace-468e-87d8-56ab5d900905
-function penalty_jump_reaction(f, u, node)
+function penalty_jump_reaction(f, u, node, data)
     if node.region == 3
         react = 1.0e10 * (u[1] - u[2] - jump)
         f[1] = react
@@ -341,7 +341,7 @@ According to the mass action law, this is implemented via
 const k_r = 1000
 
 # ╔═╡ 39a0db1b-3a4e-4108-b43f-d4e578c92608
-function recombination(f, u, node)
+function recombination(f, u, node, data)
     if node.region == 3
         react = k_r * (u[1] * u[2])
         f[1] = react
@@ -389,7 +389,7 @@ and therefore another special case of the mass action law condition.
 const d = 1
 
 # ╔═╡ 58d8831b-ad66-4f77-a33a-933c15c46a52
-function thinlayer(f, u, node)
+function thinlayer(f, u, node, data)
     if node.region == 3
         react = (u[1] - u[2]) / d
         f[1] = react
@@ -477,7 +477,7 @@ For both quantities, we define simple diffusion fluxes:
 """
 
 # ╔═╡ 719f206a-5b9f-4d78-8778-1d89edb2bc4d
-function flux2(f, u, edge)
+function flux2(f, u, edge, data)
     f[dspec] = u[dspec, 1] - u[dspec, 2]
     f[cspec] = u[cspec, 1] - u[cspec, 2]
 end
@@ -503,7 +503,7 @@ const d1 = 0.1
 const q1 = 0.2
 
 # ╔═╡ d6e1c6c7-060d-4c2f-8054-d8f33f54bd55
-function breaction2(f, u, node)
+function breaction2(f, u, node, data)
     if node.region > 2
         react = (u[dspec, 1] - u[dspec, 2]) / d1
         f[dspec, 1] = react

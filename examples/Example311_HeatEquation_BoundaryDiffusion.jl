@@ -38,17 +38,17 @@ function main(n = 1; assembly = :edgewise)
     eps = 1.0e0  # bulk heat conduction coefficient
     eps_surf = 1.0e-2 # surface diffusion coefficient
     k = 1.0    # transmission coefficient
-    physics = VoronoiFVM.Physics(; flux = function (f, u, edge)
+    physics = VoronoiFVM.Physics(; flux = function (f, u, edge, data)
                                      f[1] = eps * (u[1, 1] - u[1, 2])
                                  end,
-                                 bflux = function (f, u, edge)
+                                 bflux = function (f, u, edge, data)
                                      if edge.region == breg
                                          f[2] = eps_surf * (u[2, 1] - u[2, 2])
                                      else
                                          f[2] = 0.0
                                      end
                                  end,
-                                 breaction = function (f, u, node)
+                                 breaction = function (f, u, node, data)
                                      if node.region == breg
                                          f[1] = k * (u[1] - u[2])
                                          f[2] = k * (u[2] - u[1])
@@ -57,16 +57,16 @@ function main(n = 1; assembly = :edgewise)
                                          f[2] = 0.0
                                      end
                                  end,
-                                 bsource = function (f, bnode)
+                                 bsource = function (f, bnode, data)
                                      x1 = bnode[1] - 0.5
                                      x2 = bnode[2] - 0.5
                                      x3 = bnode[3] - 0.5
                                      f[2] = 1.0e4 * exp(-20.0 * (x1^2 + x2^2 + x3^2))
-                                 end, bstorage = function (f, u, node)
+                                 end, bstorage = function (f, u, node, data)
                                      if node.region == breg
                                          f[2] = u[2]
                                      end
-                                 end, storage = function (f, u, node)
+                                 end, storage = function (f, u, node, data)
                                      f[1] = u[1]
                                  end)
 

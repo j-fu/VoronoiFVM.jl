@@ -73,11 +73,11 @@ function create_porous_medium_problem(n,m)
     X=collect(-1:h:1)
     grid=VoronoiFVM.Grid(X)
 
-    function flux!(f,u,edge)
+    function flux!(f,u,edge,data)
         f[1]=u[1,1]^m-u[1,2]^m
     end
 
-    storage!(f,u,node)= f[1]=u[1]
+    storage!(f,u,node,data)= f[1]=u[1]
 
 	sys=VoronoiFVM.System(grid,flux=flux!,storage=storage!, species=1)
     sys,X

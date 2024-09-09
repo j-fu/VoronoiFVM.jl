@@ -40,7 +40,7 @@ function main(; n = 20, m = 2.0, Plotter = nothing, verbose = false,
 
     ## Flux function which describes the flux
     ## between neighboring control volumes
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         f[1] = u[1, 1] - u[1, 2]
     end
 
@@ -49,7 +49,7 @@ function main(; n = 20, m = 2.0, Plotter = nothing, verbose = false,
     ## Storage term
     ## This needs to be regularized as its derivative
     ## at 0 is infinity
-    function storage!(f, u, node)
+    function storage!(f, u, node, data)
         f[1] = (ϵ + u[1])^(1.0 / m)
     end
 

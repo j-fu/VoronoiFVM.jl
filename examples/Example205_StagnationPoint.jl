@@ -50,14 +50,14 @@ function main(; nref = 0, gridname = nothing, Plotter = nothing, D = 0.01, v = 1
     evelo = edgevelocities(grid, frz)
     bfvelo = bfacevelocities(grid, frz)
 
-    function flux!(f, u, edge)
+    function flux!(f, u, edge, data)
         vd = evelo[edge.index] / D
         bp = fbernoulli(vd)
         bm = fbernoulli(-vd)
         f[1] = D * (bp * u[1] - bm * u[2])
     end
 
-    function outflow!(f, u, node)
+    function outflow!(f, u, node, data)
         if node.region == Γ_out
             f[1] = bfvelo[node.ibnode, node.ibface] * u[1]
         end

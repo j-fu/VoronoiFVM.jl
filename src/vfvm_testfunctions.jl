@@ -32,10 +32,10 @@ $(TYPEDSIGNATURES)
 Constructor for TestFunctionFactory from System
 """
 function TestFunctionFactory(system::AbstractSystem; control = SolverControl())
-    physics = Physics(; flux = function (f, u, edge)
+    physics = Physics(; flux = function (f, u, edge, data)
                           f[1] = u[1] - u[2]
                       end,
-                      storage = function (f, u, node)
+                      storage = function (f, u, node, data)
                           f[1] = u[1]
                       end)
     tfsystem = System(system.grid, physics; unknown_storage = :dense)

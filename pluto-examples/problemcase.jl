@@ -334,19 +334,19 @@ function trsolve(grid;
                  Δp = 1.0,
                  ϕ = [1, 1],
                  tend = 100,)
-    function flux(y, u, edge)
+    function flux(y, u, edge, data)
         y[ip] = κ[edge.region] * (u[ip, 1] - u[ip, 2])
         bp, bm = fbernoulli_pm(y[ip] / D[edge.region])
         y[ic] = D[edge.region] * (bm * u[ic, 1] - bp * u[ic, 2])
     end
 
-    function stor(y, u, node)
+    function stor(y, u, node, data)
         y[ip] = 0
         y[ic] = ϕ[node.region] * u[ic]
     end
 
     dim = dim_space(grid)
-    function bc(y, u, bnode)
+    function bc(y, u, bnode, data)
         c0 = ramp(bnode.time; dt = (0, 0.001), du = (0, 1))
         boundary_dirichlet!(y, u, bnode, ic, Γ_in, c0)
         boundary_dirichlet!(y, u, bnode, ic, Γ_out, 0)
@@ -466,16 +466,16 @@ md"""
 
 # ╔═╡ bb3a50ed-32e7-4305-87d8-4093c054a4d2
 function rdsolve(grid; D = [1.0e-12, 1.0], R = [1, 0.1])
-    function flux(y, u, edge)
+    function flux(y, u, edge, data)
         y[1] = D[edge.region] * (u[1, 1] - u[1, 2])
     end
 
-    function rea(y, u, node)
+    function rea(y, u, node, data)
         y[1] = R[node.region] * u[1]
     end
-    function bc(args...)
-        boundary_dirichlet!(args..., 1, Γ_in, 1)
-        boundary_dirichlet!(args..., 1, Γ_out, 0)
+    function bc(y, u, bnode, data)
+        boundary_dirichlet!(y, u, bnode, 1, Γ_in, 1)
+        boundary_dirichlet!(y, u, bnode, 1, Γ_out, 0)
     end
     sys = VoronoiFVM.System(grid;
                             flux = flux,
