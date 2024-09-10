@@ -189,6 +189,38 @@ function solve_step!(state,
     solution
 end
 
+function evaluate_residual_and_jacobian!(state,u; params=Float64[], t = 0.0, tstep = Inf, embed = 0.0)
+    _initialize_dirichlet!(u, state.system)
+    eval_and_assemble(state.system,
+                      u,
+                      u,
+                      state.residual,
+                      state.matrix,
+                      state.dudp,
+                      t,
+                      tstep,
+                      embed,
+                      state.data,
+                      params
+                      )
+    flush!(state.matrix)
+end
+
+
+"""
+    evaluate_residual_and_jacobian(system,u;
+                                   t=0.0, tstep=Inf,embed=0.0)
+
+Evaluate residual and jacobian at solution value u.
+Returns a solution vector containing a copy of  residual, and an ExendableSparseMatrix
+containing a copy of the linearization at u.
+
+"""
+function evaluate_residual_and_jacobian(sys, u; kwargs...)
+    state=SystemState(sys)
+    eval_and_linearize!(state, u; kwargs...)
+    copy(state.residual), copy(state.matrix)
+end
 
 
 """
@@ -433,21 +465,6 @@ function solve_transient!(state,
     return tsol
 end
 
-"""
-    evaluate_residual_and_jacobian(system,u;
-                                   t=0.0, tstep=Inf,embed=0.0)
-
-Evaluate residual and jacobian at solution value u.
-Returns a solution vector containing a copy of  residual, and an ExendableSparseMatrix
-containing a copy of the linearization at u.
-
-"""
-function evaluate_residual_and_jacobian(sys, u; t = 0.0, tstep = Inf, embed = 0.0)
-    _complete!(sys; create_newtonvectors = true)
-
-    eval_and_assemble(sys, u, u, sys.residual, t, tstep, embed, zeros(0))
-    copy(sys.residual), copy(flush!(sys.matrix))
-end
 
 
 #####################################################################
