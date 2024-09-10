@@ -61,7 +61,7 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
 end
 
 """
-    integrate(system,F,U; boundary=false)
+    integrate(system,U; boundary=false)
 
 Integrate solution vector region-wise over domain or boundary.
 The result is an `nspec x nregion` matrix.

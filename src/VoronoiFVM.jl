@@ -6,6 +6,7 @@ $(read(joinpath(@__DIR__,"..","README.md"),String))
 module VoronoiFVM
 
 using BandedMatrices: BandedMatrices, BandedMatrix, Zeros
+import Colors
 using CommonSolve: CommonSolve, solve, solve!
 using DiffResults: DiffResults
 using DocStringExtensions: DocStringExtensions, SIGNATURES, TYPEDEF,
@@ -34,6 +35,7 @@ using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
 #                        STExtendableSparseMatrixCSC,
 
 using ForwardDiff: ForwardDiff
+using GridVisualize: GridVisualize, GridVisualizer
 using InteractiveUtils: InteractiveUtils
 using JLD2: JLD2, jldopen
 using LinearAlgebra: LinearAlgebra, Diagonal, I, Tridiagonal, isdiag, ldiv!, norm
@@ -53,6 +55,8 @@ using StaticArrays: StaticArrays, @MVector, @SArray, @SMatrix
 using Statistics: Statistics, mean
 using Symbolics: Symbolics
 using Compat: @compat
+
+
 
 include("vfvm_physics.jl")
 @compat public Physics

@@ -1,7 +1,3 @@
-# Extend GridVisualize methods
-import GridVisualize
-import Colors
-
 """
     $(TYPEDSIGNATURES)
 
@@ -41,10 +37,10 @@ Plot one species from transient solution
 """
 function GridVisualize.scalarplot(sys::AbstractSystem, sol::AbstractTransientSolution; species = 1, scale = 1.0, tscale = :identity,
                                   kwargs...)
-    vis = GridVisualizer(kwargs...)
+    vis = GridVisualizer(;kwargs...)
     if !isnothing(vis.Plotter)
-        scalarplot!(vis[1, 1], sys, sol; species = species, scale = scale, tscale = tscale, kwargs...)
-        reveal(vis)
+        GridVisualize.scalarplot!(vis[1, 1], sys, sol; species = species, scale = scale, tscale = tscale, kwargs...)
+        GridVisualize.reveal(vis)
     end
 end
 
