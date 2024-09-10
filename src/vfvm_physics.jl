@@ -60,14 +60,6 @@ function nofunc_generic_sparsity(sys)
 end
 
 
-#
-# Dummy data type that represents data or not
-# We need this for the `data` deprecation phase
-#
-@kwdef mutable struct MaybeData
-    isdata=false
-end
-
 ##########################################################
 """
 ````
@@ -200,7 +192,6 @@ end
 ##########################################################
 
 isdata(::Nothing) = false
-isdata(d::MaybeData) = d.isdata
 isdata(::Any) = true
 
 """
@@ -224,7 +215,7 @@ Physics(;num_species=0,
 Constructor for physics data. For the meaning of the optional keyword arguments, see [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
 function Physics(; num_species = 0,
-                 data = MaybeData(isdata=false),
+                 data = nothing,
                  flux::Function = nofunc,
                  reaction::Function = nofunc,
                  edgereaction::Function = nofunc,
@@ -239,30 +230,6 @@ function Physics(; num_species = 0,
                  generic::Function = nofunc_generic,
                  generic_sparsity::Function = nofunc_generic_sparsity,
                  kwargs...)
-    if !isdata(data)
-        # deprecation check: callbacks without a `data` argument are not supported in future versions
-        callbacks = [flux, reaction, edgereaction, storage, source, bflux, breaction, bsource, bstorage, boutflow]
-        callbacks_seem_fine = true
-        for f in callbacks
-            # ignore dummy functions
-            if !(f in [nofunc, default_storage, nosrc])
-                # check whether the callbacks have a method with 3 or 4 arguments, respectively
-                nn = nothing
-                if ( f in [flux, reaction, edgereaction, storage, bflux, breaction, bstorage, boutflow] && applicable(f,nn,nn,nn) ) ||
-                   ( f in [source, bsource] && applicable(f,nn,nn) )
-                    @warn "using VoronoiFVM.Physics callback $(nameof(f)) without a `data` argument is now deprecated"
-                    callbacks_seem_fine = false
-                end
-            end
-        end
-
-        # it looks like all callbacks can be called with a `data` argument ⇒ enable a dummy data attribute
-        if callbacks_seem_fine
-            data.isdata = true
-        end
-
-    end
-
     return Physics(flux,
                    storage,
                    reaction,
@@ -376,36 +343,18 @@ function ResEvaluator(physics, data, symb::Symbol, uproto::Vector{Tv}, geom, nsp
 
     # source functions need special handling here
     if symb == :source || symb == :bsource
-        if isdata(physics.data)
-            fwrap = function (y)
-                y .= 0
-                func(rhs(geom, y), geom, data)
-                nothing
-            end
-        else
-            fwrap = function (y)
-                y .= 0
-                func(rhs(geom, y), geom)
-                nothing
-            end
+        fwrap = function (y)
+            y .= 0
+            func(rhs(geom, y), geom, data)
+            nothing
         end
     else   # Normal functions wihth u as parameter     
-        if isdata(physics.data)
-            fwrap = function (y, u)
-                y .= 0
-                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-                func(rhs(geom, y), unknowns(geom, u), geom, data)
-                ## for ii in .. y[ii]=y[geom.speclist[ii]]
-                nothing
-            end
-        else
-            fwrap = function (y, u)
-                y .= 0
-                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-                func(rhs(geom, y), unknowns(geom, u), geom)
-                ## for ii in .. y[ii]=y[geom.speclist[ii]]
-                nothing
-            end
+        fwrap = function (y, u)
+            y .= 0
+            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+            func(rhs(geom, y), unknowns(geom, u), geom, data)
+            ## for ii in .. y[ii]=y[geom.speclist[ii]]
+            nothing
         end
     end
     isnontrivial = (func != nofunc)
@@ -478,22 +427,12 @@ Constructor for ResJEvaluator
 function ResJacEvaluator(physics, data, symb::Symbol, uproto::Vector{Tv}, geom, nspec) where {Tv}
     func = getproperty(physics, symb)
 
-    if isdata(physics.data)
-        fwrap = function (y, u)
-            y .= 0
-            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-            func(rhs(geom, y), unknowns(geom, u), geom, data)
-            ## for ii in .. y[ii]=y[geom.speclist[ii]]
-            nothing
-        end
-    else
-        fwrap = function (y, u)
-            y .= 0
-            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-            func(rhs(geom, y), unknowns(geom, u), geom)
-            ## for ii in .. y[ii]=y[geom.speclist[ii]]
-            nothing
-        end
+    fwrap = function (y, u)
+        y .= 0
+        ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+        func(rhs(geom, y), unknowns(geom, u), geom, data)
+        ## for ii in .. y[ii]=y[geom.speclist[ii]]
+        nothing
     end
 
     isnontrivial = (func != nofunc)
