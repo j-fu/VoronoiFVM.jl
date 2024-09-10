@@ -14,6 +14,7 @@ DenseSolutionArray(u::Matrix{T}) where {T} =DenseSolutionArray{T,2}(u,nothing)
 
 Base.getindex(a::DenseSolutionArray, i::Int, j::Int)= getindex(a.u,i,j )
 Base.setindex!(a::DenseSolutionArray,v, i::Int, j::Int) = setindex!(a.u,v,i,j)
+Base.size(a::DenseSolutionArray)=size(a.u)
 
 """
  $(SIGNATURES)

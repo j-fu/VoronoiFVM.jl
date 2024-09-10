@@ -31,6 +31,7 @@ Array of values in sparse solution array.
 """
 values(a::SparseSolutionArray) = a.u.nzval
 
+Base.size(a::SparseSolutionArray)=size(a.u)
 ##################################################################
 """
 $(SIGNATURES)

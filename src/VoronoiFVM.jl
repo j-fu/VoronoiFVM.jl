@@ -28,10 +28,10 @@ using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,
                         ExtendableSparseMatrixCSC,
                         MTExtendableSparseMatrixCSC,
-#                        STExtendableSparseMatrixCSC,
                         AbstractExtendableSparseMatrixCSC,
                         PointBlockILUZeroPreconditioner, factorize!, flush!,
                         nnz, rawupdateindex!, sparse, updateindex!, nnznew
+#                        STExtendableSparseMatrixCSC,
 
 using ForwardDiff: ForwardDiff
 using InteractiveUtils: InteractiveUtils
@@ -44,7 +44,7 @@ using Printf: Printf, @printf, @sprintf
 using Random: Random, AbstractRNG
 using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray
 import RecursiveFactorization
-using SciMLBase: SciMLBase, AbstractNoTimeSolution
+using SciMLBase: SciMLBase
 using SparseArrays: SparseArrays, SparseMatrixCSC, dropzeros!, nonzeros,
                     nzrange, spzeros
 using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
@@ -62,7 +62,7 @@ export fbernoulli
 export fbernoulli_pm
 export inplace_linsolve!
 
-abstract type AbstractSolutionArray{T,N} <: AbstractNoTimeSolution{T,N} end
+abstract type AbstractSolutionArray{T,N} <: AbstractArray{T,N} end
 
 include("vfvm_history.jl")
 export NewtonSolverHistory, TransientSolverHistory, details

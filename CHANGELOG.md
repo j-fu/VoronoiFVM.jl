@@ -18,7 +18,7 @@
   - Introduced ``SystemState`` which contains entries (matrix, residuals) which before were
     part of ``System``
   - Introduced `solve!(state::SystemState)` method
-  - Stationary solutions are now subtypes of AbstractNoTimeSolution
+  - Stationary solutions now contain a history entry and are subtypes of VoronoiFVM.AbstractSolutionArray
   - Changelog now in package root
 
 ## v1.25.0, Sept 9, 2024
