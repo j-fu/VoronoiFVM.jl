@@ -151,7 +151,7 @@ Base.summary(h::DiffEqHistory) = details(h)
     history(sol)
 
 Return solver history if `log` was set to true.
-See  see [`NewtonSolverHistory`](@ref), [`TransiensolverHistory`](@ref).
+See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
 """
 history(sol) = sol.history
 

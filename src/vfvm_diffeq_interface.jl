@@ -19,7 +19,7 @@ end
 $(SIGNATURES)
 
 Interpret the  discrete problem as an ODE/DAE problem. Provide the 
-rhs function for [`ODEFunction`](@ref).
+rhs function for [`SciMLBase.ODEFunction`](@ref).
 """
 function eval_rhs!(du, u, state, t)
     _eval_res_jac!(state, u, t)
@@ -32,7 +32,7 @@ end
 $(SIGNATURES)
 
 Interpret the  discrete problem as an ODE/DAE problem. Provide the 
-jacobi matrix calculation function for [`ODEFunction`](@ref)
+jacobi matrix calculation function for [`SciMLBase.ODEFunction`](@ref)
 """
 function eval_jacobian!(J, u, state, t)
     _eval_res_jac!(state, u, t)
@@ -45,7 +45,7 @@ end
 """
 $(SIGNATURES)
 
-Calculate the mass matrix for use with [`ODEFunction`](@ref).
+Calculate the mass matrix for use with [`SciMLBase.ODEFunction`](@ref).
 Return a Diagonal matrix if it occurs to be diagonal, otherwise return a SparseMatrixCSC.
 """
 function mass_matrix(state::SystemState{Tv, TMatrix, TSolArray, TData}) where {Tv, TMatrix, TSolArray, TData}
@@ -113,9 +113,22 @@ end
 # API
 
 """
+     ODEFunction(state,inival=unknowns(system,inival=0),t0=0)
+    
+Create an [ODEFunction](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems).
+For more documentation, see [`SciMLBase.ODEFunction(state::VoronoiFVM.SystemState; kwargs...)`](@ref)
+"""
+function SciMLBase.ODEFunction(state::VoronoiFVM.SystemState; jacval = unknowns(sys, 0), tjac = 0)
+    SciMLBase.ODEFunction(eval_rhs!;
+                          jac = eval_jacobian!,
+                          jac_prototype = prepare_diffeq!(state, vec(jacval), tjac),
+                          mass_matrix = mass_matrix(state))
+end
+
+"""
      ODEFunction(system,inival=unknowns(system,inival=0),t0=0)
     
-Create an [ODEPFunction](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems)
+Create an [ODEFunction](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems)
 in [mass matrix form](https://diffeq.sciml.ai/stable/solvers/dae_solve/#OrdinaryDiffEq.jl-(Mass-Matrix))
 to be handeled by ODE solvers from [DifferentialEquations.jl](https://github.com/SciML/DifferentialEquations.jl).
 
@@ -127,14 +140,22 @@ Parameters:
 The `jacval` and `tjac` are passed  for a first evaluation of the Jacobian, allowing to detect
 the sparsity pattern which is passed to the solver.
 """
-function SciMLBase.ODEFunction(state::VoronoiFVM.SystemState; jacval = unknowns(sys, 0), tjac = 0)
-    SciMLBase.ODEFunction(eval_rhs!;
-                          jac = eval_jacobian!,
-                          jac_prototype = prepare_diffeq!(state, vec(jacval), tjac),
-                          mass_matrix = mass_matrix(state))
+SciMLBase.ODEFunction(sys::VoronoiFVM.System; kwargs...)=SciMLBase.ODEFunction(SystemState(sys); kwargs...)
+
+"""
+    ODEProblem(state,inival,tspan,callback=SciMLBase.CallbackSet())
+
+Create an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) from  a
+system state. See [`SciMLBase.ODEProblem(sys::VoronoiFVM.System, inival, tspan;kwargs...)`](@ref)
+for more documentation.
+
+Defined in VoronoiFVM.jl.
+"""
+function SciMLBase.ODEProblem(state::VoronoiFVM.SystemState, inival, tspan; callback = SciMLBase.CallbackSet())
+    odefunction = SciMLBase.ODEFunction(state; jacval = vec(inival), tjac = tspan[1])
+    SciMLBase.ODEProblem(odefunction, vec(inival), tspan, state, callback)
 end
 
-SciMLBase.ODEFunction(sys::VoronoiFVM.System; kwargs...)=SciMLBase.ODEFunction(SystemState(sys); kwargs...)
 """
     ODEProblem(system,inival,tspan,callback=SciMLBase.CallbackSet())
     
@@ -150,12 +171,9 @@ Parameters:
 
 The method returns an [ODEProblem](https://diffeq.sciml.ai/stable/basics/overview/#Defining-Problems) which can be solved
 by [solve()](https://diffeq.sciml.ai/stable/basics/common_solver_opts/).
-"""
-function SciMLBase.ODEProblem(state::VoronoiFVM.SystemState, inival, tspan; callback = SciMLBase.CallbackSet())
-    odefunction = SciMLBase.ODEFunction(state; jacval = vec(inival), tjac = tspan[1])
-    SciMLBase.ODEProblem(odefunction, vec(inival), tspan, state, callback)
-end
 
+Defined in VoronoiFVM.jl.
+"""
 SciMLBase.ODEProblem(sys::VoronoiFVM.System, inival, tspan;kwargs...)=SciMLBase.ODEProblem(SystemState(sys), inival, tspan; kwargs...)
 
 """
@@ -165,7 +183,9 @@ reflects the species structure of the system ignored by the ODE solver.
 Howvever the interpolation behind `reshaped_sol(t)` will be linear and ignores the possibility
 of higher order interpolations with `ode_sol`.
 
-If `times` is specified, the (possibly higher ordee) interpolated solution at the given moments of time will be returned.
+If `times` is specified, the (possibly higher order) interpolated solution at the given moments of time will be returned.
+
+Defined in VoronoiFVM.jl.
 """
 function Base.reshape(sol::AbstractDiffEqArray, sys::VoronoiFVM.AbstractSystem; times = nothing, state=nothing)
     if isnothing(times)

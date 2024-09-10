@@ -11,12 +11,12 @@ these are not exported and therefore should not be used outside of the package
 VoronoiFVM.hasdata
 VoronoiFVM.AbstractEvaluator
 VoronoiFVM.ResEvaluator
-VoronoiFVM.ResEvaluator(physics::Any,symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
+VoronoiFVM.ResEvaluator(physics::Any, data::Any, symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
 VoronoiFVM.evaluate!(e::VoronoiFVM.ResEvaluator)
 VoronoiFVM.evaluate!(e::VoronoiFVM.ResEvaluator, u::Any)
 VoronoiFVM.res(e::VoronoiFVM.ResEvaluator)
 VoronoiFVM.ResJacEvaluator
-VoronoiFVM.ResJacEvaluator(physics::Any,symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
+VoronoiFVM.ResJacEvaluator(physics::Any, data::Any, symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
 VoronoiFVM.evaluate!(e::VoronoiFVM.ResJacEvaluator, u::Any)
 VoronoiFVM.res(e::VoronoiFVM.ResJacEvaluator)
 VoronoiFVM.jac(e::VoronoiFVM.ResJacEvaluator)

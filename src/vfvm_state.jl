@@ -10,6 +10,7 @@ Type parameters:
 - TSolArray: type of solution vector: (Matrix or SparseMatrixCSC)
 - TData: type of user data
 
+Type fields:
 $(TYPEDFIELDS)
 """
 mutable struct SystemState{Tv, TMatrix<:AbstractMatrix{Tv}, TSolArray<:AbstractMatrix{Tv}, TData}
