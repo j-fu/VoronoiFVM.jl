@@ -11,7 +11,9 @@ mutable struct DenseSolutionArray{T, N}  <: AbstractSolutionArray{T,N}
 end
 
 DenseSolutionArray(u::Matrix{T}) where {T} =DenseSolutionArray{T,2}(u,nothing)
-
+DenseSolutionArray{T,2}(nspec::Int, nnodes::Int) where {T} =DenseSolutionArray{T,2}(Matrix{T}(nspec,nnodes),nothing)
+DenseSolutionArray{T,2}(::UndefInitializer,nspec::Int, nnodes::Int) where {T} =DenseSolutionArray{T,2}(Matrix{T}(undef,nspec,nnodes),nothing)
+                                                                                    
 Base.getindex(a::DenseSolutionArray, i::Int, j::Int)= getindex(a.u,i,j )
 Base.setindex!(a::DenseSolutionArray,v, i::Int, j::Int) = setindex!(a.u,v,i,j)
 Base.size(a::DenseSolutionArray)=size(a.u)
