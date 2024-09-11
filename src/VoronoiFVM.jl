@@ -58,6 +58,17 @@ using Compat: @compat
 
 
 
+"""
+   $(TYPEDEF)
+
+Abstract type for geometry items (node,bnode,edge, bedge)
+"""
+abstract type AbstractGeometryItem{Tc <: Number, Tp <: Number, Ti <: Integer} end
+export AbstractGeometryItem
+
+abstract type AbstractSolutionArray{T,N} <: AbstractArray{T,N} end
+export AbstractSolutionArray
+
 include("vfvm_physics.jl")
 @compat public Physics
 
@@ -66,7 +77,6 @@ export fbernoulli
 export fbernoulli_pm
 export inplace_linsolve!
 
-abstract type AbstractSolutionArray{T,N} <: AbstractArray{T,N} end
 
 include("vfvm_history.jl")
 export NewtonSolverHistory, TransientSolverHistory, details

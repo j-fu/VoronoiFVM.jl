@@ -806,6 +806,7 @@ end
 
 """
       boundary_dirichlet!(system; kwargs...)
+
 Keyword argument version:
 - `species`: species number
 - `region`: region number
@@ -818,49 +819,6 @@ function boundary_dirichlet!(system::AbstractSystem; species = 1, region = 1, va
     boundary_dirichlet!(system, species, region, value)
 end
 
-"""
-     boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
-
-Set Dirichlet boundary condition for species ispec at boundary ibc.
-"""
-function boundary_dirichlet!(y, u, bnode, ispec, ireg, val; penalty = bnode.Dirichlet)
-    if bnode.region == ireg
-        y[ispec] += penalty * (u[ispec] - val)
-        # just for call during initialization, so we can convert from dual number
-        bnode.dirichlet_value[ispec] = value(val)
-    end
-    nothing
-end
-
-"""
-     boundary_dirichlet!(y,u,bnode, args...; kwargs...)
-Keyword argument version:
-- `species`: species number. Default: 1
-- `region`: boundary region number. By default, all boundary regions.
-- `value`: value
-"""
-function boundary_dirichlet!(y, u, bnode, args...; species = 1, region = bnode.region, value = 0, penalty = bnode.Dirichlet)
-    boundary_dirichlet!(y, u, bnode, species, region, value; penalty)
-end
-
-"""
-       ramp(t; kwargs...)
-Ramp function for specifying time dependent boundary conditions
-
-Keyword arguments:
-- `dt`: Tuple: start and end time of ramp. Default: `(0,0.1)`
-- `du`: Tuple: values at start and end time. Default: `(0,0)`
-"""
-function ramp(t; dt = (0, 0.1), du = (0, 0))
-    (t, ubegin, uend, tbegin, tend) = promote(Float64(t), du[1], du[2], dt[1], dt[2])
-    if t < tbegin
-        return ubegin
-    elseif t < tend
-        return ubegin + (uend - ubegin) * (t - tbegin) / (tend - tbegin)
-    else
-        return uend
-    end
-end
 
 ##################################################################
 """
@@ -889,23 +847,6 @@ Keyword argument version:
 """
 boundary_neumann!(system::AbstractSystem; species = 0, region = 0, value = 0) = boundary_neumann!(system, species, region, value)
 
-"""
-     boundary_neumann!(y,u,bnode,ispec,ireg,val)
-
-Set Neumann boundary condition for species ispec at boundary ibc.
-"""
-boundary_neumann!(y, u, bnode, ispec, ireg, val) = bnode.region == ireg ? y[ispec] -= val : nothing
-
-"""
-     boundary_neumann!(y,u,bnode, args...; kwargs...)
-Keyword argument version:
-- `species`: species number. Default: 1
-- `region`: boundary region number. By default, all boundary regions.
-- `value`: value
-"""
-function boundary_neumann!(y, u, bnode, args...; species = 1, region = bnode.region, value = 0)
-    boundary_neumann!(y, u, bnode, species, region, value)
-end
 
 ##################################################################
 """
@@ -938,24 +879,6 @@ function boundary_robin!(system::AbstractSystem; species = 0, region = 0, factor
     boundary_robin!(system, species, region, factor, value)
 end
 
-"""
-     boundary_robin!(y,u,bnode,ispec,ireg,fac,val)
-
-Set Robin boundary condition for species ispec at boundary ibc.
-"""
-boundary_robin!(y, u, bnode, ispec, ireg, fac, val) = bnode.region == ireg ? y[ispec] += fac * u[ispec] - val : nothing
-
-"""
-     boundary_robin!(y,u,bnode, args...; kwargs...)
-Keyword argument version:
-- `species`: species number. Default: 1
-- `region`: boundary region number. By default, all boundary regions.
-- `factor`: factor
-- `value`: value
-"""
-function boundary_robin!(y, u, bnode, args...; species = 1, region = bnode.region, factor = 0, value = 0)
-    boundary_robin!(y, u, bnode, species, region, factor, value)
-end
 
 ##################################################################
 """

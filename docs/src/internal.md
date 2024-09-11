@@ -102,3 +102,9 @@ eval_jacobian!
 mass_matrix
 prepare_diffeq!
 ```
+
+## Misc tools
+```@docs
+VoronoiFVM.doolittle_ludecomp!
+VoronoiFVM.doolittle_lusolve!
+```

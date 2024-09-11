@@ -38,33 +38,6 @@ VoronoiFVM.is_bulk_species
 ```
 
 
-## Handling boundary conditions
-Boundary conditions are handled in the  `bcondition` callback passed to the system constructor.
-For being called in this callback, the following  functions are available
-
-```@docs
-boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
-boundary_dirichlet!(y,u,bnode;kwargs...)
-boundary_neumann!(y,u,bnode,ispec,ireg,val)
-boundary_neumann!(y,u,bnode;kwargs...)
-boundary_robin!(y,u,bnode,ispec,ireg,fac,val)
-boundary_robin!(y,u,bnode;kwargs...)
-ramp
-```
-
-### Outflow boundary conditions
-These are characterized by the `boutflow` physics callback and 
-and the `outflowboundaries` keyword argument in the system
-resp. physics constructor. See also the 
-[corresponding notebook](https://j-fu.github.io/VoronoiFVM.jl/dev/nbhtml/outflow/)
-
-```@docs
-hasoutflownode
-isoutflownode
-outflownode
-```
-
-
 ## Allocation warnings
 
 The code checks for allocations in the assembly loop. 
@@ -137,7 +110,7 @@ VoronoiFVM.System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix
 
 ## Legacy API
 ```@docs
-boundary_dirichlet!(system::VoronoiFVM.AbstractSystem, ispec, ibc, v)
+boundary_dirichlet!(system::VoronoiFVM.AbstractSystem{Tv}, ispec, ibc, v) where {Tv}
 boundary_dirichlet!(system::VoronoiFVM.AbstractSystem; kwargs...)
 boundary_neumann!(system::VoronoiFVM.AbstractSystem, ispec, ibc, v)
 boundary_neumann!(system::VoronoiFVM.AbstractSystem; kwargs...)

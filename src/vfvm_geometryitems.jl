@@ -1,11 +1,4 @@
 """
-   $(TYPEDEF)
-
-Abstract type for geometry items (node,bnode,edge, bedge)
-"""
-abstract type AbstractGeometryItem{Tc <: Number, Tp <: Number, Ti <: Integer} end
-
-"""
     time(edge_or_node)
 
 Return actual simulation time stored in node or edge

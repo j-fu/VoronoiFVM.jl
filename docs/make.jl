@@ -19,7 +19,7 @@ function make(; with_examples = true,
 
     pages = [
         "Home" => "index.md",
-        "changes.md",
+        "Changelog" => "changes.md",
         "method.md",
         "API Documentation" => [
             "system.md",
