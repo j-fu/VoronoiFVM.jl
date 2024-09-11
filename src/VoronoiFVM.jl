@@ -54,8 +54,6 @@ using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
 using StaticArrays: StaticArrays, @MVector, @SArray, @SMatrix
 using Statistics: Statistics, mean
 using Symbolics: Symbolics
-using Compat: @compat
-
 
 
 """
@@ -66,11 +64,17 @@ Abstract type for geometry items (node,bnode,edge, bedge)
 abstract type AbstractGeometryItem{Tc <: Number, Tp <: Number, Ti <: Integer} end
 export AbstractGeometryItem
 
+"""
+   $(TYPEDEF)
+
+Abstract type for stationary solution
+"""
 abstract type AbstractSolutionArray{T,N} <: AbstractArray{T,N} end
 export AbstractSolutionArray
 
 include("vfvm_physics.jl")
-@compat public Physics
+# see https://discourse.julialang.org/t/is-compat-jl-worth-it-for-the-public-keyword/119041/34
+VERSION >= v"1.11.0-DEV.469" && eval(Meta.parse("public Physics"))
 
 include("vfvm_functions.jl")
 export fbernoulli
@@ -123,8 +127,7 @@ export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
 
-
-@compat public System, AbstractSystem, SystemState
+VERSION >= v"1.11.0-DEV.469" && eval(Meta.parse("public System, AbstractSystem, SystemState"))
 
 # export to be deprecated
 export partitioning, Equationwise
