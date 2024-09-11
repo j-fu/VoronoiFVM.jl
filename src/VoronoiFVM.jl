@@ -67,14 +67,18 @@ export AbstractGeometryItem
 """
    $(TYPEDEF)
 
-Abstract type for stationary solution
+Abstract type for stationary solution. Subtype of `AbstractArray`.
 """
 abstract type AbstractSolutionArray{T,N} <: AbstractArray{T,N} end
+Base.getindex(a::AbstractSolutionArray, i::Int, j::Int)= getindex(a.u,i,j )
+Base.setindex!(a::AbstractSolutionArray,v, i::Int, j::Int) = setindex!(a.u,v,i,j)
+Base.size(a::AbstractSolutionArray)=size(a.u)
+
 export AbstractSolutionArray
 
 include("vfvm_physics.jl")
-# see https://discourse.julialang.org/t/is-compat-jl-worth-it-for-the-public-keyword/119041/34
-VERSION >= v"1.11.0-DEV.469" && eval(Meta.parse("public Physics"))
+# see https://discourse.julialang.org/t/is-compat-jl-worth-it-for-the-public-keyword/119041/34m
+VERSION >= v"1.11.0-DEV.469" && eval(Meta.parse("public Physics, AbstractPhysics, AbstractData"))
 
 include("vfvm_functions.jl")
 export fbernoulli
@@ -91,7 +95,7 @@ export num_dof
 export dof
 export getdof
 export setdof!
-
+export unknown_indices,  SparseSolutionIndices
 
 include("vfvm_transientsolution.jl")
 export TransientSolution
@@ -126,6 +130,7 @@ export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
+export parameters
 
 VERSION >= v"1.11.0-DEV.469" && eval(Meta.parse("public System, AbstractSystem, SystemState"))
 
@@ -136,7 +141,7 @@ include("vfvm_formfactors.jl")
 export meas, project
 export unknown_indices
 export edgevelocities, bfacevelocities, bfacenodefactors
-export time, region, embedparam, parameters
+export time, region, embedparam
 export calc_divergences
 
 include("vfvm_solvercontrol.jl")

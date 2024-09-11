@@ -21,7 +21,31 @@ mutable struct SparseSolutionArray{T, N, Ti} <: AbstractSolutionArray{T,N}
     history::Union{NewtonSolverHistory,Nothing}
 end
 
+"""
+    $(TYPEDSIGNATURES)
+
+`SparseSolutionArray` constructor
+"""
 SparseSolutionArray(a::SparseMatrixCSC{Tv,Ti}) where {Tv,Ti}=SparseSolutionArray{Tv,2,Ti}(a,nothing)
+
+
+"""
+$(TYPEDEF)
+
+Wrapper structure to access sparse solution indices.
+"""
+struct SparseSolutionIndices
+    a::SparseSolutionArray
+end
+
+"""
+$(SIGNATURES)
+
+Return indices for sparse solution array.
+"""
+unknown_indices(a::SparseSolutionArray) = SparseSolutionIndices(a)
+
+Base.getindex(idx::SparseSolutionIndices, i, j) = dof(idx.a, i, j)
 
 ##################################################################
 """
@@ -75,19 +99,6 @@ function dof(a::SparseSolutionArray, i,j)
     end
     return 0
 end
-
-struct SparseSolutionIndices
-    a::SparseSolutionArray
-end
-
-"""
-$(SIGNATURES)
-
-Return indices for sparse solution array.
-"""
-unknown_indices(a::SparseSolutionArray) = SparseSolutionIndices(a)
-
-Base.getindex(idx::SparseSolutionIndices, i, j) = dof(idx.a, i, j)
 
 ##################################################################
 """
@@ -148,7 +159,16 @@ end
 $(TYPEDSIGNATURES)
 
 Add residual value into global degree of freedom
+
+(internal)
 """
 _add(U::SparseSolutionArray, idof, val) = U.u.nzval[idof] += val
 
+"""
+$(TYPEDSIGNATURES)
+
+Set residual value for global degree of freedom
+
+(internal)
+"""
 _set(U::SparseSolutionArray, idof, val) = U.u.nzval[idof] = val

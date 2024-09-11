@@ -11,14 +11,13 @@ abstract type AbstractPhysics end
 $(TYPEDEF)
 
 Abstract type for user data.
+
+It is possible but not necessary to make user data a subtype of AbstractData
+and get a  prettyprinting show method.
 """
 abstract type AbstractData{Tv} end
 
-#
-# Experimental handling methods for AbstractData
-#
-ForwardDiff.value(x::Real) = x
-function showstruct(io::IO, this::AbstractData)
+function _showstruct(io::IO, this::AbstractData)
     myround(x; kwargs...) = round(Float64(value(x)); kwargs...)
     myround(s::Symbol; kwargs...) = s
     myround(i::Int; kwargs...) = i
@@ -29,6 +28,11 @@ function showstruct(io::IO, this::AbstractData)
     end
 end
 
+"""
+    copy!(to::AbstractData, from::AbstractData)
+
+Copy [`AbstractData`](@ref).
+"""
 function Base.copy!(vdata::AbstractData{Tv}, udata::AbstractData{Tu}) where {Tv, Tu}
     vval(x::Any) = x
     vval(x::Tu) = Tv(x)
@@ -38,7 +42,14 @@ function Base.copy!(vdata::AbstractData{Tv}, udata::AbstractData{Tu}) where {Tv,
     vdata
 end
 
-Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = showstruct(io, this)
+"""
+    $(TYPEDSIGNATURES)
+
+Pretty print [`AbstractData`](@ref)
+"""
+Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = _showstruct(io, this)
+
+ForwardDiff.value(x::Real) = x
 
 #
 # Dummy callbacks
@@ -537,13 +548,13 @@ Set Neumann boundary condition for species ispec at boundary ibc.
 boundary_neumann!(y, u, bnode::AbstractGeometryItem, ispec, ireg, val) = bnode.region == ireg ? y[ispec] -= val : nothing
 
 """
-     boundary_neumann!(y,u,bnode, args...; kwargs...)
+     boundary_neumann!(y,u,bnode; kwargs...)
 Keyword argument version:
 - `species`: species number. Default: 1
 - `region`: boundary region number. By default, all boundary regions.
 - `value`: value
 """
-function boundary_neumann!(y, u, bnode::AbstractGeometryItem, args...; species = 1, region = bnode.region, value = 0)
+function boundary_neumann!(y, u, bnode::AbstractGeometryItem; species = 1, region = bnode.region, value = 0)
     boundary_neumann!(y, u, bnode, species, region, value)
 end
 
@@ -563,6 +574,6 @@ Keyword argument version:
 - `factor`: factor
 - `value`: value
 """
-function boundary_robin!(y, u, bnode::AbstractGeometryItem, args...; species = 1, region = bnode.region, factor = 0, value = 0)
+function boundary_robin!(y, u, bnode::AbstractGeometryItem; species = 1, region = bnode.region, factor = 0, value = 0)
     boundary_robin!(y, u, bnode, species, region, factor, value)
 end

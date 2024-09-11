@@ -14,8 +14,8 @@ VoronoiFVM.plothistory
 ```
 ## Grid verification
 
-```@doc
-nondelaunay
+```@docs
+VoronoiFVM.nondelaunay
 ```
 
 ## Norms & volumes
@@ -36,7 +36,7 @@ nodevolumes
 
 ## Solution integrals
 ```@docs
-integrate(system::VoronoiFVM.AbstractSystem, F::Function, U::AbstractMatrix; boundary = false)
+VoronoiFVM.integrate
 VoronoiFVM.edgeintegrate
 ```
 

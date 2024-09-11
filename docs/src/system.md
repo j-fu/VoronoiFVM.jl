@@ -92,6 +92,7 @@ Remedy: rename e.g. `x=solve()` to `sol=solve()`
 ```@docs
 num_dof
 num_species
+data
 VoronoiFVM.unknowns(system::VoronoiFVM.AbstractSystem; kwargs...)
 VoronoiFVM.unknowns(Tu::Type, system::VoronoiFVM.AbstractSystem; kwargs...)
 Base.map

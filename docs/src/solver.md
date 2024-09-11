@@ -30,6 +30,7 @@ VoronoiFVM.solve(system::VoronoiFVM.AbstractSystem; kwargs...)
 ### Solver control
 ```@docs 
 SolverControl
+fixed_timesteps!
 ```
 ### System state
 
@@ -69,10 +70,12 @@ steps is recorded and returned as `history(solution)`
 ```@docs
 NewtonSolverHistory
 TransientSolverHistory
+VoronoiFVM.DiffEqHistory
 Base.summary(::NewtonSolverHistory)
 Base.summary(::TransientSolverHistory)
 details
 history
+
 history_details
 history_summary
 ```

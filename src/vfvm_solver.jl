@@ -32,10 +32,6 @@ function solve_step!(state,
         if isnothing(method_linear) && state.system.matrixtype == :sparse
             if Tv != Float64
                 method_linear = SparspakFactorization()
-            elseif dim_space(state.system.grid) == 1
-                method_linear = KLUFactorization()
-            elseif dim_space(state.system.grid) == 2
-                method_linear = SparspakFactorization()
             else
                 method_linear = UMFPACKFactorization() # seems to do the best pivoting
             end

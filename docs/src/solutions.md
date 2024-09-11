@@ -1,5 +1,8 @@
 # Solution objects
 
+```@docs
+AbstractSolutionArray
+```
 ## Dense solution arrays
 
 ```@autodocs

@@ -1,22 +1,40 @@
 """
-```
-const DenseSolutionArray=Matrix
-```
+    $(TYPEDEF)
 
-Dense storage of solution
+Dense storage of solution. Subtype of [`AbstractSolutionArray`](@ref)
+
+
+Fields:
+
+$(TYPEDFIELDS)
 """
 mutable struct DenseSolutionArray{T, N}  <: AbstractSolutionArray{T,N}
     u::Array{T,N}
     history::Union{NewtonSolverHistory, Nothing}
 end
 
+
+"""
+ $(TYPEDSIGNATURES)
+    
+`DenseSolutionArray` constructor.
+"""
 DenseSolutionArray(u::Matrix{T}) where {T} =DenseSolutionArray{T,2}(u,nothing)
+
+"""
+ $(TYPEDSIGNATURES)
+    
+`DenseSolutionArray` constructor.
+"""
 DenseSolutionArray{T,2}(nspec::Int, nnodes::Int) where {T} =DenseSolutionArray{T,2}(Matrix{T}(nspec,nnodes),nothing)
+
+"""
+ $(TYPEDSIGNATURES)
+    
+`DenseSolutionArray` constructor.
+"""
 DenseSolutionArray{T,2}(::UndefInitializer,nspec::Int, nnodes::Int) where {T} =DenseSolutionArray{T,2}(Matrix{T}(undef,nspec,nnodes),nothing)
                                                                                     
-Base.getindex(a::DenseSolutionArray, i::Int, j::Int)= getindex(a.u,i,j )
-Base.setindex!(a::DenseSolutionArray,v, i::Int, j::Int) = setindex!(a.u,v,i,j)
-Base.size(a::DenseSolutionArray)=size(a.u)
 
 """
  $(SIGNATURES)
@@ -51,9 +69,18 @@ values(a::DenseSolutionArray) = vec(a)
 $(TYPEDSIGNATURES)
 
 Add residual value into global degree of freedom
+
+(Internal method)
 """
 _add(U::DenseSolutionArray, idof, val) = U[CartesianIndices(U)[idof]] += val
 
+"""
+$(TYPEDSIGNATURES)
+
+Set residual value for global degree of freedom
+
+(Internal method)
+"""
 _set(U::DenseSolutionArray, idof, val) = U[CartesianIndices(U)[idof]] = val
 
 ##################################################################

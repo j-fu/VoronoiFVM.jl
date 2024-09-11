@@ -1,12 +1,15 @@
 # Physics & special functions
 
-## Physics
+## Physics callbacks
 ```@docs
 VoronoiFVM.AbstractPhysics
 VoronoiFVM.Physics
 VoronoiFVM.Physics(;kwargs...)
-
+VoronoiFVM.generic_operator_sparsity!
 Base.show(io::IO,physics::VoronoiFVM.AbstractPhysics)
+VoronoiFVM.AbstractData
+Base.show(::IO, ::MIME{Symbol("text/plain")}, ::VoronoiFVM.AbstractData)
+Base.copy!(::VoronoiFVM.AbstractData{Tv}, ::VoronoiFVM.AbstractData{Tu}) where {Tv,Tu}
 ```
 ## Handling boundary conditions
 Boundary conditions are handled in the  `bcondition` callback passed to the system constructor.
@@ -32,6 +35,15 @@ resp. physics constructor. See also the
 hasoutflownode
 isoutflownode
 outflownode
+calc_divergences
+```
+
+## Coupling to flow
+
+```@docs
+edgevelocities
+bfacevelocities
+bfacenodefactors
 ```
 
 ## Edge and node data
@@ -40,6 +52,13 @@ VoronoiFVM.Node
 VoronoiFVM.BNode
 VoronoiFVM.Edge
 VoronoiFVM.BEdge
+VoronoiFVM.time
+VoronoiFVM.region
+VoronoiFVM.parameters
+VoronoiFVM.embedparam
+VoronoiFVM.project
+VoronoiFVM.edgelength
+VoronoiFVM.meas
 ```
 
 ## Special functions

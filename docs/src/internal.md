@@ -74,22 +74,31 @@ VoronoiFVM.firstnodedof
 VoronoiFVM.lastnodedof
 VoronoiFVM.getspecies
 VoronoiFVM.getnodedof
+VoronoiFVM.increase_num_species!
+VoronoiFVM.addzrows
 ```
 
 
-## Abstract geometry data
+## Geometry data
 ```@docs
 VoronoiFVM.AbstractGeometryItem
 VoronoiFVM.AbstractNode
 VoronoiFVM.AbstractNodeData
 VoronoiFVM.AbstractEdge
 VoronoiFVM.AbstractEdgeData
+VoronoiFVM.outflownode!
+VoronoiFVM.NodeUnknowns
+VoronoiFVM.NodeRHS
 ```
 
 ## Global assembly & helpers
 
 ```@docs 
+VoronoiFVM.factorizationstrategy
+VoronoiFVM.solve_step!
+VoronoiFVM.solve_transient!
 VoronoiFVM.eval_and_assemble
+VoronoiFVM._eval_and_assemble_generic_operator
 VoronoiFVM._addnz
 VoronoiFVM._add
 ```
@@ -107,4 +116,6 @@ prepare_diffeq!
 ```@docs
 VoronoiFVM.doolittle_ludecomp!
 VoronoiFVM.doolittle_lusolve!
+VoronoiFVM.bernoulli_horner
+VoronoiFVM._print_error
 ```

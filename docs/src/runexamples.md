@@ -26,7 +26,7 @@ Due to the encapsulation into modules, you can load as many examples as you like
 If you want to modify the example, consider using `Revise.jl` and `includet`. 
 
 
-## Performance with  closures
+## Performance with closures
 
 VoronoiFVM provides two flavors of calbacks for constitutive
 functions: 
