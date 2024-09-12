@@ -241,7 +241,7 @@ For this particular problem, embedding uses less overall Newton steps than the d
 
 # ╔═╡ 2cb7f0f4-7635-462c-89f8-93d18e7f24fb
 md"""
-## Solver control
+## SolverControl
 """
 
 # ╔═╡ 5f13831d-b73f-44fb-a870-16261f926ed5

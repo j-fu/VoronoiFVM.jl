@@ -142,7 +142,7 @@ Many of these properties are hard to prove for finite element methods, in partic
 There are a number of cases where this method needs to be replaced by something else
 or at least to be applied with great care:
 - Anisotropic diffusion only works with proper mesh alignment 
-- Strongly varying capacity (in the function $s$) at domain interfaces lead to [inexact breakthrough curves](@ref problemcase)
+- Strongly varying capacity (in the function $s$) at domain interfaces lead to inexact breakthrough curves.
 - Sharp moving convection fronts are smeared out too strongly
 
 ## History and literature

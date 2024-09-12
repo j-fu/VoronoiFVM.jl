@@ -48,8 +48,7 @@ If allocations occur in the assembly  loop, they happen in the physics
 callbacks.  The corresponding warnings can bee switched off by passing
 a  verbosity strings  without  'a'  to the  solver.   If  no data  are
 allocated in the physics callbacks, these allocations are probably due to 
-type instabilities in physics callbacks, see the the discussion
-[here](../runexamples/#Performance-with-closures).  Type instabilities
+type instabilities in physics callbacks.  Type instabilities
 can be debugged via the `@time`  macro applied to expressions in a
 physics callback.
 
