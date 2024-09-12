@@ -189,7 +189,8 @@ function runh(; Plotter = nothing, n = 10)
 
     dp = 0.05
     P = 0.1:dp:2
-    U0 = solve(sys; inival = 0.5, params = [P[1]])
+    state=VoronoiFVM.SystemState(sys)
+    U0 = solve!(state; inival = 0.5, params = [P[1]])
 
     ndof = num_dof(sys)
     colptr = [i for i = 1:(ndof + 1)]
@@ -205,7 +206,8 @@ function runh(; Plotter = nothing, n = 10)
 
     @time for p ∈ P
         params[1] = p
-        sol = solve(sys; inival = 0.5, params)
+        sol = solve!(state; inival = 0.5, params)
+
         mymeas!(m, sol)
         push!(H, m[1])
 
@@ -215,7 +217,7 @@ function runh(; Plotter = nothing, n = 10)
         # need to have the full derivative of m vs p
         ∂m∂p = ForwardDiff.gradient(p -> measp(p, sol), params)
 
-        dudp = sys.matrix \ vec(sys.dudp[1])
+        dudp = state.matrix \ vec(state.dudp[1])
         dmdp = -∂m∂u * dudp + ∂m∂p
         push!(DH, dmdp[1])
     end

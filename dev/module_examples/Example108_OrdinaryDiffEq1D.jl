@@ -21,7 +21,7 @@ using Printf
 using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
-using OrdinaryDiffEq
+using OrdinaryDiffEqRosenbrock
 
 function barenblatt(x, t, m)
     tx = t^(-1.0 / (m + 1.0))
