@@ -41,7 +41,7 @@ using JLD2: JLD2, jldopen
 using LinearAlgebra: LinearAlgebra, Diagonal, I, Tridiagonal, isdiag, ldiv!, norm
 using LinearSolve: LinearSolve, KrylovJL_BICGSTAB,
                    KrylovJL_CG, KrylovJL_GMRES, LinearProblem,
-                   SparspakFactorization, UMFPACKFactorization, init
+                   KLUFactorization, SparspakFactorization, UMFPACKFactorization, init
 using Printf: Printf, @printf, @sprintf
 using Random: Random, AbstractRNG
 using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray
