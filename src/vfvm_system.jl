@@ -503,11 +503,20 @@ function enable_boundary_species!(system::AbstractSystem, ispec::Integer, bregio
     end
 end
 
+"""
+    const sysmutatelock
+
+Reentrant lock to safeguard mutating methods [`_complete!`](@ref) and [`update_grid!`](@ref).
+"""
 const sysmutatelock=ReentrantLock()
 
-# Create matrix in system and figure out if species
-# distribution is homgeneous
-function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors = true) where {Tv, Tc, Ti, Tm}
+"""
+    _complete!(system)
+
+Update grid and compile species information for system.
+Uses a lock to ensure parallel access.
+"""
+function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, Tm}
     if system.is_complete
         return
     end
@@ -577,6 +586,7 @@ update_grid!(system; grid=system.grid)
 ````
 
 Update grid (e.g. after rescaling of coordinates).
+Uses a lock to ensure parallel access.
 """
 function update_grid!(system::AbstractSystem; grid = system.grid)
     lock(sysmutatelock)
@@ -598,9 +608,16 @@ function update_grid!(system::AbstractSystem; grid = system.grid)
             system.outflownoderegions = SparseMatrixCSC(outflownoderegions)
         end
     finally
+        unlock(sysmutatelock)
     end
 end
 
+
+"""
+    update_grid_cellwise!(system)
+
+Update cellwise assembly data for new grid
+"""
 function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
     geom = grid[CellGeometries][1]
     csys = grid[CoordinateSystem]
@@ -640,6 +657,11 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
                                                                  grid[PartitionBFaces])
 end
 
+"""
+    update_grid_edgewise!(system)
+
+Update edgewise assembly data for new grid
+"""
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
     geom = grid[CellGeometries][1]
     csys = grid[CoordinateSystem]
@@ -893,7 +915,7 @@ num_species(a::AbstractArray) = size(a, 1)
 #
 function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc, Ti, Tm}; time = 0.0, λ = 0.0,
                                 params::Vector{Tp} = Float64[]) where {Tv, Tp, Tc, Ti, Tm}
-    _complete!(system; create_newtonvectors = true)
+    _complete!(system)
     nspecies = num_species(system)
 
     # set up bnode

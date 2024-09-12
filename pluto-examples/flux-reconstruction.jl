@@ -259,14 +259,8 @@ sys1d = VoronoiFVM.System(grid1d;
                           source = source1d,
                           species = [1],)
 
-# ╔═╡ ef71060e-02dd-48ba-8f3e-319d8e23b7ef
-println("sol1d:")
-
 # ╔═╡ d8df038e-9cfc-4eb4-9845-2244ac95190b
 sol1d = solve(sys1d; inival = 0.1)
-
-# ╔═╡ ab7aad35-d946-4b14-b0dc-e003b38df19f
-println(sol1d)
 
 # ╔═╡ 58dedb6a-ab19-44b8-90a5-a7f67700bc2f
 nf1d = nodeflux(sys1d, sol1d)
@@ -2614,9 +2608,7 @@ version = "3.6.0+0"
 # ╠═3793696c-c934-4e56-a1e7-887fc2181970
 # ╠═159ffdb7-a5d9-45bd-a53f-ba3751c91ae5
 # ╠═29257fc4-d94b-4cf1-8432-30ba3fc4dc1b
-# ╠═ef71060e-02dd-48ba-8f3e-319d8e23b7ef
 # ╠═d8df038e-9cfc-4eb4-9845-2244ac95190b
-# ╠═ab7aad35-d946-4b14-b0dc-e003b38df19f
 # ╠═58dedb6a-ab19-44b8-90a5-a7f67700bc2f
 # ╠═14b9e972-2538-43f1-a558-c6495543c9db
 # ╠═c62f06a2-70d5-40e7-b137-3dc547f5e246

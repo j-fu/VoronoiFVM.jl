@@ -71,7 +71,7 @@ end
 
 
 """
-    SystemState(Tv, system; data=system.physics.data)
+    SystemState(Tv, system; data=system.physics.data, matrixtype=system.matrixtype)
 
 Create state information for finite volume system.
 
@@ -80,26 +80,21 @@ Arguments:
 - `system`: Finite volume system
 
 Keyword arguments:
-- `data`: User data
+- `data`: User data. Default: `data(system)`
+- `matrixtype`. Default: `system.matrixtype`
 """
-function SystemState(::Type{Tu}, system::AbstractSystem{Tv, Tc, Ti, Tm}; data=system.physics.data) where {Tu,Tv,Tc, Ti, Tm}
-    lock(sysmutatelock)
-    try
-        _complete!(system)
-        update_grid!(system)
-    finally
-        unlock(sysmutatelock)
-    end
+function SystemState(::Type{Tu}, system::AbstractSystem{Tv, Tc, Ti, Tm};
+                     data=system.physics.data,
+                     matrixtype=system.matrixtype) where {Tu,Tv,Tc, Ti, Tm}
+    _complete!(system)
 
     nspec = size(system.node_dof, 1)
     n = num_dof(system)
 
     matrixtype = system.matrixtype
-    #    matrixtype=:sparse
-    # Sparse even in 1D is not bad, 
 
     if matrixtype == :default
-        if !isdensesystem(system)
+        if !isdensesystem(system) || dim_grid(system.grid)>1
             matrixtype = :sparse
         else
             if nspec == 1

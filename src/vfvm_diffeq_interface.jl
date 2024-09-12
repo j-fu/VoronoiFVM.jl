@@ -103,7 +103,7 @@ Returns a prototype for the jacobian.
 """
 function prepare_diffeq!(state, jacval, tjac)
     state.history = DiffEqHistory()
-    _complete!(state.system; create_newtonvectors = true)
+    _complete!(state.system)
     _eval_res_jac!(state, jacval, tjac)
     flush!(state.matrix)
     state.matrix.cscmatrix

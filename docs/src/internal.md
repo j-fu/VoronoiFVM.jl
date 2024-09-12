@@ -5,7 +5,6 @@ Besides of the interface methods for `VoronoiFVMDiffEq`,
 these are not exported and therefore should not be used outside of the package
 
 
-
 ## Wrapping evaluators for physics callbacks
 ```@docs 
 VoronoiFVM.hasdata
@@ -23,6 +22,13 @@ VoronoiFVM.jac(e::VoronoiFVM.ResJacEvaluator)
 VoronoiFVM.isnontrivial
 ```
 
+## Manipulating systems
+```@docs
+VoronoiFVM.update_grid_cellwise!
+VoronoiFVM.update_grid_edgewise!
+VoronoiFVM.sysmutatelock
+VoronoiFVM._complete!
+```
 
 ## Global node and edge assembly loops
 ```@docs 
