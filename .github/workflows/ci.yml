@@ -2,10 +2,10 @@ name: ci
 on:
   pull_request:
     branches:
-      - master
+      - releases/1.25
   push:
     branches:
-      - master
+      - releases/1.25
     tags: '*'
 jobs:
   test:
