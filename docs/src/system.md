@@ -38,33 +38,6 @@ VoronoiFVM.is_bulk_species
 ```
 
 
-## Handling boundary conditions
-Boundary conditions are handled in the  `bcondition` callback passed to the system constructor.
-For being called in this callback, the following  functions are available
-
-```@docs
-boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
-boundary_dirichlet!(y,u,bnode;kwargs...)
-boundary_neumann!(y,u,bnode,ispec,ireg,val)
-boundary_neumann!(y,u,bnode;kwargs...)
-boundary_robin!(y,u,bnode,ispec,ireg,fac,val)
-boundary_robin!(y,u,bnode;kwargs...)
-ramp
-```
-
-### Outflow boundary conditions
-These are characterized by the `boutflow` physics callback and 
-and the `outflowboundaries` keyword argument in the system
-resp. physics constructor. See also the 
-[corresponding notebook](https://j-fu.github.io/VoronoiFVM.jl/dev/nbhtml/outflow/)
-
-```@docs
-hasoutflownode
-isoutflownode
-outflownode
-```
-
-
 ## Allocation warnings
 
 The code checks for allocations in the assembly loop. 
@@ -75,8 +48,7 @@ If allocations occur in the assembly  loop, they happen in the physics
 callbacks.  The corresponding warnings can bee switched off by passing
 a  verbosity strings  without  'a'  to the  solver.   If  no data  are
 allocated in the physics callbacks, these allocations are probably due to 
-type instabilities in physics callbacks, see the the discussion
-[here](../runexamples/#Performance-with-closures).  Type instabilities
+type instabilities in physics callbacks.  Type instabilities
 can be debugged via the `@time`  macro applied to expressions in a
 physics callback.
 
@@ -119,6 +91,7 @@ Remedy: rename e.g. `x=solve()` to `sol=solve()`
 ```@docs
 num_dof
 num_species
+data
 VoronoiFVM.unknowns(system::VoronoiFVM.AbstractSystem; kwargs...)
 VoronoiFVM.unknowns(Tu::Type, system::VoronoiFVM.AbstractSystem; kwargs...)
 Base.map
@@ -137,7 +110,7 @@ VoronoiFVM.System{Tv,Ti, Tm, TSpecMat<:AbstractMatrix, TSolArray<:AbstractMatrix
 
 ## Legacy API
 ```@docs
-boundary_dirichlet!(system::VoronoiFVM.AbstractSystem, ispec, ibc, v)
+boundary_dirichlet!(system::VoronoiFVM.AbstractSystem{Tv}, ispec, ibc, v) where {Tv}
 boundary_dirichlet!(system::VoronoiFVM.AbstractSystem; kwargs...)
 boundary_neumann!(system::VoronoiFVM.AbstractSystem, ispec, ibc, v)
 boundary_neumann!(system::VoronoiFVM.AbstractSystem; kwargs...)

@@ -11,14 +11,13 @@ abstract type AbstractPhysics end
 $(TYPEDEF)
 
 Abstract type for user data.
+
+It is possible but not necessary to make user data a subtype of AbstractData
+and get a  prettyprinting show method.
 """
 abstract type AbstractData{Tv} end
 
-#
-# Experimental handling methods for AbstractData
-#
-ForwardDiff.value(x::Real) = x
-function showstruct(io::IO, this::AbstractData)
+function _showstruct(io::IO, this::AbstractData)
     myround(x; kwargs...) = round(Float64(value(x)); kwargs...)
     myround(s::Symbol; kwargs...) = s
     myround(i::Int; kwargs...) = i
@@ -29,6 +28,11 @@ function showstruct(io::IO, this::AbstractData)
     end
 end
 
+"""
+    copy!(to::AbstractData, from::AbstractData)
+
+Copy [`AbstractData`](@ref).
+"""
 function Base.copy!(vdata::AbstractData{Tv}, udata::AbstractData{Tu}) where {Tv, Tu}
     vval(x::Any) = x
     vval(x::Tu) = Tv(x)
@@ -38,7 +42,14 @@ function Base.copy!(vdata::AbstractData{Tv}, udata::AbstractData{Tu}) where {Tv,
     vdata
 end
 
-Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = showstruct(io, this)
+"""
+    $(TYPEDSIGNATURES)
+
+Pretty print [`AbstractData`](@ref)
+"""
+Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = _showstruct(io, this)
+
+ForwardDiff.value(x::Real) = x
 
 #
 # Dummy callbacks
@@ -60,14 +71,6 @@ function nofunc_generic_sparsity(sys)
 end
 
 
-#
-# Dummy data type that represents data or not
-# We need this for the `data` deprecation phase
-#
-@kwdef mutable struct MaybeData
-    isdata=false
-end
-
 ##########################################################
 """
 ````
@@ -78,19 +81,19 @@ Physics data record with the following fields:
 
 $(TYPEDFIELDS)
 """
-struct Physics{Flux <: Function,
-               Reaction <: Function,
-               EdgeReaction <: Function,
-               Storage <: Function,
-               Source <: Function,
-               BFlux <: Function,
-               BReaction <: Function,
-               BSource <: Function,
-               BStorage <: Function,
-               BOutflow <: Function,
-               GenericOperator <: Function,
-               GenericOperatorSparsity <: Function,
-               Data} <: AbstractPhysics
+mutable struct Physics{Flux <: Function,
+                       Reaction <: Function,
+                       EdgeReaction <: Function,
+                       Storage <: Function,
+                       Source <: Function,
+                       BFlux <: Function,
+                       BReaction <: Function,
+                       BSource <: Function,
+                       BStorage <: Function,
+                       BOutflow <: Function,
+                       GenericOperator <: Function,
+                       GenericOperatorSparsity <: Function,
+                       Data} <: AbstractPhysics
     """
     Flux between neighboring control volumes: `flux(f,u,edge,data)`
     should return in `f[i]` the flux of species i along the edge joining circumcenters
@@ -200,7 +203,6 @@ end
 ##########################################################
 
 isdata(::Nothing) = false
-isdata(d::MaybeData) = d.isdata
 isdata(::Any) = true
 
 """
@@ -224,7 +226,7 @@ Physics(;num_species=0,
 Constructor for physics data. For the meaning of the optional keyword arguments, see [`VoronoiFVM.System(grid::ExtendableGrid; kwargs...)`](@ref).
 """
 function Physics(; num_species = 0,
-                 data = MaybeData(isdata=false),
+                 data = nothing,
                  flux::Function = nofunc,
                  reaction::Function = nofunc,
                  edgereaction::Function = nofunc,
@@ -239,30 +241,6 @@ function Physics(; num_species = 0,
                  generic::Function = nofunc_generic,
                  generic_sparsity::Function = nofunc_generic_sparsity,
                  kwargs...)
-    if !isdata(data)
-        # deprecation check: callbacks without a `data` argument are not supported in future versions
-        callbacks = [flux, reaction, edgereaction, storage, source, bflux, breaction, bsource, bstorage, boutflow]
-        callbacks_seem_fine = true
-        for f in callbacks
-            # ignore dummy functions
-            if !(f in [nofunc, default_storage, nosrc])
-                # check whether the callbacks have a method with 3 or 4 arguments, respectively
-                nn = nothing
-                if ( f in [flux, reaction, edgereaction, storage, bflux, breaction, bstorage, boutflow] && applicable(f,nn,nn,nn) ) ||
-                   ( f in [source, bsource] && applicable(f,nn,nn) )
-                    @warn "using VoronoiFVM.Physics callback $(nameof(f)) without a `data` argument is now deprecated"
-                    callbacks_seem_fine = false
-                end
-            end
-        end
-
-        # it looks like all callbacks can be called with a `data` argument ⇒ enable a dummy data attribute
-        if callbacks_seem_fine
-            data.isdata = true
-        end
-
-    end
-
     return Physics(flux,
                    storage,
                    reaction,
@@ -371,41 +349,23 @@ Constructor for ResEvaluator
 - `geom`: node, edge...
 - `nspec`: number of species
 """
-function ResEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec::Int) where {Tv}
+function ResEvaluator(physics, data, symb::Symbol, uproto::Vector{Tv}, geom, nspec::Int) where {Tv}
     func = getproperty(physics, symb)
 
     # source functions need special handling here
     if symb == :source || symb == :bsource
-        if isdata(physics.data)
-            fwrap = function (y)
-                y .= 0
-                func(rhs(geom, y), geom, physics.data)
-                nothing
-            end
-        else
-            fwrap = function (y)
-                y .= 0
-                func(rhs(geom, y), geom)
-                nothing
-            end
+        fwrap = function (y)
+            y .= 0
+            func(rhs(geom, y), geom, data)
+            nothing
         end
     else   # Normal functions wihth u as parameter     
-        if isdata(physics.data)
-            fwrap = function (y, u)
-                y .= 0
-                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-                func(rhs(geom, y), unknowns(geom, u), geom, physics.data)
-                ## for ii in .. y[ii]=y[geom.speclist[ii]]
-                nothing
-            end
-        else
-            fwrap = function (y, u)
-                y .= 0
-                ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-                func(rhs(geom, y), unknowns(geom, u), geom)
-                ## for ii in .. y[ii]=y[geom.speclist[ii]]
-                nothing
-            end
+        fwrap = function (y, u)
+            y .= 0
+            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+            func(rhs(geom, y), unknowns(geom, u), geom, data)
+            ## for ii in .. y[ii]=y[geom.speclist[ii]]
+            nothing
         end
     end
     isnontrivial = (func != nofunc)
@@ -475,25 +435,15 @@ Constructor for ResJEvaluator
 - `geom`: node, edge...
 - `nspec`: number of species
 """
-function ResJacEvaluator(physics, symb::Symbol, uproto::Vector{Tv}, geom, nspec) where {Tv}
+function ResJacEvaluator(physics, data, symb::Symbol, uproto::Vector{Tv}, geom, nspec) where {Tv}
     func = getproperty(physics, symb)
 
-    if isdata(physics.data)
-        fwrap = function (y, u)
-            y .= 0
-            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-            func(rhs(geom, y), unknowns(geom, u), geom, physics.data)
-            ## for ii in .. y[ii]=y[geom.speclist[ii]]
-            nothing
-        end
-    else
-        fwrap = function (y, u)
-            y .= 0
-            ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
-            func(rhs(geom, y), unknowns(geom, u), geom)
-            ## for ii in .. y[ii]=y[geom.speclist[ii]]
-            nothing
-        end
+    fwrap = function (y, u)
+        y .= 0
+        ## for ii in ..  uu[geom.speclist[ii]]=u[ii]
+        func(rhs(geom, y), unknowns(geom, u), geom, data)
+        ## for ii in .. y[ii]=y[geom.speclist[ii]]
+        nothing
     end
 
     isnontrivial = (func != nofunc)
@@ -542,4 +492,88 @@ isnontrivial(e::AbstractEvaluator) = e.isnontrivial
 # "Generate" a flux function
 function diffusion_flux(D::T) where {T}
     (y, u, args...) -> y[1] = D(u[1, 1] + u[1, 2]) * (u[1, 1] - u[1, 2])
+end
+
+"""
+     boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
+
+Set Dirichlet boundary condition for species ispec at boundary ibc.
+"""
+function boundary_dirichlet!(y, u, bnode::AbstractGeometryItem, ispec, ireg, val; penalty = bnode.Dirichlet)
+    if bnode.region == ireg
+        y[ispec] += penalty * (u[ispec] - val)
+        # just for call during initialization, so we can convert from dual number
+        bnode.dirichlet_value[ispec] = value(val)
+    end
+    nothing
+end
+
+"""
+     boundary_dirichlet!(y,u,bnode; kwargs...)
+
+Keyword argument version:
+- `species`: species number. Default: 1
+- `region`: boundary region number. By default, all boundary regions.
+- `value`: value 
+"""
+function boundary_dirichlet!(y, u, bnode::AbstractGeometryItem; species = 1, region = bnode.region, value = 0, penalty = bnode.Dirichlet)
+    boundary_dirichlet!(y, u, bnode, species, region, value; penalty)
+end
+
+"""
+       ramp(t; kwargs...)
+Ramp function for specifying time dependent boundary conditions
+
+Keyword arguments:
+- `dt`: Tuple: start and end time of ramp. Default: `(0,0.1)`
+- `du`: Tuple: values at start and end time. Default: `(0,0)`
+"""
+function ramp(t; dt = (0, 0.1), du = (0, 0))
+    (t, ubegin, uend, tbegin, tend) = promote(Float64(t), du[1], du[2], dt[1], dt[2])
+    if t < tbegin
+        return ubegin
+    elseif t < tend
+        return ubegin + (uend - ubegin) * (t - tbegin) / (tend - tbegin)
+    else
+        return uend
+    end
+end
+
+
+"""
+     boundary_neumann!(y,u,bnode,ispec,ireg,val)
+
+Set Neumann boundary condition for species ispec at boundary ibc.
+"""
+boundary_neumann!(y, u, bnode::AbstractGeometryItem, ispec, ireg, val) = bnode.region == ireg ? y[ispec] -= val : nothing
+
+"""
+     boundary_neumann!(y,u,bnode; kwargs...)
+Keyword argument version:
+- `species`: species number. Default: 1
+- `region`: boundary region number. By default, all boundary regions.
+- `value`: value
+"""
+function boundary_neumann!(y, u, bnode::AbstractGeometryItem; species = 1, region = bnode.region, value = 0)
+    boundary_neumann!(y, u, bnode, species, region, value)
+end
+
+
+"""
+     boundary_robin!(y,u,bnode,ispec,ireg,fac,val)
+
+Set Robin boundary condition for species ispec at boundary ibc.
+"""
+boundary_robin!(y, u, bnode::AbstractGeometryItem, ispec, ireg, fac, val) = bnode.region == ireg ? y[ispec] += fac * u[ispec] - val : nothing
+
+"""
+     boundary_robin!(y,u,bnode, args...; kwargs...)
+Keyword argument version:
+- `species`: species number. Default: 1
+- `region`: boundary region number. By default, all boundary regions.
+- `factor`: factor
+- `value`: value
+"""
+function boundary_robin!(y, u, bnode::AbstractGeometryItem; species = 1, region = bnode.region, factor = 0, value = 0)
+    boundary_robin!(y, u, bnode, species, region, factor, value)
 end

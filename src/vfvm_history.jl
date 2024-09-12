@@ -127,3 +127,46 @@ function details(hh::TransientSolverHistory)
     end
     a
 end
+
+
+"""
+    $(TYPEDEF)
+
+History information for DiffEqHistory
+$(TYPEDFIELDS)
+"""
+Base.@kwdef mutable struct DiffEqHistory
+    """ number of combined jacobi/rhs evaluations"""
+    nd = 0
+    """ number of combined jacobi evaluations"""
+    njac = 0
+    """ number of rhs evaluations"""
+    nf = 0
+end
+
+details(h::DiffEqHistory) = (nd = h.nd, njac = h.njac, nf = h.nf)
+Base.summary(h::DiffEqHistory) = details(h)
+
+"""
+    history(sol)
+
+Return solver history if `log` was set to true.
+See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
+"""
+history(sol) = sol.history
+
+"""
+    history_details(sol)
+
+Return details of solver history from last `solve` call, if `log` was set to true.
+See [`details`](@ref).
+"""
+history_details(sol) = details(sol.history)
+
+"""
+    history_summary(sol)
+
+Return summary of solver history from last `solve` call, if `log` was set to true.
+"""
+history_summary(sol) = summary(sol.history)
+

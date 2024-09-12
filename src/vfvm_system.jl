@@ -2,8 +2,18 @@
 $(TYPEDEF)
 
 Structure holding data for finite volume system.
+
+Subtype of [`AbstractSystem`](@ref).
+
+Type parameters:
+
+- TSpecMat: Type of matrix storing species information (Matrix or SparseMatrixCSC)
+
+For the other type parameters, see [`AbstractSystem`](@ref).
+
+$(TYPEDFIELDS)
 """
-mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: AbstractMatrix} <: AbstractSystem{Tv, Tc, Ti, Tm}
+mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix} <: AbstractSystem{Tv, Tc, Ti, Tm}
     """
     Grid
     """
@@ -48,21 +58,6 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     matrixtype::Symbol
 
     """
-    Jacobi matrix for nonlinear problem
-    """
-    matrix::Union{ExtendableSparseMatrixCSC{Tv, Tm},
-                  MTExtendableSparseMatrixCSC{Tv, Tm},
-                  STExtendableSparseMatrixCSC{Tv, Tm},
-                  Tridiagonal{Tv, Vector{Tv}},
-                  #                  MultidiagonalMatrix,
-                  BandedMatrix{Tv}}
-
-    """
-    Linear solver cache
-    """
-    linear_cache::Union{Nothing, LinearSolve.LinearCache}
-
-    """
     Flag which says if the number of unknowns per node is constant
     """
     species_homogeneous::Bool
@@ -76,21 +71,6 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     Number of parameter the system depends on.
     """
     num_parameters::Ti
-
-    """
-    Parameter derivative (vector of solution arrays)
-    """
-    dudp::Vector{TSolArray}
-
-    """
-    Solution vector holding Newton update
-    """
-    update::TSolArray
-
-    """
-    Solution vector holding Newton residual
-    """
-    residual::TSolArray
 
     """
     Precomputed form factors for bulk  assembly
@@ -111,7 +91,7 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     Is the system linear ?
     """
     is_linear::Bool
-
+    
     """
     Outflow nodes with their region numbers.
     """
@@ -127,27 +107,15 @@ mutable struct System{Tv, Tc, Ti, Tm, TSpecMat <: AbstractMatrix, TSolArray <: A
     """
     generic_matrix_colors::Vector
 
-    """
-    Hash value of latest unknowns vector the assembly was called with
-    """
-    uhash::UInt64
 
     """
-    History record for last solution process
+    Has the system been completed (species information compiled)?
     """
-    history::Any
+    is_complete::Bool
 
-    System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}() where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = new()
+    System{Tv, Tc, Ti, Tm, TSpecMat}() where {Tv, Tc, Ti, Tm, TSpecMat} = new()
 end
 
-function Base.getproperty(sys::System, sym::Symbol)
-    if sym == :bfacenodefactors
-        @warn "sys.bfacenodefactors is deprecated and will be removed in one of the next minor releases. Use  bfacenodefactors(sys) instead"
-        return sys.boundary_assembly_data.nodefactors
-    else # fallback to getfield
-        return getfield(sys, sym)
-    end
-end
 
 """
     const DenseSystem
@@ -155,9 +123,9 @@ end
 Type alias for system with dense matrix based species management
 
 """
-const DenseSystem = System{Tv, Tc, Ti, Tm, Matrix{Ti}, Matrix{Tv}} where {Tv, Tc, Ti, Tm}
+const DenseSystem = System{Tv, Tc, Ti, Tm, Matrix{Ti}} where {Tv, Tc, Ti, Tm}
 
-isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray} = TSolArray <: Matrix
+isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat}) where {Tv, Tc, Ti, Tm, TSpecMat} = TSpecMat <: Matrix
 
 """
     const SparseSystem
@@ -165,7 +133,7 @@ isdensesystem(s::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti,
 Type alias for system with sparse matrix based species management
 
 """
-const SparseSystem = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}, SparseSolutionArray{Tv, Ti}} where {Tv, Tc, Ti, Tm}
+const SparseSystem = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}} where {Tv, Tc, Ti, Tm}
 
 ##################################################################
 """
@@ -257,9 +225,9 @@ function System(grid::ExtendableGrid;
     Tm = matrixindextype
 
     if Symbol(unknown_storage) == :dense
-        system = System{Tv, Tc, Ti, Tm, Matrix{Ti}, Matrix{Tv}}()
+        system = System{Tv, Tc, Ti, Tm, Matrix{Ti}}()
     elseif Symbol(unknown_storage) == :sparse
-        system = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}, SparseSolutionArray{Tv, Ti}}()
+        system = System{Tv, Tc, Ti, Tm, SparseMatrixCSC{Ti, Ti}}()
     else
         throw("specify either unknown_storage=:dense  or unknown_storage=:sparse")
     end
@@ -274,14 +242,12 @@ function System(grid::ExtendableGrid;
     system.species_homogeneous = false
     system.assembly_type = assembly
     system.num_quantities = 0
-    system.uhash = 0x0
     system.matrixtype = matrixtype
     system.outflownoderegions = nothing
-    system.linear_cache = nothing
     system.assembly_data = nothing
-    system.history = nothing
     system.num_parameters = nparams
     system.is_linear = is_linear
+    system.is_complete = false
     physics!(system; kwargs...)
     enable_species!(system; species)
     return system
@@ -353,7 +319,11 @@ end
 
 # Constant to be used as boundary condition factor 
 # to mark Dirichlet boundary conditions.    
-const Dirichlet = 1.0e30
+Dirichlet(::Type{Tv}) where  {Tv} = 1.0e30
+
+Dirichlet(::Type{Rational{Ti}}) where Ti = 1//10000
+
+Dirichlet(::Type{Rational{BigInt}}) = 1//10000000000
 
 #################################################################
 
@@ -533,90 +503,72 @@ function enable_boundary_species!(system::AbstractSystem, ispec::Integer, bregio
     end
 end
 
-# Create matrix in system and figure out if species
-# distribution is homgeneous
-function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}; create_newtonvectors = true) where {Tv, Tc, Ti, Tm}
-    if isdefined(system, :matrix)
+"""
+    const sysmutatelock
+
+Reentrant lock to safeguard mutating methods [`_complete!`](@ref) and [`update_grid!`](@ref).
+"""
+const sysmutatelock=ReentrantLock()
+
+"""
+    _complete!(system)
+
+Update grid and compile species information for system.
+Uses a lock to ensure parallel access.
+"""
+function _complete!(system::AbstractSystem{Tv, Tc, Ti, Tm}) where {Tv, Tc, Ti, Tm}
+    if system.is_complete
         return
     end
-
-    system.species_homogeneous = true
-    species_added = false
-    for inode = 1:size(system.node_dof, 2)
-        for ispec = 1:size(system.node_dof, 1)
-            if system.node_dof[ispec, inode] == ispec
-                species_added = true
-            else
-                system.species_homogeneous = false
-            end
-        end
-    end
-
-    if (!species_added)
-        error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
-    end
-
-    nspec = size(system.node_dof, 1)
-    n = num_dof(system)
-
-    matrixtype = system.matrixtype
-    #    matrixtype=:sparse
-    # Sparse even in 1D is not bad, 
-
-    if matrixtype == :default
-        if !isdensesystem(system)
-            matrixtype = :sparse
-        else
-            if nspec == 1
-                matrixtype = :tridiagonal
-            else
-                matrixtype = :banded
-            end
-        end
-    end
-
-    if matrixtype == :tridiagonal
-        system.matrix = Tridiagonal(zeros(Tv, n - 1), zeros(Tv, n), zeros(Tv, n - 1))
-    elseif matrixtype == :banded
-        system.matrix = BandedMatrix{Tv}(Zeros(n, n), (2 * nspec - 1, 2 * nspec - 1))
-        # elseif matrixtype==:multidiagonal
-        #     system.matrix=mdzeros(Tv,n,n,[-1,0,1]; blocksize=nspec)
-    else # :sparse
-        if num_partitions(system.grid) == 1
-            system.matrix = ExtendableSparseMatrixCSC{Tv, Tm}(n, n)
-        else
-            system.matrix = MTExtendableSparseMatrixCSC{Tv, Tm}(n, n, num_partitions(system.grid))
-        end
-    end
-
-    if create_newtonvectors
-        system.residual = unknowns(system)
-        system.update = unknowns(system)
-    end
-    system.dudp = [unknowns(system) for i = 1:(system.num_parameters)]
-
     update_grid!(system)
-    if has_generic_operator(system)
-        if has_generic_operator_sparsity(system)
-            system.generic_matrix = system.physics.generic_operator_sparsity(system)
-        else
-            generic_operator(f, u) = system.physics.generic_operator(f, u, system)
-            input = rand(num_dof(system))
-            output = similar(input)
+
+    lock(sysmutatelock)
+
+    try
+        system.species_homogeneous = true
+        species_added = false
+        for inode = 1:size(system.node_dof, 2)
+            for ispec = 1:size(system.node_dof, 1)
+                if system.node_dof[ispec, inode] == ispec
+                    species_added = true
+                else
+                    system.species_homogeneous = false
+                end
+            end
+        end
+        
+        if (!species_added)
+            error("No species enabled.\n Call enable_species(system,species_number, list_of_regions) at least once.")
+        end
+        
+        nspec = size(system.node_dof, 1)
+        n = num_dof(system)
+                
+        if has_generic_operator(system)
+            if has_generic_operator_sparsity(system)
+                system.generic_matrix = system.physics.generic_operator_sparsity(system)
+            else
+                generic_operator(f, u) = system.physics.generic_operator(f, u, system)
+                input = rand(num_dof(system))
+                output = similar(input)
+                tdetect = @elapsed begin
+                    sparsity_pattern = Symbolics.jacobian_sparsity(generic_operator, output, input)
+                    system.generic_matrix = Float64.(sparse(sparsity_pattern))
+                end
+                println("sparsity detection for generic operator: $(tdetect) s")
+                if nnz(system.generic_matrix) == 0
+                    error("Sparsity detection failed: no pattern found")
+                end
+            end
             tdetect = @elapsed begin
-                sparsity_pattern = Symbolics.jacobian_sparsity(generic_operator, output, input)
-                system.generic_matrix = Float64.(sparse(sparsity_pattern))
+                system.generic_matrix_colors = matrix_colors(system.generic_matrix)
             end
-            println("sparsity detection for generic operator: $(tdetect) s")
-            if nnz(system.generic_matrix) == 0
-                error("Sparsity detection failed: no pattern found")
-            end
+            println("matrix coloring for generic operator: $(tdetect) s")
         end
-        tdetect = @elapsed begin
-            system.generic_matrix_colors = matrix_colors(system.generic_matrix)
-        end
-        println("matrix coloring for generic operator: $(tdetect) s")
+    finally
+        unlock(sysmutatelock)
     end
+    system.is_complete=true
 end
 
 """
@@ -634,26 +586,38 @@ update_grid!(system; grid=system.grid)
 ````
 
 Update grid (e.g. after rescaling of coordinates).
+Uses a lock to ensure parallel access.
 """
 function update_grid!(system::AbstractSystem; grid = system.grid)
-    system.assembly_type == :cellwise ? update_grid_cellwise!(system, grid) : update_grid_edgewise!(system, grid)
-
-    if length(system.physics.outflowboundaries) > 0
-        bfacenodes = system.grid[BFaceNodes]
-        bfaceregions = system.grid[BFaceRegions]
-        outflownoderegions = ExtendableSparseMatrix{Bool, Int}(num_bfaceregions(system.grid),
-                                                               num_nodes(system.grid))
-        for ibface = 1:num_bfaces(system.grid)
-            for ibn = 1:dim_space(system.grid)
-                if bfaceregions[ibface] ∈ system.physics.outflowboundaries
-                    outflownoderegions[bfaceregions[ibface], bfacenodes[ibn, ibface]] = true
+    lock(sysmutatelock)
+    try 
+        system.assembly_type == :cellwise ? update_grid_cellwise!(system, grid) : update_grid_edgewise!(system, grid)
+        
+        if length(system.physics.outflowboundaries) > 0
+            bfacenodes = system.grid[BFaceNodes]
+            bfaceregions = system.grid[BFaceRegions]
+            outflownoderegions = ExtendableSparseMatrix{Bool, Int}(num_bfaceregions(system.grid),
+                                                                   num_nodes(system.grid))
+            for ibface = 1:num_bfaces(system.grid)
+                for ibn = 1:dim_space(system.grid)
+                    if bfaceregions[ibface] ∈ system.physics.outflowboundaries
+                        outflownoderegions[bfaceregions[ibface], bfacenodes[ibn, ibface]] = true
+                    end
                 end
             end
+            system.outflownoderegions = SparseMatrixCSC(outflownoderegions)
         end
-        system.outflownoderegions = SparseMatrixCSC(outflownoderegions)
+    finally
+        unlock(sysmutatelock)
     end
 end
 
+
+"""
+    update_grid_cellwise!(system)
+
+Update cellwise assembly data for new grid
+"""
 function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
     geom = grid[CellGeometries][1]
     csys = grid[CoordinateSystem]
@@ -693,6 +657,11 @@ function update_grid_cellwise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) whe
                                                                  grid[PartitionBFaces])
 end
 
+"""
+    update_grid_edgewise!(system)
+
+Update edgewise assembly data for new grid
+"""
 function update_grid_edgewise!(system::AbstractSystem{Tv, Tc, Ti, Tm}, grid) where {Tv, Tc, Ti, Tm}
     geom = grid[CellGeometries][1]
     csys = grid[CoordinateSystem]
@@ -851,14 +820,15 @@ Set Dirichlet boundary condition for species ispec at boundary ibc:
 !!! info  
     Starting with version 0.14, it is preferable to define boundary conditions within the `bcondition` physics callback
 """
-function boundary_dirichlet!(system::AbstractSystem, ispec, ibc, v)
+function boundary_dirichlet!(system::AbstractSystem{Tv}, ispec, ibc, v) where {Tv}
     increase_num_species!(system, ispec)
-    system.boundary_factors[ispec, ibc] = Dirichlet
+    system.boundary_factors[ispec, ibc] = Dirichlet(Tv)
     system.boundary_values[ispec, ibc] = v
 end
 
 """
       boundary_dirichlet!(system; kwargs...)
+
 Keyword argument version:
 - `species`: species number
 - `region`: region number
@@ -871,49 +841,6 @@ function boundary_dirichlet!(system::AbstractSystem; species = 1, region = 1, va
     boundary_dirichlet!(system, species, region, value)
 end
 
-"""
-     boundary_dirichlet!(y,u,bnode,ispec,ireg,val)
-
-Set Dirichlet boundary condition for species ispec at boundary ibc.
-"""
-function boundary_dirichlet!(y, u, bnode, ispec, ireg, val; penalty = bnode.Dirichlet)
-    if bnode.region == ireg
-        y[ispec] += penalty * (u[ispec] - val)
-        # just for call during initialization, so we can convert from dual number
-        bnode.dirichlet_value[ispec] = value(val)
-    end
-    nothing
-end
-
-"""
-     boundary_dirichlet!(y,u,bnode, args...; kwargs...)
-Keyword argument version:
-- `species`: species number. Default: 1
-- `region`: boundary region number. By default, all boundary regions.
-- `value`: value
-"""
-function boundary_dirichlet!(y, u, bnode, args...; species = 1, region = bnode.region, value = 0, penalty = bnode.Dirichlet)
-    boundary_dirichlet!(y, u, bnode, species, region, value; penalty)
-end
-
-"""
-       ramp(t; kwargs...)
-Ramp function for specifying time dependent boundary conditions
-
-Keyword arguments:
-- `dt`: Tuple: start and end time of ramp. Default: `(0,0.1)`
-- `du`: Tuple: values at start and end time. Default: `(0,0)`
-"""
-function ramp(t; dt = (0, 0.1), du = (0, 0))
-    (t, ubegin, uend, tbegin, tend) = promote(Float64(t), du[1], du[2], dt[1], dt[2])
-    if t < tbegin
-        return ubegin
-    elseif t < tend
-        return ubegin + (uend - ubegin) * (t - tbegin) / (tend - tbegin)
-    else
-        return uend
-    end
-end
 
 ##################################################################
 """
@@ -942,23 +869,6 @@ Keyword argument version:
 """
 boundary_neumann!(system::AbstractSystem; species = 0, region = 0, value = 0) = boundary_neumann!(system, species, region, value)
 
-"""
-     boundary_neumann!(y,u,bnode,ispec,ireg,val)
-
-Set Neumann boundary condition for species ispec at boundary ibc.
-"""
-boundary_neumann!(y, u, bnode, ispec, ireg, val) = bnode.region == ireg ? y[ispec] -= val : nothing
-
-"""
-     boundary_neumann!(y,u,bnode, args...; kwargs...)
-Keyword argument version:
-- `species`: species number. Default: 1
-- `region`: boundary region number. By default, all boundary regions.
-- `value`: value
-"""
-function boundary_neumann!(y, u, bnode, args...; species = 1, region = bnode.region, value = 0)
-    boundary_neumann!(y, u, bnode, species, region, value)
-end
 
 ##################################################################
 """
@@ -991,24 +901,6 @@ function boundary_robin!(system::AbstractSystem; species = 0, region = 0, factor
     boundary_robin!(system, species, region, factor, value)
 end
 
-"""
-     boundary_robin!(y,u,bnode,ispec,ireg,fac,val)
-
-Set Robin boundary condition for species ispec at boundary ibc.
-"""
-boundary_robin!(y, u, bnode, ispec, ireg, fac, val) = bnode.region == ireg ? y[ispec] += fac * u[ispec] - val : nothing
-
-"""
-     boundary_robin!(y,u,bnode, args...; kwargs...)
-Keyword argument version:
-- `species`: species number. Default: 1
-- `region`: boundary region number. By default, all boundary regions.
-- `factor`: factor
-- `value`: value
-"""
-function boundary_robin!(y, u, bnode, args...; species = 1, region = bnode.region, factor = 0, value = 0)
-    boundary_robin!(y, u, bnode, species, region, factor, value)
-end
 
 ##################################################################
 """
@@ -1023,16 +915,12 @@ num_species(a::AbstractArray) = size(a, 1)
 #
 function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc, Ti, Tm}; time = 0.0, λ = 0.0,
                                 params::Vector{Tp} = Float64[]) where {Tv, Tp, Tc, Ti, Tm}
-    _complete!(system; create_newtonvectors = true)
+    _complete!(system)
     nspecies = num_species(system)
 
     # set up bnode
     bnode = BNode(system, time, λ, params)
-    bnodeparams = (bnode,)
     data = system.physics.data
-    if isdata(data)
-        bnodeparams = (bnode, data)
-    end
 
     # setup unknowns to be passed
     UK = zeros(Tv, num_species(system) + length(params))
@@ -1052,7 +940,7 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
             bnode.dirichlet_value .= Inf
             # set up solution vector, call boundary reaction
             @views UK[1:nspecies] .= U[:, bnode.index]
-            system.physics.breaction(y, u, bnodeparams...)
+            system.physics.breaction(y, u, bnode, data)
 
             # Check for Dirichlet bc
             for ispec = 1:nspecies
@@ -1062,7 +950,7 @@ function _initialize_dirichlet!(U::AbstractMatrix, system::AbstractSystem{Tv, Tc
                 end
 
                 # Dirichlet bc given after system creation (old API)
-                if system.boundary_factors[ispec, bnode.region] ≈ Dirichlet
+                if system.boundary_factors[ispec, bnode.region] ≈ Dirichlet(Tv)
                     U[ispec, bnode.index] = system.boundary_values[ispec, bnode.region]
                 end
             end
@@ -1075,9 +963,9 @@ function _initialize!(U::AbstractMatrix, system::AbstractSystem; time = 0.0, λ 
     _initialize_inactive_dof!(U, system)
 end
 
-function _eval_and_assemble_inactive_species(system::AbstractSystem, U, Uold, F) end
+function _eval_and_assemble_inactive_species(system::AbstractSystem, matrix, U, Uold, F) end
 
-function _eval_and_assemble_inactive_species(system::DenseSystem, U, Uold, F)
+function _eval_and_assemble_inactive_species(system::DenseSystem, matrix, U, Uold, F)
     if system.species_homogeneous
         return
     end
@@ -1086,7 +974,7 @@ function _eval_and_assemble_inactive_species(system::DenseSystem, U, Uold, F)
             if !isnodespecies(system, ispec, inode)
                 F[ispec, inode] += U[ispec, inode] - Uold[ispec, inode]
                 idof = dof(F, ispec, inode)
-                rawupdateindex!(system.matrix, +, 1.0, idof, idof)
+                rawupdateindex!(matrix, +, 1.0, idof, idof)
             end
         end
     end
@@ -1130,7 +1018,7 @@ num_dof(system::DenseSystem) = length(system.node_dof)
 
 num_dof(a::DenseSolutionArray) = length(a)
 
-num_dof(a::SparseSolutionArray) = nnz(a.node_dof)
+num_dof(a::SparseSolutionArray) = nnz(a.u)
 
 """
 $(SIGNATURES)
@@ -1162,6 +1050,8 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     if inival != undef
         fill!(a0, inival)
     end
+    Ti=eltype(system.node_dof.colptr)
+
     u = SparseSolutionArray(SparseMatrixCSC(system.node_dof.m,
                                             system.node_dof.n,
                                             system.node_dof.colptr,
@@ -1170,6 +1060,7 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     isa(inifunc, Function) && map!(inifunc, u, system)
     u
 end
+
 
 """
     $(TYPEDEF)
@@ -1234,9 +1125,11 @@ function partitioning(system::SparseSystem, ::Equationwise)
 end
 
 function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
-    a = Array{Tu}(undef, size(system.node_dof)...)
-    if inival != undef
+    a = DenseSolutionArray(Array{Tu,2}(undef, size(system.node_dof)...))
+    if isa(inival, Number)
         fill!(a, inival)
+    elseif isa(inival, Matrix)
+        a.=inival
     end
     isa(inifunc, Function) && map!(inifunc, a, system)
     return a
@@ -1248,8 +1141,7 @@ $(SIGNATURES)
 Create a solution vector for system using the callback `inifunc` which has the same
 signature as a source term.
 """
-function Base.map(inifunc::TF,
-                  sys::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF <: Function}
+function Base.map(inifunc::TF,sys::System) where {TF <: Function}
     unknowns(sys; inifunc)
 end
 
@@ -1258,8 +1150,7 @@ $(SIGNATURES)
 
 Create a solution vector for system using a constant initial value
 """
-function Base.map(inival::TI,
-                  sys::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TI <: Number}
+function Base.map(inival::TI, sys::System) where {TI <: Number}
     unknowns(sys; inival)
 end
 
@@ -1270,7 +1161,7 @@ Map `inifunc` onto solution array `U`
 """
 function Base.map!(inifunc::TF,
                    U::AbstractMatrix{Tu},
-                   system::System{Tv, Tc, Ti, Tm, TSpecMat, TSolArray}) where {Tu, Tv, Tc, Ti, Tm, TSpecMat, TSolArray, TF}
+                   system::System{Tv, Tc, Ti, Tm, TSpecMat}) where {Tu, Tv, Tc, Ti, Tm, TSpecMat, TF}
     isunknownsof(U, system) || error("U is not unknowns of system")
     _complete!(system)
     grid = system.grid
@@ -1310,7 +1201,7 @@ Base.reshape(v::SparseSolutionArray, sys::SparseSystem) = v
 function Base.reshape(v::AbstractVector, sys::DenseSystem)
     @assert length(v) == num_dof(sys)
     nspec = num_species(sys)
-    reshape(v, Int64(nspec), Int64(length(v) / nspec))
+    DenseSolutionArray(reshape(v, Int64(nspec), Int64(length(v) / nspec)))
 end
 
 function Base.reshape(v::AbstractVector, system::SparseSystem)
@@ -1322,30 +1213,6 @@ function Base.reshape(v::AbstractVector, system::SparseSystem)
                                         Vector(v)))
 end
 
-######################################
-# History
-"""
-    history(sys)
-
-Return solver history from last `solve` call, if `log` was set to true.
-See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
-"""
-history(sys::AbstractSystem) = sys.history
-
-"""
-    history_details(sys)
-
-Return details of solver history from last `solve` call, if `log` was set to true.
-See [`details`](@ref).
-"""
-history_details(sys::AbstractSystem) = details(sys.history)
-
-"""
-    history_summary(sys)
-
-Return summary of solver history from last `solve` call, if `log` was set to true.
-"""
-history_summary(sys::AbstractSystem) = summary(sys.history)
 
 ####################################################################
 # LEGACY

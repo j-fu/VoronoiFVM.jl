@@ -5,19 +5,21 @@ $(TYPEDEF)
 Data structure containing DenseSystem used to calculate
 test functions for boundary flux calculations.
 
-
+Type parameters:
+- `Tu`: value type of test functions
+- `Tv`: Default value type of system
 $(TYPEDFIELDS)
 """
-mutable struct TestFunctionFactory
+mutable struct TestFunctionFactory{Tu, Tv}
     """
     Original system
     """
-    system::AbstractSystem
+    system::AbstractSystem{Tv}
 
     """
-    Test function system
+    Test function system state
     """
-    tfsystem::DenseSystem
+    state::SystemState{Tu}
 
     """
     Solver control
@@ -31,7 +33,7 @@ $(TYPEDSIGNATURES)
 
 Constructor for TestFunctionFactory from System
 """
-function TestFunctionFactory(system::AbstractSystem; control = SolverControl())
+function TestFunctionFactory(system::AbstractSystem{Tv}; control = SolverControl()) where {Tv}
     physics = Physics(; flux = function (f, u, edge, data)
                           f[1] = u[1] - u[2]
                       end,
@@ -40,7 +42,8 @@ function TestFunctionFactory(system::AbstractSystem; control = SolverControl())
                       end)
     tfsystem = System(system.grid, physics; unknown_storage = :dense)
     enable_species!(tfsystem, 1, [i for i = 1:num_cellregions(system.grid)])
-    return TestFunctionFactory(system, tfsystem, control)
+    state=SystemState(tfsystem)
+    return TestFunctionFactory(system, state, control)
 end
 
 ############################################################################
@@ -51,35 +54,35 @@ Create testfunction which has Dirichlet zero boundary conditions  for boundary
 regions in bc0 and Dirichlet one boundary conditions  for boundary
 regions in bc1.
 """
-function testfunction(factory::TestFunctionFactory, bc0, bc1)
-    u = unknowns(factory.tfsystem)
-    f = unknowns(factory.tfsystem)
+function testfunction(factory::TestFunctionFactory{Tv}, bc0, bc1) where {Tv}
+    u = unknowns(factory.state.system)
+    f = unknowns(factory.state.system)
     u .= 0
     f .= 0
 
-    factory.tfsystem.boundary_factors .= 0
-    factory.tfsystem.boundary_values .= 0
+    factory.state.system.boundary_factors .= 0
+    factory.state.system.boundary_values .= 0
 
     for i = 1:length(bc1)
-        factory.tfsystem.boundary_factors[1, bc1[i]] = Dirichlet
-        factory.tfsystem.boundary_values[1, bc1[i]] = -1
+        factory.state.system.boundary_factors[1, bc1[i]] = Dirichlet(Tv)
+        factory.state.system.boundary_values[1, bc1[i]] = -1
     end
 
     for i = 1:length(bc0)
-        factory.tfsystem.boundary_factors[1, bc0[i]] = Dirichlet
-        factory.tfsystem.boundary_values[1, bc0[i]] = 0
+        factory.state.system.boundary_factors[1, bc0[i]] = Dirichlet(Tv)
+        factory.state.system.boundary_values[1, bc0[i]] = 0
     end
-    _complete!(factory.tfsystem)
-    eval_and_assemble(factory.tfsystem, u, u, f, Inf, Inf, 0.0, zeros(0))
 
-    _initialize!(u, factory.tfsystem)
+    eval_and_assemble(factory.state.system, u, u, f, factory.state.matrix, factory.state.dudp, Inf, Inf,  0.0, nothing, zeros(0))
+
+    _initialize!(u, factory.state.system)
 
     method_linear = factory.control.method_linear
     if isnothing(method_linear)
         method_linear = UMFPACKFactorization()
     end
 
-    p = LinearProblem(SparseMatrixCSC(factory.tfsystem.matrix), vec(f))
+    p = LinearProblem(SparseMatrixCSC(factory.state.matrix), vec(f))
     sol = solve(p, method_linear)
     sol.u
 end
@@ -92,7 +95,7 @@ $(SIGNATURES)
 Calculate test function integral for transient solution.
 """
 function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
-                   Uold::AbstractMatrix{Tv}, tstep; params = Tv[]) where {Tv}
+                   Uold::AbstractMatrix{Tv}, tstep; params = Tv[], data=system.physics.data) where {Tv}
     grid = system.grid
     nspecies = num_species(system)
     integral = zeros(Tv, nspecies)
@@ -101,7 +104,7 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
     nparams = system.num_parameters
     @assert nparams == length(params)
 
-    # !!! params etc 
+    # !!! params etc
     physics = system.physics
     node = Node(system, 0.0, 1.0, params)
     bnode = BNode(system, 0.0, 1.0, params)
@@ -118,12 +121,12 @@ function integrate(system::AbstractSystem, tf, U::AbstractMatrix{Tv},
         UKL[(2 * nspecies + 1):end] .= params
     end
 
-    src_eval = ResEvaluator(physics, :source, UK, node, nspecies + nparams)
-    rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies + nparams)
-    erea_eval = ResEvaluator(physics, :edgereaction, UK, edge, nspecies + nparams)
-    stor_eval = ResEvaluator(physics, :storage, UK, node, nspecies + nparams)
-    storold_eval = ResEvaluator(physics, :storage, UKold, node, nspecies + nparams)
-    flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies + nparams)
+    src_eval = ResEvaluator(physics, data, :source, UK, node, nspecies + nparams)
+    rea_eval = ResEvaluator(physics, data, :reaction, UK, node, nspecies + nparams)
+    erea_eval = ResEvaluator(physics, data, :edgereaction, UK, edge, nspecies + nparams)
+    stor_eval = ResEvaluator(physics, data, :storage, UK, node, nspecies + nparams)
+    storold_eval = ResEvaluator(physics, data, :storage, UKold, node, nspecies + nparams)
+    flux_eval = ResEvaluator(physics, data, :flux, UKL, edge, nspecies + nparams)
 
     for item in nodebatch(system.assembly_data)
         for inode in noderange(system.assembly_data, item)
@@ -195,7 +198,7 @@ $(SIGNATURES)
 
 Steady state part of test function integral.
 """
-function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}) where {Tu, Tv}
+function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}; data=system.physics.data) where {Tu, Tv}
     grid = system.grid
     nspecies = num_species(system)
     integral = zeros(Tu, nspecies)
@@ -210,10 +213,10 @@ function integrate_stdy(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     UK = Array{Tu, 1}(undef, nspecies)
     geom = grid[CellGeometries][1]
 
-    src_eval = ResEvaluator(physics, :source, UK, node, nspecies)
-    rea_eval = ResEvaluator(physics, :reaction, UK, node, nspecies)
-    erea_eval = ResEvaluator(physics, :edgereaction, UK, node, nspecies)
-    flux_eval = ResEvaluator(physics, :flux, UKL, edge, nspecies)
+    src_eval = ResEvaluator(physics, data, :source, UK, node, nspecies)
+    rea_eval = ResEvaluator(physics, data, :reaction, UK, node, nspecies)
+    erea_eval = ResEvaluator(physics, data, :edgereaction, UK, node, nspecies)
+    flux_eval = ResEvaluator(physics, data, :flux, UKL, edge, nspecies)
 
     for item in nodebatch(system.assembly_data)
         for inode in noderange(system.assembly_data, item)
@@ -266,7 +269,7 @@ $(SIGNATURES)
 
 Calculate transient part of test function integral.
 """
-function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}) where {Tu, Tv}
+function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray{Tu, 2}; data=system.physics.data) where {Tu, Tv}
     grid = system.grid
     nspecies = num_species(system)
     integral = zeros(Tu, nspecies)
@@ -281,7 +284,7 @@ function integrate_tran(system::AbstractSystem, tf::Vector{Tv}, U::AbstractArray
     UK = Array{Tu, 1}(undef, nspecies)
     geom = grid[CellGeometries][1]
     csys = grid[CoordinateSystem]
-    stor_eval = ResEvaluator(physics, :storage, UK, node, nspecies)
+    stor_eval = ResEvaluator(physics, data, :storage, UK, node, nspecies)
 
     for item in nodebatch(system.assembly_data)
         for inode in noderange(system.assembly_data, item)

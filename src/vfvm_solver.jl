@@ -10,49 +10,44 @@ $(SIGNATURES)
 Solve time step problem. This is the core routine
 for implicit Euler and stationary solve.
 """
-function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution resp. initial value
-                          oldsol::AbstractMatrix{Tv}, # old time step solution resp. initial value
-                          system::AbstractSystem{Tv, Tc, Ti, Tm}, # Finite volume system
-                          control::SolverControl,
-                          time,
-                          tstep,
-                          embedparam,
-                          params;
-                          called_from_API = false,) where {Tv, Tc, Ti, Tm}
-    _complete!(system; create_newtonvectors = true)
+function solve_step!(state,
+                     solution, # old time step solution resp. initial value
+                     oldsol, # old time step solution resp. initial value
+                     control,
+                     time,
+                     tstep,
+                     embedparam,
+                     params)
     nlhistory = NewtonSolverHistory()
     tasm = 0.0
     tlinsolve = 0.0
     t = @elapsed begin
         solution .= oldsol
-        residual = system.residual
-        update = system.update
-        _initialize!(solution, system; time, λ = embedparam, params)
-
-        method_linear = system.matrixtype == :sparse ? control.method_linear : nothing
-        if isnothing(method_linear) && system.matrixtype == :sparse
+        residual = state.residual
+        update = state.update
+        _initialize!(solution, state.system; time, λ = embedparam, params)
+        
+        Tv=eltype(solution)
+        method_linear = state.system.matrixtype == :sparse ? control.method_linear : nothing
+        if isnothing(method_linear) && state.system.matrixtype == :sparse
             if Tv != Float64
-                method_linear = SparspakFactorization()
-            elseif dim_space(system.grid) == 1
-                method_linear = KLUFactorization()
-            elseif dim_space(system.grid) == 2
                 method_linear = SparspakFactorization()
             else
                 method_linear = UMFPACKFactorization() # seems to do the best pivoting
             end
         end
-
+        
         oldnorm = 1.0
         converged = false
         damp = 1.0
-        if !system.is_linear
+        if !state.system.is_linear
             if doprint(control, 'n')
                 println("\n  [n]ewton: #it(lin)  |update| cont3tion   |round| #rd")
             end
             damp = control.damp_initial
             rnorm = control.rnorm(solution)
         end
-
+        
         nlu_reuse = 0
         nround = 0
         tolx = 0.0
@@ -60,17 +55,20 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
         nballoc = 0
         neval = 0
         niter = 1
-
+        
         while niter <= control.maxiters
             # Create Jacobi matrix and RHS for Newton iteration
             try
-                tasm += @elapsed nca, nba, nev = eval_and_assemble(system,
+                tasm += @elapsed nca, nba, nev = eval_and_assemble(state.system,
                                                                    solution,
                                                                    oldsol,
                                                                    residual,
+                                                                   state.matrix,
+                                                                   state.dudp,
                                                                    time,
                                                                    tstep,
                                                                    embedparam,
+                                                                   state.data,
                                                                    params;
                                                                    edge_cutoff = control.edge_cutoff,)
                 ncalloc += nca
@@ -84,25 +82,25 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
                     rethrow(err)
                 end
             end
-
+            
             tlinsolve += @elapsed _solve_linear!(values(update),
-                                                 system,
+                                                 state,
                                                  nlhistory,
                                                  control,
                                                  method_linear,
-                                                 system.matrix,
+                                                 state.matrix,
                                                  values(residual))
 
             values(solution) .-= damp * values(update)
-
+            
             # "incremental collection may only sweep   so-called young objects"
             GC.gc(false)
-
-            if system.is_linear
+            
+            if state.system.is_linear
                 converged = true
                 break
             end
-
+            
             damp = min(damp * control.damp_growth, 1.0)
             norm = control.unorm(update)
             if tolx == 0.0
@@ -113,13 +111,13 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
             if rnorm > 1.0e-50
                 dnorm = abs((rnorm - rnorm_new) / rnorm)
             end
-
+            
             if dnorm < control.tol_round
                 nround = nround + 1
             else
                 nround = 0
             end
-
+            
             if control.log
                 push!(nlhistory.l1normdiff, dnorm)
                 push!(nlhistory.updatenorm, norm)
@@ -145,14 +143,14 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
                 converged = false
                 break
             end
-
+            
             if norm < control.abstol || norm < tolx
                 converged = true
                 break
             end
             oldnorm = norm
             rnorm = rnorm_new
-
+            
             if nround > control.max_round
                 converged = true
                 break
@@ -160,7 +158,7 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
             niter = niter + 1
         end
         if !converged
-            throw(ConvergenceError())
+          throw(ConvergenceError())
         end
     end
     if control.log
@@ -175,102 +173,65 @@ function _solve_timestep!(solution::AbstractMatrix{Tv}, # old time step solution
         end
     end
 
-    if doprint(control, 'n') && !system.is_linear
+    if doprint(control, 'n') && !state.system.is_linear
         println("  [n]ewton: $(round(t,sigdigits=3)) seconds asm: $(round(100*tasm/t,sigdigits=3))%, linsolve: $(round(100*tlinsolve/t,sigdigits=3))%")
     end
 
-    if doprint(control, 'l') && system.is_linear
+    if doprint(control, 'l') && state.system.is_linear
         println("  [l]inear($(nameof(typeof(method_linear)))): $(round(t,sigdigits=3)) seconds")
     end
 
-    system.history = nlhistory
+    solution.history=nlhistory
+    solution
 end
 
-################################################################
-"""
-````
-solve!(solution, inival, system; 
-    control=SolverControl(), 
-    tstep=Inf)
-````
-Mutating version of [`solve(inival,system)`](@ref)
-"""
-function VoronoiFVM.solve!(solution, # Solution
-                           inival,   # Initial value 
-                           system::VoronoiFVM.AbstractSystem;     # Finite volume system
-                           control = SolverControl(),      # Newton solver control information
-                           time = Inf,
-                           tstep = Inf,                # Time step size. Inf means  stationary solution
-                           embedparam = 0.0,
-                           params = zeros(0),
-                           called_from_API = false,)
-    fix_deprecations!(control)
-    if !called_from_API && doprint(control, 'd')
-        @warn "[d]eprecated: solve!(solution,inival,system; kwargs...)"
-    end
-    _solve_timestep!(solution,
-                     inival,
-                     system,
-                     control,
-                     time,
-                     tstep,
-                     embedparam,
-                     params;
-                     called_from_API = true,)
-    return solution
+function evaluate_residual_and_jacobian!(state,u; params=Float64[], t = 0.0, tstep = Inf, embed = 0.0)
+    _initialize_dirichlet!(u, state.system)
+    eval_and_assemble(state.system,
+                      u,
+                      u,
+                      state.residual,
+                      state.matrix,
+                      state.dudp,
+                      t,
+                      tstep,
+                      embed,
+                      state.data,
+                      params
+                      )
+    flush!(state.matrix)
 end
 
-################################################################
-"""
-````
-    solve(inival, system; control=SolverControl(),params, tstep=Inf)
-````
-Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
-Solve stationary problem(if `tstep==Inf`) or one step implicit Euler step using Newton's method with `inival` as initial
-value. Returns a solution array.
 """
-function CommonSolve.solve(inival,   # Initial value 
-                           system::AbstractSystem;     # Finite volume system
-                           control = SolverControl(),      # Newton solver control information
-                           time = Inf,
-                           tstep = Inf,                # Time step size. Inf means  stationary solution
-                           params = zeros(0),
-                           called_from_API = false,)
-    fix_deprecations!(control)
-    if !called_from_API && doprint(control, 'd')
-        @warn "[d]eprecated: solve(inival,system; kwargs...)"
-    end
+    evaluate_residual_and_jacobian(system,u;
+                                   t=0.0, tstep=Inf,embed=0.0)
 
-    solve!(unknowns(system),
-           inival,
-           system;
-           control = control,
-           time = time,
-           tstep = tstep,
-           params = params,
-           called_from_API = true,)
+Evaluate residual and jacobian at solution value u.
+Returns a solution vector containing a copy of  residual, and an ExendableSparseMatrix
+containing a copy of the linearization at u.
+
+"""
+function evaluate_residual_and_jacobian(sys, u; kwargs...)
+    state=SystemState(sys)
+    eval_and_linearize!(state, u; kwargs...)
+    copy(state.residual), copy(state.matrix)
 end
 
-"""
-        solve(inival, system, times; kwargs...)
-
-Alias for [`solve(system::VoronoiFVM.AbstractSystem; kwargs...)`](@ref) with the corresponding keyword arguments.
 
 """
-function CommonSolve.solve(inival,
-                           system::VoronoiFVM.AbstractSystem,
-                           lambdas;
-                           control = SolverControl(),
-                           transient = true, # choose between transient and stationary (embedding) case
-                           time = 0.0,
-                           params = zeros(0),
-                           called_from_API = false,
-                           kwargs...,)
-    fix_deprecations!(control)
-    if !called_from_API && doprint(control, 'd')
-        @warn "[d]eprecated: solve(inival,system,times;kwargs...)"
-    end
+        solve_transient(inival, system, times; kwargs...)
+Solve transient or embedding problem.
+"""
+function solve_transient!(state,
+                          inival,
+                          lambdas;
+                          control = SolverControl(),
+                          transient = true, # choose between transient and stationary (embedding) case
+                          time = 0.0,
+                          params = zeros(0),
+                          kwargs...,)
+
     # rounding in output
     rd(x) = round(x; sigdigits = 5)
 
@@ -299,35 +260,33 @@ function CommonSolve.solve(inival,
     oldsolution = copy(inival) # we need a copy as it is later overwritten
 
     # Initialize Dirichlet boundary values
-    _initialize_dirichlet!(solution, system; time, λ = Float64(lambdas[1]), params)
-
+    _initialize_dirichlet!(solution, state.system; time, λ = Float64(lambdas[1]), params)
+    
     # If not transient, solve for first embedding lambdas[1]
     t0 = @elapsed if !transient
         control.pre(solution, Float64(lambdas[1]))
-        solution = solve!(solution,
-                          oldsolution,
-                          system;
-                          called_from_API = true,
-                          control = control,
-                          time = time,
-                          tstep = Inf,
-                          embedparam = Float64(lambdas[1]),
-                          params = params,
-                          kwargs...,)
+        solution = solve_step!(state,
+                               solution,
+                               oldsolution,
+                               control,
+                               time,
+                               Inf,
+                               Float64(lambdas[1]),
+                               params)
 
         control.post(solution, oldsolution, lambdas[1], 0)
 
         if control.log
-            push!(allhistory, system.history)
+            push!(allhistory, solution.history)
             push!(allhistory.times, lambdas[1])
-            Δu = control.delta(system, solution, oldsolution, lambdas[1], 0)
+            Δu = control.delta(state.system, solution, oldsolution, lambdas[1], 0)
             push!(allhistory.updates, Δu)
         end
         oldsolution .= solution
     end
 
     # Initialize transient solution struct
-    tsol = TransientSolution(Float64(lambdas[1]), solution; in_memory = control.in_memory)
+    tsol = TransientSolution(Float64(lambdas[1]), copy(solution); in_memory = control.in_memory)
 
     if doprint(control, 'e')
         println("[e]volution: start in $(extrema(lambdas))")
@@ -367,17 +326,14 @@ function CommonSolve.solve(inival,
                         _tstep = Inf
                         _embedparam = λ
                     end
-
-                    solution = solve!(solution,
-                                      oldsolution,
-                                      system;
-                                      called_from_API = true,
-                                      control = control,
-                                      time = _time,
-                                      tstep = _tstep,
-                                      embedparam = _embedparam,
-                                      params = params,
-                                      kwargs...,)
+                    solution = solve_step!(state,
+                                           solution,
+                                           oldsolution,
+                                           control,
+                                           _time,
+                                           _tstep,
+                                           _embedparam,
+                                           params)
                 catch err
                     err = "Problem at $(λstr)=$(λ|>rd), Δ$(λstr)=$(Δλ|>rd):\n$(err)"
                     if (control.handle_exceptions)
@@ -389,7 +345,7 @@ function CommonSolve.solve(inival,
                     errored = true
                 end
                 if solved
-                    Δu = control.delta(system, solution, oldsolution, λ, Δλ)
+                    Δu = control.delta(state.system, solution, oldsolution, λ, Δλ)
                     if Δu > Δu_max_factor * Δu_opt
                         solved = false
                     end
@@ -446,12 +402,12 @@ function CommonSolve.solve(inival,
                             Δu)
                 end
                 if control.log
-                    push!(allhistory, system.history)
+                    push!(allhistory, solution.history)
                     push!(allhistory.updates, Δu)
                     push!(allhistory.times, λ)
                 end
                 if control.store_all
-                    append!(tsol, λ, solution)
+                    append!(tsol, λ, copy(solution))
                 end
                 control.post(solution, oldsolution, λ, Δλ)
                 oldsolution .= solution
@@ -483,7 +439,7 @@ function CommonSolve.solve(inival,
         end # while λ<λ_end
 
         if !control.store_all # store last solution obtained
-            append!(tsol, λ0, solution)
+            append!(tsol, λ0, copy(solution))
         end
 
         control.sample(solution, λ0)
@@ -501,30 +457,79 @@ function CommonSolve.solve(inival,
         println("[e]volution:  $(round(t0+t1,sigdigits=3)) seconds")
     end
 
-    system.history = allhistory
     tsol.history = allhistory
     return tsol
 end
 
-"""
-    evaluate_residual_and_jacobian(system,u;
-                                   t=0.0, tstep=Inf,embed=0.0)
 
-Evaluate residual and jacobian at solution value u.
-Returns a solution vector containing a copy of  residual, and an ExendableSparseMatrix
-containing a copy of the linearization at u.
-
-"""
-function evaluate_residual_and_jacobian(sys, u; t = 0.0, tstep = Inf, embed = 0.0)
-    _complete!(sys; create_newtonvectors = true)
-
-    eval_and_assemble(sys, u, u, sys.residual, t, tstep, embed, zeros(0))
-    copy(sys.residual), copy(flush!(sys.matrix))
-end
-
-module NoModule end
 
 #####################################################################
+"""
+    solve!(state; kwargs...)
+
+Built-in solution method for [`VoronoiFVM.System`](@ref).  
+
+Solves finite volume system the satate is belonging to.
+Mutates the state and returns the solution.
+
+For the keyword argumentsm see [`VoronoiFVM.solve`](@ref).
+"""
+function CommonSolve.solve!(state::VoronoiFVM.SystemState;
+                            inival = 0,
+                            data = nothing,
+                            params = zeros(0),
+                            control = VoronoiFVM.SolverControl(),
+                            time = 0.0,
+                            tstep = Inf,
+                            kwargs...,)
+    fix_deprecations!(control)
+
+    if isa(inival, Number) || isa(inival, Matrix) 
+        inival = unknowns(state.system; inival = inival)
+    elseif !VoronoiFVM.isunknownsof(inival, state.system)
+        @error "wrong type of inival: $(typeof(inival))"
+    end
+    
+    for pair in kwargs
+        if first(pair) != :times &&
+           first(pair) != :embed &&
+           hasfield(SolverControl, first(pair))
+            setproperty!(control, first(pair), last(pair))
+        end
+    end
+
+    if !isnothing(data)
+        state.data=data
+    end
+
+    if haskey(kwargs, :times) && !isnothing(kwargs[:times])
+        solve_transient!(state,
+                        inival,
+                        kwargs[:times];
+                        control,
+                        transient = true,
+                        params,
+                        time = kwargs[:times][1])
+    elseif haskey(kwargs, :embed) && !isnothing(kwargs[:embed])
+        solve_transient!(state,
+                         inival,
+                         kwargs[:embed];
+                         transient = false,
+                         control,
+                         params,
+                         time,)
+    else
+        solve_step!(state,
+                    unknowns(state.system),
+                    inival,
+                    control,
+                    time,
+                    tstep,
+                    0.0,
+                    params)
+    end
+end
+
 """
     solve(system; kwargs...)
     
@@ -569,50 +574,7 @@ Keyword arguments:
   - `tstep`: time step
   Returns a [`DenseSolutionArray`](@ref) or [`SparseSolutionArray`](@ref)
 """
-function CommonSolve.solve(sys::VoronoiFVM.AbstractSystem;
-                           inival = 0,
-                           params = zeros(0),
-                           control = VoronoiFVM.SolverControl(),
-                           time = 0.0,
-                           tstep = Inf,
-                           kwargs...,)
-    fix_deprecations!(control)
-
-    if isa(inival, Number)
-        inival = unknowns(sys; inival = inival)
-    elseif !VoronoiFVM.isunknownsof(inival, sys)
-        @error "wrong type of inival: $(typeof(inival))"
-    end
-
-    for pair in kwargs
-        if first(pair) != :times &&
-           first(pair) != :embed &&
-           hasfield(SolverControl, first(pair))
-            setproperty!(control, first(pair), last(pair))
-        end
-    end
-
-    sys.linear_cache = nothing
-
-    if haskey(kwargs, :times) && !isnothing(kwargs[:times])
-        solve(inival,
-              sys,
-              kwargs[:times];
-              control,
-              transient = true,
-              params,
-              time = kwargs[:times][1],
-              called_from_API = true,)
-    elseif haskey(kwargs, :embed) && !isnothing(kwargs[:embed])
-        solve(inival,
-              sys,
-              kwargs[:embed];
-              called_from_API = true,
-              transient = false,
-              control,
-              params,
-              time,)
-    else
-        solve(inival, sys; called_from_API = true, control, params, time, tstep)
-    end
+function CommonSolve.solve(sys::VoronoiFVM.AbstractSystem; data=sys.physics.data, kwargs...)
+    state=SystemState(sys;data)
+    solve!(state; kwargs...)
 end

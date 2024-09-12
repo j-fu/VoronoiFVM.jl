@@ -1,40 +1,86 @@
 """
-```
-const DenseSolutionArray=Matrix
-```
+    $(TYPEDEF)
 
-Dense storage of solution
+Dense storage of solution. Subtype of [`AbstractSolutionArray`](@ref)
+
+
+Fields:
+
+$(TYPEDFIELDS)
 """
-const DenseSolutionArray = Matrix
+mutable struct DenseSolutionArray{T, N}  <: AbstractSolutionArray{T,N}
+    u::Array{T,N}
+    history::Union{NewtonSolverHistory, Nothing}
+end
+
 
 """
-$(SIGNATURES)
+ $(TYPEDSIGNATURES)
+    
+`DenseSolutionArray` constructor.
+"""
+DenseSolutionArray(u::Matrix{T}) where {T} =DenseSolutionArray{T,2}(u,nothing)
 
+"""
+ $(TYPEDSIGNATURES)
+    
+`DenseSolutionArray` constructor.
+"""
+DenseSolutionArray{T,2}(nspec::Int, nnodes::Int) where {T} =DenseSolutionArray{T,2}(Matrix{T}(nspec,nnodes),nothing)
+
+"""
+ $(TYPEDSIGNATURES)
+    
+`DenseSolutionArray` constructor.
+"""
+DenseSolutionArray{T,2}(::UndefInitializer,nspec::Int, nnodes::Int) where {T} =DenseSolutionArray{T,2}(Matrix{T}(undef,nspec,nnodes),nothing)
+                                                                                    
+
+"""
+ $(SIGNATURES)
+    
 Get degree of freedom number
 """
-dof(a::DenseSolutionArray{Tv}, ispec::Integer, K::Integer) where {Tv} = (K - 1) * size(a, 1) + ispec
+dof(a::DenseSolutionArray, ispec, K) = (K - 1) * size(a, 1) + ispec
 
 """
 $(SIGNATURES)
 
 Return indices for dense solution array.
 """
-unknown_indices(a::DenseSolutionArray{Tv}) where {Tv} = LinearIndices(a)
+unknown_indices(a::DenseSolutionArray) = LinearIndices(a)
+
+
+
+Base.vec(a::DenseSolutionArray) = vec(a.u)
+
+Base.copy(a::DenseSolutionArray) = DenseSolutionArray(copy(a.u))
+
+Base.similar(a::DenseSolutionArray) = DenseSolutionArray(similar(a.u))
 
 """
 $(SIGNATURES)
 
 Array of values in solution array.
 """
-values(a::DenseSolutionArray{Tv}) where {Tv} = vec(a)
+values(a::DenseSolutionArray) = vec(a)
 
 """
 $(TYPEDSIGNATURES)
 
 Add residual value into global degree of freedom
-"""
-_add(U::DenseSolutionArray{Tv}, idof, val) where {Tv} = U[CartesianIndices(U)[idof]] += val
 
-_set(U::DenseSolutionArray{Tv}, idof, val) where {Tv} = U[CartesianIndices(U)[idof]] = val
+(Internal method)
+"""
+_add(U::DenseSolutionArray, idof, val) = U[CartesianIndices(U)[idof]] += val
+
+"""
+$(TYPEDSIGNATURES)
+
+Set residual value for global degree of freedom
+
+(Internal method)
+"""
+_set(U::DenseSolutionArray, idof, val) = U[CartesianIndices(U)[idof]] = val
 
 ##################################################################

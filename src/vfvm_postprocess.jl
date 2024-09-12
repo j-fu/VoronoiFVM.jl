@@ -15,19 +15,14 @@ Integrate node function (same signature as reaction or storage)
 The result is an `nspec x nregion` matrix.
 """
 function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
-                   boundary = false) where {Tu, Tv, Tc, Ti, Tm}
+                   boundary = false, data = system.physics.data) where {Tu, Tv, Tc, Ti, Tm}
     _complete!(system)
-    grid = system.grid
-    data = system.physics.data
+    grid = system.grid   
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
 
     if boundary
         bnode = BNode(system)
-        bnodeparams = (bnode,)
-        if isdata(data)
-            bnodeparams = (bnode, data)
-        end
         #!!!        bnode.time=time
         #!!!        bnode.embedparam=embedparam
 
@@ -39,17 +34,13 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
             for ibnode in noderange(system.boundary_assembly_data, item)
                 _fill!(bnode, system.boundary_assembly_data, ibnode, item)
                 res .= zero(Tv)
-                @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnodeparams...)
+                @views F(rhs(bnode, res), unknowns(bnode, U[:, bnode.index]), bnode, data)
                 asm_res(idof, ispec) = integral[ispec, bnode.region] += bnode.fac * res[ispec]
                 assemble_res(bnode, system, asm_res)
             end
         end
     else
         node = Node(system)
-        nodeparams = (node,)
-        if isdata(data)
-            nodeparams = (node, data)
-        end
         #!!!        node.time=time
         #!!!        node.embedparam=embedparam
         cellregions = grid[CellRegions]
@@ -59,7 +50,7 @@ function integrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::Abstr
             for inode in noderange(system.assembly_data, item)
                 _fill!(node, system.assembly_data, inode, item)
                 res .= zero(Tv)
-                @views F(rhs(node, res), unknowns(node, U[:, node.index]), nodeparams...)
+                @views F(rhs(node, res), unknowns(node, U[:, node.index]), node, data)
                 asm_res(idof, ispec) = integral[ispec, node.region] += node.fac * res[ispec]
                 assemble_res(node, system, asm_res)
             end
@@ -75,11 +66,11 @@ end
 Integrate solution vector region-wise over domain or boundary.
 The result is an `nspec x nregion` matrix.
 """
-function integrate(system::AbstractSystem,U::AbstractMatrix)
+function integrate(system::AbstractSystem,U::AbstractMatrix; kwargs...)
     function f(f,u,node,data=nothing)
         f.=u
     end
-    integrate(system,f,U)
+    integrate(system,f,U; kwargs...)
 end
 
 
@@ -91,11 +82,10 @@ Integrate edge function (same signature as flux function)
 The result is an `nspec x nregion` matrix.
 """
 function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::AbstractMatrix{Tu};
-                       boundary = false) where {Tu, Tv, Tc, Ti, Tm}
+                       boundary = false, data = system.physics.data) where {Tu, Tv, Tc, Ti, Tm}
     _complete!(system)
     grid = system.grid
     dim = dim_space(grid)
-    data = system.physics.data
     nspecies = num_species(system)
     res = zeros(Tu, nspecies)
     nparams = system.num_parameters
@@ -106,10 +96,6 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
         error("missing implementation of boundary edge integrals")
     else
         edge = Edge(system)
-        edgeparams = (edge,)
-        if isdata(data)
-            edgeparams = (edge, data)
-        end
         cellregions = grid[CellRegions]
         ncellregions = maximum(cellregions)
         integral = zeros(Tu, nspecies, ncellregions)
@@ -119,7 +105,7 @@ function edgeintegrate(system::AbstractSystem{Tv, Tc, Ti, Tm}, F::Function, U::A
                 @views UKL[1:nspecies] .= U[:, edge.node[1]]
                 @views UKL[(nspecies + 1):(2 * nspecies)] .= U[:, edge.node[2]]
                 res .= zero(Tv)
-                @views F(rhs(edge, res), unknowns(edge, UKL), edgeparams...)
+                @views F(rhs(edge, res), unknowns(edge, UKL), edge, data)
                 function asm_res(idofK, idofL, ispec)
                     h = meas(edge)
                     # This corresponds to the multiplication with the diamond volume.
@@ -161,7 +147,7 @@ CAVEAT: there is a possible unsolved problem with the values at domain
 corners in the code. Please see any potential boundary artifacts as a manifestation
 of this issue and report them.
 """
-function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2}) where {Tu, Tv, Tc, Ti, Tm}
+function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2}; data=system.physics.data) where {Tu, Tv, Tc, Ti, Tm}
     _complete!(system)
     grid = system.grid
     dim = dim_space(grid)
@@ -179,7 +165,7 @@ function nodeflux(system::AbstractSystem{Tv, Tc, Ti, Tm}, U::AbstractArray{Tu, 2
 
     # !!! TODO Parameter handling here
     UKL = Array{Tu, 1}(undef, 2 * nspecies)
-    flux_eval = ResEvaluator(system.physics, :flux, UKL, edge, nspecies)
+    flux_eval = ResEvaluator(system.physics, data, :flux, UKL, edge, nspecies)
 
     for item in edgebatch(system.assembly_data)
         for iedge in edgerange(system.assembly_data, item)
@@ -225,7 +211,7 @@ function LinearAlgebra.norm(system::DenseSystem, u, p::Number = 2)
     norm(u, p)
 end
 
-LinearAlgebra.norm(system::SparseSystem, u::SparseSolutionArray, p::Number = 2) = LinearAlgebra.norm(u.node_dof.nzval, p)
+LinearAlgebra.norm(system::SparseSystem, u::SparseSolutionArray, p::Number = 2) = LinearAlgebra.norm(u.u.nzval, p)
 
 """
     $(SIGNATURES)

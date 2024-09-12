@@ -42,8 +42,9 @@ mutable struct TransientSolution{T, N, A, B} <: AbstractTransientSolution{T, N, 
     """
     History
     """
-    history::TransientSolverHistory
+    history::Union{TransientSolverHistory, DiffEqHistory}
 end
+
 
 function TransientSolution(vec::AbstractVector{T}, ts, ::NTuple{N}) where {T, N}
     TransientSolution{eltype(T), N, typeof(vec), typeof(ts)}(vec, ts, TransientSolverHistory())
@@ -51,32 +52,22 @@ end
 
 TransientSolution(vec::AbstractVector, ts::AbstractVector) = TransientSolution(vec, ts, (size(vec[1])..., length(vec)))
 
-Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, copy(sol))
+@doc """
+    append!(tsol::AbstractTransientSolution, t, sol)
+
+Append time step solution `sol` as solution at time `t` to tsol. 
+`sol` will be directly references in `tsol`. This method does not copy `sol`.
+If during a time steping process it is the same vector, a `copy` should appended.
+
+Defined in VoronoiFVM.jl.
+"""
+Base.append! 
+
+Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractArray) = push!(s.t, t), push!(s.u, sol)
+
+Base.append!(s::AbstractTransientSolution, t::Real, sol::AbstractSolutionArray) = append!(s,t,sol.u)
 
 (sol::AbstractTransientSolution)(t) = _interpolate(sol, t)
-
-"""
-    history(tsol)
-
-Return solver history if `log` was set to true.
-See  see [`NewtonSolverHistory`](@ref), [`TransientSolverHistory`](@ref).
-"""
-history(tsol::AbstractTransientSolution) = tsol.history
-
-"""
-    history_details(tsol)
-
-Return details of solver history from last `solve` call, if `log` was set to true.
-See [`details`](@ref).
-"""
-history_details(tsol::AbstractTransientSolution) = details(tsol.history)
-
-"""
-    history_summary(tsol)
-
-Return summary of solver history from last `solve` call, if `log` was set to true.
-"""
-history_summary(tsol::AbstractTransientSolution) = summary(tsol.history)
 
 function _interpolate(sol, t)
     if isapprox(t, sol.t[1]; atol = 1.0e-10 * abs(sol.t[2] - sol.t[1]))
@@ -180,6 +171,8 @@ function TransientSolution(t0::Number,
     if !in_memory && !isa(inival, SparseSolutionArray)
         TransientSolution(VectorOfDiskArrays(inival; keep_open = keep_open, fname = fname), [t0])
     else
-        TransientSolution([copy(inival)], [t0])
+        TransientSolution([inival], [t0])
     end
 end
+
+TransientSolution(t0::Number,inival::AbstractSolutionArray{T,N};kwargs...) where{T,N} = TransientSolution(t0,inival.u; kwargs...)

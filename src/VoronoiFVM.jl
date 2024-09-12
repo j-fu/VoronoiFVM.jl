@@ -29,7 +29,6 @@ using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         ExtendableSparseMatrix,
                         ExtendableSparseMatrixCSC,
                         MTExtendableSparseMatrixCSC,
-                        STExtendableSparseMatrixCSC,
                         AbstractExtendableSparseMatrixCSC,
                         PointBlockILUZeroPreconditioner, factorize!, flush!,
                         nnz, rawupdateindex!, sparse, updateindex!, nnznew
@@ -39,7 +38,7 @@ using GridVisualize: GridVisualize, GridVisualizer
 using InteractiveUtils: InteractiveUtils
 using JLD2: JLD2, jldopen
 using LinearAlgebra: LinearAlgebra, Diagonal, I, Tridiagonal, isdiag, ldiv!, norm
-using LinearSolve: LinearSolve, KLUFactorization, KrylovJL_BICGSTAB,
+using LinearSolve: LinearSolve, KrylovJL_BICGSTAB,
                    KrylovJL_CG, KrylovJL_GMRES, LinearProblem,
                    SparspakFactorization, UMFPACKFactorization, init
 using Printf: Printf, @printf, @sprintf
@@ -54,17 +53,40 @@ using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
 using StaticArrays: StaticArrays, @MVector, @SArray, @SMatrix
 using Statistics: Statistics, mean
 using Symbolics: Symbolics
-using Compat: @compat
 
 
+"""
+   $(TYPEDEF)
+
+Abstract type for geometry items (node,bnode,edge, bedge)
+"""
+abstract type AbstractGeometryItem{Tc <: Number, Tp <: Number, Ti <: Integer} end
+export AbstractGeometryItem
+
+"""
+   $(TYPEDEF)
+
+Abstract type for stationary solution. Subtype of `AbstractArray`.
+"""
+abstract type AbstractSolutionArray{T,N} <: AbstractArray{T,N} end
+Base.getindex(a::AbstractSolutionArray, i::Int, j::Int)= getindex(a.u,i,j )
+Base.setindex!(a::AbstractSolutionArray,v, i::Int, j::Int) = setindex!(a.u,v,i,j)
+Base.size(a::AbstractSolutionArray)=size(a.u)
+
+export AbstractSolutionArray
 
 include("vfvm_physics.jl")
-@compat public Physics
+# see https://discourse.julialang.org/t/is-compat-jl-worth-it-for-the-public-keyword/119041/34m
+VERSION >= v"1.11.0-DEV.469" && eval(Meta.parse("public Physics, AbstractPhysics, AbstractData"))
 
 include("vfvm_functions.jl")
 export fbernoulli
 export fbernoulli_pm
 export inplace_linsolve!
+
+
+include("vfvm_history.jl")
+export NewtonSolverHistory, TransientSolverHistory, details
 
 include("vfvm_densesolution.jl")
 include("vfvm_sparsesolution.jl")
@@ -72,9 +94,7 @@ export num_dof
 export dof
 export getdof
 export setdof!
-
-include("vfvm_history.jl")
-export NewtonSolverHistory, TransientSolverHistory, details
+export unknown_indices,  SparseSolutionIndices
 
 include("vfvm_transientsolution.jl")
 export TransientSolution
@@ -92,6 +112,7 @@ abstract type AbstractSystem{Tv <: Number, Tc <: Number, Ti <: Integer, Tm <: In
 include("vfvm_geometryitems.jl")
 include("vfvm_assemblydata.jl")
 include("vfvm_system.jl")
+include("vfvm_state.jl")
 export unknowns
 export num_species
 export enable_species!
@@ -108,9 +129,9 @@ export evaluate_residual_and_jacobian
 export edgelength
 export viewK, viewL, data
 export hasoutflownode, isoutflownode, outflownode
+export parameters
 
-
-@compat public System, AbstractSystem
+VERSION >= v"1.11.0-DEV.469" && eval(Meta.parse("public System, AbstractSystem, SystemState"))
 
 # export to be deprecated
 export partitioning, Equationwise
@@ -119,7 +140,7 @@ include("vfvm_formfactors.jl")
 export meas, project
 export unknown_indices
 export edgevelocities, bfacevelocities, bfacenodefactors
-export time, region, embedparam, parameters
+export time, region, embedparam
 export calc_divergences
 
 include("vfvm_solvercontrol.jl")

@@ -1,11 +1,4 @@
 """
-   $(TYPEDEF)
-
-Abstract type for geometry items (node,bnode,edge, bedge)
-"""
-abstract type AbstractGeometryItem{Tc <: Number, Tp <: Number, Ti <: Integer} end
-
-"""
     time(edge_or_node)
 
 Return actual simulation time stored in node or edge
@@ -280,7 +273,7 @@ mutable struct BNode{Tv, Tc, Tp, Ti} <: AbstractNode{Tc, Tp, Ti}
             sys.grid[BFaceRegions],
             sys.grid[CellRegions],
             sys.grid[BFaceCells],
-            Dirichlet, time, embedparam, params,
+            Dirichlet(Tv), time, embedparam, params,
             zeros(Tv, num_species(sys)), 0.0)
     end
 end

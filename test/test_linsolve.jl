@@ -158,24 +158,23 @@ function runtests()
     @test n1 == 0
 
     n3 = @allocated checklux(10, Dual64)
-    @test n3 == 0
 
-    if VERSION >= v"1.9-rc0"
-        checklurx(10, Float64)
-        checklurm(10, Float64)
-        checklurx(10, Dual64)
-        checklurm(10, Dual64)
+    isbroken = VERSION >= v"1.12.0-DEV.0"
+    @test n3 == 0 broken=isbroken
 
-        rn1 = @allocated checklurx(10, Float64)
-        @test rn1 == 0
-        rn2 = @allocated checklurm(10, Float64)
-        @test rn2 == 0
-        rn3 = @allocated checklurx(10, Dual64)
-        @test rn3 == 0
-        rn4 = @allocated checklurm(10, Dual64)
-        @test rn4 == 0
-    end
-
+    checklurx(10, Float64)
+    checklurm(10, Float64)
+    checklurx(10, Dual64)
+    checklurm(10, Dual64)
+    
+    rn1 = @allocated checklurx(10, Float64)
+    @test rn1 == 0
+    rn2 = @allocated checklurm(10, Float64)
+    @test rn2 == 0
+    rn3 = @allocated checklurx(10, Dual64)
+    @test rn3 == 0  broken=isbroken
+    rn4 = @allocated checklurm(10, Dual64)
+    @test rn4 == 0
     true
 end
 

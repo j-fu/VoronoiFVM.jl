@@ -67,9 +67,9 @@ end
 using Test
 function runtests()
     testval = 0.01
-    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval &&
-          main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval &&
-          main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :edgewise) ≈ testval
+    @test main(; unknown_storage = :sparse, assembly = :cellwise) ≈ testval
+    @test main(; unknown_storage = :dense, assembly = :cellwise) ≈ testval
+    @test main(; unknown_storage = :dense, assembly = :edgewise) ≈ testval 
 end
 end

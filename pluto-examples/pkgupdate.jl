@@ -15,8 +15,17 @@ notebooks = [
     "flux-reconstruction.jl",
     "problemcase.jl",
     "nonlinear-solvers.jl",
-    "interfaces1d.jl"
+    "interfaces1d.jl",
+    "ode-diffusion1d.jl",
+    "ode-wave1d.jl",
+    "ode-nlstorage1d.jl",
+    "ode-brusselator.jl",
+    "heterogeneous-catalysis.jl",
+    "outflow.jl",
+    "bernoulli.jl"
 ]
+
+
 
 
     # # if we add one package too many, this triggers the action of PlutoPkg
@@ -49,9 +58,11 @@ function force_update_notebook_environment(notebook)
     pkgs=[PackageSpec(uuid=v) for (k,v) in Pkg.project().dependencies]
     
     # Remove and re-add packages, thus ignoring compat
-    Pkg.rm(pkgs)
-    Pkg.add(pkgs)
-
+    if length(pkgs)>0
+        Pkg.rm(pkgs)
+        Pkg.add(pkgs)
+    end
+    
     # let the environments sync
     sleep(1)
 
@@ -71,7 +82,7 @@ for notebook in notebooks
 end
 
 
-dirs = ["test", "pluto-examples", "docs"]
+dirs = ["pluto-examples", "docs"]
 for dir in dirs
     println("updating $(dir) environment")
     thisproject=Pkg.project().path

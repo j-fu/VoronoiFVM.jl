@@ -5,24 +5,30 @@ Besides of the interface methods for `VoronoiFVMDiffEq`,
 these are not exported and therefore should not be used outside of the package
 
 
-
 ## Wrapping evaluators for physics callbacks
 ```@docs 
 VoronoiFVM.hasdata
 VoronoiFVM.AbstractEvaluator
 VoronoiFVM.ResEvaluator
-VoronoiFVM.ResEvaluator(physics::Any,symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
+VoronoiFVM.ResEvaluator(physics::Any, data::Any, symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
 VoronoiFVM.evaluate!(e::VoronoiFVM.ResEvaluator)
 VoronoiFVM.evaluate!(e::VoronoiFVM.ResEvaluator, u::Any)
 VoronoiFVM.res(e::VoronoiFVM.ResEvaluator)
 VoronoiFVM.ResJacEvaluator
-VoronoiFVM.ResJacEvaluator(physics::Any,symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
+VoronoiFVM.ResJacEvaluator(physics::Any, data::Any, symb::Symbol,uproto::Vector{Tv},geom::Any,nspec::Int) where Tv
 VoronoiFVM.evaluate!(e::VoronoiFVM.ResJacEvaluator, u::Any)
 VoronoiFVM.res(e::VoronoiFVM.ResJacEvaluator)
 VoronoiFVM.jac(e::VoronoiFVM.ResJacEvaluator)
 VoronoiFVM.isnontrivial
 ```
 
+## Manipulating systems
+```@docs
+VoronoiFVM.update_grid_cellwise!
+VoronoiFVM.update_grid_edgewise!
+VoronoiFVM.sysmutatelock
+VoronoiFVM._complete!
+```
 
 ## Global node and edge assembly loops
 ```@docs 
@@ -74,22 +80,31 @@ VoronoiFVM.firstnodedof
 VoronoiFVM.lastnodedof
 VoronoiFVM.getspecies
 VoronoiFVM.getnodedof
+VoronoiFVM.increase_num_species!
+VoronoiFVM.addzrows
 ```
 
 
-## Abstract geometry data
+## Geometry data
 ```@docs
 VoronoiFVM.AbstractGeometryItem
 VoronoiFVM.AbstractNode
 VoronoiFVM.AbstractNodeData
 VoronoiFVM.AbstractEdge
 VoronoiFVM.AbstractEdgeData
+VoronoiFVM.outflownode!
+VoronoiFVM.NodeUnknowns
+VoronoiFVM.NodeRHS
 ```
 
 ## Global assembly & helpers
 
 ```@docs 
+VoronoiFVM.factorizationstrategy
+VoronoiFVM.solve_step!
+VoronoiFVM.solve_transient!
 VoronoiFVM.eval_and_assemble
+VoronoiFVM._eval_and_assemble_generic_operator
 VoronoiFVM._addnz
 VoronoiFVM._add
 ```
@@ -101,4 +116,12 @@ eval_rhs!
 eval_jacobian!
 mass_matrix
 prepare_diffeq!
+```
+
+## Misc tools
+```@docs
+VoronoiFVM.doolittle_ludecomp!
+VoronoiFVM.doolittle_lusolve!
+VoronoiFVM.bernoulli_horner
+VoronoiFVM._print_error
 ```

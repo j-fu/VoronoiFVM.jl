@@ -1,5 +1,7 @@
 using Documenter, ExampleJuggler, PlutoStaticHTML, VoronoiFVM, DocumenterCitations
-using ExtendableGrids, GridVisualize, LinearAlgebra, OrdinaryDiffEq, RecursiveArrayTools, SciMLBase
+using ExtendableGrids, GridVisualize, LinearAlgebra, RecursiveArrayTools, SciMLBase
+
+using OrdinaryDiffEqBDF, OrdinaryDiffEqLowOrderRK, OrdinaryDiffEqRosenbrock, OrdinaryDiffEqSDIRK, OrdinaryDiffEqTsit5 
 
 function make(; with_examples = true,
               with_notebooks = true)
@@ -19,7 +21,7 @@ function make(; with_examples = true,
 
     pages = [
         "Home" => "index.md",
-        "changes.md",
+        "Changelog" => "changes.md",
         "method.md",
         "API Documentation" => [
             "system.md",
@@ -69,7 +71,6 @@ function make(; with_examples = true,
              checkdocs = :all,
              clean = false,
              doctest = false,
-             warnonly = true,
              authors = "J. Fuhrmann",
              repo = "https://github.com/j-fu/VoronoiFVM.jl",
              format = Documenter.HTML(; size_threshold_ignore,

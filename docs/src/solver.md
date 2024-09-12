@@ -16,22 +16,30 @@ the choice of a [OrdinaryDiffEq.jl based solver](@ref diffeq) can significantly 
 
 Overview:
 - [Solve method](@ref "Solve method")
-- [Solver  control](@ref "Solver control")
+- [Solver control](@ref "Solver control")
+- [System state](@ref "System state")
 - [Linear solver stragies](@ref "Linear solver strategies")
 - [Block preconditioning](@ref "Block preconditioning")
 - [History handling](@ref "History handling")
-- [Matrix extration](@ref "Matrix extraction")
+- [Matrix extraction](@ref "Matrix extraction")
 
 ### Solve method
 ```@docs
 VoronoiFVM.solve(system::VoronoiFVM.AbstractSystem; kwargs...)
 ``` 
-
 ### Solver control
 ```@docs 
 SolverControl
+fixed_timesteps!
 ```
+### System state
 
+```@docs
+VoronoiFVM.SystemState
+VoronoiFVM.SystemState(::Type, system::VoronoiFVM.AbstractSystem; data)
+VoronoiFVM.SystemState(system::VoronoiFVM.AbstractSystem; data)
+VoronoiFVM.solve!(system::VoronoiFVM.SystemState; kwargs...)
+```
 
 ### Linear solver strategies
 ```@docs
@@ -57,16 +65,17 @@ partitioning
 
 ### History handling
 If `log` is set to true in `solve`, the history of newton iterations and  time/embedding
-steps is recorded and. For the respective previous solution step it can be obtained via
-`history(system)`.
+steps is recorded and returned as `history(solution)`
 
 ```@docs
 NewtonSolverHistory
 TransientSolverHistory
+VoronoiFVM.DiffEqHistory
 Base.summary(::NewtonSolverHistory)
 Base.summary(::TransientSolverHistory)
 details
 history
+
 history_details
 history_summary
 ```
@@ -122,9 +131,9 @@ Using [`reshape(::AbstractDiffEqArray,::VoronoiFVM.AbstractSystem)`](@ref) on `(
 the species structure.
 
 ```@docs
-SciMLBase.ODEProblem(::VoronoiFVM.AbstractSystem, inival, tspan, callback)
+SciMLBase.ODEProblem
 reshape(::AbstractDiffEqArray,::VoronoiFVM.AbstractSystem)
-SciMLBase.ODEFunction(sys::VoronoiFVM.AbstractSystem; jacval=unknowns(sys,0), tjac=0)
+SciMLBase.ODEFunction
 ```
 
 
@@ -134,9 +143,6 @@ During the development of the code, a number of API variants have been developed
 are supported for backward compatibility.
 
 ```@docs
-VoronoiFVM.solve(inival, system::VoronoiFVM.AbstractSystem, times; kwargs...)
-VoronoiFVM.solve(inival, system::VoronoiFVM.AbstractSystem; kwargs...)
-VoronoiFVM.solve!(solution,inival, system::VoronoiFVM.AbstractSystem; kwargs...)
 NewtonControl
 ``` 
 

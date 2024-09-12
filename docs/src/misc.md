@@ -8,11 +8,6 @@ value
 
 ## Form factor calculatione
 
-## Velocity projections
-```@docs
-edgevelocities
-bfacevelocities
-```
 
 ## Additional grid methods
 ```@autodocs

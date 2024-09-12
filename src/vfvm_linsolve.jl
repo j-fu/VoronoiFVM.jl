@@ -231,12 +231,12 @@ end
 canonical_matrix(A) = A
 canonical_matrix(A::AbstractExtendableSparseMatrixCSC) = SparseMatrixCSC(A)
 
-function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
-    if isnothing(system.linear_cache)
+function _solve_linear!(u, state, nlhistory, control, method_linear, A, b)
+    if isnothing(state.linear_cache)
         Pl = control.precon_linear(canonical_matrix(A))
         nlhistory.nlu += 1
         p = LinearProblem(canonical_matrix(A), b)
-        system.linear_cache = init(p,
+        state.linear_cache = init(p,
                                    method_linear;
                                    abstol = control.abstol_linear,
                                    reltol = control.reltol_linear,
@@ -244,16 +244,16 @@ function _solve_linear!(u, system, nlhistory, control, method_linear, A, b)
                                    verbose = doprint(control, 'l'),
                                    Pl,)
     else
-        system.linear_cache.A = canonical_matrix(A)
-        system.linear_cache.b = b
+        state.linear_cache.A = canonical_matrix(A)
+        state.linear_cache.b = b
         if control.keepcurrent_linear
             nlhistory.nlu += 1
-            system.linear_cache.Pl = control.precon_linear(canonical_matrix(A))
+            state.linear_cache.Pl = control.precon_linear(canonical_matrix(A))
         end
     end
 
     try
-        sol = LinearSolve.solve!(system.linear_cache)
+        sol = LinearSolve.solve!(state.linear_cache)
         u .= sol.u
         nliniter = sol.iters
         nlhistory.nlin = sol.iters

@@ -6,7 +6,7 @@ The examples have been designed with the following issues in mind:
 - an example can be used as the starting point for a project 
 - the examples at the same time comprise the test suite for VoronoiFVM.
 
-Since the creation of these examples, the API has been [updated and simplified](@ref api-update).
+Since the creation of these examples, the API has been updated and simplified.
 
 
 ## Running the examples
@@ -26,7 +26,7 @@ Due to the encapsulation into modules, you can load as many examples as you like
 If you want to modify the example, consider using `Revise.jl` and `includet`. 
 
 
-## Performance with  closures
+## Performance with closures
 
 VoronoiFVM provides two flavors of calbacks for constitutive
 functions: 
