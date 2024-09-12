@@ -484,7 +484,7 @@ function CommonSolve.solve!(state::VoronoiFVM.SystemState;
                             kwargs...,)
     fix_deprecations!(control)
 
-    if isa(inival, Number)
+    if isa(inival, Number) || isa(inival, Matrix) 
         inival = unknowns(state.system; inival = inival)
     elseif !VoronoiFVM.isunknownsof(inival, state.system)
         @error "wrong type of inival: $(typeof(inival))"

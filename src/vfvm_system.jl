@@ -1061,6 +1061,7 @@ function unknowns(Tu::Type, system::SparseSystem; inival = undef, inifunc = noth
     u
 end
 
+
 """
     $(TYPEDEF)
 
@@ -1125,8 +1126,10 @@ end
 
 function unknowns(Tu::Type, system::DenseSystem; inival = undef, inifunc = nothing)
     a = DenseSolutionArray(Array{Tu,2}(undef, size(system.node_dof)...))
-    if inival != undef
+    if isa(inival, Number)
         fill!(a, inival)
+    elseif isa(inival, Matrix)
+        a.=inival
     end
     isa(inifunc, Function) && map!(inifunc, a, system)
     return a
