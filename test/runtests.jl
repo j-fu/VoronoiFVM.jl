@@ -57,7 +57,7 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
             "interfaces1d.jl",
             "problemcase.jl",
             "nonlinear-solvers.jl",
-            #         "api-update.jl",
+            "api-update.jl",
             "heterogeneous-catalysis.jl",
                      ]
         @testset "Notebooks" begin
@@ -90,7 +90,7 @@ end
 
 # Don't run notebooks on 1.12: https://github.com/fonsp/Pluto.jl/issues/2939
 run_all_tests(; run_notebooks = VERSION < v"1.12.0-DEV.0" , notebooksonly = false)
-#run_all_tests(; run_notebooks=false , notebooksonly = true)
+#run_all_tests(; run_notebooks=true, notebooksonly = true)
 
 
 

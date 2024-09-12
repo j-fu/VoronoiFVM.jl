@@ -1,5 +1,7 @@
 using Documenter, ExampleJuggler, PlutoStaticHTML, VoronoiFVM, DocumenterCitations
-using ExtendableGrids, GridVisualize, LinearAlgebra, OrdinaryDiffEq, RecursiveArrayTools, SciMLBase
+using ExtendableGrids, GridVisualize, LinearAlgebra, RecursiveArrayTools, SciMLBase
+
+using OrdinaryDiffEqBDF, OrdinaryDiffEqLowOrderRK, OrdinaryDiffEqRosenbrock, OrdinaryDiffEqSDIRK, OrdinaryDiffEqTsit5 
 
 function make(; with_examples = true,
               with_notebooks = true)

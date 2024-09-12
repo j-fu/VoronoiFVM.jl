@@ -13,7 +13,7 @@ notebooks = [
     "nbproto.jl",
     "api-update.jl",
     "flux-reconstruction.jl",
-    "problemcase.jl"
+    "problemcase.jl",
     "nonlinear-solvers.jl",
     "interfaces1d.jl",
     "ode-diffusion1d.jl",
@@ -22,7 +22,7 @@ notebooks = [
     "ode-brusselator.jl",
     "heterogeneous-catalysis.jl",
     "outflow.jl",
-    "bernoulli.jl",
+    "bernoulli.jl"
 ]
 
 
@@ -82,7 +82,7 @@ for notebook in notebooks
 end
 
 
-dirs = ["pluto-examples"]
+dirs = ["pluto-examples", "docs"]
 for dir in dirs
     println("updating $(dir) environment")
     thisproject=Pkg.project().path

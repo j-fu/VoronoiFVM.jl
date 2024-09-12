@@ -2,25 +2,29 @@
 ## v3.0 Planned  (pending some improvements in LinearSolve)
   - use `precs` based linear solver API, see https://github.com/SciML/LinearSolve.jl/pull/514
 
-## v2.0.0 September 4, 2024
+## v2.0.0 September 12, 2024
 
 ### Breaking:
-   - Remove deprecated solve methods:
+   - Removed deprecated solve methods:
 ````
-    CommonSolve.solve(inival, system::VoronoiFVM.AbstractSystem, lambdas;kwargs...)
-    CommonSolve.solve(inival, system::VoronoiFVM.AbstractSystem; kwargs...)
+    solve(inival, system::VoronoiFVM.AbstractSystem, lambdas;kwargs...)
+    solve(inival, system::VoronoiFVM.AbstractSystem; kwargs...)
     solve!(solution,inival, system::VoronoiFVM.AbstractSystem; kwargs...)
 ````
-   - History is now a field of the solution but not system, to be accessed with  ``history(sol)``, both for stationary and transient solutions
-   - [`VoronoiFVM.Physics`](@ref) callbacks (`flux`, `storage`, etc.) need a provided `data` argument
+   - History is now a field of the solution but not system, to be accessed with  ``history(solution)``, instead of ``history(system)`` both for stationary and transient solutions
+   - [`VoronoiFVM.Physics`](@ref) callbacks (`flux`, `storage`, etc.) need a `data` argument, even if `data` is not provided during ``Physics`` or ``System`` construction
 
 ### Added
-  - Introduced ``SystemState`` which contains entries (matrix, residuals) which before were
-    part of ``System``
-  - Introduced `solve!(state::SystemState)` method
+  - Introduced ``SystemState`` which contains entries (matrix, residuals, data) which before were
+    part of ``System``. One can have different states with different data for the same system.
+  - Introduced `solve!(state::SystemState; kwargs...)` method
   - Stationary solutions now contain a history entry and are subtypes of VoronoiFVM.AbstractSolutionArray
   - Changelog now in package root
 
+### Modified
+  - Sparse solver default for Float64 in all space dimensions is now  UMFPACKFactorization. For all other
+    number types it is SparspakFactorization. Before it was KLU for 1D, Sparspak for 2D an UMFPACK for 3D.
+    
 ## v1.25.0, Sept 9, 2024
 - [`VoronoiFVM.Physics`](@ref) callbacks (`flux`, `storage`, etc.) without `data` argument are now deprecated
 
