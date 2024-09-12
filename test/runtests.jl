@@ -71,13 +71,13 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
     end
 
     @testset "Aqua" begin
-        #Aqua.test_ambiguities(VoronoiFVM)
+        Aqua.test_ambiguities(VoronoiFVM, broken=true)
         Aqua.test_unbound_args(VoronoiFVM)
         Aqua.test_undefined_exports(VoronoiFVM)
         Aqua.test_project_extras(VoronoiFVM)
         Aqua.test_stale_deps(VoronoiFVM)
         Aqua.test_deps_compat(VoronoiFVM)
-        #Aqua.test_piracies(VoronoiFVM)
+        Aqua.test_piracies(VoronoiFVM, broken=true)
         Aqua.test_persistent_tasks(VoronoiFVM)
     end
     
