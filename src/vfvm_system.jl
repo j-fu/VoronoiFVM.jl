@@ -204,8 +204,8 @@ Physics keyword arguments:
     This allows to pass various parameters to the callback functions. If `data` is given, all callback functions
     should accept a last `data` argument. Otherwise, no data are passed explicitly, and constitutive callbacks can
     take parameters from the closure where the function is defined.
-
--  `matrixtype`: :default, :sparse, :tridiagonal, :banded
+-  `matrixtype`: :sparse, :tridiagonal, :banded, :auto. Default: :sparse. :auto leads to automatic choice for dense
+    solution storage depending on space dimension and number of species.
 
 """
 function System(grid::ExtendableGrid;

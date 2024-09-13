@@ -93,7 +93,7 @@ function SystemState(::Type{Tu}, system::AbstractSystem{Tv, Tc, Ti, Tm};
 
     matrixtype = system.matrixtype
 
-    if matrixtype == :default
+    if matrixtype == :auto
         if !isdensesystem(system) || dim_grid(system.grid)>1
             matrixtype = :sparse
         else

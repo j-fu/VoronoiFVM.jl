@@ -98,14 +98,13 @@ Base.@kwdef mutable struct SolverControl
 
     """
     Solver method for linear systems (see LinearSolve.jl). If given `nothing`, as default
-    are chosen (for `Float64` calculations):
-    - 1D:  `KLUFactorization()`
-    - 2D:  `SparspakFactorization()`
-    - 3D:  `UMFPACKFactorization()`
-    `SparspakFactorization()` is the default choice for general number types.
+    are chosen: 
+    - `UMFPACKFactorization()` for sparse matrices with Float64 
+    - `SparspakFactorization()` for sparse matrices with  general number types.
+    -  Defaults from LinearSolve.jl for tridiagonal and banded matrices 
     Users should experiment with what works best for their problem.
 
-    For easy access to this functionality, see see also [`VoronoiFVM.LinearSolverStrategy`](@ref).
+    For an overeview on possible alternatives, see [`VoronoiFVM.LinearSolverStrategy`](@ref).
 
     """
     method_linear::Union{Nothing, LinearSolve.SciMLLinearSolveAlgorithm} = nothing
