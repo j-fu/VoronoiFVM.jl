@@ -3,11 +3,9 @@ on:
   pull_request:
     branches:
       - master
-      - v2-state
   push:
     branches:
       - master
-      - v2-state
     tags: '*'
 jobs:
   test:
