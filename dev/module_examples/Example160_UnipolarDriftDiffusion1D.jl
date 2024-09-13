@@ -175,6 +175,7 @@ function main(;
         vis = GridVisualizer(; Plotter = Plotter, layout = (2, 1), fast = true)
         for dir in [1, -1]
             phi = 0.0
+            U.=inival
             while phi < phimax
                 data.V = dir * phi
                 U = solve(sys; inival = U, control, time = 1.0)
