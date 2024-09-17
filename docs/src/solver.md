@@ -38,7 +38,8 @@ fixed_timesteps!
 VoronoiFVM.SystemState
 VoronoiFVM.SystemState(::Type, system::VoronoiFVM.AbstractSystem; data)
 VoronoiFVM.SystemState(system::VoronoiFVM.AbstractSystem; data)
-VoronoiFVM.solve!(system::VoronoiFVM.SystemState; kwargs...)
+VoronoiFVM.solve!(state::VoronoiFVM.SystemState; kwargs...)
+Base.similar(state::VoronoiFVM.SystemState; kwargs...)
 ```
 
 ### Linear solver strategies

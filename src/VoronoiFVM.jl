@@ -47,7 +47,7 @@ using RecursiveArrayTools: RecursiveArrayTools, AbstractDiffEqArray
 import RecursiveFactorization
 using SciMLBase: SciMLBase
 using SparseArrays: SparseArrays, SparseMatrixCSC, dropzeros!, nonzeros,
-                    nzrange, spzeros
+                    nzrange, spzeros, issparse
 using SparseDiffTools: SparseDiffTools, forwarddiff_color_jacobian!,
                        matrix_colors
 using StaticArrays: StaticArrays, @MVector, @SArray, @SMatrix
