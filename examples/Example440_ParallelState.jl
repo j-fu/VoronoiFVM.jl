@@ -3,10 +3,11 @@
 # 440: Parallel solves
  ([source code](@__SOURCE_URL__))
 
-Demonstrate how to solve one system with different data in parallel
-using the SystemState (new in v2.0).
+Demonstrate how to solve one system with different data in parallel using the SystemState (new in v2.0).
 =#
+
 module Example440_ParallelState
+
 
 using VoronoiFVM, ExtendableGrids
 using GridVisualize
