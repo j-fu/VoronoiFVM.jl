@@ -89,9 +89,13 @@ function run_all_tests(; run_notebooks = false, notebooksonly = false)
 end
 
 # Don't run notebooks on 1.12: https://github.com/fonsp/Pluto.jl/issues/2939
-run_all_tests(; run_notebooks = VERSION < v"1.12.0-DEV.0" , notebooksonly = false)
-#run_all_tests(; run_notebooks=true, notebooksonly = true)
-
+if haskey(ENV,"EXAMPLES_ONLY")
+    run_all_tests(; run_notebooks = false, notebooksonly = false)
+elseif haskey(ENV,"NOTEBOOKS_ONLY")
+    run_all_tests(; run_notebooks=true, notebooksonly = true)
+else
+    run_all_tests(; run_notebooks = VERSION < v"1.12.0-DEV.0" , notebooksonly = false)
+end
 
 
 

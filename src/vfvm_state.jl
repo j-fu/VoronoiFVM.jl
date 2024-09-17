@@ -134,4 +134,27 @@ Shortcut for creating state with value type defined by `Tv` type parameter of sy
 """
 SystemState(system::AbstractSystem{Tv,Tc,Ti,Tm}; kwargs...) where {Tv,Tc,Ti,Tm} =SystemState(Tv, system; kwargs...) 
 
+"""
+    similar(state; data=state.data)
 
+Create a new state of with the same system, different work arrays, and possibly different data.
+The matrix of the new state initially shares the sparsity structure with `state`.
+"""
+function Base.similar(state::SystemState; data=state.data)
+    system=state.system
+    solution=similar(state.solution)
+    if issparse(state.matrix)
+        csc=SparseMatrixCSC(state.matrix)
+        cscnew=SparseMatrixCSC(csc.m, csc.n, csc.colptr, csc.rowval, similar(csc.nzval))
+        matrix=ExtendableSparseMatrix(cscnew)
+    else
+        matrix=similar(state.matrix)
+    end
+    dudp=similar(state.dudp)
+    residual=similar(state.residual)
+    update=similar(state.update)
+    linear_cache=nothing
+    uhash=zero(UInt64)
+    history=nothing
+    SystemState(system, data, solution, matrix, dudp, residual, update, linear_cache, uhash, history)
+end
