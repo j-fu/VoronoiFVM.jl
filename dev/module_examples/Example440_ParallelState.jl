@@ -35,7 +35,7 @@ function main(;nref=5, Plotter=nothing)
     masses=similar(influxes)
 
     ## Split the index range in as many chunks as threads
-    Threads.@threads for indexes in chunks(influxes;n=Threads.nthreads())
+    Threads.@threads for indexes in chunks(1:length(influxes);n=Threads.nthreads())
         ## Create a new state sharing the system - one for each chunk
         state=similar(state0)
         ## Solve for all data values in chunk
