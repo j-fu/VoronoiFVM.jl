@@ -429,9 +429,15 @@ function solve_transient!(state,
                              Δλ * Δu_opt / (Δu + 1.0e-14),
                              λ_predict,
                              λend - λ)
+
+                    # adjust for roundoff error, so there will be no accidental
+                    # very tiny timestep
+                    if isapprox(λ+Δλ, λend; atol=1.0e-15, rtol=1.0e-15)
+                        Δλ=λend-λ
+                    end
                 end
             else
-                break # break out of inner loop overt timestep
+                break # break out of inner loop over timestep
             end # if solved            
         end # while λ<λ_end
 
@@ -480,9 +486,11 @@ function CommonSolve.solve!(state::VoronoiFVM.SystemState;
                             tstep = Inf,
                             kwargs...,)
     fix_deprecations!(control)
-
+    
     if isa(inival, Number) || isa(inival, Matrix) 
         inival = unknowns(state.system; inival = inival)
+    elseif !isdensesystem(state.system) && isa(inival, SparseMatrixCSC)
+        inival = SparseSolutionArray(inival)
     elseif !VoronoiFVM.isunknownsof(inival, state.system)
         @error "wrong type of inival: $(typeof(inival))"
     end

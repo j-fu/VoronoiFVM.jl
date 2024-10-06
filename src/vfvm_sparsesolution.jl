@@ -54,6 +54,7 @@ $(SIGNATURES)
 Array of values in sparse solution array.
 """
 values(a::SparseSolutionArray) = a.u.nzval
+values(a::SparseMatrixCSC) = a.nzval
 
 Base.size(a::SparseSolutionArray)=size(a.u)
 ##################################################################
