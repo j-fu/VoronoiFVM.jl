@@ -1,13 +1,22 @@
 module VoronoiFVMExtendableFEMBaseExt
 
 using VoronoiFVM
-using ExtendableFEMBase
-using ExtendableGrids
+using ExtendableFEMBase: CellFinder, evaluate_bary!,
+    FEVectorBlock, initialize!, Identity,
+    PointEvaluator, SegmentIntegrator
+
+using ExtendableGrids: Cartesian2D, CoordinateSystem, Cylindrical2D,
+    Edge1D, eval_trafo!, gFindLocal!,
+    mapderiv!, postprocess_xreftest!, update_trafo!
+
+using LinearAlgebra: dot, norm
+
+using Base: fill!
 
 id(u) = (u, Identity)
 
-function iscloser(pint,p1,p2,eps)
-    return norm(pint-p2)<norm(p2-p1)-eps
+function iscloser(pint, p1, p2, eps)
+    return norm(pint - p2) < norm(p2 - p1) - eps
 end
 
 """
@@ -61,7 +70,21 @@ function VoronoiFVM.edgevelocities(grid, vel::FEVectorBlock; kwargs...)
     axisymmetric = grid[CoordinateSystem] <: Cylindrical2D ? true : false
     seg_integrator, point_evaluator, cf, flowgrid = prepare_segment_integration(vel; axisymmetric, kwargs...)
     aug_fevec_block = AugmentedFEVectorBlock(vel, seg_integrator, point_evaluator, cf, flowgrid)
-    velovec = VoronoiFVM.edgevelocities(grid, aug_fevec_block; axisymmetric,kwargs...)
+    velovec = VoronoiFVM.edgevelocities(grid, aug_fevec_block; axisymmetric, kwargs...)
+
+    if axisymmetric
+        circular_symmetric!(flowgrid)
+    end
+
+    return velovec
+end
+
+function VoronoiFVM.bfacevelocities(grid, vel::FEVectorBlock; kwargs...)
+    axisymmetric = grid[CoordinateSystem] <: Cylindrical2D ? true : false
+    seg_integrator, point_evaluator, cf, flowgrid = prepare_segment_integration(vel; axisymmetric, kwargs...)
+    aug_fevec_block = AugmentedFEVectorBlock(vel, seg_integrator, point_evaluator, cf, flowgrid)
+
+    velovec = VoronoiFVM.bfacevelocities(grid, aug_fevec_block; axisymmetric, kwargs...)
 
     if axisymmetric
         circular_symmetric!(flowgrid)
@@ -78,10 +101,10 @@ function VoronoiFVM.integrate(::Type{<:Cylindrical2D}, p1, p2, hnormal, aug_vec_
     _integrate_along_segments(p1, p2, hnormal, aug_vec_block; kwargs...)
 end
 
-function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; interpolate_eps=1.0e-12, axisymmetric = false, kwargs...)
+function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; interpolate_eps=1.0e-12, axisymmetric=false, kwargs...)
 
     edge_length = norm(p1 - p2, 2)
-    avg_r = (p1[1]+p2[1])/2
+    avg_r = (p1[1] + p2[1]) / 2
     bp1 = zeros(3)
     CF = aug_vec_block.cellfinder
     icell::Int = gFindLocal!(bp1, CF, p1; eps=interpolate_eps)
@@ -89,7 +112,7 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
         point_evaluator = aug_vec_block.point_evaluator
         evaluate_bary!(p2, point_evaluator, bp1, icell)
         if axisymmetric
-            return dot(p2, hnormal)/(avg_r)
+            return dot(p2, hnormal) / (avg_r)
         else
             return dot(p2, hnormal)
         end
@@ -127,7 +150,7 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
         for j = 1:2, k = 1:2
             bp[k] += invA[j, k] * cx[j]
         end
-        ExtendableGrids.postprocess_xreftest!(bp, CF.xCellGeometries[icell])
+        postprocess_xreftest!(bp, CF.xCellGeometries[icell])
     end
 
     i = 1
@@ -247,9 +270,9 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
     end
 
     if axisymmetric
-        return dot(result,hnormal)/(avg_r*edge_length)
+        return dot(result, hnormal) / (avg_r * edge_length)
     else
-        return dot(result,hnormal)/edge_length
+        return dot(result, hnormal) / edge_length
     end
 end
 

@@ -415,7 +415,7 @@ $(SIGNATURES)
 
 Project velocity onto boundary face normals
 """
-function bfacevelocities(grid, velofunc)
+function bfacevelocities(grid, velofunc; kwargs...)
     @assert dim_space(grid) < 3
     bfacenodes = grid[BFaceNodes]
     coord = grid[Coordinates]
@@ -434,8 +434,8 @@ function bfacevelocities(grid, velofunc)
             p1 = coord[:, bfacenodes[1, ibface]]
             p2 = coord[:, bfacenodes[2, ibface]]
             pm = 0.5 * (p1 + p2)
-            velovec[1, ibface] = integrate(coord_system, p1, pm, bfacenormals[:, ibface], velofunc)
-            velovec[2, ibface] = integrate(coord_system, pm, p2, bfacenormals[:, ibface], velofunc)
+            velovec[1, ibface] = integrate(coord_system, p1, pm, bfacenormals[:, ibface], velofunc; kwargs...)
+            velovec[2, ibface] = integrate(coord_system, pm, p2, bfacenormals[:, ibface], velofunc; kwargs...)
         end
     end
     return velovec
