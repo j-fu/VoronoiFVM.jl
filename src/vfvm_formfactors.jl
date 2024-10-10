@@ -326,7 +326,7 @@ end
 #
 # TODO: this should be generalized for more quadrules
 #
-function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc)
+function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc; kwargs...)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
@@ -337,7 +337,7 @@ function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc)
     return (wl * vxl + wm * vxm + wr * vxr) * hnormal[1] + (wl * vyl + wm * vym + wr * vyr) * hnormal[2]
 end
 
-function integrate(::Type{<:Cylindrical2D}, coordl, coordr, hnormal, velofunc)
+function integrate(::Type{<:Cylindrical2D}, coordl, coordr, hnormal, velofunc; kwargs...)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
@@ -367,7 +367,7 @@ $(SIGNATURES)
 
 Project velocity onto grid edges,
 """
-function edgevelocities(grid, velofunc)
+function edgevelocities(grid, velofunc; kwargs...)
     @assert dim_space(grid) < 3
 
     cn = grid[CellNodes]
@@ -404,7 +404,7 @@ function edgevelocities(grid, velofunc)
                 p2 .= 0.5 * (coord[:, K] + coord[:, L])
             end
             hnormal = coord[:, K] - coord[:, L]
-            velovec[iedge] = integrate(coord_system, p1, p2, hnormal, velofunc)
+            velovec[iedge] = integrate(coord_system, p1, p2, hnormal, velofunc; kwargs...)
         end
     end
     return velovec
