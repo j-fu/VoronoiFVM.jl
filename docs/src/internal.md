@@ -82,6 +82,7 @@ VoronoiFVM.getspecies
 VoronoiFVM.getnodedof
 VoronoiFVM.increase_num_species!
 VoronoiFVM.addzrows
+VoronoiFVM.dofs
 ```
 
 
