@@ -76,6 +76,7 @@ end
 
 function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
               unknown_storage = :sparse, tend = 10,
+              diffeq=false,
               rely_on_corrections = false, assembly = :edgewise)
     
     X=range(0,3,length=n)
@@ -128,19 +129,22 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
         end
     end
 
-    tsol = solve(sys; inival = 0, times = (0, tend),
-                 verbose, Δu_opt = 1.0e-5,
-                 method_linear=KLUFactorization())
-    # inival=unknowns(sys,inival=0)
-    # problem = ODEProblem(sys,inival,(0,tend))
-    # odesol = solve(problem,Rosenbrock23(), initializealg=NoInit())
-    # tsol=reshape(odesol,sys)
-
+    if diffeq
+        inival=unknowns(sys,inival=0)
+        problem = ODEProblem(sys,inival,(0,tend))
+        odesol = solve(problem,Rosenbrock23(), initializealg=NoInit())
+        tsol=reshape(odesol,sys)
+    else
+        tsol = solve(sys; inival = 0, times = (0, tend),
+                     verbose, Δu_opt = 1.0e-5,
+                     method_linear=KLUFactorization())
+    end   
     
     testval = 0.0
     for i=2:length(tsol.t)
         ui=view(tsol,2,:,i)
-        testval+=sum(view(ui,subgrid2))
+        Δt=tsol.t[i]-tsol.t[i-1]
+        testval+=sum(view(ui,subgrid2))*Δt
     end
     
     if !isnothing(Plotter)
@@ -154,7 +158,7 @@ end
 using Test
 
 function runtests()
-    testval = 0.359448515181824
+    testval = 0.06922262169719146
     @test main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :edgewise) ≈ testval
     @test main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :edgewise) ≈ testval
     @test main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :edgewise) ≈ testval
