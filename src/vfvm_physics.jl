@@ -49,6 +49,12 @@ Pretty print [`AbstractData`](@ref)
 """
 Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = _showstruct(io, this)
 
+@doc """
+    value(x)
+
+Return the value of a dual number (for debugging in callback functions).
+Re-exported from ForwardDiff.
+""" value
 
 #
 # Dummy callbacks
