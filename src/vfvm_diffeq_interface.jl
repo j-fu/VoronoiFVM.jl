@@ -84,7 +84,7 @@ function mass_matrix(state::SystemState{Tv, TMatrix, TSolArray, TData}) where {T
                 @views evaluate!(bstor_eval, U[:, K])
                 jac_bstor = jac(bstor_eval)
                 asm_jac(idof, jdof, ispec, jspec) = _addnz(M, idof, jdof, jac_bstor[ispec, jspec], bnode.fac)
-                assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
+                assemble_res_jac(node, state.system, asm_res, asm_jac, asm_param)
             end
         end
     end
