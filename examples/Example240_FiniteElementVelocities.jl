@@ -106,7 +106,7 @@ function main(; coord_system = Cartesian2D, usefem = false, nref = 0, Plotter = 
             x = qpinfo.x
             result .= analytical_velocity(x[1], x[2])
         end
-        FES = FESpace{H1P2(2)}(grid)
+        FES = FESpace{H1P2{2,2}}(grid)
         fem_velocity = FEVector(FES)[1]
         interpolate!(fem_velocity, interpolate_vel!)
 
