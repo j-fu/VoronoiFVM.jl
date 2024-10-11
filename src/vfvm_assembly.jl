@@ -1,11 +1,4 @@
 ##################################################################
-"""
-$(SIGNATURES)
-
-Extract value from dual number. Use to debug physics callbacks.
-Re-exported from ForwardDiff.jl
-"""
-const value = ForwardDiff.value
 
 
 """

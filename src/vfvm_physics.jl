@@ -49,7 +49,6 @@ Pretty print [`AbstractData`](@ref)
 """
 Base.show(io::IO, ::MIME"text/plain", this::AbstractData) = _showstruct(io, this)
 
-ForwardDiff.value(x::Real) = x
 
 #
 # Dummy callbacks
