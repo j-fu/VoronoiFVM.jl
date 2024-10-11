@@ -89,12 +89,12 @@ Base.@kwdef mutable struct SolverControl
     """
     Calculation of Newton update norm
     """
-    unorm::Function = (u) -> LinearAlgebra.norm(values(u), Inf) # norm for update calculation
+    unorm::Function = (u) -> LinearAlgebra.norm(dofs(u), Inf) # norm for update calculation
 
     """
     Functional for roundoff error calculation
     """
-    rnorm::Function = (u) -> LinearAlgebra.norm(values(u), 1)
+    rnorm::Function = (u) -> LinearAlgebra.norm(dofs(u), 1)
 
     """
     Solver method for linear systems (see LinearSolve.jl). If given `nothing`, as default

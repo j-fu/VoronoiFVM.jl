@@ -8,6 +8,8 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 using LinearSolve
+using OrdinaryDiffEqRosenbrock
+using SciMLBase: NoInit
 
 function reaction(f, u, node, data)
     k=data.k
@@ -129,7 +131,12 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     tsol = solve(sys; inival = 0, times = (0, tend),
                  verbose, Δu_opt = 1.0e-5,
                  method_linear=KLUFactorization())
+    # inival=unknowns(sys,inival=0)
+    # problem = ODEProblem(sys,inival,(0,tend))
+    # odesol = solve(problem,Rosenbrock23(), initializealg=NoInit())
+    # tsol=reshape(odesol,sys)
 
+    
     testval = 0.0
     for i=2:length(tsol.t)
         ui=view(tsol,2,:,i)

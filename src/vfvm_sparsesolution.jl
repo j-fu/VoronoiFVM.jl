@@ -51,10 +51,10 @@ Base.getindex(idx::SparseSolutionIndices, i, j) = dof(idx.a, i, j)
 """
 $(SIGNATURES)
 
-Array of values in sparse solution array.
+Vector of degrees of freedom in sparse solution array.
 """
-values(a::SparseSolutionArray) = a.u.nzval
-values(a::SparseMatrixCSC) = a.nzval
+dofs(a::SparseSolutionArray) = a.u.nzval
+dofs(a::SparseMatrixCSC) = a.nzval
 
 Base.size(a::SparseSolutionArray)=size(a.u)
 ##################################################################
