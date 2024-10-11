@@ -132,7 +132,8 @@ function main(; n = 30, Plotter = nothing, plot_grid = false, verbose = false,
     if diffeq
         inival=unknowns(sys,inival=0)
         problem = ODEProblem(sys,inival,(0,tend))
-        odesol = solve(problem,Rosenbrock23(), initializealg=NoInit())
+        ## use fixed timesteps just for the purpose of CI
+        odesol = solve(problem,Rosenbrock23(), initializealg=NoInit(), dt=1.0e-2, adaptive=false)
         tsol=reshape(odesol,sys)
     else
         tsol = solve(sys; inival = 0, times = (0, tend),
@@ -159,6 +160,7 @@ using Test
 
 function runtests()
     testval = 0.06922262169719146
+    testvaldiffeq = 0.06889809741891571
     @test main(; unknown_storage = :sparse, rely_on_corrections = false, assembly = :edgewise) ≈ testval
     @test main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :edgewise) ≈ testval
     @test main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :edgewise) ≈ testval
@@ -167,6 +169,17 @@ function runtests()
     @test main(; unknown_storage = :dense, rely_on_corrections = false, assembly = :cellwise) ≈ testval
     @test main(; unknown_storage = :sparse, rely_on_corrections = true, assembly = :cellwise) ≈ testval
     @test main(; unknown_storage = :dense, rely_on_corrections = true, assembly = :cellwise) ≈ testval
+
+
+    @test main(; diffeq=true, unknown_storage = :sparse, rely_on_corrections = false, assembly = :edgewise) ≈ testvaldiffeq
+    @test main(; diffeq=true, unknown_storage = :dense, rely_on_corrections = false, assembly = :edgewise) ≈ testvaldiffeq
+    @test main(; diffeq=true, unknown_storage = :sparse, rely_on_corrections = true, assembly = :edgewise) ≈ testvaldiffeq
+    @test main(; diffeq=true, unknown_storage = :dense, rely_on_corrections = true, assembly = :edgewise) ≈ testvaldiffeq
+    @test main(; diffeq=true, unknown_storage = :sparse, rely_on_corrections = false, assembly = :cellwise) ≈ testvaldiffeq
+    @test main(; diffeq=true, unknown_storage = :dense, rely_on_corrections = false, assembly = :cellwise) ≈ testvaldiffeq
+    @test main(; diffeq=true, unknown_storage = :sparse, rely_on_corrections = true, assembly = :cellwise) ≈ testvaldiffeq
+    @test main(; diffeq=true, unknown_storage = :dense, rely_on_corrections = true, assembly = :cellwise) ≈ testvaldiffeq
+
 end
 
 end
