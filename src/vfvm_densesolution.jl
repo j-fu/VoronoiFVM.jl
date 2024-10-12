@@ -51,9 +51,6 @@ Return indices for dense solution array.
 unknown_indices(a::DenseSolutionArray) = LinearIndices(a)
 
 
-
-Base.vec(a::DenseSolutionArray) = vec(a.u)
-
 Base.copy(a::DenseSolutionArray) = DenseSolutionArray(copy(a.u))
 
 Base.similar(a::DenseSolutionArray) = DenseSolutionArray(similar(a.u))
@@ -61,9 +58,10 @@ Base.similar(a::DenseSolutionArray) = DenseSolutionArray(similar(a.u))
 """
 $(SIGNATURES)
 
-Array of values in solution array.
+Vector of degrees of freedom in solution array.
 """
-values(a::DenseSolutionArray) = vec(a)
+dofs(a::DenseSolutionArray) = vec(a.u)
+dofs(a::Array)=vec(a)
 
 """
 $(TYPEDSIGNATURES)

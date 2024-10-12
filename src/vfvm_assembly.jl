@@ -1,11 +1,5 @@
 ##################################################################
-"""
-$(SIGNATURES)
 
-Extract value from dual number. Use to debug physics callbacks.
-Re-exported from ForwardDiff.jl
-"""
-const value = ForwardDiff.value
 
 """
 $(SIGNATURES)
@@ -559,8 +553,8 @@ function _eval_and_assemble_generic_operator(system::AbstractSystem, matrix, U, 
         return
     end
     generic_operator(f, u) = system.physics.generic_operator(f, u, system)
-    vecF = values(F)
-    vecU = values(U)
+    vecF = dofs(F)
+    vecU = dofs(U)
     y = similar(vecF)
     generic_operator(y, vecU)
     vecF .+= y
@@ -583,8 +577,8 @@ function _eval_generic_operator(system::AbstractSystem, U, F)
         return
     end
     generic_operator(f, u) = system.physics.generic_operator(f, u, system)
-    vecF = values(F)
-    vecU = values(U)
+    vecF = dofs(F)
+    vecU = dofs(U)
     y = similar(vecF)
     generic_operator(y, vecU)
     vecF .+= y

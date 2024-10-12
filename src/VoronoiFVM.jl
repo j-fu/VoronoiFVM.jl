@@ -33,7 +33,7 @@ using ExtendableSparse: ExtendableSparse, BlockPreconditioner,
                         PointBlockILUZeroPreconditioner, factorize!, flush!,
                         nnz, rawupdateindex!, sparse, updateindex!, nnznew
 
-using ForwardDiff: ForwardDiff
+using ForwardDiff: ForwardDiff, value
 using GridVisualize: GridVisualize, GridVisualizer
 using InteractiveUtils: InteractiveUtils
 using JLD2: JLD2, jldopen

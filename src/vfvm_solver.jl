@@ -83,15 +83,15 @@ function solve_step!(state,
                 end
             end
             
-            tlinsolve += @elapsed _solve_linear!(values(update),
+            tlinsolve += @elapsed _solve_linear!(dofs(update),
                                                  state,
                                                  nlhistory,
                                                  control,
                                                  method_linear,
                                                  state.matrix,
-                                                 values(residual))
+                                                 dofs(residual))
 
-            values(solution) .-= damp * values(update)
+            dofs(solution) .-= damp * dofs(update)
                         
             if state.system.is_linear
                 converged = true
