@@ -1,6 +1,19 @@
 # Changes
+
 ## v3.0 Planned  (pending some improvements in LinearSolve)
   - use `precs` based linear solver API, see https://github.com/SciML/LinearSolve.jl/pull/514
+  - stop re-exporting ForwardDiff.value
+  - try to remove type piracies
+  
+## v2.0.2 October 12, 2024
+  - Bugfixes
+    - replace internally used `values` and `vec` methods by new `dofs`
+    - fix #119, update Example115, Example120, test sparse unknown storage & ODE solver
+    - directly re-export ForwardDiff.value, dont type-pirate a new method
+
+## v2.0.1 October 7, 2024
+  - Bugfixes
+    - fix case where the last element of a time solution is used as initial value for a next `solve`
 
 ## v2.0.0 September 12, 2024
 
