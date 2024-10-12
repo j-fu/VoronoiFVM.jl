@@ -23,7 +23,7 @@ rhs function for [`SciMLBase.ODEFunction`](@ref).
 """
 function eval_rhs!(du, u, state, t)
     _eval_res_jac!(state, u, t)
-    du .= -vec(state.residual)
+    du .= -dofs(state.residual)
     state.history.nf += 1
     nothing
 end
@@ -84,7 +84,7 @@ function mass_matrix(state::SystemState{Tv, TMatrix, TSolArray, TData}) where {T
                 @views evaluate!(bstor_eval, U[:, K])
                 jac_bstor = jac(bstor_eval)
                 asm_jac(idof, jdof, ispec, jspec) = _addnz(M, idof, jdof, jac_bstor[ispec, jspec], bnode.fac)
-                assemble_res_jac(node, system, asm_res, asm_jac, asm_param)
+                assemble_res_jac(node, state.system, asm_res, asm_jac, asm_param)
             end
         end
     end
@@ -121,7 +121,7 @@ For more documentation, see [`SciMLBase.ODEFunction(state::VoronoiFVM.SystemStat
 function SciMLBase.ODEFunction(state::VoronoiFVM.SystemState; jacval = unknowns(sys, 0), tjac = 0)
     SciMLBase.ODEFunction(eval_rhs!;
                           jac = eval_jacobian!,
-                          jac_prototype = prepare_diffeq!(state, vec(jacval), tjac),
+                          jac_prototype = prepare_diffeq!(state, dofs(jacval), tjac),
                           mass_matrix = mass_matrix(state))
 end
 
@@ -152,8 +152,8 @@ for more documentation.
 Defined in VoronoiFVM.jl.
 """
 function SciMLBase.ODEProblem(state::VoronoiFVM.SystemState, inival, tspan; callback = SciMLBase.CallbackSet())
-    odefunction = SciMLBase.ODEFunction(state; jacval = vec(inival), tjac = tspan[1])
-    SciMLBase.ODEProblem(odefunction, vec(inival), tspan, state, callback)
+    odefunction = SciMLBase.ODEFunction(state; jacval = dofs(inival), tjac = tspan[1])
+    SciMLBase.ODEProblem(odefunction, dofs(inival), tspan, state, callback)
 end
 
 """

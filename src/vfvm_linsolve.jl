@@ -198,6 +198,7 @@ VoronoiFVM.SolverControl(::Nothing, sys; kwargs...) = SolverControl(; kwargs...)
 
 ################################################################
 # These are needed to enable iterative solvers to work with dual numbers
+# TODO: Remove this Pirate's nest
 Base.Float64(x::ForwardDiff.Dual) = value(x)
 function Random.rand(rng::AbstractRNG,
                      ::Random.SamplerType{ForwardDiff.Dual{T, V, N}}) where {T, V, N}

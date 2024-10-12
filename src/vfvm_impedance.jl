@@ -221,7 +221,7 @@ function CommonSolve.solve!(UZ::AbstractMatrix{Complex{Tv}}, impedance_system::I
     end
 
     lufact = LinearAlgebra.lu(matrix)
-    ldiv!(values(UZ), lufact, values(impedance_system.F))
+    ldiv!(dofs(UZ), lufact, dofs(impedance_system.F))
 end
 
 """
@@ -248,7 +248,7 @@ function measurement_derivative(system::AbstractSystem, measurement_functional, 
     colors = matrix_colors(jac)
 
     # Use Julia automatic differentiation for the calculation of the Jacobian
-    forwarddiff_color_jacobian!(jac, measurement_functional, values(U0); colorvec = colors)
+    forwarddiff_color_jacobian!(jac, measurement_functional, dofs(U0); colorvec = colors)
 
     # Drop any zero entries 
     dropzeros!(jac)
@@ -285,8 +285,8 @@ function impedance(impedance_system::ImpedanceSystem, # frequency domain system
     solve!(UZ, impedance_system, ω)
 
     # obtain measurement in frequency  domain
-    m_stdy = dmeas_stdy * values(UZ)
-    m_tran = dmeas_tran * values(UZ)
+    m_stdy = dmeas_stdy * dofs(UZ)
+    m_tran = dmeas_tran * dofs(UZ)
 
     # Calculate complex measurement 
     z = m_stdy[1] + iω * m_tran[1]
