@@ -59,9 +59,12 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
+using OrdinaryDiffEqRosenbrock
+using SciMLBase: NoInit
 
 function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
-              unknown_storage = :sparse, assembly = :edgewise)
+              unknown_storage = :sparse, assembly = :edgewise,
+              diffeq=false)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     N = length(X)
@@ -154,10 +157,17 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     ## Data to store surface concentration vs time
 
     p = GridVisualizer(; Plotter = Plotter, layout = (3, 1))
-
-    control = fixed_timesteps!(VoronoiFVM.NewtonControl(), tstep)
-    tsol = solve(sys; inival, times = [0, tend], control, verbose = verbose)
-
+    if diffeq
+        inival=unknowns(sys,inival=0)
+        problem = ODEProblem(sys,inival,(0,tend))
+        ## use fixed timesteps just for the purpose of CI
+        odesol = solve(problem,Rosenbrock23(); initializealg=NoInit(), dt=tstep, adaptive=false)
+        tsol=reshape(odesol,sys)
+    else
+        control = fixed_timesteps!(VoronoiFVM.NewtonControl(), tstep)
+        tsol = solve(sys; inival, times = [0, tend], control, verbose = verbose)
+    end
+    
     p = GridVisualizer(; Plotter = Plotter, layout = (3, 1), fast = true)
     for it = 1:length(tsol)
         time = tsol.t[it]
@@ -175,9 +185,16 @@ end
 using Test
 function runtests()
     testval = 0.87544440641274
-    @test isapprox(main(; unknown_storage = :sparse, assembly = :edgewise), testval; rtol = 1.0e-12) &&
-          isapprox(main(; unknown_storage = :dense, assembly = :edgewise), testval; rtol = 1.0e-12) &&
-          isapprox(main(; unknown_storage = :sparse, assembly = :cellwise), testval; rtol = 1.0e-12) &&
-          isapprox(main(; unknown_storage = :dense, assembly = :cellwise), testval; rtol = 1.0e-12)
+    testvaldiffeq = 0.8891082547874963
+    @test isapprox(main(; unknown_storage = :sparse, assembly = :edgewise), testval; rtol = 1.0e-12) 
+    @test isapprox(main(; unknown_storage = :dense, assembly = :edgewise), testval; rtol = 1.0e-12) 
+    @test isapprox(main(; unknown_storage = :sparse, assembly = :cellwise), testval; rtol = 1.0e-12) 
+    @test isapprox(main(; unknown_storage = :dense, assembly = :cellwise), testval; rtol = 1.0e-12)
+
+    @test isapprox(main(; diffeq=true, unknown_storage = :sparse, assembly = :edgewise), testvaldiffeq; rtol = 1.0e-12) 
+    @test isapprox(main(; diffeq=true, unknown_storage = :dense, assembly = :edgewise), testvaldiffeq; rtol = 1.0e-12) 
+    @test isapprox(main(; diffeq=true, unknown_storage = :sparse, assembly = :cellwise), testvaldiffeq; rtol = 1.0e-12) 
+    @test isapprox(main(; diffeq=true, unknown_storage = :dense, assembly = :cellwise), testvaldiffeq; rtol = 1.0e-12)
+
 end
 end

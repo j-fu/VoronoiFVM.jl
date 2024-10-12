@@ -20,9 +20,12 @@ using VoronoiFVM
 using ExtendableGrids
 using GridVisualize
 using LinearAlgebra
+using OrdinaryDiffEqRosenbrock
+using SciMLBase: NoInit
 
 function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
-              unknown_storage = :sparse, assembly = :edgewise)
+              unknown_storage = :sparse, assembly = :edgewise,
+              diffeq=false)
     h = 1.0 / convert(Float64, n)
     X = collect(0.0:h:1.0)
     N = length(X)
@@ -115,9 +118,16 @@ function main(; n = 10, Plotter = nothing, verbose = false, tend = 1,
     # Data to store surface concentration vs time
 
     p = GridVisualizer(; Plotter = Plotter, layout = (3, 1))
-
-    control = fixed_timesteps!(VoronoiFVM.NewtonControl(), tstep)
-    tsol = solve(sys; inival, times = [0, tend], control, verbose = verbose)
+    if diffeq
+        inival=unknowns(sys,inival=0)
+        problem = ODEProblem(sys,inival,(0,tend))
+        # use fixed timesteps just for the purpose of CI
+        odesol = solve(problem,Rosenbrock23(); initializealg=NoInit(), dt=tstep, adaptive=false)
+        tsol=reshape(odesol,sys)
+    else
+        control = fixed_timesteps!(VoronoiFVM.NewtonControl(), tstep)
+        tsol = solve(sys; inival, times = [0, tend], control, verbose = verbose)
+    end
 
     p = GridVisualizer(; Plotter = Plotter, layout = (3, 1), fast = true)
     for it = 1:length(tsol)
@@ -136,9 +146,16 @@ end
 using Test
 function runtests()
     testval = 0.87544440641274
-    @test isapprox(main(; unknown_storage = :sparse, assembly = :edgewise), testval; rtol = 1.0e-12) &amp;&amp;
-          isapprox(main(; unknown_storage = :dense, assembly = :edgewise), testval; rtol = 1.0e-12) &amp;&amp;
-          isapprox(main(; unknown_storage = :sparse, assembly = :cellwise), testval; rtol = 1.0e-12) &amp;&amp;
-          isapprox(main(; unknown_storage = :dense, assembly = :cellwise), testval; rtol = 1.0e-12)
+    testvaldiffeq = 0.8891082547874963
+    @test isapprox(main(; unknown_storage = :sparse, assembly = :edgewise), testval; rtol = 1.0e-12)
+    @test isapprox(main(; unknown_storage = :dense, assembly = :edgewise), testval; rtol = 1.0e-12)
+    @test isapprox(main(; unknown_storage = :sparse, assembly = :cellwise), testval; rtol = 1.0e-12)
+    @test isapprox(main(; unknown_storage = :dense, assembly = :cellwise), testval; rtol = 1.0e-12)
+
+    @test isapprox(main(; diffeq=true, unknown_storage = :sparse, assembly = :edgewise), testvaldiffeq; rtol = 1.0e-12)
+    @test isapprox(main(; diffeq=true, unknown_storage = :dense, assembly = :edgewise), testvaldiffeq; rtol = 1.0e-12)
+    @test isapprox(main(; diffeq=true, unknown_storage = :sparse, assembly = :cellwise), testvaldiffeq; rtol = 1.0e-12)
+    @test isapprox(main(; diffeq=true, unknown_storage = :dense, assembly = :cellwise), testvaldiffeq; rtol = 1.0e-12)
+
 end
-end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">« 110: 1D Reaction Diffusion equation with two species</a><a class="docs-footer-nextpage" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Wednesday 9 October 2024 07:16">Wednesday 9 October 2024</span>. Using Julia version 1.11.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../Example110_ReactionDiffusion1D_TwoSpecies/">« 110: 1D Reaction Diffusion equation with two species</a><a class="docs-footer-nextpage" href="../Example120_ThreeRegions1D/">120: Differing species sets in regions, 1D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Saturday 12 October 2024 12:33">Saturday 12 October 2024</span>. Using Julia version 1.11.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
