@@ -77,8 +77,8 @@ end
 mutable struct Data
     D::Float64
     cin::Float64
-    evelo::Array
-    bfvelo::Array
+    evelo::Vector{Float64}
+    bfvelo::Matrix{Float64}
 
     Data() = new()
 end
