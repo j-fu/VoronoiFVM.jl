@@ -145,6 +145,7 @@ function runtests()
     end
 end
 
+# test analytical distance and calc_divergences
 function full_fem_demo(; coord_system = Cartesian2D, nref = 1, Plotter = nothing,
         μ = 1.0e-02, D = 0.01, cin = 1.0, assembly = :edgewise, interpolation_eps = 1.0e-09)
     H = 1.0
@@ -197,8 +198,8 @@ function compute_velocity(flowgrid, coord_system, μ = 1.0e-02; interpolation_ep
     axisymmetric = coord_system == Cylindrical2D ? true : false
 
     # define finite element spaces
-    FE_v, FE_p = H1BR{2}, L2P0{1}
-    reconst_FEType = HDIVBDM1{2}
+    FE_v, FE_p = H1P2B{2,2}, L2P1{1}
+    reconst_FEType = HDIVBDM2{2}
     FES = [FESpace{FE_v}(flowgrid), FESpace{FE_p}(flowgrid; broken = true)]
 
     # describe problem

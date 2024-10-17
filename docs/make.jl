@@ -1,6 +1,8 @@
 using Documenter, ExampleJuggler, PlutoStaticHTML, VoronoiFVM, DocumenterCitations
 using ExtendableGrids, GridVisualize, LinearAlgebra, RecursiveArrayTools, SciMLBase
 
+using ExtendableFEMBase, ExtendableFEM
+
 using OrdinaryDiffEqBDF, OrdinaryDiffEqLowOrderRK, OrdinaryDiffEqRosenbrock, OrdinaryDiffEqSDIRK, OrdinaryDiffEqTsit5 
 
 function make(; with_examples = true,
@@ -33,7 +35,8 @@ function make(; with_examples = true,
             "misc.md",
             "internal.md",
             "allindex.md",
-            "devel.md",]
+            "devel.md",
+            "extensions.md"]
     ]
 
     

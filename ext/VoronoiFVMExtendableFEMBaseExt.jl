@@ -13,6 +13,9 @@ using LinearAlgebra: dot, norm
 
 using Base: fill!
 
+using DocStringExtensions: DocStringExtensions, SIGNATURES, TYPEDEF,
+                           TYPEDFIELDS, TYPEDSIGNATURES
+
 id(u) = (u, Identity)
 
 function iscloser(pint, p1, p2, eps)
@@ -66,7 +69,15 @@ function prepare_segment_integration(vel; axisymmetric=false, reconst=false, kwa
     return seg_integrator, point_evaluator, cellfinder, flowgrid
 end
 
+"""
+$(SIGNATURES)
+
+Compute [`VoronoiFVM.edgevelocities`](@ref) for a finite element flow field computed 
+by [`ExtendableFEM`](https://github.com/chmerdon/ExtendableFEM.jl).
+"""
 function VoronoiFVM.edgevelocities(grid, vel::FEVectorBlock; kwargs...)
+    # construct an augmented type to gather precomputed information 
+    # in order to pass it to the repeated integrate call in VoronoiFVM.edgevelocities
     axisymmetric = grid[CoordinateSystem] <: Cylindrical2D ? true : false
     seg_integrator, point_evaluator, cf, flowgrid = prepare_segment_integration(vel; axisymmetric, kwargs...)
     aug_fevec_block = AugmentedFEVectorBlock(vel, seg_integrator, point_evaluator, cf, flowgrid)
@@ -79,6 +90,12 @@ function VoronoiFVM.edgevelocities(grid, vel::FEVectorBlock; kwargs...)
     return velovec
 end
 
+"""
+$(SIGNATURES)
+
+Compute [`VoronoiFVM.bfacevelocities`](@ref) for a finite element flow field computed 
+by [`ExtendableFEM`](https://github.com/chmerdon/ExtendableFEM.jl).
+"""
 function VoronoiFVM.bfacevelocities(grid, vel::FEVectorBlock; kwargs...)
     axisymmetric = grid[CoordinateSystem] <: Cylindrical2D ? true : false
     seg_integrator, point_evaluator, cf, flowgrid = prepare_segment_integration(vel; axisymmetric, kwargs...)
@@ -93,14 +110,20 @@ function VoronoiFVM.bfacevelocities(grid, vel::FEVectorBlock; kwargs...)
     return velovec
 end
 
+# We need two explicitly type-annotated methods for a working method specialization.
+# This one...
 function VoronoiFVM.integrate(::Type{<:Cartesian2D}, p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; kwargs...)
     _integrate_along_segments(p1, p2, hnormal, aug_vec_block; kwargs...)
 end
 
+# ... and that one.
 function VoronoiFVM.integrate(::Type{<:Cylindrical2D}, p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; kwargs...)
     _integrate_along_segments(p1, p2, hnormal, aug_vec_block; kwargs...)
 end
 
+# compute the path integral for the velocity in aug_vec_block between p1 and p2 by 
+# incrementally walking through each cell in the grid between p1 and p2
+# and summing up each cell's contribution
 function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; interpolate_eps=1.0e-12, axisymmetric=false, kwargs...)
 
     edge_length = norm(p1 - p2, 2)
