@@ -154,15 +154,14 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
     end
 
     i = 1
-    #@info "icell=$icell"
-    #@info "p1=$p1, p2=$p2"
 
     while (true)
-        # first compute the barycentric coordinates of 
+
+        # TODO implement proper emergency guard to avoid indefinite loops
+
+        # first compute the barycentric coordinates of
         # p1,p2
 
-        #@info "icell = $(icell), step=$i"
-        #@info "p1=$(p1), p2=$(p2)"
         # update local 2 global map
         L2G = CF.L2G4EG[1]
         update_trafo!(L2G, icell)
@@ -173,42 +172,38 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
         calc_barycentric_coords!(bp1, p1)
         calc_barycentric_coords!(bp2, p2)
 
-        # if p1 is a node of a triangle, start with 
+        # if p1 is a node of a triangle, start with
         # a cell containing p1 in the direction of (p2-p1)
-        if count(<=(interpolate_eps), bp1) == 2 # 10^(-13)
+        if count(<=(interpolate_eps), bp1) == 2
             p1_temp[1:2] = p1 + 10 * interpolate_eps * (p2 - p1)
             icell_new = gFindLocal!(bp1, CF, p1_temp[1:2]; eps=10 * interpolate_eps, icellstart=icell)
             if icell_new == 0
                 @warn "icell_new=0!"
             end
-            if icell_new != icell# && icell_new!=0
+            if icell_new != icell
                 icell = icell_new
                 continue
             end
         end
 
         # push p1 a little towards the triangle circumcenter
-        # to avoid it being situated on an edge or node of the 
-        # flowgrid
-        # (to avoid being stuck on an edge if (p2-p1) is 
-        # on the edge
+        # to avoid it being situated on an edge or node of the flowgrid
+        # (to avoid being stuck on an edge if (p2-p1) is on the edge)
         bp1 .+= interpolate_eps .* (bary - bp1)
         eval_trafo!(p1, L2G, bp1)
 
         (λp2min, imin) = findmin(bp2)
 
-        #@info "bp1=$(bp1), bp2=$(bp2), λp2min=$(λp2min)"
-
         # if λp2min≥0, then p2 is inside icell and we can simply add the
         # integral across the line segment between p1 and p2 to the result
 
         # if not, then p2 is outside of icell and we try to determine
-        # pint which is the point where icell intersects the line segment 
-        # [p1,p2] - since pint should be on the boundary of icell, 
+        # pint which is the point where icell intersects the line segment
+        # [p1,p2] - since pint should be on the boundary of icell,
         # at least one barycentric coordinate (stored in bpint) should
         # be zero yielding an expression for the line segment parameter t.
-        # this is not necessarily the previous imin and we have to check 
-        # all triangle edges for if going towards that edge actually takes us 
+        # this is not necessarily the previous imin and we have to check
+        # all triangle edges for if going towards that edge actually takes us
         # closer to p2
 
         if λp2min ≥ -interpolate_eps
@@ -216,27 +211,26 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
             result += summand
             break
         else
-            # calculate intersection point with corresponding edge 
+            # calculate intersection point with corresponding edge
             imin = 0
             t = 1.0 + interpolate_eps
             pint .= p1
             closestimin = 1
             closestdist = Inf
             p1_temp .= 0
-            while !iscloser(pint, p1, p2, interpolate_eps) || (any(bpint .<= -interpolate_eps) || any(bpint .>= 1 + interpolate_eps)) || norm(bpint - bp1) <= interpolate_eps # check if pint takes us closer to p2 and if bpint is inside the cell *and* if we actually moved with pint from p1
+            # check if pint takes us closer to p2 and if bpint is inside the cell *and* if we actually moved with pint from p1
+            while (!iscloser(pint, p1, p2, interpolate_eps)) ||
+                  (any(bpint .<= -interpolate_eps) || any(bpint .>= 1 + interpolate_eps)) ||
+                  (norm(bpint - bp1) <= interpolate_eps)
                 imin += 1
                 if imin == 4
                     imin = closestimin
                     bpint .= p1_temp
                     break
                 end
-                #@info "imin = $imin"
                 t = bp1[imin] / (bp1[imin] - bp2[imin])
-                #@info "t=$t"
                 bpint = bp1 + t * (bp2 - bp1)
-                #@info "bpint = $bpint"
                 eval_trafo!(pint, L2G, bpint)
-                #@info "pint=$pint"
                 if norm(pint - p2) < closestdist && ((all(bpint .>= -interpolate_eps) && all(bpint .<= 1 + interpolate_eps)))
                     closestimin = imin
                     closestdist = norm(pint - p2)
@@ -244,28 +238,17 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
                 end
             end
             eval_trafo!(pint, L2G, bpint)
-            #@info "pint = $pint"
-
-            # add integral term
             SI.integrator(summand, Array{Vector{Float64}}([p1, pint]), [bp1, bpint], icell)
             result += summand
-            #@info "segment part: $summand"
+
             # proceed to next cell along edge of smallest barycentric coord
             prevcell = icell
             icell = xFaceCells[1, xCellFaces[facetogo[1][imin], icell]]
             icell = icell == prevcell ? xFaceCells[2, xCellFaces[facetogo[1][imin], icell]] : icell
 
-            #@info "icell = $icell"
-            #@info "bpint = $bpint"
-            #if any(bpint.<=-1.0e-10)
-            #    @warn "negative bpint coord!"
-            #end
-            #icell=gFindLocal!(bpint,CF,pint;icellstart=icell)
-            #@info "icell_after = $(icell)"
-            #@info "bpint_after = $(bpint)"
-
             p1 .= pint
         end
+
         i += 1
     end
 
