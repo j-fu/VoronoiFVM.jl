@@ -1,7 +1,11 @@
 using Documenter, ExampleJuggler, PlutoStaticHTML, VoronoiFVM, DocumenterCitations
 using ExtendableGrids, GridVisualize, LinearAlgebra, RecursiveArrayTools, SciMLBase
 
+using ExtendableFEMBase, ExtendableFEM
+
 using OrdinaryDiffEqBDF, OrdinaryDiffEqLowOrderRK, OrdinaryDiffEqRosenbrock, OrdinaryDiffEqSDIRK, OrdinaryDiffEqTsit5 
+
+VoronoiFVMExtendableFEMBaseExt = Base.get_extension(VoronoiFVM, :VoronoiFVMExtendableFEMBaseExt)
 
 function make(; with_examples = true,
               with_notebooks = true)
@@ -33,7 +37,8 @@ function make(; with_examples = true,
             "misc.md",
             "internal.md",
             "allindex.md",
-            "devel.md",]
+            "devel.md",
+            "extensions.md"]
     ]
 
     
@@ -66,7 +71,7 @@ function make(; with_examples = true,
     end
 
     makedocs(; sitename = "VoronoiFVM.jl",
-             modules = [VoronoiFVM],
+             modules = [VoronoiFVM,VoronoiFVMExtendableFEMBaseExt],
              plugins = [bib],
              checkdocs = :all,
              clean = false,
