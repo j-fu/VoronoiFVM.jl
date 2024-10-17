@@ -3,6 +3,6 @@
 sometextthatexplainssomething
 
 ```@docs
-VoronoiFVM.edgevelocities(grid, vel::FEVectorBlock; kwargs...)
-VoronoiFVM.bfacevelocities(::Any,::FEVectorBlock)
+edgevelocities(grid, vel::FEVectorBlock; kwargs...)
+bfacevelocities(grid, vel::FEVectorBlock; kwargs...)
 ```

@@ -22,10 +22,8 @@ function iscloser(pint, p1, p2, eps)
     return norm(pint - p2) < norm(p2 - p1) - eps
 end
 
-"""
-This is the FEVectorBlock with lots of info from ExtendableFEMBase
-to execute integration along given segments
-"""
+# This is the FEVectorBlock with lots of info from ExtendableFEMBase
+# to execute integration along given segments
 struct AugmentedFEVectorBlock
     vblock::FEVectorBlock
 

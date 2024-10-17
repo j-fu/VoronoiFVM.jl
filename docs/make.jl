@@ -5,6 +5,8 @@ using ExtendableFEMBase, ExtendableFEM
 
 using OrdinaryDiffEqBDF, OrdinaryDiffEqLowOrderRK, OrdinaryDiffEqRosenbrock, OrdinaryDiffEqSDIRK, OrdinaryDiffEqTsit5 
 
+VoronoiFVMExtendableFEMBaseExt = Base.get_extension(VoronoiFVM, :VoronoiFVMExtendableFEMBaseExt)
+
 function make(; with_examples = true,
               with_notebooks = true)
 
@@ -69,7 +71,7 @@ function make(; with_examples = true,
     end
 
     makedocs(; sitename = "VoronoiFVM.jl",
-             modules = [VoronoiFVM],
+             modules = [VoronoiFVM,VoronoiFVMExtendableFEMBaseExt],
              plugins = [bib],
              checkdocs = :all,
              clean = false,
