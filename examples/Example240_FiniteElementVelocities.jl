@@ -36,8 +36,11 @@ function stagnation_flow_cartesian(x, y)
     return (x^2, -2x * y)
 end
 
+# in cylindrical case: since the reconstruction space HDIVBDM2
+# is only quadratic, but we have to reconstruct r*v for a 
+# div-free solution, so we can only resolve at most the linear case exactly
 function stagnation_flow_cylindrical(r, z)
-    return (r^2, -3r * z)
+    return (r, -2*z)
 end
 
 function inflow_cylindrical(u, qpinfo)
@@ -106,7 +109,7 @@ function main(; coord_system = Cartesian2D, usefem = false, nref = 0, Plotter = 
             x = qpinfo.x
             result .= analytical_velocity(x[1], x[2])
         end
-        FES = FESpace{H1P2{2,2}}(grid)
+        FES = FESpace{H1P2{2, 2}}(grid)
         fem_velocity = FEVector(FES)[1]
         interpolate!(fem_velocity, interpolate_vel!)
 
@@ -146,26 +149,43 @@ function runtests()
 end
 
 # test analytical distance and calc_divergences
-function full_fem_demo(; coord_system = Cartesian2D, nref = 1, Plotter = nothing,
-        μ = 1.0e-02, D = 0.01, cin = 1.0, assembly = :edgewise, interpolation_eps = 1.0e-09)
+# TODO: make this properly work for cylindrical case (where this is still inexplicably broken)
+function full_fem_demo(;
+        coord_system = Cartesian2D, nref = 1, usefem = true, usedifferentgrids = false,
+        Plotter = nothing, μ = 1.0e-02, D = 0.01, cin = 1.0, assembly = :edgewise,
+        interpolation_eps = 1.0e-09)
     H = 1.0
     L = 5.0
 
     flowgrid = simplexgrid(range(0, L; length = 20 * 2^nref),
         range(0, H; length = 5 * 2^nref))
 
-    h_fine = 1.0e-01
-    X_bottom = geomspace(0.0, L / 2, 5.0e-01, h_fine)
-    X_cat = range(L / 2, L; step = h_fine)
-    chemgrid = simplexgrid([X_bottom; X_cat[2:end]],
-        geomspace(0.0, H, 1.0e-03, 1.0e-01))
-    bfacemask!(chemgrid, [L / 2, 0.0], [3 * L / 4, 0.0], 5)
+    if usedifferentgrids
+        h_fine = 1.0e-01
+        X_bottom = geomspace(0.0, L / 2, 5.0e-01, h_fine)
+        X_cat = range(L / 2, L; step = h_fine)
+        chemgrid = simplexgrid([X_bottom; X_cat[2:end]],
+            geomspace(0.0, H, 1.0e-03, 1.0e-01))
+        bfacemask!(chemgrid, [L / 2, 0.0], [3 * L / 4, 0.0], 5)
+    else
+        chemgrid = deepcopy(flowgrid)
+        bfacemask!(chemgrid, [L / 2, 0.0], [3 * L / 4, 0.0], 5)
+    end
 
-    velocity = compute_velocity(flowgrid, coord_system, μ; interpolation_eps)
+    if usefem
+        velocity = compute_velocity(flowgrid, coord_system, μ; interpolation_eps)
+        DivIntegrator = L2NormIntegrator([div(1)]; quadorder = 2 * 2, resultdim = 1)
+        div_v = sqrt(sum(evaluate(DivIntegrator, [velocity])))
+        @info "||div(R(v))||_2 = $(div_v)"
+    else
+        if coord_system == Cartesian2D
+            velocity = stagnation_flow_cartesian
+        elseif coord_system == Cylindrical2D
+            velocity = stagnation_flow_cylindrical
+        end
+    end
 
-    DivIntegrator = L2NormIntegrator([div(1)]; quadorder = 2 * 2, resultdim = 1)
-    div_v = sqrt(sum(evaluate(DivIntegrator, [velocity])))
-    @info "||div(R(v))||_2 = $(div_v)"
+    chemgrid[CoordinateSystem] = coord_system
 
     data = Data()
     data.D = D
@@ -183,6 +203,9 @@ function full_fem_demo(; coord_system = Cartesian2D, nref = 1, Plotter = nothing
 
     sol = solve(sys; inival = 0.0)
 
+    fvm_divs = VoronoiFVM.calc_divergences(sys, evelo, bfvelo)
+    @info "||div(v)||_∞ = $(norm(fvm_divs, Inf))"
+
     vis = GridVisualizer(; Plotter = Plotter)
 
     scalarplot!(vis[1, 1], chemgrid, sol[1, :]; flimits = (0, cin + 1.0e-5),
@@ -191,14 +214,15 @@ function full_fem_demo(; coord_system = Cartesian2D, nref = 1, Plotter = nothing
     minmax = extrema(sol)
     @info "Minimal/maximal values of concentration: $(minmax)"
 
-    return sol
+    return sys, velocity, sol, evelo, bfvelo, fvm_divs
+    #return velocity
 end
 
 function compute_velocity(flowgrid, coord_system, μ = 1.0e-02; interpolation_eps = 1.0e-10)
     axisymmetric = coord_system == Cylindrical2D ? true : false
 
     # define finite element spaces
-    FE_v, FE_p = H1P2B{2,2}, L2P1{1}
+    FE_v, FE_p = H1P2B{2, 2}, L2P1{1}
     reconst_FEType = HDIVBDM2{2}
     FES = [FESpace{FE_v}(flowgrid), FESpace{FE_p}(flowgrid; broken = true)]
 
