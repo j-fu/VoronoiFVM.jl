@@ -125,6 +125,9 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
 
     edge_length = norm(p1 - p2, 2)
     avg_r = (p1[1] + p2[1]) / 2
+    if avg_r < eps()
+        return 0
+    end
     bp1 = zeros(3)
     CF = aug_vec_block.cellfinder
     icell::Int = gFindLocal!(bp1, CF, p1; eps=interpolate_eps)
@@ -198,6 +201,8 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
             p1_temp[1:2] = p1 + 10 * interpolate_eps * (p2 - p1)
             icell_new = gFindLocal!(bp1, CF, p1_temp[1:2]; eps=10 * interpolate_eps, icellstart=icell)
             if icell_new == 0
+                # TODO: test the following
+                # icell_new = gFindBruteForce!(bp1, CF, p1_temp[1:2])
                 @warn "icell_new=0!"
             end
             if icell_new != icell
