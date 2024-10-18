@@ -1,6 +1,8 @@
 using Documenter, ExampleJuggler, PlutoStaticHTML, VoronoiFVM, DocumenterCitations
 using ExtendableGrids, GridVisualize, LinearAlgebra, RecursiveArrayTools, SciMLBase
 
+using ExtendableFEMBase, ExtendableFEM
+
 using OrdinaryDiffEqBDF, OrdinaryDiffEqLowOrderRK, OrdinaryDiffEqRosenbrock, OrdinaryDiffEqSDIRK, OrdinaryDiffEqTsit5 
 
 function make(; with_examples = true,
@@ -33,7 +35,8 @@ function make(; with_examples = true,
             "misc.md",
             "internal.md",
             "allindex.md",
-            "devel.md",]
+            "devel.md",
+            "extensions.md"]
     ]
 
     
@@ -65,10 +68,14 @@ function make(; with_examples = true,
         push!(pages, "Examples" => module_examples)
     end
 
-    makedocs(; sitename = "VoronoiFVM.jl",
-             modules = [VoronoiFVM],
-             plugins = [bib],
-             checkdocs = :all,
+    makedocs(; sitename="VoronoiFVM.jl",
+             modules=[
+                 VoronoiFVM,
+                 # define extension modules manually: https://github.com/JuliaDocs/Documenter.jl/issues/2124#issuecomment-1557473415
+                 Base.get_extension(VoronoiFVM, :VoronoiFVMExtendableFEMBaseExt)
+             ],
+             plugins=[bib],
+             checkdocs=:all,
              clean = false,
              doctest = false,
              authors = "J. Fuhrmann",
