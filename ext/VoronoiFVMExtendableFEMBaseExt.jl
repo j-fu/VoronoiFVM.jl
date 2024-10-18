@@ -13,8 +13,7 @@ using LinearAlgebra: dot, norm
 
 using Base: fill!
 
-using DocStringExtensions: DocStringExtensions, SIGNATURES, TYPEDEF,
-                           TYPEDFIELDS, TYPEDSIGNATURES
+using DocStringExtensions: DocStringExtensions, SIGNATURES
 
 id(u) = (u, Identity)
 
