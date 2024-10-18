@@ -329,7 +329,7 @@ end
 """
 $(SIGNATURES)
 
-Integrate `velofunc` along the edge ``\\sigma=\\overline{\\mathtt{coordl}\\,\\mathtt{coordr}}`` 
+This is an internal function to integrate `velofunc` along the edge ``\\sigma=\\overline{\\mathtt{coordl}\\,\\mathtt{coordr}}``
 between the ``x_K`` and ``x_L`` where ``\\mathtt{hnormal}=x_K-x_L`` using [Simpson's Rule](https://en.wikipedia.org/wiki/Simpson%27s_rule).
 To be precise, compute for a cartesian coordinate system:
 ``\\int_{\\sigma} \\mathbf{v} \\cdot \\mathbf{n} \\,\\mathrm{ds} \\lvert x_K - x_L \\rvert / \\lvert\\sigma\\rvert``.
@@ -348,7 +348,7 @@ end
 """
 $(SIGNATURES)
 
-Similar to `integrate(::Type{<:Cartesian2D},...)`, but computes instead
+This is an internal function similar to `integrate(::Type{<:Cartesian2D},...)`, but computes instead
 ``\\int_{\\sigma} r \\, \\mathbf{v} \\cdot \\mathbf{n} \\,\\mathrm{ds} \\lvert x_K - x_L \\rvert / \\left ( \\lvert\\sigma\\rvert r(\\mathrm{mid}(\\sigma)) \\right )``
 where ``r(\\mathrm{mid}(\\sigma))`` is the ``r``-coordinate of the mid-point of ``\\sigma``.
 """
