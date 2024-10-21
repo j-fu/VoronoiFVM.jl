@@ -156,6 +156,12 @@ function main(;
         analytical_velocity = stagnation_flow_cartesian
     end
 
+    ## only the chemgrid needs its CoordinateSystem adjusted
+    ## since the velocity calculation works by adjusting
+    ## the kernels for the Stokes operator directly while
+    ## the finite volume machinery relies upon the CoordinateSystem
+    ## for selecting the correct geometrical factors for the 
+    ## Voronoi cell contributions
     if cylindrical_grid
         chemgrid[CoordinateSystem] = Cylindrical2D
     end
