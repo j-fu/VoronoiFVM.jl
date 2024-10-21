@@ -150,7 +150,7 @@ function main(;
         end
     end
 
-    if coord_system == Cylindrical2D
+    if cylindrical_grid
         analytical_velocity = stagnation_flow_cylindrical
     else
         analytical_velocity = stagnation_flow_cartesian
@@ -177,7 +177,7 @@ function main(;
     data.bfvelo = bfvelo
 
     physics = VoronoiFVM.Physics(; flux = flux!, breaction = bconditions!, data)
-    sys = VoronoiFVM.System(chemgrid, physics; assembly = assembly)
+    sys = VoronoiFVM.System(chemgrid, physics; assembly)
     enable_species!(sys, 1, [1])
 
     sol = solve(sys; inival = 0.0)
