@@ -125,7 +125,7 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
 
     edge_length = norm(p1 - p2, 2)
     avg_r = (p1[1] + p2[1]) / 2
-    if avg_r < eps()
+    if axisymmetric && avg_r < eps()
         return 0
     end
     bp1 = zeros(3)
