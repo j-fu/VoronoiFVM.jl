@@ -176,8 +176,6 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
         postprocess_xreftest!(bp, CF.xCellGeometries[icell])
     end
 
-    i = 1
-
     while (true)
 
         # TODO implement proper emergency guard to avoid indefinite loops
@@ -273,8 +271,6 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
 
             p1 .= pint
         end
-
-        i += 1
     end
 
     if axisymmetric
