@@ -326,7 +326,15 @@ end
 #
 # TODO: this should be generalized for more quadrules
 #
-function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc::F ; kwargs...) where F
+"""
+$(SIGNATURES)
+
+This is an internal function to integrate `velofunc` along the edge ``\\sigma=\\overline{\\mathtt{coordl}\\,\\mathtt{coordr}}``
+between the ``x_K`` and ``x_L`` where ``\\mathtt{hnormal}=x_K-x_L`` using [Simpson's Rule](https://en.wikipedia.org/wiki/Simpson%27s_rule).
+To be precise, compute for a cartesian coordinate system:
+``\\int_{\\sigma} \\mathbf{v} \\cdot \\mathbf{n} \\,\\mathrm{ds} \\lvert x_K - x_L \\rvert / \\lvert\\sigma\\rvert``.
+"""
+function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc; kwargs...)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
@@ -337,7 +345,14 @@ function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc::F ;
     return (wl * vxl + wm * vxm + wr * vxr) * hnormal[1] + (wl * vyl + wm * vym + wr * vyr) * hnormal[2]
 end
 
-function integrate(::Type{<:Cylindrical2D}, coordl, coordr, hnormal, velofunc::F ; kwargs...) where F
+"""
+$(SIGNATURES)
+
+This is an internal function similar to `integrate(::Type{<:Cartesian2D},...)`, but computes instead
+``\\int_{\\sigma} r \\, \\mathbf{v} \\cdot \\mathbf{n} \\,\\mathrm{ds} \\lvert x_K - x_L \\rvert / \\left ( \\lvert\\sigma\\rvert r(\\mathrm{mid}(\\sigma)) \\right )``
+where ``r(\\mathrm{mid}(\\sigma))`` is the ``r``-coordinate of the mid-point of ``\\sigma``.
+"""
+function integrate(::Type{<:Cylindrical2D}, coordl, coordr, hnormal, velofunc; kwargs...)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
@@ -365,7 +380,9 @@ end
 """
 $(SIGNATURES)
 
-Project velocity onto grid edges,
+Project velocity onto grid edges.
+That is, we compute the path integrals of the given `velofunc` along the 
+Voronoi cell edges as provided by [`integrate`](@ref).
 """
 function edgevelocities(grid, velofunc::F ; kwargs...) where F
     @assert dim_space(grid) < 3
@@ -414,7 +431,7 @@ end
 """
 $(SIGNATURES)
 
-Project velocity onto boundary face normals
+Similar to [`edgevelocities`](@ref), but for boundary faces.
 """
 function bfacevelocities(grid::ExtendableGrid{Tc,Ti}, velofunc::F ; kwargs...) where {Tc, Ti, F}
     @assert dim_space(grid) < 3

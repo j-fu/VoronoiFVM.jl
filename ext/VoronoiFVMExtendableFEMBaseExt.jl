@@ -14,6 +14,8 @@ using LinearAlgebra: dot, norm
 
 using Base: fill!
 
+using DocStringExtensions: DocStringExtensions, SIGNATURES
+
 id(u) = (u, Identity)
 
 
@@ -29,7 +31,6 @@ to execute integration along given segments
 """
 struct AugmentedFEVectorBlock{TVB, TSE, TPE, TCF, TFG}
     vblock::TVB
-
     seg_integrator::TSE
     point_evaluator::TPE
     cellfinder::TCF
@@ -105,7 +106,15 @@ function prepare_segment_integration(vel; axisymmetric=false, reconst=false, kwa
     return seg_integrator, point_evaluator, cellfinder, flowgrid
 end
 
+"""
+$(SIGNATURES)
+
+Compute [`VoronoiFVM.edgevelocities`](@ref) for a finite element flow field computed 
+by [`ExtendableFEM`](https://github.com/chmerdon/ExtendableFEM.jl).
+"""
 function VoronoiFVM.edgevelocities(grid, vel::FEVectorBlock; kwargs...)
+    # construct an augmented type to gather precomputed information 
+    # in order to pass it to the repeated integrate call in VoronoiFVM.edgevelocities
     axisymmetric = grid[CoordinateSystem] <: Cylindrical2D ? true : false
     seg_integrator, point_evaluator, cf, flowgrid = prepare_segment_integration(vel; axisymmetric, kwargs...)
     aug_fevec_block = AugmentedFEVectorBlock(vel, seg_integrator, point_evaluator, cf, flowgrid)
@@ -118,7 +127,13 @@ function VoronoiFVM.edgevelocities(grid, vel::FEVectorBlock; kwargs...)
     return velovec
 end
 
-function VoronoiFVM.bfacevelocities(grid::ExtendableGrid{Tc, Ti}, vel::FEVectorBlock; kwargs...) where {Tc,Ti}
+"""
+$(SIGNATURES)
+
+Compute [`VoronoiFVM.bfacevelocities`](@ref) for a finite element flow field computed 
+by [`ExtendableFEM`](https://github.com/chmerdon/ExtendableFEM.jl).
+"""
+function VoronoiFVM.bfacevelocities(grid, vel::FEVectorBlock; kwargs...)
     axisymmetric = grid[CoordinateSystem] <: Cylindrical2D ? true : false
     seg_integrator, point_evaluator, cf, flowgrid = prepare_segment_integration(vel; axisymmetric, kwargs...)
     aug_fevec_block = AugmentedFEVectorBlock(vel, seg_integrator, point_evaluator, cf, flowgrid)
@@ -132,14 +147,21 @@ function VoronoiFVM.bfacevelocities(grid::ExtendableGrid{Tc, Ti}, vel::FEVectorB
     return velovec
 end
 
-function VoronoiFVM.integrate(::Type{<:Cartesian2D}, p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock{TVB, TSE, TPE, TCF, TFG}; kwargs...) where {TVB, TSE, TPE, TCF, TFG}
+# We need two explicitly type-annotated methods for a working method specialization.
+# This one...
+function VoronoiFVM.integrate(::Type{<:Cartesian2D}, p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; kwargs...)
     _integrate_along_segments(p1, p2, hnormal, aug_vec_block; kwargs...)
 end
 
-function VoronoiFVM.integrate(::Type{<:Cylindrical2D}, p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock{TVB, TSE, TPE, TCF, TFG}; kwargs...) where {TVB, TSE, TPE, TCF, TFG}
+# ... and that one.
+function VoronoiFVM.integrate(::Type{<:Cylindrical2D}, p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; kwargs...)
     _integrate_along_segments(p1, p2, hnormal, aug_vec_block; kwargs...)
 end
 
+# compute the path integral for the velocity in aug_vec_block between p1 and p2 by 
+# incrementally walking through each cell in the grid between p1 and p2
+# and summing up each cell's contribution
+function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock; interpolate_eps=1.0e-12, axisymmetric=false, kwargs...)
 
 
 function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVectorBlock{TVB, TSE, TPE, TCF, TFG}; interpolate_eps=1.0e-12, axisymmetric=false, kwargs...) where {TVB, TSE, TPE, TCF, TFG}
@@ -148,6 +170,10 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
     (; bp1, result, summand, bp2, pint, bpint, bary)= aug_vec_block
      
    
+    if axisymmetric && avg_r < eps()
+        return 0
+    end
+
     CF = aug_vec_block.cellfinder
     icell::Int = gFindLocal!(bp1, CF, p1; eps=interpolate_eps)
     if edge_length ≤ interpolate_eps
@@ -190,16 +216,13 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
         postprocess_xreftest!(bp, CF.xCellGeometries[icell])
     end
 
-    i = 1
-    #@info "icell=$icell"
-    #@info "p1=$p1, p2=$p2"
+    while (true)
 
-     while (true)
-        # first compute the barycentric coordinates of 
+        # TODO implement proper emergency guard to avoid indefinite loops
+
+        # first compute the barycentric coordinates of
         # p1,p2
 
-        #@info "icell = $(icell), step=$i"
-        #@info "p1=$(p1), p2=$(p2)"
         # update local 2 global map
         L2G = CF.L2G4EG[1]
         update_trafo!(L2G, icell)
@@ -210,15 +233,17 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
          calc_barycentric_coords!(bp1, p1)
          calc_barycentric_coords!(bp2, p2)
 
-        # if p1 is a node of a triangle, start with 
+        # if p1 is a node of a triangle, start with
         # a cell containing p1 in the direction of (p2-p1)
         if count(<=(interpolate_eps), bp1) == 2 # 10^(-13)
             @. p1_temp2 = p1 + 10 * interpolate_eps * (p2 - p1)
             icell_new = gFindLocal!(bp1, CF, p1_temp2; eps=10 * interpolate_eps, icellstart=icell) #!!! allocates
             if icell_new == 0
+                # TODO: test the following
+                # icell_new = gFindBruteForce!(bp1, CF, p1_temp[1:2])
                 @warn "icell_new=0!"
             end
-            if icell_new != icell# && icell_new!=0
+            if icell_new != icell
                 icell = icell_new
                 continue
             end
@@ -234,18 +259,16 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
 
         (λp2min, imin) = findmin(bp2)
 
-        #@info "bp1=$(bp1), bp2=$(bp2), λp2min=$(λp2min)"
-
         # if λp2min≥0, then p2 is inside icell and we can simply add the
         # integral across the line segment between p1 and p2 to the result
 
         # if not, then p2 is outside of icell and we try to determine
-        # pint which is the point where icell intersects the line segment 
-        # [p1,p2] - since pint should be on the boundary of icell, 
+        # pint which is the point where icell intersects the line segment
+        # [p1,p2] - since pint should be on the boundary of icell,
         # at least one barycentric coordinate (stored in bpint) should
         # be zero yielding an expression for the line segment parameter t.
-        # this is not necessarily the previous imin and we have to check 
-        # all triangle edges for if going towards that edge actually takes us 
+        # this is not necessarily the previous imin and we have to check
+        # all triangle edges for if going towards that edge actually takes us
         # closer to p2
 
         if λp2min ≥ -interpolate_eps
@@ -253,7 +276,7 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
             result += summand
             break
         else
-            # calculate intersection point with corresponding edge 
+            # calculate intersection point with corresponding edge
             imin = 0
             t = 1.0 + interpolate_eps
             pint .= p1
@@ -271,13 +294,9 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
                     bpint .= p1_temp3
                     break
                 end
-                #@info "imin = $imin"
                 t = bp1[imin] / (bp1[imin] - bp2[imin])
-                #@info "t=$t"
                 bpint = bp1 + t * (bp2 - bp1)
-                #@info "bpint = $bpint"
                 eval_trafo!(pint, L2G, bpint)
-                #@info "pint=$pint"
                 if dist(pint,p2) < closestdist && ((all(x->x>= -interpolate_eps, bpint) && all(x->x<= 1 + interpolate_eps, bpint)))
                     closestimin = imin
                     closestdist = dist(pint,p2)
@@ -285,29 +304,16 @@ function _integrate_along_segments(p1, p2, hnormal, aug_vec_block::AugmentedFEVe
                 end
             end
             eval_trafo!(pint, L2G, bpint)
-            #@info "pint = $pint"
-
-            # add integral term
             SI.integrator(summand, ((p1, pint)), (bp1, bpint), icell)
             result += summand
-            #@info "segment part: $summand"
+
             # proceed to next cell along edge of smallest barycentric coord
             prevcell = icell
             icell = xFaceCells[1, xCellFaces[facetogo[1][imin], icell]] #!!! allocates
             icell = icell == prevcell ? xFaceCells[2, xCellFaces[facetogo[1][imin], icell]] : icell #!!! allocates
 
-            #@info "icell = $icell"
-            #@info "bpint = $bpint"
-            #if any(bpint.<=-1.0e-10)
-            #    @warn "negative bpint coord!"
-            #end
-            #icell=gFindLocal!(bpint,CF,pint;icellstart=icell)
-            #@info "icell_after = $(icell)"
-            #@info "bpint_after = $(bpint)"
-
             p1 .= pint
         end
-        i += 1
     end
 
     if axisymmetric
