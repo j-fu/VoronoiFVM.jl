@@ -10,7 +10,7 @@ using ExtendableGrids: ExtendableGrid, Cartesian2D, CoordinateSystem, Cylindrica
     Edge1D, eval_trafo!, gFindLocal!,
     mapderiv!, postprocess_xreftest!, update_trafo!
 
-using LinearAlgebra: dot, norm
+using LinearAlgebra: dot
 
 using Base: fill!
 
