@@ -1,7 +1,7 @@
 name = "VoronoiFVM"
 uuid = "82b139dc-5afc-11e9-35da-9b9bdfd336f3"
-authors = ["Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>", "Patrick Jaap", "Dilara Abdel", "Jan Weidner", "Alexander Seiler", "Patricio Farrell", "Matthias Liero"]
-version = "2.0.2"
+authors = ["Jürgen Fuhrmann <juergen.fuhrmann@wias-berlin.de>", "Patrick Jaap", "Daniel Runge", "Dilara Abdel", "Jan Weidner", "Alexander Seiler", "Patricio Farrell", "Matthias Liero"]
+version = "2.1"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -28,13 +28,20 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
+[weakdeps]
+ExtendableFEMBase = "12fb9182-3d4c-4424-8fd1-727a0899810c"
+
+[extensions]
+VoronoiFVMExtendableFEMBaseExt = "ExtendableFEMBase"
+
 [compat]
 BandedMatrices = "0.17,1"
 Colors = "0.12"
 CommonSolve = "0.2"
 DiffResults = "1"
 DocStringExtensions = "0.8,0.9"
-ExtendableGrids = "1.9.2"
+ExtendableFEMBase = "0.7.0"
+ExtendableGrids = "1.10.1"
 ExtendableSparse = "1.5.1"
 ForwardDiff = "0.10.35"
 GridVisualize = "0.5.2,0.6.1,1"

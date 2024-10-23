@@ -326,22 +326,37 @@ end
 #
 # TODO: this should be generalized for more quadrules
 #
-function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc)
+"""
+$(SIGNATURES)
+
+This is an internal function to integrate `velofunc` along the edge ``\\sigma=\\overline{\\mathtt{coordl}\\,\\mathtt{coordr}}``
+between the ``x_K`` and ``x_L`` where ``\\mathtt{hnormal}=x_K-x_L`` using [Simpson's Rule](https://en.wikipedia.org/wiki/Simpson%27s_rule).
+To be precise, compute for a cartesian coordinate system:
+``\\int_{\\sigma} \\mathbf{v} \\cdot \\mathbf{n} \\,\\mathrm{ds} \\lvert x_K - x_L \\rvert / \\lvert\\sigma\\rvert``.
+"""
+function integrate(::Type{<:Cartesian2D}, coordl, coordr, hnormal, velofunc; kwargs...)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
-    coordm = 0.5 * (coordl + coordr)
+    coordm=( 0.5*(coordl[1]+coordr[1]), 0.5*(coordl[2]+coordr[2]) )
     (vxl, vyl) = velofunc(coordl[1], coordl[2])
     (vxm, vym) = velofunc(coordm[1], coordm[2])
     (vxr, vyr) = velofunc(coordr[1], coordr[2])
     return (wl * vxl + wm * vxm + wr * vxr) * hnormal[1] + (wl * vyl + wm * vym + wr * vyr) * hnormal[2]
 end
 
-function integrate(::Type{<:Cylindrical2D}, coordl, coordr, hnormal, velofunc)
+"""
+$(SIGNATURES)
+
+This is an internal function similar to `integrate(::Type{<:Cartesian2D},...)`, but computes instead
+``\\int_{\\sigma} r \\, \\mathbf{v} \\cdot \\mathbf{n} \\,\\mathrm{ds} \\lvert x_K - x_L \\rvert / \\left ( \\lvert\\sigma\\rvert r(\\mathrm{mid}(\\sigma)) \\right )``
+where ``r(\\mathrm{mid}(\\sigma))`` is the ``r``-coordinate of the mid-point of ``\\sigma``.
+"""
+function integrate(::Type{<:Cylindrical2D}, coordl, coordr, hnormal, velofunc; kwargs...)
     wl = 1.0 / 6.0
     wm = 2.0 / 3.0
     wr = 1.0 / 6.0
-    coordm = 0.5 * (coordl + coordr)
+    coordm=( 0.5*(coordl[1]+coordr[1]), 0.5*(coordl[2]+coordr[2]) )
 
     rl = coordl[1]
     rm = coordm[1]
@@ -365,9 +380,11 @@ end
 """
 $(SIGNATURES)
 
-Project velocity onto grid edges,
+Project velocity onto grid edges.
+That is, we compute the path integrals of the given `velofunc` along the 
+Voronoi cell edges as provided by [`integrate`](@ref).
 """
-function edgevelocities(grid, velofunc)
+function edgevelocities(grid, velofunc::F ; kwargs...) where F
     @assert dim_space(grid) < 3
 
     cn = grid[CellNodes]
@@ -386,25 +403,26 @@ function edgevelocities(grid, velofunc)
             velovec[iedge] = -elen * vx
         end
     else
+        hnormal=zeros(2)
+        p1 = zeros(2)
+        p2 = zeros(2)
         for iedge = 1:num_edges(grid)
             K = en[1, iedge]
             L = en[2, iedge]
-            p1 = @MVector zeros(2)
-            p2 = @MVector zeros(2)
-            tricircumcenter!(p1,
-                             coord[:, cn[1, ec[1, iedge]]],
-                             coord[:, cn[2, ec[1, iedge]]],
-                             coord[:, cn[3, ec[1, iedge]]])
+            @views tricircumcenter!(p1,
+                                    coord[:, cn[1, ec[1, iedge]]],
+                                    coord[:, cn[2, ec[1, iedge]]],
+                                    coord[:, cn[3, ec[1, iedge]]])
             if ec[2, iedge] > 0
-                tricircumcenter!(p2,
-                                 coord[:, cn[1, ec[2, iedge]]],
-                                 coord[:, cn[2, ec[2, iedge]]],
-                                 coord[:, cn[3, ec[2, iedge]]])
+                @views tricircumcenter!(p2,
+                                        coord[:, cn[1, ec[2, iedge]]],
+                                        coord[:, cn[2, ec[2, iedge]]],
+                                        coord[:, cn[3, ec[2, iedge]]])
             else
-                p2 .= 0.5 * (coord[:, K] + coord[:, L])
+                @views @. p2 = 0.5 * (coord[:, K] + coord[:, L])
             end
-            hnormal = coord[:, K] - coord[:, L]
-            velovec[iedge] = integrate(coord_system, p1, p2, hnormal, velofunc)
+            @views @. hnormal.= coord[:, K] - coord[:, L]
+            velovec[iedge] = integrate(coord_system, p1, p2, hnormal, velofunc; kwargs...)
         end
     end
     return velovec
@@ -413,15 +431,15 @@ end
 """
 $(SIGNATURES)
 
-Project velocity onto boundary face normals
+Similar to [`edgevelocities`](@ref), but for boundary faces.
 """
-function bfacevelocities(grid, velofunc)
+function bfacevelocities(grid::ExtendableGrid{Tc,Ti}, velofunc::F ; kwargs...) where {Tc, Ti, F}
     @assert dim_space(grid) < 3
     bfacenodes = grid[BFaceNodes]
     coord = grid[Coordinates]
     coord_system = grid[CoordinateSystem]
     bfacecells = grid[BFaceCells]
-    bfacenormals = grid[BFaceNormals]
+    bfacenormals::Matrix{Tc} = grid[BFaceNormals]
     bfr = grid[BFaceRegions]
     velovec = zeros(Float64, 2, num_bfaces(grid))
     if dim_space(grid) == 1
@@ -430,12 +448,15 @@ function bfacevelocities(grid, velofunc)
             velovec[ibface] = vx * bfacenormals[1, ibface]
         end
     else
+        p1=zeros(2)
+        p2=zeros(2)
+        pm=zeros(2)
         for ibface = 1:num_bfaces(grid)
-            p1 = coord[:, bfacenodes[1, ibface]]
-            p2 = coord[:, bfacenodes[2, ibface]]
-            pm = 0.5 * (p1 + p2)
-            velovec[1, ibface] = integrate(coord_system, p1, pm, bfacenormals[:, ibface], velofunc)
-            velovec[2, ibface] = integrate(coord_system, pm, p2, bfacenormals[:, ibface], velofunc)
+            @views @. p1 = coord[:, bfacenodes[1, ibface]]
+            @views @. p2 = coord[:, bfacenodes[2, ibface]]
+            @views @. pm = 0.5 * (p1 + p2)
+            @views velovec[1, ibface] = integrate(coord_system, p1, pm, bfacenormals[:, ibface], velofunc; kwargs...)
+            @views velovec[2, ibface] = integrate(coord_system, pm, p2, bfacenormals[:, ibface], velofunc; kwargs...)
         end
     end
     return velovec
