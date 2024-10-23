@@ -76,7 +76,7 @@ function checklurx0(::Type{Val{N}}, ::Type{T}) where {N, T}
     end
     @gc_preserve mul!(b, A, x)
     @gc_preserve inplace_linsolve!(A, b, ipiv)
-    
+
         nm = 0
     for i = 1:N
         nm += (b[i] - x[i])^2
@@ -102,12 +102,12 @@ function checklurm0(::Type{Val{N}}, ::Type{T}) where {N, T}
     end
     @gc_preserve mul!(b, A, x)
     @gc_preserve inplace_linsolve!(A, b, ipiv)
-    
+
     nm = 0
     for i = 1:N
         nm += (b[i] - x[i])^2
     end
-    
+
     @assert sqrt(nm) / N < 100.0 * eps(Float64)
     nothing
 end
@@ -131,21 +131,19 @@ function runtests()
     @test n1 == 0
 
     n3 = @allocated checklux(10, Dual64)
-
-    isbroken = VERSION >= v"1.12.0-DEV.0"
-    @test n3 == 0 broken=isbroken
+    @test n3 == 0
 
     checklurx(10, Float64)
     checklurm(10, Float64)
     checklurx(10, Dual64)
     checklurm(10, Dual64)
-    
+
     rn1 = @allocated checklurx(10, Float64)
     @test rn1 == 0
     rn2 = @allocated checklurm(10, Float64)
     @test rn2 == 0
     rn3 = @allocated checklurx(10, Dual64)
-    @test rn3 == 0  broken=isbroken
+    @test rn3 == 0
     rn4 = @allocated checklurm(10, Dual64)
     @test rn4 == 0
     true
