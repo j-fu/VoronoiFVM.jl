@@ -4,7 +4,10 @@
   - use `precs` based linear solver API, see https://github.com/SciML/LinearSolve.jl/pull/514
   - stop re-exporting ForwardDiff.value
   - try to remove type piracies
-  
+## v2.1.0 October 23, 2024
+  - Features:
+    - Add VoronoiFVMExtendableFEMBaseExt  extension allowing to use velocity fields caculated  with [ExtendableFEM](https://github.com/chmerdon/ExtendableFEM.jl) in convection-diffusion problems
+
 ## v2.0.2 October 12, 2024
   - Bugfixes
     - replace internally used `values` and `vec` methods by new `dofs`
@@ -37,7 +40,7 @@
 ### Modified
   - Sparse solver default for Float64 in all space dimensions is now  UMFPACKFactorization. For all other
     number types it is SparspakFactorization. Before it was KLU for 1D, Sparspak for 2D an UMFPACK for 3D.
-    
+
 ## v1.25.0, Sept 9, 2024
 - [`VoronoiFVM.Physics`](@ref) callbacks (`flux`, `storage`, etc.) without `data` argument are now deprecated
 
