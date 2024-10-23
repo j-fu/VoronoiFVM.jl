@@ -36,7 +36,7 @@ VoronoiFVMExtendableFEMBaseExt = "ExtendableFEMBase"
 
 [compat]
 BandedMatrices = "0.17,1"
-Colors = "0.12"
+Colors = "0.12, 0.13"
 CommonSolve = "0.2"
 DiffResults = "1"
 DocStringExtensions = "0.8,0.9"
